@@ -1,2 +1,1 @@
-# kmcpy
-Kinetic Monte Carlo Simulation using Python
+# Kinetic Monte Carlo Simulation using Python (kmcPy)
