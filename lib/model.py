@@ -11,7 +11,7 @@ import sys
 from copy import deepcopy
 sys.path.append('./')
 import numba as nb
-import pickle
+import pickle,json
 
 class LocalClusterExpansion:
     """
@@ -19,7 +19,10 @@ class LocalClusterExpansion:
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-    def __init__(self,center_Na1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
+    def __init__(self):
+        pass
+
+    def initialization(self,center_Na1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
         template_structure = Structure.from_file(template_cif_fname)
         template_structure.remove_oxidation_states()
         self.center_Na1 = template_structure[center_Na1_index]
@@ -91,7 +94,7 @@ class LocalClusterExpansion:
 
     def clusters_constructor(self,indexes,cutoff): # return a list of Cluster
         clusters = []
-        print('\nGenerating clusters ...')
+        print('\nGenerating possible clusters within this diffusion unit...')
         print('Cutoffs: pair =',cutoff[1],'Angst, triplet =',cutoff[2],'Angst, quadruplet =',cutoff[3],'Angst')
         for site_indices in indexes:
             sites = [self.diffusion_unit_structure[s] for s in site_indices]
@@ -135,6 +138,40 @@ class LocalClusterExpansion:
         for i,orbit in enumerate(self.orbits):
             orbit.clusters[0].to_xyz(path+'/orbit_'+str(i)+'.xyz')
 
+    def to_json(self,fname):
+        print('Saving:',fname)
+        with open(fname,'w') as fhandle:
+            d = self.as_dict()
+            jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
+            fhandle.write(jsonStr)
+
+    def as_dict(self):
+        d = {"@module":self.__class__.__module__,
+        "@class": self.__class__.__name__,
+        "center_Na1":self.center_Na1.as_dict(),
+        "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
+        "clusters":[],
+        "orbits":[],
+        "sublattice_indices":self.sublattice_indices}
+
+        for cluster in self.clusters:
+            d["clusters"].append(cluster.as_dict())
+        for orbit in self.orbits:
+            d["orbits"].append(orbit.as_dict())
+        return d
+
+
+    @classmethod
+    def from_json(self,fname):
+        print('Loading:',fname)
+        with open(fname,'rb') as fhandle:
+            objDict = json.load(fhandle)
+        obj = LocalClusterExpansion()
+        obj.__dict__ = objDict
+        return obj
+
+
+
 class Orbit:# orbit is a collection of symmetry equivalent clusters
     def __init__(self):
         self.clusters = []
@@ -160,7 +197,15 @@ class Orbit:# orbit is a collection of symmetry equivalent clusters
     
     def show_representative_cluster(self):
         print("{0:5s}\t{1:10s}\t{2:8.3f}\t{3:8.3f}\t{4:5s}\t{5:5d}".format(self.clusters[0].type,str(self.clusters[0].site_indices),self.clusters[0].max_length,self.clusters[0].min_length,self.clusters[0].sym,self.multiplicity))
-            
+
+    def as_dict(self):
+        d = {"@module":self.__class__.__module__,
+        "@class": self.__class__.__name__,
+        "clusters":[],
+        "multiplicity":self.multiplicity}
+        for cluster in self.clusters:
+            d["clusters"].append(cluster.as_dict())
+        return d
 
 class Cluster:
     def __init__(self,site_indices,sites):
@@ -214,6 +259,22 @@ class Cluster:
         except:
             pass
         print('==============================================================\n')
+    
+    def as_dict(self):
+        d = {"@module":self.__class__.__module__,
+        "@class": self.__class__.__name__,
+        "site_indices":self.site_indices,
+        "type":self.type,
+        "structure":self.structure.as_dict(),
+        "sym":self.sym,
+        "max_length":self.max_length,
+        "min_length":self.min_length}
+        if type(self.bond_distances) is list:
+            d['bond_distances']=self.bond_distances
+        else:
+            d['bond_distances']=self.bond_distances.tolist()
+        return d
+
 
 class Event: # Event is a database storing site and cluster info for each diffusion unit
     """
@@ -297,6 +358,32 @@ class Event: # Event is a database storing site and cluster info for each diffus
         self.set_ekra(keci,empty_cluster,keci_site,empty_cluster_site)    #calculate ekra and probability
         self.set_probability(occ_global,v,T)
 
+    
+    def as_dict(self):
+        d = {"time_stamp":self.time_stamp,
+        "weight":self.weight,
+        "alpha":self.alpha,
+        "keci":self.keci,
+        "empty_cluster":self.empty_cluster,
+        "rmse":self.rmse,
+        "loocv":self.loocv}
+
+    def to_json(self,fname):
+        print('Saving:',fname)
+        with open(fname,'w') as fhandle:
+            d = self.as_dict()
+            jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
+            fhandle.write(jsonStr)
+    
+    @classmethod
+    def from_json(self,fname):
+        print('Loading:',fname)
+        with open(fname,'rb') as fhandle:
+            objDict = json.load(fhandle)
+        obj = Fitting()
+        obj.__dict__ = objDict
+        return obj
+
 
     
 @nb.njit
@@ -326,15 +413,46 @@ class Fitting:
     
     def save_file(self):
         save_project(self,'fitting_results.pkl')
+    
+    def as_dict(self):
+        d = {"time_stamp":self.time_stamp,
+        "weight":self.weight,
+        "alpha":self.alpha,
+        "keci":self.keci,
+        "empty_cluster":self.empty_cluster,
+        "rmse":self.rmse,
+        "loocv":self.loocv}
+        return d
 
+    def to_json(self,fname):
+        print('Saving:',fname)
+        with open(fname,'w') as fhandle:
+            d = self.as_dict()
+            jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
+            fhandle.write(jsonStr)
+    
+    @classmethod
+    def from_json(self,fname):
+        print('Loading:',fname)
+        with open(fname,'rb') as fhandle:
+            objDict = json.load(fhandle)
+        obj = Fitting()
+        obj.__dict__ = objDict
+        return obj
 
 def save_project(project,fname):
     print('Saving:',fname)
     with open(fname,'wb') as fhandle:
         pickle.dump(project,fhandle)
 
+
 def load_project(fname):
     print('Loading:',fname)
     with open(fname,'rb') as fhandle:
         obj = pickle.load(fhandle)
     return obj
+
+
+def convert(o):
+    if isinstance(o, np.int64): return int(o)  
+    raise TypeError
