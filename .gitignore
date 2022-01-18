@@ -145,7 +145,7 @@ dmypy.json
 cython_debug/
 
 .DS_Store
-
+.vscode/
 test/
 
 # PyCharm
