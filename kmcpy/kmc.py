@@ -6,18 +6,15 @@ Author: Zeyu Deng
 Email: dengzeyu@gmail.com
 """
 
-import pandas as pd
 import random
-import json
 import numpy as np
 from pymatgen.core import Structure,Lattice
-
-from copy import copy
-import sys
-sys.path.append('./')
-from model import Event
-import pickle
 from numba.typed import List
+from pymatgen.core.structure import Structure
+import numpy as np
+import pandas as pd
+from copy import copy
+import pickle,json
 
 class KMC:
     def __init__(self):

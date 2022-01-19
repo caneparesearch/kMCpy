@@ -2,16 +2,14 @@
 """
 Functions to build the model
 """
-from pymatgen.core.structure import Molecule,Structure
-import numpy as np
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
-import glob
-import sys
-from copy import deepcopy
-sys.path.append('./')
+from pymatgen.core.structure import Molecule,Structure
+import numpy as np
 import numba as nb
+from copy import deepcopy
 import pickle,json
+import glob
 
 class LocalClusterExpansion:
     """

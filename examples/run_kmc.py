@@ -8,22 +8,21 @@ Email: dengzeyu@gmail.com
 run this as:
 python run_kmc.py comp structure_index T
 """
-import sys
-sys.path.append('../lib')
-from kmc import KMC
+from kmcpy.kmc import KMC
 import pandas as pd
+import sys
 
 v = 0.5*10**13
 #extreme senerio -> 15*10**13
 equ_pass= 1
 kmc_pass = 3000
 supercell_shape = (8,8,8)
-fitting_results = '../inputs/fitting_results.pkl'
-fitting_results_site = '../inputs/fitting_results_site.pkl'
+fitting_results = './inputs/fitting_results.pkl'
+fitting_results_site = './inputs/fitting_results_site.pkl'
 
-prim_fname = '../inputs/prim.json'
-events = '../inputs/events_888_site.pkl'
-event_kernal = '../inputs/event_kernal_888.csv'
+prim_fname = './inputs/prim.json'
+events = './inputs/events_888_site.pkl'
+event_kernal = './inputs/event_kernal_888.csv'
 mc_results = './mc_results.h5'
 
 def main():
