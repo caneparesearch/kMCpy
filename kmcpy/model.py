@@ -132,7 +132,11 @@ class LocalClusterExpansion:
         print("Number of clusters =",len(self.clusters))
 
     def write_representative_clusters(self,path='.'):
+        import os
         print('Writing representative structures to xyz files to',path,'...')
+        if not os.path.exists(path):
+            print('Making path:',path)
+            os.mkdir(path)
         for i,orbit in enumerate(self.orbits):
             orbit.clusters[0].to_xyz(path+'/orbit_'+str(i)+'.xyz')
 
@@ -346,25 +350,20 @@ class Event: # Event is a database storing site and cluster info for each diffus
         # else:
         #     print('Na not moving')
 
-
-    
     # @profile
-
     def update_event(self,occ_global,v,T,keci,empty_cluster,keci_site,empty_cluster_site):
         self.set_occ(occ_global) # change occupation and correlation for this unit
         self.set_corr()
         self.set_ekra(keci,empty_cluster,keci_site,empty_cluster_site)    #calculate ekra and probability
         self.set_probability(occ_global,v,T)
 
-    
     def as_dict(self):
-        d = {"time_stamp":self.time_stamp,
-        "weight":self.weight,
-        "alpha":self.alpha,
-        "keci":self.keci,
-        "empty_cluster":self.empty_cluster,
-        "rmse":self.rmse,
-        "loocv":self.loocv}
+        d = {"na1_index":self.na1_index,
+        "na2_index":self.na2_index,
+        "sorted_sublattice_indices":self.sorted_sublattice_indices,
+        "local_env_indices_list":self.local_env_indices_list,
+        "local_env_indices_list_site":self.local_env_indices_list_site}
+        return d
 
     def to_json(self,fname):
         print('Saving:',fname)
@@ -382,8 +381,6 @@ class Event: # Event is a database storing site and cluster info for each diffus
         obj.__dict__ = objDict
         return obj
 
-
-    
 @nb.njit
 def _set_corr(corr,occ_latt,sublattice_indices):
     i = 0
@@ -408,12 +405,11 @@ class Fitting:
         self.empty_cluster = empty_cluster
         self.rmse = rmse
         self.loocv =loocv
-    
-    def save_file(self):
-        save_project(self,'fitting_results.pkl')
-    
+        
     def as_dict(self):
-        d = {"time_stamp":self.time_stamp,
+        d = {"@module":self.__class__.__module__,
+        "@class": self.__class__.__name__,
+        "time_stamp":self.time_stamp,
         "weight":self.weight,
         "alpha":self.alpha,
         "keci":self.keci,
@@ -437,18 +433,6 @@ class Fitting:
         obj = Fitting()
         obj.__dict__ = objDict
         return obj
-
-def save_project(project,fname):
-    print('Saving:',fname)
-    with open(fname,'wb') as fhandle:
-        pickle.dump(project,fhandle)
-
-
-def load_project(fname):
-    print('Loading:',fname)
-    with open(fname,'rb') as fhandle:
-        obj = pickle.load(fhandle)
-    return obj
 
 
 def convert(o):

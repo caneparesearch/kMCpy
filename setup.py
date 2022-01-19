@@ -12,7 +12,7 @@ setup(
     author_email="dengzeyu@gmail.com",
     maintainer='Zeyu Deng',
     maintainer_email="dengzeyu@gmail.com",
-    install_requires=['numpy','scipy','pymatgen','numba','tables','pandas'],
+    install_requires=['numpy','scipy','pymatgen','numba','tables','pandas','joblib'],
     license='MIT License',
     long_description=open('README.md').read(),
     python_requires='>=3.8',

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Function and classes for KMC running
+Function and classes for running kMC
 
 Author: Zeyu Deng
 Email: dengzeyu@gmail.com
@@ -14,14 +14,14 @@ from pymatgen.core.structure import Structure
 import numpy as np
 import pandas as pd
 from copy import copy
-import pickle,json
+import json
+from kmcpy import model
 
 class KMC:
     def __init__(self):
         pass
 
-    def initialization(self,occ,prim_fname,fitting_results,fitting_results_site,event_fname,supercell_shape,v,T,
-    lce_fname='../inputs/lce.pkl',lce_site_fname='../inputs/lce_site.pkl'):
+    def initialization(self,occ,prim_fname,fitting_results,fitting_results_site,event_fname,supercell_shape,v,T,lce_fname,lce_site_fname):
         print('Initializing KMC calculations with pirm.json at',prim_fname,'...')
         with open(prim_fname,'r') as f:
             prim = json.load(f)
@@ -57,13 +57,19 @@ class KMC:
         print(fitting_results_site.time_stamp,fitting_results_site.loocv,fitting_results_site.rmse)
         print('Fitted KECI and empty cluster (site energy)')
         print(self.keci_site,self.empty_cluster_site)
-        local_cluster_expansion = load_project(lce_fname)
-        local_cluster_expansion_site = load_project(lce_site_fname)
+        local_cluster_expansion = model.LocalClusterExpansion()
+        local_cluster_expansion.from_json(lce_fname)
+        local_cluster_expansion_site = model.LocalClusterExpansion()
+        local_cluster_expansion_site.from_json(lce_site_fname)
         sublattice_indices = _convert_list(local_cluster_expansion.sublattice_indices)
         sublattice_indices_site = _convert_list(local_cluster_expansion_site.sublattice_indices)
         print('Initializing correlation matrix and ekra for all events ...')
         events_site_list = []
-        events = load_project(event_fname)
+        
+        print('Loading events from:',event_fname)
+        with open(event_fname,'rb') as fhandle:
+            events = json.loads(fhandle)
+        
         for event in events:
             event.set_sublattice_indices(sublattice_indices,sublattice_indices_site)
             event.initialize_corr()
@@ -130,9 +136,9 @@ class KMC:
                 event,time_change = self.propose(events)
                 self.update(event,events)
 
-
         print('Start KMC runing ...')
-        tracker = Tracker(self.occ_global,self.structure,self.T,self.v)
+        tracker = Tracker()
+        tracker.initialization(self.occ_global,self.structure,self.T,self.v)
         print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
         for current_pass in np.arange(kmc_pass):
             for this_kmc in np.arange(pass_length):
@@ -145,11 +151,41 @@ class KMC:
 
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
 
+    def as_dict(self):
+        d = {"@module":self.__class__.__module__,
+        "@class": self.__class__.__name__,
+        "structure":self.structure.as_dict(),
+        "keci":self.keci,
+        "empty_cluster":self.empty_cluster,
+        "keci_site":self.keci_site,
+        "empty_cluster_site":self.empty_cluster_site,
+        "occ_global":self.occ_global}
+        return d
+    
+    def to_json(self,fname):
+        print('Saving:',fname)
+        with open(fname,'w') as fhandle:
+            d = self.as_dict()
+            jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
+            fhandle.write(jsonStr)
+    
+    @classmethod
+    def from_json(self,fname):
+        print('Loading:',fname)
+        with open(fname,'rb') as fhandle:
+            objDict = json.load(fhandle)
+        obj = KMC()
+        obj.__dict__ = objDict
+        return obj
+
 class Tracker:
     """
     Tracker has a data structure of tracker[na_si_idx]
     """
-    def __init__(self,occ_initial,structure,T,v):
+    def __init__():
+        pass
+
+    def initialization(self,occ_initial,structure,T,v):
         print('Initializing Tracker ...')
         self.T = T
         self.v = v
@@ -286,20 +322,48 @@ class Tracker:
 
         df = pd.DataFrame(self.results)
         df.to_csv('results_'+str(comp)+'_'+str(structure_idx)+'.csv.gz',compression='gzip')
-        
+    
+    def as_dict(self):
+        d = {"@module":self.__class__.__module__,
+        "@class": self.__class__.__name__,
+        "T":self.T,
+        "occ_initial":self.occ_initial,
+        "frac_coords":self.frac_coords,
+        "latt":self.latt.as_dict(),
+        "volume":self.volume,
+        "n_na_sites":self.n_na_sites,
+        "n_si_sites":self.n_si_sites,
+        "na_locations":self.na_locations,
+        "n_na":self.n_na,
+        "n_si":self.n_si,
+        "frac_na_at_na1":self.frac_na_at_na1,
+        "displacement":self.displacement,
+        "hop_counter":self.hop_counter,
+        "time":self.time,
+        "results":self.results,
+        "r0":self.r0}
+        return d
+
+    def to_json(self,fname):
+        print('Saving:',fname)
+        with open(fname,'w') as fhandle:
+            d = self.as_dict()
+            jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
+            fhandle.write(jsonStr)
+    
+    @classmethod
+    def from_json(self,fname):
+        print('Loading:',fname)
+        with open(fname,'rb') as fhandle:
+            objDict = json.load(fhandle)
+        obj = Tracker()
+        obj.__dict__ = objDict
+        return obj
 
 def _convert_list(list_to_convert):
     converted_list = List([List(List(j) for j in i ) for i in list_to_convert])
     return converted_list
 
-
-def save_project(project,fname):
-    print('Saving:',fname)
-    with open(fname,'wb') as fhandle:
-        pickle.dump(project,fhandle)
-
-def load_project(fname):
-    print('Loading:',fname)
-    with open(fname,'rb') as fhandle:
-        obj = pickle.load(fhandle)
-    return obj
+def convert(o):
+    if isinstance(o, np.int64): return int(o)  
+    raise TypeError

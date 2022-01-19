@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 
-import sys
-sys.path.append('../lib')
-from kmc import KMC
-from kmc_tools import load_project,save_project
-from model import Event
+from kmcpy.kmc import KMC
+from kmcpy.model import Event
 import numpy as np
 from numba.typed import List
+import numba as nb
+import json
 
-
-def generate_events(prim_fname,supercell_shape,lce_fname='../inputs/lce.pkl',lce_site_fname='../inputs/lce_site.pkl'):
+def generate_events(prim_fname,supercell_shape,event_fname):
     import json
     from pymatgen.core.structure import Structure
     from pymatgen.analysis.local_env import CutOffDictNN
@@ -35,8 +33,6 @@ def generate_events(prim_fname,supercell_shape,lce_fname='../inputs/lce.pkl',lce
     structure.remove_species(['Zr','O'])
     structure.make_supercell(supercell_shape_matrix)
     structure.to(fmt='cif',filename='supercell.cif')
-    local_cluster_expansion = load_project(lce_fname)
-    local_cluster_expansion_site = load_project(lce_site_fname)
     # np.savetxt('frac_coords.txt',np.array(structure.frac_coords))
     # np.savetxt('cart_coords.txt',np.array(structure.cart_coords))
     # print(structure.lattice.matrix)
@@ -50,35 +46,64 @@ def generate_events(prim_fname,supercell_shape,lce_fname='../inputs/lce.pkl',lce
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
     local_env_info_list = list(Parallel(n_jobs=ncpus)(delayed(local_env_finder.get_nn_info)(structure,i) for i in np.arange(0,n_na1)))
     events = []
+    events_dict = []
     for (na1_index,(na1_site,local_env_info)) in enumerate(zip(na_1_sites,local_env_info_list)):
         for local_env in local_env_info:
             if "Na" in local_env['site'].specie.symbol:
-                events.append(Event(na1_index,local_env['site_index'],local_env_info,local_cluster_expansion,local_cluster_expansion_site))
-    save_project(events,'./events.pkl')
+                this_event = Event(na1_index,local_env['site_index'],local_env_info)
+                events.append(this_event)
+                events_dict.append(this_event.as_dict())
+    print('Saving:',event_fname)
+    with open(event_fname,'w') as fhandle:
+        jsonStr = json.dumps(events_dict,indent=4,default=convert)
+        fhandle.write(jsonStr)
     
     events_site_list = []
     for event in events:
         events_site_list.append(event.sorted_sublattice_indices)
     
     np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
-    generate_event_kernal(len(structure))
+    generate_event_kernal(len(structure),np.array(events_site_list))
 
+@nb.njit
+def _generate_event_kernal(len_structure,events_site_list):
+    n_sites  = len_structure
+    all_site_list = np.arange(n_sites)
+    results = List()
+    for site in all_site_list:
+        # print('Looking for site:',site)
+        row = List()
+        is_Na1=False
+        event_index = 0
+        for event in events_site_list:
+            if site in event:
+                row.append(event_index)
+            event_index+=1
+            if len(row)==0:
+                is_Na1=True
+        results.append(row)
+    return results
 
+def generate_event_kernal(len_structure,events_site_list):
+    event_kernal = _generate_event_kernal(len_structure,events_site_list)
+    with open('event_kernal.csv', 'w') as f:
+        for row in event_kernal:
+            for item in row:
+                f.write('%5d ' % item)
+            f.write('\n')
+    return event_kernal
 
-def generate_event_kernal(len_structure):
-    import subprocess, os
-    print('Computing site_event_list  ...')
-    home = os.getcwd()
-    subprocess.run(["rm","-f","generate_list.x"])
-    subprocess.run(["g++","-std=c++11","generate_list.cpp","-o","generate_list.x"])
-    subprocess.run(["./generate_list.x",str(len_structure)])
-    os.rename("results.csv",home+"/"+"event_kernal.csv")
-    os.chdir(home)
+def convert(o):
+    if isinstance(o, np.int64): return int(o)  
+    raise TypeError
 
-supercell_shape = (2,1,1)
-lce_fname = '../inputs/lce.pkl'
-lce_site_fname = '../inputs/lce_site.pkl'
+# def generate_event_kernal(len_structure):
+#     import subprocess, os
+#     print('Computing site_event_list  ...')
+#     home = os.getcwd()
+#     subprocess.run(["rm","-f","generate_list.x"])
+#     subprocess.run(["g++","-std=c++11","generate_list.cpp","-o","generate_list.x"])
+#     subprocess.run(["./generate_list.x",str(len_structure)])
+#     os.rename("results.csv",home+"/"+"event_kernal.csv")
+#     os.chdir(home)
 
-prim_fname = '../inputs/prim.json'
-
-generate_events(prim_fname,supercell_shape,lce_fname,lce_site_fname)
