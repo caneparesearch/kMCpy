@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-from kmcpy.kmc import KMC
 from kmcpy.model import Event
 import numpy as np
 from numba.typed import List
 import numba as nb
-import json
+from kmcpy.kmc_tools import convert
 
 def generate_events(prim_fname,supercell_shape,event_fname):
     import json
@@ -93,9 +92,6 @@ def generate_event_kernal(len_structure,events_site_list):
             f.write('\n')
     return event_kernal
 
-def convert(o):
-    if isinstance(o, np.int64): return int(o)  
-    raise TypeError
 
 # def generate_event_kernal(len_structure):
 #     import subprocess, os
