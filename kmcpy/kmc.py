@@ -16,14 +16,14 @@ from copy import copy
 import json
 from kmcpy.model import LocalClusterExpansion
 from kmcpy.tracker import Tracker
-from kmcpy.kmc_tools import convert
-
+from kmcpy.io import convert
+from kmcpy.event import Event
 class KMC:
     def __init__(self):
         pass
 
     def initialization(self,occ,prim_fname,fitting_results,fitting_results_site,event_fname,supercell_shape,v,T,lce_fname,lce_site_fname):
-        print('Initializing KMC calculations with pirm.json at',prim_fname,'...')
+        print('Initializing kMC calculations with pirm.json at',prim_fname,'...')
         with open(prim_fname,'r') as f:
             prim = json.load(f)
             prim_coords = [site['coordinate'] for site in prim['basis']]
@@ -38,30 +38,28 @@ class KMC:
         self.structure.remove_species(['Zr','O'])
         self.structure.make_supercell(supercell_shape_matrix)
         print('Loading fitting results ...')
-        fitting_results = pd.read_pickle(fitting_results).sort_values(by=['time_stamp'],ascending=False).iloc[0]
+        fitting_results = pd.read_json(fitting_results,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
         self.keci = fitting_results.keci
         self.empty_cluster = fitting_results.empty_cluster
 
         print('Loading fitting results (site energy) ...')
-        fitting_results_site = pd.read_pickle(fitting_results_site).sort_values(by=['time_stamp'],ascending=False).iloc[0]
+        fitting_results_site = pd.read_json(fitting_results_site,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
         self.keci_site = fitting_results_site.keci
         self.empty_cluster_site = fitting_results_site.empty_cluster
 
         print('Loading occupation:',occ)
         self.occ_global = copy(occ)
         print('Fitted time and error (LOOCV,RMS)')
-        print(fitting_results.time_stamp,fitting_results.loocv,fitting_results.rmse)
+        print(fitting_results.time,fitting_results.loocv,fitting_results.rmse)
         print('Fitted KECI and empty cluster')
         print(self.keci,self.empty_cluster)
 
         print('Fitted time and error (LOOCV,RMS) (site energy)')
-        print(fitting_results_site.time_stamp,fitting_results_site.loocv,fitting_results_site.rmse)
+        print(fitting_results_site.time,fitting_results_site.loocv,fitting_results_site.rmse)
         print('Fitted KECI and empty cluster (site energy)')
         print(self.keci_site,self.empty_cluster_site)
-        local_cluster_expansion = LocalClusterExpansion()
-        local_cluster_expansion.from_json(lce_fname)
-        local_cluster_expansion_site = LocalClusterExpansion()
-        local_cluster_expansion_site.from_json(lce_site_fname)
+        local_cluster_expansion = LocalClusterExpansion.from_json(lce_fname)
+        local_cluster_expansion_site = LocalClusterExpansion.from_json(lce_site_fname)
         sublattice_indices = _convert_list(local_cluster_expansion.sublattice_indices)
         sublattice_indices_site = _convert_list(local_cluster_expansion_site.sublattice_indices)
         print('Initializing correlation matrix and ekra for all events ...')
@@ -69,9 +67,10 @@ class KMC:
         
         print('Loading events from:',event_fname)
         with open(event_fname,'rb') as fhandle:
-            events = json.loads(fhandle)
+            events = json.load(fhandle)
         
-        for event in events:
+        for event_dict in events:
+            event = Event.from_dict(event_dict)
             event.set_sublattice_indices(sublattice_indices,sublattice_indices_site)
             event.initialize_corr()
             event.update_event(self.occ_global,v,T,self.keci,self.empty_cluster,self.keci_site,self.empty_cluster_site)
@@ -123,13 +122,13 @@ class KMC:
             self.prob_list[e_index] = copy(events[e_index].probability)
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run(self,kmc_pass,equ_pass,v,T,events,comp,structure_idx):
+    def run_from_database(self,kmc_pass,equ_pass,v,T,events,comp,structure_idx):
         print('Simulation condition: v =',v,'T = ',T)
         self.v = v
         self.T = T
         pass_length = len([el.symbol for el in self.structure.species if 'Na' in el.symbol])
         print('============================================================')
-        print('Start running KMC ... ')
+        print('Start running kMC ... ')
         print('\nInitial occ_global, prob_list and prob_cum_list')
         print('Starting Equilbrium ...')
         for current_pass in np.arange(equ_pass):
@@ -137,7 +136,7 @@ class KMC:
                 event,time_change = self.propose(events)
                 self.update(event,events)
 
-        print('Start KMC runing ...')
+        print('Start running kMC ...')
         tracker = Tracker()
         tracker.initialization(self.occ_global,self.structure,self.T,self.v)
         print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
@@ -151,6 +150,35 @@ class KMC:
             tracker.show_current_info(current_pass,comp)
 
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
+
+    def run(self,kmc_pass,equ_pass,v,T,events):
+        print('Simulation condition: v =',v,'T = ',T)
+        self.v = v
+        self.T = T
+        pass_length = len([el.symbol for el in self.structure.species if 'Na' in el.symbol])
+        print('============================================================')
+        print('Start running kMC ... ')
+        print('\nInitial occ_global, prob_list and prob_cum_list')
+        print('Starting Equilbrium ...')
+        for current_pass in np.arange(equ_pass):
+            for this_kmc in np.arange(pass_length):
+                event,time_change = self.propose(events)
+                self.update(event,events)
+
+        print('Start running kMC ...')
+        tracker = Tracker()
+        tracker.initialization(self.occ_global,self.structure,self.T,self.v)
+        print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
+        for current_pass in np.arange(kmc_pass):
+            for this_kmc in np.arange(pass_length):
+                event,time_change = self.propose(events)
+                tracker.update(event,self.occ_global,time_change)
+                self.update(event,events)
+
+            previous_conduct = tracker.summary(current_pass)
+            tracker.show_current_info(current_pass)
+
+        tracker.write_results(None,None,current_pass,self.occ_global)
 
     def as_dict(self):
         d = {"@module":self.__class__.__module__,

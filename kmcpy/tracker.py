@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.kmc_tools import convert
+from kmcpy.io import convert
 
 class Tracker:
     """
@@ -98,7 +98,6 @@ class Tracker:
         n = (self.n_na)/self.volume # e per Angst^3 vacancy is the carrier
         k = 8.617333262145*10**(-2) # unit in meV/K
         conductivity = D_J*n*q**2/(k*T)*1.602*10**11 # to mS/cm
-        # print('Conductivty: sigma = ',conductivity,'mS/cm')
         return conductivity
 
     def show_current_info(self,current_pass,comp):

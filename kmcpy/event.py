@@ -8,7 +8,7 @@ import numpy as np
 import numba as nb
 from copy import deepcopy
 import json
-from kmcpy.kmc_tools import convert
+from kmcpy.io import convert
 
 class Event: 
     """
@@ -16,7 +16,10 @@ class Event:
     na2_index
     sorted_sublattice_indices
     """
-    def __init__(self,na1_index,na2_index,local_env_info):
+    def __init__(self):
+        pass
+
+    def initialization(self,na1_index,na2_index,local_env_info):
         self.na1_index = na1_index
         self.na2_index = na2_index
         self.sorted_sublattice_indices = self.analyze_local_structure(local_env_info) # this is the sublattice indices that matches with the local cluster expansion
@@ -73,14 +76,6 @@ class Event:
         direction = (occ_global[self.na2_index] - occ_global[self.na1_index])/2 # 1 if na1 -> na2, -1 if na2 -> na1
         self.barrier = self.ekra+direction*self.esite/2 # ekra 
         self.probability = abs(direction)*v*np.exp(-1*(self.barrier)/(k*T))
-        # if self.barrier<0:
-        #     print(self.barrier)
-        # if direction>0:
-        #     print('Na(1)[',self.na1_index,'] -> Na(2)[',self.na2_index,'] with Eb =',self.barrier)
-        # elif direction <0:
-        #     print('Na(2)[',self.na2_index,'] -> Na(1)[',self.na1_index,'] with Eb =',self.barrier)
-        # else:
-        #     print('Na not moving')
 
     # @profile
     def update_event(self,occ_global,v,T,keci,empty_cluster,keci_site,empty_cluster_site):
@@ -112,6 +107,12 @@ class Event:
         obj = Event()
         obj.__dict__ = objDict
         return obj
+    
+    @classmethod
+    def from_dict(self,event_dict): # convert dict into event object
+        event = Event()
+        event.__dict__ = event_dict
+        return event
 
 @nb.njit
 def _set_corr(corr,occ_latt,sublattice_indices):

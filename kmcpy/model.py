@@ -7,7 +7,7 @@ from pymatgen.core.structure import Molecule,Structure
 import numpy as np
 import json
 import glob
-from kmcpy.kmc_tools import convert
+from kmcpy.io import convert
 
 class LocalClusterExpansion:
     """

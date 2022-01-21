@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from kmcpy.model import Event
+from kmcpy.event import Event
 import numpy as np
 from numba.typed import List
 import numba as nb
-from kmcpy.kmc_tools import convert
+from kmcpy.io import convert
 
 def generate_events(prim_fname,supercell_shape,event_fname):
     import json
@@ -49,7 +49,8 @@ def generate_events(prim_fname,supercell_shape,event_fname):
     for (na1_index,(na1_site,local_env_info)) in enumerate(zip(na_1_sites,local_env_info_list)):
         for local_env in local_env_info:
             if "Na" in local_env['site'].specie.symbol:
-                this_event = Event(na1_index,local_env['site_index'],local_env_info)
+                this_event = Event()
+                this_event.initialization(na1_index,local_env['site_index'],local_env_info)
                 events.append(this_event)
                 events_dict.append(this_event.as_dict())
     print('Saving:',event_fname)
@@ -83,9 +84,11 @@ def _generate_event_kernal(len_structure,events_site_list):
         results.append(row)
     return results
 
-def generate_event_kernal(len_structure,events_site_list):
+def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='event_kernal.csv'):
+    print('Generating event kernal ...')
     event_kernal = _generate_event_kernal(len_structure,events_site_list)
-    with open('event_kernal.csv', 'w') as f:
+    with open(event_kernal_fname, 'w') as f:
+        print('Saving into:',event_kernal_fname)
         for row in event_kernal:
             for item in row:
                 f.write('%5d ' % item)
