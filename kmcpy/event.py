@@ -66,7 +66,7 @@ class Event:
         _set_corr(self.corr_site,self.occ_sublat,self.sublattice_indices_site)
         
     # @profile
-    def set_ekra(self,keci,empty_cluster,keci_site,empty_cluster_site):# input is the keci and empty_cluster; ekra = corr*keci + empty_cluster=
+    def set_ekra(self,keci,empty_cluster,keci_site,empty_cluster_site):# input is the keci and empty_cluster; ekra = corr*keci + empty_cluster
         self.ekra = np.inner(self.corr,keci)+empty_cluster
         self.esite = np.inner(self.corr_site,keci_site)+empty_cluster_site
 

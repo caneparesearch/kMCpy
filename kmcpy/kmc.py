@@ -67,15 +67,17 @@ class KMC:
         
         print('Loading events from:',event_fname)
         with open(event_fname,'rb') as fhandle:
-            events = json.load(fhandle)
+            events_dict = json.load(fhandle)
         
-        for event_dict in events:
+        events = []
+        for event_dict in events_dict:
             event = Event.from_dict(event_dict)
             event.set_sublattice_indices(sublattice_indices,sublattice_indices_site)
             event.initialize_corr()
             event.update_event(self.occ_global,v,T,self.keci,self.empty_cluster,self.keci_site,self.empty_cluster_site)
             events_site_list.append(event.sorted_sublattice_indices)
-
+            events.append(event)
+            
         self.prob_list = [event.probability for event in events]
         self.prob_cum_list = np.cumsum(self.prob_list)
         return events
@@ -146,39 +148,39 @@ class KMC:
                 tracker.update(event,self.occ_global,time_change)
                 self.update(event,events)
 
-            previous_conduct = tracker.summary(current_pass,comp,structure_idx)
-            tracker.show_current_info(current_pass,comp)
+            previous_conduct = tracker.summary(comp,current_pass)
+            tracker.show_current_info(comp,current_pass)
 
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
 
-    def run(self,kmc_pass,equ_pass,v,T,events):
-        print('Simulation condition: v =',v,'T = ',T)
-        self.v = v
-        self.T = T
-        pass_length = len([el.symbol for el in self.structure.species if 'Na' in el.symbol])
-        print('============================================================')
-        print('Start running kMC ... ')
-        print('\nInitial occ_global, prob_list and prob_cum_list')
-        print('Starting Equilbrium ...')
-        for current_pass in np.arange(equ_pass):
-            for this_kmc in np.arange(pass_length):
-                event,time_change = self.propose(events)
-                self.update(event,events)
+    # def run(self,kmc_pass,equ_pass,v,T,events):
+    #     print('Simulation condition: v =',v,'T = ',T)
+    #     self.v = v
+    #     self.T = T
+    #     pass_length = len([el.symbol for el in self.structure.species if 'Na' in el.symbol])
+    #     print('============================================================')
+    #     print('Start running kMC ... ')
+    #     print('\nInitial occ_global, prob_list and prob_cum_list')
+    #     print('Starting Equilbrium ...')
+    #     for current_pass in np.arange(equ_pass):
+    #         for this_kmc in np.arange(pass_length):
+    #             event,time_change = self.propose(events)
+    #             self.update(event,events)
 
-        print('Start running kMC ...')
-        tracker = Tracker()
-        tracker.initialization(self.occ_global,self.structure,self.T,self.v)
-        print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
-        for current_pass in np.arange(kmc_pass):
-            for this_kmc in np.arange(pass_length):
-                event,time_change = self.propose(events)
-                tracker.update(event,self.occ_global,time_change)
-                self.update(event,events)
+    #     print('Start running kMC ...')
+    #     tracker = Tracker()
+    #     tracker.initialization(self.occ_global,self.structure,self.T,self.v)
+    #     print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
+    #     for current_pass in np.arange(kmc_pass):
+    #         for this_kmc in np.arange(pass_length):
+    #             event,time_change = self.propose(events)
+    #             tracker.update(event,self.occ_global,time_change)
+    #             self.update(event,events)
 
-            previous_conduct = tracker.summary(current_pass)
-            tracker.show_current_info(current_pass)
+    #         previous_conduct = tracker.summary(comp,current_pass)
+    #         tracker.show_current_info(current_pass)
 
-        tracker.write_results(None,None,current_pass,self.occ_global)
+    #     tracker.write_results(None,None,current_pass,self.occ_global)
 
     def as_dict(self):
         d = {"@module":self.__class__.__module__,

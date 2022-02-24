@@ -27,3 +27,13 @@ def load_occ(fname,shape,select_sites=[0,1,2,3,4,5,6,7,12,13,14,15,16,17]):
         occupation = (np.array(json.load(f)['occupation']).reshape((42,)+shape)[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
     occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
     return occupation_chebyshev
+
+# to be developed
+def input_reader():
+    """
+    input_reader takes input (a json file with all parameters as shown in run_kmc.py in examples folder)
+
+    return will be a dictionary with all input parameters
+    """
+    
+    return 0

@@ -15,7 +15,7 @@ class Tracker:
     """
     Tracker has a data structure of tracker[na_si_idx]
     """
-    def __init__():
+    def __init__(self):
         pass
 
     def initialization(self,occ_initial,structure,T,v):
@@ -100,13 +100,13 @@ class Tracker:
         conductivity = D_J*n*q**2/(k*T)*1.602*10**11 # to mS/cm
         return conductivity
 
-    def show_current_info(self,current_pass,comp):
+    def show_current_info(self,comp,current_pass):
         print('%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%4.2f\t%4.2f' % (current_pass,self.time,self.results['msd'][-1],self.results['D_J'][-1],self.results['D_tracer'][-1],self.results['conductivity'][-1],self.results['H_R'][-1],self.results['f'][-1],
         (4-3*comp)*self.frac_na_at_na1[-1],(4-3*comp)/3*(1-self.frac_na_at_na1[-1])))
         # print('Center of mass (Na):',np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))
         # print('MSD = ',np.linalg.norm(np.sum(self.displacement,axis=0))**2,'time = ',self.time)
 
-    def summary(self,current_pass,comp,structure_idx):
+    def summary(self,comp,current_pass):
         # print('\nTracker Summary:')
         # print('comp =',comp)
         # print('structure_idx =',structure_idx)
