@@ -147,6 +147,8 @@ cython_debug/
 .DS_Store
 .vscode/
 test/
+# Ignore results
+*.csv.gz
 
 # PyCharm
 #  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can
