@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""no sysargs version, for debug purpose
+"""no sys args version, for debug purpose
 
 Raises:
     NotImplementedError: _description_

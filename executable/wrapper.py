@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """a Wrapper for running the KMC, receive 1 standard input of file path, read the file as the incar and run KMC
 
+Usage:
+
+./wrapper.py ../examples/test_input.json
+
 Raises:
     NotImplementedError: _description_
 """
