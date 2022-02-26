@@ -123,7 +123,7 @@ class KMC:
             self.prob_list[e_index] = copy(events[e_index].probability)
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run_from_database(self,kmc_pass="warning: undefined parameter!",equ_pass="warning: undefined parameter!",v="warning: undefined parameter!",T="warning: undefined parameter!",events="warning: undefined parameter!",comp="warning: undefined parameter!",structure_idx="warning: undefined parameter!",**kwargs):
+    def run_from_database(self,kmc_pass=1000,equ_pass=1,v=5000000000000,T=298,events="./inputs/events.json",comp=1,structure_idx=1,**kwargs):
         print('Simulation condition: v =',v,'T = ',T)
         self.v = v
         self.T = T
