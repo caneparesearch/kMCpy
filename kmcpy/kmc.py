@@ -16,13 +16,12 @@ from copy import copy
 import json
 from kmcpy.model import LocalClusterExpansion
 from kmcpy.tracker import Tracker
-from kmcpy.io import convert
 from kmcpy.event import Event
 class KMC:
     def __init__(self):
         pass
 
-    def initialization(self,occ,prim_fname,fitting_results,fitting_results_site,event_fname,supercell_shape,v,T,lce_fname,lce_site_fname):
+    def initialization(self,occ=np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]),prim_fname='./inputs/prim.json',fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',event_fname="./inputs/events.json",supercell_shape=[2,1,1],v=5000000000000,T=298,lce_fname="./inputs/lce.json",lce_site_fname="./inputs/lce_site.json",**kwargs):
         print('Initializing kMC calculations with pirm.json at',prim_fname,'...')
         with open(prim_fname,'r') as f:
             prim = json.load(f)
@@ -124,7 +123,7 @@ class KMC:
             self.prob_list[e_index] = copy(events[e_index].probability)
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run_from_database(self,kmc_pass,equ_pass,v,T,events,comp,structure_idx):
+    def run_from_database(self,kmc_pass="warning: undefined parameter!",equ_pass="warning: undefined parameter!",v="warning: undefined parameter!",T="warning: undefined parameter!",events="warning: undefined parameter!",comp="warning: undefined parameter!",structure_idx="warning: undefined parameter!",**kwargs):
         print('Simulation condition: v =',v,'T = ',T)
         self.v = v
         self.T = T
@@ -207,8 +206,13 @@ class KMC:
             objDict = json.load(fhandle)
         obj = KMC()
         obj.__dict__ = objDict
+        print("load complete")
         return obj
 
 def _convert_list(list_to_convert):
     converted_list = List([List(List(j) for j in i ) for i in list_to_convert])
     return converted_list
+def convert(o):
+    if isinstance(o, np.int64): return int(o)
+    elif isinstance(o, np.int32): return int(o)  
+    raise TypeError
