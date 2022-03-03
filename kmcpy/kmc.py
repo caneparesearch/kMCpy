@@ -212,7 +212,4 @@ class KMC:
 def _convert_list(list_to_convert):
     converted_list = List([List(List(j) for j in i ) for i in list_to_convert])
     return converted_list
-def convert(o):
-    if isinstance(o, np.int64): return int(o)
-    elif isinstance(o, np.int32): return int(o)  
-    raise TypeError
+

@@ -24,7 +24,7 @@ inputset=InputSet.from_json(input_json_path)
 print(inputset._parameters.keys())
 
 def main(api=1,**kwargs):
-    inputset.parameter_checker(api)
+    inputset.parameter_checker()
     if api==1:
 
 
