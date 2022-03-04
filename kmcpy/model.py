@@ -139,6 +139,11 @@ class LocalClusterExpansion:
             orbit.clusters[0].to_xyz(path+'/orbit_'+str(i)+'.xyz')
 
     def to_json(self,fname):
+        """example output as exmaples/lce.json
+
+        Args:
+            fname (_type_): _description_
+        """
         print('Saving:',fname)
         with open(fname,'w') as fhandle:
             d = self.as_dict()

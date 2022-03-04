@@ -17,11 +17,24 @@ import json
 from kmcpy.model import LocalClusterExpansion
 from kmcpy.tracker import Tracker
 from kmcpy.event import Event
+from kmcpy.io import convert
 class KMC:
     def __init__(self):
         pass
 
-    def initialization(self,occ=np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]),prim_fname='./inputs/prim.json',fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',event_fname="./inputs/events.json",supercell_shape=[2,1,1],v=5000000000000,T=298,lce_fname="./inputs/lce.json",lce_site_fname="./inputs/lce_site.json",**kwargs):
+    def initialization(self,api=1,**kwargs):
+        if api==1:
+            return self.initialization1(**kwargs)
+        if api==2:
+            return self.initialization2(**kwargs)
+        raise NotImplementedError("wrong API version")
+    
+    def initialization1(self,occ=np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]),prim_fname='./inputs/prim.json',fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',event_fname="./inputs/events.json",supercell_shape=[2,1,1],v=5000000000000,T=298,lce_fname="./inputs/lce.json",lce_site_fname="./inputs/lce_site.json",**kwargs):
+        """original api, as of 220303
+
+        Returns:
+            _type_: _description_
+        """
         print('Initializing kMC calculations with pirm.json at',prim_fname,'...')
         with open(prim_fname,'r') as f:
             prim = json.load(f)
@@ -80,7 +93,77 @@ class KMC:
         self.prob_list = [event.probability for event in events]
         self.prob_cum_list = np.cumsum(self.prob_list)
         return events
+    
+    def initialization2(self,occ=np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]),prim_fname='./inputs/prim.json',fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',event_fname="./inputs/events.json",supercell_shape=[2,1,1],v=5000000000000,T=298,lce_fname="./inputs/lce.json",lce_site_fname="./inputs/lce_site.json",immutable_sites=["Zr","O"],**kwargs):
+        """220303, newer initialization
+
+        Returns:
+            _type_: _description_
+        """
+        print('Initializing kMC calculations with pirm.json at',prim_fname,'...')
+        with open(prim_fname,'r') as f:
+            prim = json.load(f)
+            prim_coords = [site['coordinate'] for site in prim['basis']]
+            prim_specie_cases = [site['occupant_dof'] for site in prim['basis']]
+            prim_lattice = Lattice(prim['lattice_vectors'])
+            prim_species = [s[0] for s in prim_specie_cases]
+
+        supercell_shape_matrix = np.diag(supercell_shape)
+        print('Supercell Shape:\n',supercell_shape_matrix)
+        self.structure = Structure(prim_lattice,prim_species,prim_coords)
         
+        print('Converting supercell ...')
+        print("removing the immutable sites:",immutable_sites)
+        self.structure.remove_species(immutable_sites)
+        self.structure.make_supercell(supercell_shape_matrix)
+        
+        print('Loading fitting results ...')
+        fitting_results = pd.read_json(fitting_results,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
+        self.keci = fitting_results.keci
+        self.empty_cluster = fitting_results.empty_cluster
+
+        print('Loading fitting results (site energy) ...')
+        fitting_results_site = pd.read_json(fitting_results_site,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
+        self.keci_site = fitting_results_site.keci
+        self.empty_cluster_site = fitting_results_site.empty_cluster
+
+        print('Loading occupation:',occ)
+        self.occ_global = copy(occ)
+        print('Fitted time and error (LOOCV,RMS)')
+        print(fitting_results.time,fitting_results.loocv,fitting_results.rmse)
+        print('Fitted KECI and empty cluster')
+        print(self.keci,self.empty_cluster)
+
+        print('Fitted time and error (LOOCV,RMS) (site energy)')
+        print(fitting_results_site.time,fitting_results_site.loocv,fitting_results_site.rmse)
+        print('Fitted KECI and empty cluster (site energy)')
+        print(self.keci_site,self.empty_cluster_site)
+        
+        local_cluster_expansion = LocalClusterExpansion.from_json(lce_fname)
+        local_cluster_expansion_site = LocalClusterExpansion.from_json(lce_site_fname)
+        sublattice_indices = _convert_list(local_cluster_expansion.sublattice_indices)
+        sublattice_indices_site = _convert_list(local_cluster_expansion_site.sublattice_indices)
+        print('Initializing correlation matrix and ekra for all events ...')
+        events_site_list = []
+        
+        print('Loading events from:',event_fname)
+        with open(event_fname,'rb') as fhandle:
+            events_dict = json.load(fhandle)
+        
+        events = []
+        for event_dict in events_dict:
+            event = Event.from_dict(event_dict)
+            event.set_sublattice_indices(sublattice_indices,sublattice_indices_site)
+            event.initialize_corr()
+            event.update_event(self.occ_global,v,T,self.keci,self.empty_cluster,self.keci_site,self.empty_cluster_site)
+            events_site_list.append(event.sorted_sublattice_indices)
+            events.append(event)
+            
+        self.prob_list = [event.probability for event in events]
+        self.prob_cum_list = np.cumsum(self.prob_list)
+        return events    
+    
+
     def load_site_event_list(self,fname="../event_kernal_generator/results.csv"):# workout the site_event_list -> site_event_list[site_index] will return a list of event index to update if a site_index is chosen
         print('Working at the site_event_list ...')
 

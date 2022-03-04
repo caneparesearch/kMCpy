@@ -38,10 +38,11 @@ class InputSet:
         
         self._parameters=_parameters
         self.api=api
+        self._parameters["api"]=api
         pass
     
     @classmethod
-    def from_json(self,input_json_path=r"examples/test_input.json",report_parameter=False):
+    def from_json(self,input_json_path=r"examples/test_input.json",report_parameter=False,api=1):
         """
         input_reader takes input (a json file with all parameters as shown in run_kmc.py in examples folder)
         return a dictionary with all input parameters
@@ -50,7 +51,7 @@ class InputSet:
         _parameters=json.load(open(input_json_path))
         if report_parameter:
             self.report_parameter()
-        return InputSet(_parameters)
+        return InputSet(_parameters,api)
 
     def report_parameter(self,format="equation"):
         """report paramter, getting the default values of the parameter so that I can set the args of the functions. Development purpose

@@ -24,10 +24,12 @@ inputset=InputSet.from_json(input_json_path)
 print(inputset._parameters.keys())
 
 def main(api=1,**kwargs):
+
     inputset.parameter_checker()
+    # check if the parameter is good
     if api==1:
-
-
+        """what you need to do for 1st version API: calculate the occ, initialize, load, run_from_database
+        """
         inputset.set_parameter("occ",load_occ(inputset._parameters["mc_results"],inputset._parameters["supercell_shape"]))
         # step 1 initialize global occupation and conditions
         kmc = KMC()
