@@ -26,6 +26,10 @@ inputset=InputSet.from_json(input_json_path)
 print(inputset._parameters.keys())
 
 def main(api=1,**kwargs):
+    """
+    This is the wrapper for executing KMC
+    
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('incar', metavar='N', type=str,help='path to the input.json')
     args = parser.parse_args()

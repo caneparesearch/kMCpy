@@ -1,5 +1,5 @@
 """
-Fitting is a class to store the fitted results
+Fitting is a class to generate and store the fitted results. This is the class for generating fitting_results.json
 
 Author: Zeyu Deng
 Email: dengzeyu@gmail.com
