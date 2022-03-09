@@ -1,5 +1,7 @@
 """
-Functions to build the model
+Functions to build the model. The LocalClusterExpansion reads a cif (for example, a NaSICON cif) and generate typically, the orbital in KMC. Typical output is lce.json
+
+This is related to the Table S3 in KMC support information pdf.
 """
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
