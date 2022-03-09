@@ -158,3 +158,4 @@ test/
 #.idea/
 kmcPy.code-workspace
 *.pdf
+*.cif
