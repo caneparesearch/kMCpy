@@ -25,6 +25,21 @@ def convert(o):
 
 
 def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,5,6,7,12,13,14,15,16,17],api=1,verbose=False,**kwargs):
+    """load occupation data
+
+    Args:
+        fname (str, optional): initial occupation that includes immutable site(for example, Zr, O). Defaults to "./initial_state.json".
+        shape (list, optional): supercell shape. Defaults to [2,1,1].
+        select_sites (list, optional): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12.  . Defaults to [0,1,2,3,4,5,6,7,12,13,14,15,16,17].
+        api (int, optional): version. Defaults to 1.
+        verbose (bool, optional): verbose output. Defaults to False.
+
+    Raises:
+        ValueError: 
+
+    Returns:
+        chebyshev occupation: list of 1 and -1 states, the initial occupation data of sites included in KMC, for example, Na, Si, P initial states in NZSP
+    """
     if api==1:
         with open(fname,'r') as f:
             occupation = (np.array(json.load(f)['occupation']).reshape((42,)+(shape[0],shape[1],shape[2]))[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
@@ -48,9 +63,7 @@ def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,
             # this is the dimension of global occupation array
             convert_to_dimension=(site_nums,shape[0],shape[1],shape[2])
             
-            occupation = (occupation_raw_data.reshape(convert_to_dimension)[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
-            
-            # what is flatten??
+            occupation = (occupation_raw_data.reshape(convert_to_dimension)[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z). Now it only contain the selected sites.
             
             occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
             
