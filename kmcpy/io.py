@@ -50,6 +50,8 @@ def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,
             
             occupation = (occupation_raw_data.reshape(convert_to_dimension)[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
             
+            # what is flatten??
+            
             occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
             
             if verbose:

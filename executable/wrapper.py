@@ -13,17 +13,13 @@ Raises:
 
 from kmcpy.io import InputSet,load_occ
 from kmcpy.kmc import KMC
-import os
-import sys
+
 import argparse
 
 
 
 
-input_json_path= sys.argv[1]
-inputset=InputSet.from_json(input_json_path)
 
-print(inputset._parameters.keys())
 
 def main(api=1,**kwargs):
     """

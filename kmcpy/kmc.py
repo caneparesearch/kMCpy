@@ -250,7 +250,7 @@ class KMC:
         return events    
     
 
-    def load_site_event_list(self,fname="../event_kernal_generator/results.csv"):# workout the site_event_list -> site_event_list[site_index] will return a list of event index to update if a site_index is chosen
+    def load_site_event_list(self,fname="../event_kernal.csv"):# workout the site_event_list -> site_event_list[site_index] will return a list of event index to update if a site_index is chosen
         print('Working at the site_event_list ...')
 
         print('Loading',fname)
@@ -301,6 +301,8 @@ class KMC:
             return event, time_change
         elif api==2 and use_numpy_random_kernel:
 
+            
+
             random_seed = rng.random()
             random_seed_2 = rng.random()
             proposed_event_index = np.searchsorted(self.prob_cum_list/(self.prob_cum_list[-1]),random_seed,side='right')
@@ -317,7 +319,7 @@ class KMC:
     def update(self,event,events):
         self.occ_global[event.na1_index]*=(-1)
         self.occ_global[event.na2_index]*=(-1)
-        events_to_be_updated = copy(self.site_event_list[event.na2_index])
+        events_to_be_updated = copy(self.site_event_list[event.na2_index])# event_to_be_updated= list, include the indices, of the event that need to be updated. 
         for e_index in events_to_be_updated:
             events[e_index].update_event(self.occ_global,self.v,self.T,self.keci,self.empty_cluster,self.keci_site,self.empty_cluster_site)
             self.prob_list[e_index] = copy(events[e_index].probability)

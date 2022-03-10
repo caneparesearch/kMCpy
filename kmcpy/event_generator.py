@@ -60,6 +60,7 @@ def generate_events(prim_fname,supercell_shape,event_fname):
     
     events_site_list = []
     for event in events:
+        # sublattice indices: local site index for each site
         events_site_list.append(event.sorted_sublattice_indices)
     
     np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
@@ -67,6 +68,18 @@ def generate_events(prim_fname,supercell_shape,event_fname):
 
 @nb.njit
 def _generate_event_kernal(len_structure,events_site_list):
+    """to be called by generate_event_kernal for generating the event_kernal.csv
+    
+    for  a event and find all other event that include the site of this event
+    
+
+    Args:
+        len_structure (int): _description_
+        events_site_list (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     n_sites  = len_structure
     all_site_list = np.arange(n_sites)
     results = List()
@@ -85,6 +98,13 @@ def _generate_event_kernal(len_structure,events_site_list):
     return results
 
 def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='event_kernal.csv'):
+    """
+    event_kernal.csv: 
+        event_kernal[i] tabulates the index of events that have to be updated after event[i] has been executed
+        
+        
+    
+    """
     print('Generating event kernal ...')
     event_kernal = _generate_event_kernal(len_structure,events_site_list)
     with open(event_kernal_fname, 'w') as f:
