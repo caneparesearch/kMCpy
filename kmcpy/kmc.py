@@ -48,9 +48,9 @@ class KMC:
             
             
         if self.api==1:
-            return self.initialization1(api=self.api,**kwargs)
+            return self.initialization1(**kwargs)
         elif self.api==2:
-            return self.initialization2(api=self.api**kwargs)
+            return self.initialization2(**kwargs)
         else:
             raise NotImplementedError("wrong API version")
     
