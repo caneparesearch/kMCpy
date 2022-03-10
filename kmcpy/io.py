@@ -23,11 +23,58 @@ def convert(o):
     elif isinstance(o, np.int32): return int(o)  
     raise TypeError
 
-def load_occ(fname,shape,select_sites=[0,1,2,3,4,5,6,7,12,13,14,15,16,17]):
-    with open(fname,'r') as f:
-        occupation = (np.array(json.load(f)['occupation']).reshape((42,)+(shape[0],shape[1],shape[2]))[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
-    occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
-    return occupation_chebyshev
+
+def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,5,6,7,12,13,14,15,16,17],api=1,verbose=False,**kwargs):
+    """load occupation data
+
+    Args:
+        fname (str, optional): initial occupation that includes immutable site(for example, Zr, O). Defaults to "./initial_state.json".
+        shape (list, optional): supercell shape. Defaults to [2,1,1].
+        select_sites (list, optional): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12.  . Defaults to [0,1,2,3,4,5,6,7,12,13,14,15,16,17].
+        api (int, optional): version. Defaults to 1.
+        verbose (bool, optional): verbose output. Defaults to False.
+
+    Raises:
+        ValueError: 
+
+    Returns:
+        chebyshev occupation: list of 1 and -1 states, the initial occupation data of sites included in KMC, for example, Na, Si, P initial states in NZSP
+    """
+    if api==1:
+        with open(fname,'r') as f:
+            occupation = (np.array(json.load(f)['occupation']).reshape((42,)+(shape[0],shape[1],shape[2]))[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
+        occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
+        return occupation_chebyshev
+    if api==2:
+        
+        with open(fname,'r') as f:
+            
+            # read the occupation from json
+            occupation_raw_data=np.array(json.load(f)['occupation'])
+            
+            # check if the occupation is compatible with the shape.
+            # for example. if there is 20 occupation data and supercell is [3,1,1], it is incompatible because 20/3 is not integer
+            if len(occupation_raw_data)%(shape[0]*shape[1]*shape[2])!=0:
+                raise ValueError("change log: The dimension conversion of occupation is now flexible: in API=1, the dimension is determined in the function code. In API=2, the dimension is automatically calculated from supercell. Therefore, You need to check if the length of occupation data is compatible with the supercell shape. The length of occupation data"+str(len(occupation_raw_data))+"is incompatible with the supercell shape,please check the "+fname)
+
+            # this is the total sites, or global occupation array[0] for api=1
+            site_nums=int(len(occupation_raw_data)/(shape[0]*shape[1]*shape[2]))
+            
+            # this is the dimension of global occupation array
+            convert_to_dimension=(site_nums,shape[0],shape[1],shape[2])
+            
+            occupation = (occupation_raw_data.reshape(convert_to_dimension)[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z). Now it only contain the selected sites.
+            
+            occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
+            
+            if verbose:
+                print("verbose output is enabled, this is function io.load_acc from Api2")
+                print("selected sites are",select_sites)
+                print("converting the occupation raw data to dimension:",(convert_to_dimension))
+                print("occupation_chebyshev:",occupation_chebyshev)
+            
+        return occupation_chebyshev
+    
 
 # to be developed
 
@@ -38,19 +85,20 @@ class InputSet:
         
         self._parameters=_parameters
         self.api=api
+        self._parameters["api"]=api
         pass
     
     @classmethod
-    def from_json(self,input_json_path=r"examples/test_input.json",report_parameter=False):
+    def from_json(self,input_json_path=r"examples/test_input.json",verbose=False,api=1):
         """
         input_reader takes input (a json file with all parameters as shown in run_kmc.py in examples folder)
         return a dictionary with all input parameters
-        if report_parameter=True, then print the parameters
+        if verbose=True, then print the parameters
         """
         _parameters=json.load(open(input_json_path))
-        if report_parameter:
+        if verbose:
             self.report_parameter()
-        return InputSet(_parameters)
+        return InputSet(_parameters,api)
 
     def report_parameter(self,format="equation"):
         """report paramter, getting the default values of the parameter so that I can set the args of the functions. Development purpose
@@ -128,6 +176,11 @@ class InputSet:
         
         if self.api==1:
             for i in ['v', 'equ_pass', 'kmc_pass', 'supercell_shape', 'fitting_results', 'fitting_results_site', 'lce_fname', 'lce_site_fname', 'prim_fname', 'event_fname', 'event_kernel', 'mc_results', 'T', 'comp', 'structure_idx']:
+                if i not in self._parameters:
+                    print(i+" is not defined yet in the parameters!")
+                    raise ValueError('This program is exploding due to undefined parameter.')
+        if self.api==2:
+            for i in ['v', 'equ_pass', 'kmc_pass', 'supercell_shape', 'fitting_results', 'fitting_results_site', 'lce_fname', 'lce_site_fname', 'prim_fname', 'event_fname', 'event_kernel', 'mc_results', 'T', 'comp', 'structure_idx',"select_sites"]:
                 if i not in self._parameters:
                     print(i+" is not defined yet in the parameters!")
                     raise ValueError('This program is exploding due to undefined parameter.')

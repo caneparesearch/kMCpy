@@ -46,8 +46,16 @@ class Event:
         pass
 
     def analyze_local_structure(self,local_env_info):
+        # 
         indices_sites_group = [(s['site_index'],s['site']) for s in local_env_info]
+        
+        # this line is to sort the neighbors. First sort by x coordinate, and then sort by specie (Na, then Si/P)
+        # the sorted list, store the sequence of hash.
+        # for other materials, need to find another method to sort.
+        # this sort only works for the NaSICON!
         indices_sites_group_sorted = sorted(sorted(indices_sites_group,key=lambda x:x[1].coords[0]),key = lambda x:x[1].specie)
+        
+        
         sorted_sublattice_indices = [s[0] for s in indices_sites_group_sorted]
         return sorted_sublattice_indices
     

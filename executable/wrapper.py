@@ -13,22 +13,29 @@ Raises:
 
 from kmcpy.io import InputSet,load_occ
 from kmcpy.kmc import KMC
-import os
-import sys
+
+import argparse
 
 
 
-input_json_path= sys.argv[1]
-inputset=InputSet.from_json(input_json_path)
 
-print(inputset._parameters.keys())
+
 
 def main(api=1,**kwargs):
+    """
+    This is the wrapper for executing KMC
+    
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('incar', metavar='N', type=str,help='path to the input.json')
+    args = parser.parse_args()
+    inputset=InputSet.from_json(args.incar)
     inputset.parameter_checker()
+    # check if the parameter is good
     if api==1:
-
-
-        inputset.set_parameter("occ",load_occ(inputset._parameters["mc_results"],inputset._parameters["supercell_shape"]))
+        """what you need to do for 1st version API: calculate the occ, initialize, load, run_from_database
+        """
+        inputset.set_parameter("occ",load_occ(inputset._parameters["mc_results"],inputset._parameters["supercell_shape"],api=inputset.api))
         # step 1 initialize global occupation and conditions
         kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters) # v in 10^13 hz
