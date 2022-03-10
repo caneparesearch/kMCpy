@@ -6,7 +6,7 @@ from numba.typed import List
 import numba as nb
 from kmcpy.io import convert
 
-def generate_events(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json"):
+def generate_events(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
     """generate_events() looks for all possible swaps by given a primitive cell as defined in prim_fname(prim.json) with a supercell shape of [2,1,1] as default.
 
     Args:
@@ -96,7 +96,7 @@ def generate_events(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="
         events_site_list.append(event.sorted_sublattice_indices)
     
     np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
-    generate_event_kernal(len(structure),np.array(events_site_list))
+    generate_event_kernal(len(structure),np.array(events_site_list),event_kernal_fname=event_kernal_fname)
 
 @nb.njit
 def _generate_event_kernal(len_structure,events_site_list):

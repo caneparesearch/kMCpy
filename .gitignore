@@ -159,3 +159,6 @@ test/
 kmcPy.code-workspace
 *.pdf
 *.cif
+events_site_list.txt
+dev_test/event_kernal.csv
+dev_test/events.json
