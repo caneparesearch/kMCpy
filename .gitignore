@@ -162,3 +162,4 @@ kmcPy.code-workspace
 events_site_list.txt
 dev_test/event_kernal.csv
 dev_test/events.json
+dev_test/lce.json
