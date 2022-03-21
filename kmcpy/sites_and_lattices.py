@@ -1,6 +1,10 @@
 
 import numpy as np
+from sklearn import neighbors
 from sympy import chebyshevu
+from pymatgen.core import Structure
+
+
 
 # use spglib!
 # 看bond length 一不一样长
@@ -66,25 +70,11 @@ class Site(object):
             int: hash
         """
         return (self.tag,tuple(self.belongs_to_supercell),self.wyckoff_sequence).__hash__()
-
     
+    def get_copy(self):
+        return Site(possible_species=self.possible_species,tag=self.tag,relative_coordinate_in_cell=self.relative_coordinate_in_cell,belongs_to_supercell=self.belongs_to_supercell,wyckoff_sequence=self.wyckoff_sequence)
 
-class kmcSite(Site):
-    def __init__(self, possible_species=["Na", "Vac"], tag="Na1", relative_coordinate_in_cell=[0, 0, 0], absolute_coordinate_in_space=[0, 0, 0], belongs_to_supercell=[0, 0, 0], wyckoff_sequence=0,chebyshev_state=1):
-        super().__init__(possible_species, tag, relative_coordinate_in_cell, absolute_coordinate_in_space, belongs_to_supercell, wyckoff_sequence)
-        self.chebyshev_state=chebyshev_state
-        if len(self.possible_species)==1:
-            self.current_specie=self.possible_species[0]
-        elif len(self.possible_species)==2:
-            if self.chebyshev_state==1:
-                self.current_specie=self.possible_species[0]
-            elif self.chebyshev_state==-1:
-                self.current_specie=self.possible_species[1]
-            else:
-                raise ValueError("got wrong chebyshev state:",self.chebyshev_state,type(self.chebyshev_state))
-        else:
-            raise ValueError("something wrong with possible species",self.possible_species,type(self.possible_species))
-    
+
 class PrimitiveCell(object):
     def __init__(self,containing_sites=[Site(),]):
         """PrimitiveCell object, that define one Primitive cell.
@@ -114,10 +104,13 @@ class PrimitiveCell(object):
             wyckoff_sequence=0
             for symmetry_operation in symmetry_operations:
 
-                new_d4coordinate=np.matmul(symmetry_operation,initial_site.d4coordinate)
+                new_d4coordinate=self._new_d4coordinate_from_symmetry_operation(symmetry_operation=symmetry_operation,d4coordinate=initial_site.d4coordinate)
                 
-                if is_new_site(new_d4coordinate,new_d4coordinates,tolerence=0.001,axis=1):
-                    sites.append(Site(possible_species=initial_site.possible_species,tag=initial_site.tag,relative_coordinate_in_cell=d4coordinate_to_relative_coordinate_in_cell(new_d4coordinate),belongs_to_supercell=[0,0,0],wyckoff_sequence=wyckoff_sequence))
+                if self.is_new_site(new_d4coordinate,new_d4coordinates,tolerence=0.001,axis=1):
+                    temp_site=initial_site.get_copy()
+                    temp_site.relative_coordinate_in_cell=self.d4coordinate_to_relative_coordinate_in_cell(new_d4coordinate)
+                    temp_site.wyckoff_sequence=wyckoff_sequence
+                    sites.append(temp_site)
                     
                     new_d4coordinates.append(new_d4coordinate)
                 
@@ -126,79 +119,122 @@ class PrimitiveCell(object):
                 
         return PrimitiveCell(containing_sites=sites)
 
+    def what_is_it_at(self,coordinate=np.array([0.,0.,0.]),rtol=1e-05, atol=1e-08,raise_error=False):
+        """Try to know what it is at the given coordinate.
 
-    
-    
-def is_new_site(new_coordinate=np.array([[ 1.66666667],
-    [-0.66666667],
-    [ 3.83333333],
-    [ 1.        ]]),coordinates=[np.array([[ 1.66666667],
-    [-0.66666667],
-    [ 3.83333333],
-    [ 1.        ]]),np.array([[ 2.66666667],
-    [-0.66666667],
-    [ 3.83333333],
-    [ 1.        ]])],tolerence=0.001,axis=1):
-    """
-    determine if this is new site
-    
-    Mainly use in the sites_and_lattices.PrimitiveCell class
-    
-    This is trying to see if the "new coordinat"e is same as any coordinate (element of the list "coordinates") in the "coordinates"
-    
-    
-    example:
-    
-    coordinates=array_list=[np.array([[ 1.66666667],
-    [-0.66666667],
-    [ 3.83333333],
-    [ 1.        ]]),np.array([[ 2.66666667],
-    [-0.66666697],
-    [ 3.83333323],
-    [ 1.        ]]),np.array([[ 1.66666667],
-    [-0.67666667],
-    [ 3.83333333],
-    [ 1.        ]])]
+        Args:
+            coordinate (np.array, optional): or arrya like. Will look through all the sites and see if any site match this coordinate. Defaults to np.array([0.,0.,0.]).
+            rtol (rtolerance, optional): for np. Defaults to 1e-05.
+            atol (float, optional): for np. Defaults to 1e-08.
+            raise_error (bool, optional): whether raise error or not, if fail to find anything at the given coordinate. Defaults to False.
 
-    new_coordinate=to_be_compared=np.array([[ 1.66666667],
+        Raises:
+            ValueError: if raise_error=True and there is nothing at given coordinate,raise ValueError
+
+        Returns:
+            tuple: tag and wyckoff sequence
+        """
+        for site in self.sites:
+            if np.allclose(coordinate,np.array(site.relative_coordinate_in_cell)):
+                return (site.tag,site.wyckoff_sequence)
+        if raise_error:
+            raise ValueError("not found at that coordinate")
+        else:
+            return False
+
+
+    def _new_d4coordinate_from_symmetry_operation(symmetry_operation=np.array([[1,0, 0, 0],[0, 1, 0,0],[0, 0, 1,0],[0,0,0,1]]),d4coordinate=[1,0,0,1]):
+        """input 4d coordinate, multiply with symmetry operation, and cut to [0,1)
+
+        Args:
+            symmetry_operation (np.array, optional): symmetry matrix. Defaults to np.array([[1,0, 0, 0],[0, 1, 0,0],[0, 0, 1,0],[0,0,0,1]]).
+            d4coordinate (list, optional): len=4 list or array?. Defaults to [1,0,0,1].
+
+        Returns:
+            len=4 array: position after
+        """
+        
+        
+        # multiply the symmetry matrix
+        new_d4coordinate=np.matmul(symmetry_operation,d4coordinate)
+        
+        # make sure in range [0,1]
+        
+        new_d4coordinate=new_d4coordinate-np.floor(new_d4coordinate)
+        new_d4coordinate[3]=1.0
+        
+        return new_d4coordinate
+        
+    
+    def is_new_site(new_coordinate=np.array([[ 1.66666667],
         [-0.66666667],
         [ 3.83333333],
-        [ 1.        ]])
-
-    print(array_list-to_be_compared)
-    print("sum axis0:",np.sum(array_list-to_be_compared,axis=0))
-    print("sum axis1:",np.sum(array_list-to_be_compared,axis=1))
-    print("sum axis2:",np.sum(array_list-to_be_compared,axis=2))
-    print(" sum of axis 1 is correct.")
-    print("sum of abs of axis1:",np.sum(np.abs(array_list-to_be_compared),axis=1))
-    tolerence=0.01
-    print("determine abs:",np.sum(np.abs(array_list-to_be_compared),axis=1)<tolerence)
-    print("test any",np.any(np.sum(np.abs(array_list-to_be_compared),axis=1)<tolerence))
-
-    Args:
-        new_coordinate (1*4 np.array, optional): the 4 dimention coordinate that want to be compared. Defaults to np.array([[ 1.66666667], [-0.66666667], [ 3.83333333], [ 1.        ]]).
+        [ 1.        ]]),coordinates=[np.array([[ 1.66666667],
+        [-0.66666667],
+        [ 3.83333333],
+        [ 1.        ]]),np.array([[ 2.66666667],
+        [-0.66666667],
+        [ 3.83333333],
+        [ 1.        ]])],tolerence=0.001,axis=1):
+        """
+        determine if this is new site
         
-        coordinates (list, optional): list containing 1*4 np.array. To see if new_coordinate is in the coordinates or not. Defaults to [np.array([[ 1.66666667], [-0.66666667], [ 3.83333333], [ 1.        ]]),np.array([[ 2.66666667], [-0.66666667], [ 3.83333333], [ 1.        ]])].
+        Mainly use in the sites_and_lattices.PrimitiveCell class
         
-        tolerence (float, optional): tolerance of the sum of absolute difference between new_coordinate and elements in coordinates. Defaults to 0.001.
+        This is trying to see if the "new coordinat"e is same as any coordinate (element of the list "coordinates") in the "coordinates"
         
-        axis (int,tuple,..?) axis parameter for np.sum. axis=1 is working
+        
+        example:
+        
+        coordinates=array_list=[np.array([[ 1.66666667],
+        [-0.66666667],
+        [ 3.83333333],
+        [ 1.        ]]),np.array([[ 2.66666667],
+        [-0.66666697],
+        [ 3.83333323],
+        [ 1.        ]]),np.array([[ 1.66666667],
+        [-0.67666667],
+        [ 3.83333333],
+        [ 1.        ]])]
 
-    Returns:
-        bool: whether the new_coordinate is the new coordinate or it is already in the coordinates
-    """
+        new_coordinate=to_be_compared=np.array([[ 1.66666667],
+            [-0.66666667],
+            [ 3.83333333],
+            [ 1.        ]])
+
+        print(array_list-to_be_compared)
+        print("sum axis0:",np.sum(array_list-to_be_compared,axis=0))
+        print("sum axis1:",np.sum(array_list-to_be_compared,axis=1))
+        print("sum axis2:",np.sum(array_list-to_be_compared,axis=2))
+        print(" sum of axis 1 is correct.")
+        print("sum of abs of axis1:",np.sum(np.abs(array_list-to_be_compared),axis=1))
+        tolerence=0.01
+        print("determine abs:",np.sum(np.abs(array_list-to_be_compared),axis=1)<tolerence)
+        print("test any",np.any(np.sum(np.abs(array_list-to_be_compared),axis=1)<tolerence))
+
+        Args:
+            new_coordinate (1*4 np.array, optional): the 4 dimention coordinate that want to be compared. Defaults to np.array([[ 1.66666667], [-0.66666667], [ 3.83333333], [ 1.        ]]).
+            
+            coordinates (list, optional): list containing 1*4 np.array. To see if new_coordinate is in the coordinates or not. Defaults to [np.array([[ 1.66666667], [-0.66666667], [ 3.83333333], [ 1.        ]]),np.array([[ 2.66666667], [-0.66666667], [ 3.83333333], [ 1.        ]])].
+            
+            tolerence (float, optional): tolerance of the sum of absolute difference between new_coordinate and elements in coordinates. Defaults to 0.001.
+            
+            axis (int,tuple,..?) axis parameter for np.sum. axis=1 is working
+
+        Returns:
+            bool: whether the new_coordinate is the new coordinate or it is already in the coordinates
+        """
+        
+        if len(coordinates)==0:
+            return True
+        return (not np.any(np.sum(np.abs(coordinates-new_coordinate),axis=axis)<tolerence))
+            
     
-    if len(coordinates)==0:
-        return True
-    return (not np.any(np.sum(np.abs(coordinates-new_coordinate),axis=axis)<tolerence))
-        
-    
-def d4coordinate_to_relative_coordinate_in_cell(d4coordinate=np.array([[ 1.66666667],
-    [-0.66666667],
-    [ 3.83333333],
-    [ 1.        ]])):
-    return d4coordinate.reshape(1,4).tolist()[0][0:3]
-
+    def d4coordinate_to_relative_coordinate_in_cell(d4coordinate=np.array([[ 1.66666667],
+        [-0.66666667],
+        [ 3.83333333],
+        [ 1.        ]])):
+        return d4coordinate.reshape(1,4).tolist()[0][0:3]
 
 def get_rotation_matrices_from_pymatgen(filename="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"):
     """
@@ -225,6 +261,70 @@ def get_rotation_matrices_from_pymatgen(filename="EntryWithCollCode15546_Na4Zr2S
         rotation_matrices.append(i.affine_matrix)
     return rotation_matrices
 
-class Supercell():
-    def __init__(self,supercell=[2,1,1],primitive_cell=PrimitiveCell()) -> None:
+
+
+
+class nearest_neighbor_analyzer:
+    
+    def __init__(self,original_structure=Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"), local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},reference_structure=PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])])):
+        """nearest neighbor analyzer object. Use pymatgen structure as well as primitiveCell to find nearest neighbors
+
+        Args:
+            original_structure (pymatgen.core.Structure, optional): the original structure. Defaults to Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif").
+            local_env_cutoff_dict (dict, optional): environment cutoff dictionary that will be passed to the finding function. Defaults to {('Na+','Na+'):4,('Na+','Si4+'):4}.
+            reference_structure (kmcpy.sites_and_lattices.PrimitiveCell, optional): a primitive cell object for finding the wyckoff sequence. This shall have same structure with the original structure. Although non-interested sites (Zr and O for nasicon) can be omitted during initialization. Defaults to PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])]).
+        """
+
+        self.structure=original_structure
+        #self.structure.make_supercell([3,3,3])
+        self.local_env_cutoff_dict=local_env_cutoff_dict
+        
+        self.reference_structure=reference_structure
+    
+    
+    def find(self,index_of_center_atom=0,verbose=False):
+        """find the nearest neighbor of site at index_of_center_atom in pymatgen structure, and get its wyckoff sequence and tag using the reference PrimitiveCell object
+
+        Args:
+            index_of_center_atom (int, optional): index of center atom, for NaSiCON, interested indices of center atom are 0 and 1. Defaults to 0.
+            verbose (bool, optional):  whether to enable verbose output(not implemented). Defaults to False.
+
+        Returns:
+            dict: a dictionary with key=tags of nearest neighbor, and value=list of tuple, with the 1st element=wyckoff sequence and 2nd element=tuple of image, and sorted by wyckoff sequence. 
+        """
+        from pymatgen.analysis.local_env import CutOffDictNN
+        local_env_finder = CutOffDictNN(self.local_env_cutoff_dict)
+        local_env_info_list =local_env_finder.get_nn_info(self.structure,index_of_center_atom)
+        log=""
+        neighbor_list={}
+        for i in local_env_info_list:
+            temp=self.reference_structure.what_is_it_at(i["site"].frac_coords-np.floor(i["site"].frac_coords),raise_error=True)
+            if temp[0] not in neighbor_list:
+                neighbor_list[temp[0]]=[(temp[1],i["image"])]
+            else:
+                neighbor_list[temp[0]].append((temp[1],i["image"]))    
+            
+        for tag in neighbor_list:
+            neighbor_list[tag]=sorted(neighbor_list[tag],key=lambda x:x[0])
+            
+        return neighbor_list
+    
+    def create_supercell(self,indices_of_center_atom=[0,1],supercell_shape=[5,6,7]):
+        
+        from kmcpy.event import Event
+        
+        
+        total_sites_per_primitive_cell=len(self.reference_structure.sites)
+        
+        for i in range(0,supercell_shape[2]):
+            pass    
+        
+        
+        
+        
         pass
+    
+    def _equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7]):
+        
+        temp=np.array(site_belongs_to_supercell)+np.array(image_of_site)
+    

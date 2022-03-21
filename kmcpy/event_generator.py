@@ -16,9 +16,6 @@ def generate_events(api=1,**kwargs):
         raise NotImplementedError("debug information from event_generator.generate_events. Unsupport API value: api=",api)
 
 
-
-
-
 def generate_events2(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
     """generate_events() looks for all possible swaps by given a primitive cell as defined in prim_fname(prim.json) with a supercell shape of [2,1,1] as default.
 
@@ -264,3 +261,7 @@ def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='eve
 #     os.rename("results.csv",home+"/"+"event_kernal.csv")
 #     os.chdir(home)
 
+if __name__=="__main__":
+    import os
+    os.chdir("examples/inputs")
+    generate_events2(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv')
