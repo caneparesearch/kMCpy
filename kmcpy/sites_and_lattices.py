@@ -1,10 +1,10 @@
 
 import numpy as np
-from sklearn import neighbors
 from sympy import chebyshevu
 from pymatgen.core import Structure
-
-
+import json
+from kmcpy.io import convert
+from kmcpy.event_generator import generate_event_kernal
 
 # use spglib!
 # 看bond length 一不一样长
@@ -51,6 +51,10 @@ class Site(object):
         
         
         self.default_specie=self.possible_species[0]# choose the 1st one as default_specie if not defined.
+        pass
+
+    def __str__(self):
+        
         pass
 
     def as_dict(self):
@@ -114,7 +118,7 @@ class PrimitiveCell(object):
                     
                     new_d4coordinates.append(new_d4coordinate)
                 
-                wyckoff_sequence+=1
+                    wyckoff_sequence+=1
                 
                 
         return PrimitiveCell(containing_sites=sites)
@@ -282,8 +286,11 @@ class nearest_neighbor_analyzer:
         self.reference_structure=reference_structure
     
     
-    def find(self,index_of_center_atom=0,verbose=False):
+    def find(self,index_of_center_atom_of_pymatgen_structure=0,verbose=False):
         """find the nearest neighbor of site at index_of_center_atom in pymatgen structure, and get its wyckoff sequence and tag using the reference PrimitiveCell object
+        
+        index in pymatgen structure may be different from index in primitivecell. But, the range is the same. If there is 6 Na1 in pymatgen primitive cell that occupying index0~5, then index0~5 in primitivecell is also Na1
+        
 
         Args:
             index_of_center_atom (int, optional): index of center atom, for NaSiCON, interested indices of center atom are 0 and 1. Defaults to 0.
@@ -294,9 +301,12 @@ class nearest_neighbor_analyzer:
         """
         from pymatgen.analysis.local_env import CutOffDictNN
         local_env_finder = CutOffDictNN(self.local_env_cutoff_dict)
-        local_env_info_list =local_env_finder.get_nn_info(self.structure,index_of_center_atom)
+        local_env_info_list =local_env_finder.get_nn_info(self.structure,index_of_center_atom_of_pymatgen_structure)
         log=""
         neighbor_list={}
+        
+        index_of_center_atom_of_primitive_cell=self.reference_structure.what_is_it_at(self.structure[0].frac_coords,raise_error=True)
+        
         for i in local_env_info_list:
             temp=self.reference_structure.what_is_it_at(i["site"].frac_coords-np.floor(i["site"].frac_coords),raise_error=True)
             if temp[0] not in neighbor_list:
@@ -307,24 +317,130 @@ class nearest_neighbor_analyzer:
         for tag in neighbor_list:
             neighbor_list[tag]=sorted(neighbor_list[tag],key=lambda x:x[0])
             
-        return neighbor_list
+        return index_of_center_atom_of_primitive_cell,neighbor_list
     
-    def create_supercell(self,indices_of_center_atom=[0,1],supercell_shape=[5,6,7]):
+    def create_supercell(self,indices_of_center_atom=[0,1,2,3,4,5],center_atom_tag="Na1",diffuse_to="Na2",environment=["Na2","Si"],supercell_shape=[5,6,7],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
         
         from kmcpy.event import Event
         
+
+        supercell_sites={}
+        """
+        supercell_sites={"Na1":{(1,4,3,0):123,(1,4,3,1):124}}
         
-        total_sites_per_primitive_cell=len(self.reference_structure.sites)
         
-        for i in range(0,supercell_shape[2]):
-            pass    
+        {tag:{(supercell,wyckoff_sequence):global sequence}}
+        
+        """        
+        global_sequence_dict={}
+        
+        """
+        global_sequence_dict={123:((1,4,3,0),Na1),124:((1,4,3,1),Na1)}
+        
+        """
+
+        
+        global_sequence=0
+        
+        
+        for site in self.reference_structure.sites:
+            if site.tag not in supercell_sites:
+                supercell_sites[site.tag]={}
+        
+        for i in range(1,supercell_shape[0]+1):
+            for j in range(1,supercell_shape[1]+1):
+                for k in range(1,supercell_shape[2]+1):
+                    for site in self.reference_structure.sites:
+                        # build an abstract supercell. With 
+                        
+                        supercell_and_wyckoff_sequence=(i,j,k,site.wyckoff_sequence)
+                        supercell_sites[site.tag][supercell_and_wyckoff_sequence]=global_sequence
+                        global_sequence_dict[global_sequence]=(supercell_and_wyckoff_sequence,site.tag)
+                        global_sequence+=1
+        
+        
+        events=[]
+        events_dict = []        
+        
+        for index_of_center_atom in indices_of_center_atom:
+            center_atom_information,neighbor_dict=self.find(index_of_center_atom=index_of_center_atom)
+            """neighbor_dict sample {'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]}
+            
+            center_atom_information=('Na1', 3)
+            """
+            
+            if center_atom_information[0] != center_atom_tag:
+                raise ValueError("indices_of_center_atom is not appropriate, index",index_of_center_atom," is not center atom")
+            
+            
+
+        
+            for i in range(1,supercell_shape[0]+1):
+                for j in range(1,supercell_shape[1]+1):
+                    for k in range(1,supercell_shape[2]+1):
+                        center_atom_key=(i,j,k,center_atom_information[1])
+                        all_neighbors=[]
+                        #diffuse_to_neighbors=[]
+                        for environment_atom in environment:
+                            for neighbor in neighbor_dict:
+                                
+                                diffuse_to_atom_key=(self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape),neighbor[0])
+                                all_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
+
+
+
+                        environment_atom=diffuse_to                        
+                        for neighbor in neighbor_dict:
+
+                                
+                            diffuse_to_atom_key=(self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape),neighbor[0])
+                            #diffuse_to_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
+                            this_event = Event()
+                            this_event.initialization2(center_atom=supercell_sites[center_atom_tag][center_atom_key],diffuse_to=supercell_sites[environment_atom][diffuse_to_atom_key],sorted_sublattice_indices=all_neighbors)
+                            events.append(this_event)
+                            events_dict.append(this_event.as_dict())    
+        print('Saving:',event_fname)
+        with open(event_fname,'w') as fhandle:
+            jsonStr = json.dumps(events_dict,indent=4,default=convert)
+            fhandle.write(jsonStr)
+        
+        events_site_list = []
+        for event in events:
+            # sublattice indices: local site index for each site
+            events_site_list.append(event.sorted_sublattice_indices)
+        
+        np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
+        generate_event_kernal(len(self.structure),np.array(events_site_list),event_kernal_fname=event_kernal_fname)                            
+                                
+                                
+                        
+                                
+                      
+                        
+                        
         
         
         
         
         pass
-    
+
+    def _get_global_sequence(self,supercell_sites={"Na1":{(1,4,3,0):123,(1,4,3,1):124},"Na2":{(1,4,3,0):1234,(1,4,3,1):1244}},tag="Na1",supercell=[1,4,3],image_of_site=(-1,0,1),local_wyckoff_sequence=0):
+        new_supercell_position=self._equivalent_position_in_periodic_supercell(sites_belongs_to_supercell)
+        return supercell_sites[tag]
+
+
     def _equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7]):
         
+        # 5 1 7 with image 0 -1 1 -> 5 0 8 -> in periodic 567 supercell should change to 561, suppose supercell start with index1
+        
         temp=np.array(site_belongs_to_supercell)+np.array(image_of_site)
+        # 517+(0-11)=508
+        
+        
+        # 508-1=4-17 mod: 4 5 0 
+        #+1 : 561
+        temp=np.mod(temp-1,supercell_shape)+1
+        
+        return temp
     
+
