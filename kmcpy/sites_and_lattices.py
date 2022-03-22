@@ -270,7 +270,7 @@ def get_rotation_matrices_from_pymatgen(filename="EntryWithCollCode15546_Na4Zr2S
 
 class nearest_neighbor_analyzer:
     
-    def __init__(self,original_structure=Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"), local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},reference_structure=PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])])):
+    def __init__(self,original_structure=Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"), local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},reference_structure=PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])]),verbose=False):
         """nearest neighbor analyzer object. Use pymatgen structure as well as primitiveCell to find nearest neighbors
 
         Args:
@@ -284,6 +284,8 @@ class nearest_neighbor_analyzer:
         self.local_env_cutoff_dict=local_env_cutoff_dict
         
         self.reference_structure=reference_structure
+        
+        self.verbose=verbose
     
     
     def find(self,index_of_center_atom_of_pymatgen_structure=0,verbose=False):
@@ -359,11 +361,13 @@ class nearest_neighbor_analyzer:
                         global_sequence+=1
         
         
+        print(supercell_sites)
+        
         events=[]
         events_dict = []        
         
         for index_of_center_atom in indices_of_center_atom:
-            center_atom_information,neighbor_dict=self.find(index_of_center_atom=index_of_center_atom)
+            center_atom_information,neighbor_dict=self.find(index_of_center_atom_of_pymatgen_structure=index_of_center_atom)
             """neighbor_dict sample {'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]}
             
             center_atom_information=('Na1', 3)
@@ -381,19 +385,30 @@ class nearest_neighbor_analyzer:
                         center_atom_key=(i,j,k,center_atom_information[1])
                         all_neighbors=[]
                         #diffuse_to_neighbors=[]
+
                         for environment_atom in environment:
-                            for neighbor in neighbor_dict:
+                            print(neighbor_dict[environment_atom])
+                            for neighbor in neighbor_dict[environment_atom]:
                                 
-                                diffuse_to_atom_key=(self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape),neighbor[0])
+                                if self.verbose:
+                                    print("neighbors",neighbor,[i,j,k],neighbor[1],supercell_shape,neighbor[0])         
+                                    pass                           
+                                                 
+                                diffuse_to_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
+                                
+                                if self.verbose:
+                                    print("diffuse_to_atom_key",diffuse_to_atom_key)         
+                                    pass                                
+                                
                                 all_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
 
 
 
-                        environment_atom=diffuse_to                        
-                        for neighbor in neighbor_dict:
+                        #environment_atom=diffuse_to                        
+                        for neighbor in neighbor_dict[diffuse_to]:
 
                                 
-                            diffuse_to_atom_key=(self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape),neighbor[0])
+                            diffuse_to_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
                             #diffuse_to_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
                             this_event = Event()
                             this_event.initialization2(center_atom=supercell_sites[center_atom_tag][center_atom_key],diffuse_to=supercell_sites[environment_atom][diffuse_to_atom_key],sorted_sublattice_indices=all_neighbors)
@@ -411,26 +426,14 @@ class nearest_neighbor_analyzer:
         
         np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
         generate_event_kernal(len(self.structure),np.array(events_site_list),event_kernal_fname=event_kernal_fname)                            
-                                
-                                
-                        
-                                
-                      
-                        
-                        
-        
-        
+
         
         
         pass
 
-    def _get_global_sequence(self,supercell_sites={"Na1":{(1,4,3,0):123,(1,4,3,1):124},"Na2":{(1,4,3,0):1234,(1,4,3,1):1244}},tag="Na1",supercell=[1,4,3],image_of_site=(-1,0,1),local_wyckoff_sequence=0):
-        new_supercell_position=self._equivalent_position_in_periodic_supercell(sites_belongs_to_supercell)
-        return supercell_sites[tag]
-
-
-    def _equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7]):
-        
+    def _equivalent_position_in_periodic_supercell(self,site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7],additional_input=False):
+        if self.verbose:
+            print ("equivalent position",site_belongs_to_supercell,image_of_site)
         # 5 1 7 with image 0 -1 1 -> 5 0 8 -> in periodic 567 supercell should change to 561, suppose supercell start with index1
         
         temp=np.array(site_belongs_to_supercell)+np.array(image_of_site)
@@ -441,6 +444,9 @@ class nearest_neighbor_analyzer:
         #+1 : 561
         temp=np.mod(temp-1,supercell_shape)+1
         
-        return temp
+        temp=temp.tolist()
+        if additional_input is not False:
+            temp.append(additional_input)
+        return tuple(temp)
     
 

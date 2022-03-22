@@ -5,7 +5,7 @@ Author: Zeyu Deng
 Email: dengzeyu@gmail.com
 """
 import numpy as np
-import numba as nb
+
 from copy import deepcopy
 import json
 from kmcpy.io import convert
@@ -129,7 +129,7 @@ class Event:
         event.__dict__ = event_dict
         return event
 
-@nb.njit
+
 def _set_corr(corr,occ_latt,sublattice_indices):
     i = 0
     for sublat_ind_orbit in sublattice_indices:
