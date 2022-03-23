@@ -5,7 +5,7 @@ from pymatgen.core import Structure
 import json
 from kmcpy.io import convert
 from kmcpy.event_generator import generate_event_kernal
-
+from kmcpy.event import Event
 # use spglib!
 # 看bond length 一不一样长
 # 测试一下生成的structure跟原来一不一样
@@ -321,10 +321,27 @@ class nearest_neighbor_analyzer:
             
         return index_of_center_atom_of_primitive_cell,neighbor_list
     
+    
     def create_supercell(self,indices_of_center_atom=[0,1,2,3,4,5],center_atom_tag="Na1",diffuse_to="Na2",environment=["Na2","Si"],supercell_shape=[5,6,7],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
-        
-        from kmcpy.event import Event
-        
+        """一不小心写多了,我现在自己也看不懂
+        实例输入是nasicon体系的实例输入,使用ICSD15546 作为参照,从Na1扩散到Na2
+
+        Args:
+            indices_of_center_atom (list, optional): indices of center atom, for example if center atom is Na1, the multiplicity is 6, then it is [0,1,2,3,4,5  ]. Defaults to [0,1,2,3,4,5].
+            center_atom_tag (str, optional): the tag of center atom. Notice that the indices of center atom from pymatgen is usually different with the indices(wyckoff sequence) in PrimitiveCell. This is to check if indices_of_center_atom coorespond to corrent site. Will raise error if the indices of center atom is corresponding to different site. . Defaults to "Na1".
+            diffuse_to (str, optional): diffuse path, from Na1 to Na2. Defaults to "Na2".
+            environment (list, optional): list of tag(string) , this is the list of environment component.For NAsicon, include the Na2 Si, but no Zr or O. Defaults to ["Na2","Si"].
+            supercell_shape (list, optional): list of supercell shape, better use list but not np.array . Defaults to [5,6,7].
+            event_fname (str, optional): the event file name. Defaults to "events.json".
+            event_kernal_fname (str, optional): the event_kernel file name. Defaults to ""'event_kernal.csv'.
+
+        Raises:
+            ValueError: if the correspondance between pymatgenstructure and primitivecell is probamatic
+
+        Returns:
+            to be implemented: _description_
+        """
+
 
         supercell_sites={}
         """
@@ -347,13 +364,14 @@ class nearest_neighbor_analyzer:
         
         for site in self.reference_structure.sites:
             if site.tag not in supercell_sites:
+                # initialize the dictionary
                 supercell_sites[site.tag]={}
         
         for i in range(1,supercell_shape[0]+1):
             for j in range(1,supercell_shape[1]+1):
                 for k in range(1,supercell_shape[2]+1):
                     for site in self.reference_structure.sites:
-                        # build an abstract supercell. With 
+                        # build an abstract supercell. assign the global sequence to every site
                         
                         supercell_and_wyckoff_sequence=(i,j,k,site.wyckoff_sequence)
                         supercell_sites[site.tag][supercell_and_wyckoff_sequence]=global_sequence
@@ -367,13 +385,21 @@ class nearest_neighbor_analyzer:
         events_dict = []        
         
         for index_of_center_atom in indices_of_center_atom:
+            # index of center atom =0 in indices=[0,1,2,3,4,5]
+            
+            
+            
             center_atom_information,neighbor_dict=self.find(index_of_center_atom_of_pymatgen_structure=index_of_center_atom)
+            
             """neighbor_dict sample {'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]}
             
             center_atom_information=('Na1', 3)
+            
+            See here, the 0th element in pymatgen structure does not necessarily correspond to the 0th element of Primitive cell. Here 0 -> 3, not sure about others
             """
             
             if center_atom_information[0] != center_atom_tag:
+                # a raw check if both atoms are Na1
                 raise ValueError("indices_of_center_atom is not appropriate, index",index_of_center_atom," is not center atom")
             
             
@@ -382,30 +408,70 @@ class nearest_neighbor_analyzer:
             for i in range(1,supercell_shape[0]+1):
                 for j in range(1,supercell_shape[1]+1):
                     for k in range(1,supercell_shape[2]+1):
+                        
+                        
+                        # now 4 loops, for each center atom (totally 6 Na1 per primitive cell)
+                        # and for each supercell
+                        
+                        
+                        # key to the center atom
                         center_atom_key=(i,j,k,center_atom_information[1])
+                        
+                        
                         all_neighbors=[]
                         #diffuse_to_neighbors=[]
 
                         for environment_atom in environment:
-                            print(neighbor_dict[environment_atom])
+                            # 5 loops, center atom -> supercell -> Environment atom that taken in consider (choose one between ["Na2" and "Si"])
+                            
+                            
+                            #print(neighbor_dict[environment_atom])
                             for neighbor in neighbor_dict[environment_atom]:
+                                
+                                # 6th loop
+                                 #center atom -> supercell -> Environment atom that taken in consider (choose one between ["Na2" and "Si"])
+                                """         neighbor_dict sample {'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]}
+                                
+                                if Na2 is chosen in the environment_atom
+                                
+                                neighbor_dict[environment_atom]=[(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]
+                                
+                                then for each neighbor in it, find its true global sequence, provided there supercelll
+                                
+                                """
+                                                        
+                                 
                                 
                                 if self.verbose:
                                     print("neighbors",neighbor,[i,j,k],neighbor[1],supercell_shape,neighbor[0])         
                                     pass                           
                                                  
+                                                 
+                                # generate the key to the neighbor site in order to find the global sequence
+                                # a 4 element tuple
+                                
                                 diffuse_to_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
                                 
                                 if self.verbose:
                                     print("diffuse_to_atom_key",diffuse_to_atom_key)         
                                     pass                                
                                 
+                                
+                                
+                                #supercell_sites[environment_atom][diffuse_to_atom_key] is a interger, which is the global sequence
                                 all_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
 
 
 
-                        #environment_atom=diffuse_to                        
+                        """
+                        previously all Environment atom that taken in consider (choose one between ["Na2" and "Si"]
+                        
+                        
+                        now only the diffusion path, in this case, Na1 -> Na2
+                        
+                        """                   
                         for neighbor in neighbor_dict[diffuse_to]:
+                            # for each Na2, create the event
 
                                 
                             diffuse_to_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
@@ -413,7 +479,10 @@ class nearest_neighbor_analyzer:
                             this_event = Event()
                             this_event.initialization2(center_atom=supercell_sites[center_atom_tag][center_atom_key],diffuse_to=supercell_sites[environment_atom][diffuse_to_atom_key],sorted_sublattice_indices=all_neighbors)
                             events.append(this_event)
-                            events_dict.append(this_event.as_dict())    
+                            events_dict.append(this_event.as_dict())
+                            
+                            
+                                
         print('Saving:',event_fname)
         with open(event_fname,'w') as fhandle:
             jsonStr = json.dumps(events_dict,indent=4,default=convert)
