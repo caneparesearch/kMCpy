@@ -12,6 +12,7 @@ from kmcpy.event import Event
 
 
 def dot_product(array1,array2):
+
     result_product=[]
     if len(array1)!=len(array2):
         raise ValueError("sites_and_lattices.dot_product: array length unequal")
@@ -52,9 +53,16 @@ class Site(object):
         
         self.default_specie=self.possible_species[0]# choose the 1st one as default_specie if not defined.
         pass
+    
+    def list_to_string(input_list=[1,2,3.5]):
+        return_string=""
+        for i in input_list:
+            return_string=return_string+str(i)
+        return return_string
 
     def __str__(self):
-        
+
+        return self.tag+","+str(self.wyckoff_sequence)+","+str(self.relative_coordinate_in_cell[0])+str(self.relative_coordinate_in_cell[1])+str(self.relative_coordinate_in_cell[2])
         pass
 
     def as_dict(self):
@@ -122,6 +130,10 @@ class PrimitiveCell(object):
                 
                 
         return PrimitiveCell(containing_sites=sites)
+    
+    def print_informations(self):
+        for site in self.sites:
+            print(site.tag,site.relative_coordinate_in_cell,site.wyckoff_sequence)
 
     def what_is_it_at(self,coordinate=np.array([0.,0.,0.]),rtol=1e-05, atol=1e-08,raise_error=False):
         """Try to know what it is at the given coordinate.
@@ -268,15 +280,25 @@ def get_rotation_matrices_from_pymatgen(filename="EntryWithCollCode15546_Na4Zr2S
 
 
 
-class nearest_neighbor_analyzer:
+class Supercell:
+    """Supercell class, class for generating the supercell , also include functions for finding nearest neighbors
+    """
     
     def __init__(self,original_structure=Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"), local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},reference_structure=PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])]),verbose=False):
         """nearest neighbor analyzer object. Use pymatgen structure as well as primitiveCell to find nearest neighbors
+        
+        I don't want to write a CutOffDictNN again in sites_and_lattices.PrimitiveCell, so I use the pymatgen as reference structure and try to find corresponding indices.
+        
+        Anyway, the all Na1 is equivalent.
 
         Args:
             original_structure (pymatgen.core.Structure, optional): the original structure. Defaults to Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif").
-            local_env_cutoff_dict (dict, optional): environment cutoff dictionary that will be passed to the finding function. Defaults to {('Na+','Na+'):4,('Na+','Si4+'):4}.
-            reference_structure (kmcpy.sites_and_lattices.PrimitiveCell, optional): a primitive cell object for finding the wyckoff sequence. This shall have same structure with the original structure. Although non-interested sites (Zr and O for nasicon) can be omitted during initialization. Defaults to PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])]).
+            
+            local_env_cutoff_dict (dict, optional): environment cutoff dictionary that will be passed to the finding function. Defaults to {('Na+','Na+'):4,('Na+','Si4+'):4} This should include all interested site. for example, if Si4+ is the neighbor environment to be considered but not defined in dictionary, there will be some trouble.
+            
+            reference_structure (kmcpy.sites_and_lattices.PrimitiveCell, optional): a primitive cell object for finding the wyckoff sequence. This shall have same structure with the original structure. Although non-interested sites (Zr and O for nasicon) can be omitted during initialization. Defaults to PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),
+            
+            initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])]).
         """
 
         self.structure=original_structure
@@ -286,12 +308,19 @@ class nearest_neighbor_analyzer:
         self.reference_structure=reference_structure
         
         self.verbose=verbose
+        
+        
     
     
-    def find(self,index_of_center_atom_of_pymatgen_structure=0,verbose=False):
+    def find(self,index_of_center_atom_of_pymatgen_structure=0):
+        
         """find the nearest neighbor of site at index_of_center_atom in pymatgen structure, and get its wyckoff sequence and tag using the reference PrimitiveCell object
         
         index in pymatgen structure may be different from index in primitivecell. But, the range is the same. If there is 6 Na1 in pymatgen primitive cell that occupying index0~5, then index0~5 in primitivecell is also Na1
+        
+        say we want to find the index 0 element in pymatgen structure, which is a Na1. Na1 is at (0,0,0), then this find() function will try to locate the (0,0,0) site in the corresponding PrimitiveCell, which is Na1 also at (0,0,0), with index(wyckoff sequence) =3. Then I use the CutOffDictNN function in pymatgen structure to find all Na1 neighbors including Na2(Na2-Vacancy pair) and Si(Si-P pair). Suppose we find a Na2 neighbor at coordinate (0.3333,0,0), then I will try to look for the site in Primitivecell which also has the coordinate (0.33333,0,0) . If i Successfully find it, say it is Na2 with wyckoff sequence 11, I will add it to the environment list. If I cannot find it ,there must be something wrong in the code, although I haven't encounter such situation.
+        
+        This function is designed to be called by create_supercell function. 
         
 
         Args:
@@ -301,14 +330,21 @@ class nearest_neighbor_analyzer:
         Returns:
             dict: a dictionary with key=tags of nearest neighbor, and value=list of tuple, with the 1st element=wyckoff sequence and 2nd element=tuple of image, and sorted by wyckoff sequence. 
         """
+        
         from pymatgen.analysis.local_env import CutOffDictNN
         local_env_finder = CutOffDictNN(self.local_env_cutoff_dict)
+
         local_env_info_list =local_env_finder.get_nn_info(self.structure,index_of_center_atom_of_pymatgen_structure)
-        log=""
+
         neighbor_list={}
         
-        index_of_center_atom_of_primitive_cell=self.reference_structure.what_is_it_at(self.structure[0].frac_coords,raise_error=True)
         
+        
+        # see what is the corresponding index in the primitive cell
+        index_of_center_atom_of_primitive_cell=self.reference_structure.what_is_it_at(self.structure[index_of_center_atom_of_pymatgen_structure].frac_coords,raise_error=True)
+        
+        
+
         for i in local_env_info_list:
             temp=self.reference_structure.what_is_it_at(i["site"].frac_coords-np.floor(i["site"].frac_coords),raise_error=True)
             if temp[0] not in neighbor_list:
@@ -318,13 +354,37 @@ class nearest_neighbor_analyzer:
             
         for tag in neighbor_list:
             neighbor_list[tag]=sorted(neighbor_list[tag],key=lambda x:x[0])
+
+        if self.verbose: 
+            print("Supercell.find is called")
+            print("input parameter: index of center atom of pymatgen cell:",index_of_center_atom_of_pymatgen_structure)
+            print("index_of_center_atom_of_primitive_cell",index_of_center_atom_of_primitive_cell)
+            print("neighbor_list",neighbor_list)
             
+            print("validation purpose, please check the sequence is correct")
+            for tag in neighbor_list:
+                print("tag:",tag)
+                for wyckoff_sequence_and_image in neighbor_list[tag]:
+                    for i in self.reference_structure.sites:
+                        if i.tag==tag and i.wyckoff_sequence==wyckoff_sequence_and_image[0]: 
+                            cooresponding_in_primitive_cell=i.relative_coordinate_in_cell
+                            break
+                    print("wyckoff_sequence",wyckoff_sequence_and_image[0],"image",wyckoff_sequence_and_image[1],"corresponding,coordinate in primitive cell:",cooresponding_in_primitive_cell)
+
+
+        # typical return: 
+        # index_of_center_atom_of_primitive_cell=('Na1', 3)
+        # neighbor_list={'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]})
+        # neighbor_list={"tag_of_neighbor_element":[(wyckoff_sequence,image)]}
+        # image: supercell shift
+        # if current center Na1 is at supercell[3,4,5], neighbor Na2 has image (0,-1,1) means that this neighbor is at [3,3,6]                
         return index_of_center_atom_of_primitive_cell,neighbor_list
-    
+
     
     def create_supercell(self,indices_of_center_atom=[0,1,2,3,4,5],center_atom_tag="Na1",diffuse_to="Na2",environment=["Na2","Si"],supercell_shape=[5,6,7],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
-        """一不小心写多了,我现在自己也看不懂
-        实例输入是nasicon体系的实例输入,使用ICSD15546 作为参照,从Na1扩散到Na2
+        """
+
+
 
         Args:
             indices_of_center_atom (list, optional): indices of center atom, for example if center atom is Na1, the multiplicity is 6, then it is [0,1,2,3,4,5  ]. Defaults to [0,1,2,3,4,5].
