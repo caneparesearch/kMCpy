@@ -2469,7 +2469,7 @@ class IStructure(SiteCollection, MSONable):
         for i in self._sites:
             if i.properties["wyckoff_sequence"]==wyckoff_sequence and i.properties["label"]==label:
                 return i
-        raise ValueError("not found")
+        raise ValueError("find_site_by_wyckoff_sequence_and_label:not found. with input parameter: Wyckoff sequence=",wyckoff_sequence," label=",label)
 
 
     def find_site_by_wyckoff_sequence_label_and_supercell(self,wyckoff_sequence=0,label="Na2",supercell=(0,1,1),return_index=True):
@@ -2502,7 +2502,7 @@ class IStructure(SiteCollection, MSONable):
             for i in self._sites:
                 if i.properties["wyckoff_sequence"]==wyckoff_sequence and i.properties["label"]==label and i.properties["supercell"]==supercell:
                     return i
-        raise ValueError("not found")
+        raise ValueError("find_site_by_wyckoff_sequence_label_and_supercell:not found. with input parameter: Wyckoff sequence=",wyckoff_sequence," label=",label,' supercell',supercell)
 
 
 
@@ -3849,7 +3849,7 @@ class Structure(IStructure, collections.abc.MutableSequence):
             for fractional_translation_for_supercell in fractional_translations_for_supercell:
 
                 this_properties=site.properties.copy()
-                this_properties["supercell"]=tuple(np.dot(fractional_translation_for_supercell,scale_matrix).astype(int))
+                this_properties["supercell"]=tuple(np.rint(np.dot(fractional_translation_for_supercell,scale_matrix)).astype(int))
                 #print(this_properties,new_lattice.get_cartesian_coords(fractional_translation_for_supercell))
                 s = PeriodicSite(
                     site.species,
