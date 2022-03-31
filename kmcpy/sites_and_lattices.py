@@ -1,3 +1,7 @@
+# give up!
+
+
+
 
 import numpy as np
 from sympy import chebyshevu

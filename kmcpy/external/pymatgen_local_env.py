@@ -4237,23 +4237,43 @@ class CutOffDictNN(NearNeighbors):
         
         
         if "wyckoff_sequence" in structure.site_properties:
-            for nn in neighs_dists:
-                n_site = nn
-                dist = nn.nn_distance
-                neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(n_site.species_string, 0.0)
+            if "supercell" in structure.site_properties:
+                for nn in neighs_dists:
+                    n_site = nn
+                    dist = nn.nn_distance
+                    neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(n_site.species_string, 0.0)
 
-                if dist < neigh_cut_off_dist:
-                    nn_info.append(
-                        {
-                            "site": n_site,
-                            "image": self._get_image(structure, n_site),
-                            "weight": dist,
-                            "site_index": self._get_original_site(structure, n_site),
-                            "wyckoff_sequence":n_site.properties["wyckoff_sequence"],
-                            "local_index":n_site.properties["local_index"],
-                            "label":n_site.properties["label"]
-                        }
-                    )    
+                    if dist < neigh_cut_off_dist:
+                        nn_info.append(
+                            {
+                                "site": n_site,
+                                "image": self._get_image(structure, n_site),
+                                "weight": dist,
+                                "site_index": self._get_original_site(structure, n_site),
+                                "wyckoff_sequence":n_site.properties["wyckoff_sequence"],
+                                "local_index":n_site.properties["local_index"],
+                                "label":n_site.properties["label"],
+                                "supercell":n_site.properties["supercell"]
+                            }
+                        )    
+            else:   
+                for nn in neighs_dists:
+                    n_site = nn
+                    dist = nn.nn_distance
+                    neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(n_site.species_string, 0.0)
+
+                    if dist < neigh_cut_off_dist:
+                        nn_info.append(
+                            {
+                                "site": n_site,
+                                "image": self._get_image(structure, n_site),
+                                "weight": dist,
+                                "site_index": self._get_original_site(structure, n_site),
+                                "wyckoff_sequence":n_site.properties["wyckoff_sequence"],
+                                "local_index":n_site.properties["local_index"],
+                                "label":n_site.properties["label"]
+                            }
+                        )    
         else:
             for nn in neighs_dists:
                 n_site = nn

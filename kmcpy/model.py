@@ -53,6 +53,18 @@ class LocalClusterExpansion:
 
 
     def initialization2(self,center_atom_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr']):
+        """2nd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
+        
+        Strictly use the cif file because I only modified the structure.from_cif
+
+        Args:
+            center_atom_index (int or str, optional): index of center atom, for nasicon, find the 1st index of Na1. Instead, you can also input the label of center atom and let function to find the index of center atom. For example, if you input "Na1" for NaSICON structure, the program will go through all site and locate the 1st Na1 it finds.. Defaults to 0.
+            cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
+            cutoff_region (float, optional): cutoff for finding diffusion unit. Defaults to 4.
+            template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
+            is_write_basis (bool, optional): .?. Defaults to False.
+            species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
+        """
 
         
         template_structure = Structure.from_cif(template_cif_fname)
@@ -152,8 +164,18 @@ class LocalClusterExpansion:
             local_env_structure.to('xyz','local_env.xyz')
             print('The point group of local environment is: ',PointGroupAnalyzer(local_env_structure).sch_symbol)
         return local_env_structure
+    
+    def get_occupation_neb_cif(self,**kwargs):
+        if self.api==1:
+            return self.get_occupation_neb_cif1(**kwargs)
+        
+        elif self.api==2:
+            return self.get_occupation_neb_cif2(**kwargs)
+        else:
+            
+            raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
 
-    def get_occupation_neb_cif(self,other_cif_name): # input is a cif structure
+    def get_occupation_neb_cif1(self,other_cif_name): # input is a cif structure
         occupation = []
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
@@ -166,6 +188,21 @@ class LocalClusterExpansion:
                 occu = 1
             occupation.append(occu)
         return occupation
+
+    def get_occupation_neb_cif2(self,other_cif_name,species_to_be_removed=['Zr4+','O2-','O','Zr']): # input is a cif structure
+        occupation = []
+        other_structure = Structure.from_file(other_cif_name)
+        other_structure.remove_oxidation_states()
+        other_structure.remove_species(species_to_be_removed)
+        other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
+        for this_site in self.diffusion_unit_structure:
+            if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
+                occu = -1
+            else:
+                occu = 1
+            occupation.append(occu)
+        return occupation
+
     
     def get_correlation_matrix_neb_cif(self,other_cif_names):
         correlation_matrix = []
@@ -257,21 +294,21 @@ class LocalClusterExpansion:
     def as_dict(self):
         if self.api==1:
             d = {"@module":self.__class__.__module__,
-        "@class": self.__class__.__name__,
-        "center_Na1":self.center_Na1.as_dict(),
-        "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
-        "clusters":[],
-        "orbits":[],
-        "sublattice_indices":self.sublattice_indices}
+            "@class": self.__class__.__name__,
+            "center_Na1":self.center_Na1.as_dict(),
+            "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
+            "clusters":[],
+            "orbits":[],
+            "sublattice_indices":self.sublattice_indices}
         
         elif self.api==2:
             d = {"@module":self.__class__.__module__,
-        "@class": self.__class__.__name__,
-        "center_site":self.center_site.as_dict(),
-        "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
-        "clusters":[],
-        "orbits":[],
-        "sublattice_indices":self.sublattice_indices}
+            "@class": self.__class__.__name__,
+            "center_site":self.center_site.as_dict(),
+            "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
+            "clusters":[],
+            "orbits":[],
+            "sublattice_indices":self.sublattice_indices}
         else:
             
             raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
