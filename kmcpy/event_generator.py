@@ -2,7 +2,8 @@
 
 from kmcpy.event import Event
 import numpy as np
-
+from numba.typed import List
+import numba as nb
 from kmcpy.io import convert
 
 def generate_events(api=1,**kwargs):
@@ -243,7 +244,7 @@ def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname=
     np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
     generate_event_kernal(len(structure),np.array(events_site_list),event_kernal_fname=event_kernal_fname)
 
-
+@nb.njit
 def _generate_event_kernal(len_structure,events_site_list):
     """to be called by generate_event_kernal for generating the event_kernal.csv
     
@@ -259,10 +260,10 @@ def _generate_event_kernal(len_structure,events_site_list):
     """
     n_sites  = len_structure
     all_site_list = np.arange(n_sites)
-    results = []
+    results = List()
     for site in all_site_list:
         # print('Looking for site:',site)
-        row = []
+        row = List()
         is_Na1=False
         event_index = 0
         for event in events_site_list:
