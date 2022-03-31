@@ -18,7 +18,7 @@ def generate_events(api=1,**kwargs):
 def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label="Na1"):
 
     import json
-    from pymatgen.core.structure import Structure
+    from kmcpy.external.pymatgen_structure import Structure
     from pymatgen.analysis.local_env import CutOffDictNN
     from pymatgen.core.lattice import Lattice
 
@@ -108,7 +108,7 @@ def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname=
         event_fname (_type_): _description_
     """
     import json
-    from pymatgen.core.structure import Structure
+    from kmcpy.external.pymatgen_structure import Structure
     from pymatgen.analysis.local_env import CutOffDictNN
     from pymatgen.core.lattice import Lattice
     import multiprocessing

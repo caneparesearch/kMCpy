@@ -263,7 +263,7 @@ def get_rotation_matrices_from_pymatgen(filename="EntryWithCollCode15546_Na4Zr2S
         a list, with the element of the list being 4*4 symmetry operation matrix, and the length of list equal to the number of possible symmetry operations.
     """
     from pymatgen.symmetry.analyzer  import SpacegroupAnalyzer
-    from pymatgen.core.structure import Structure
+    from kmcpy.external.pymatgen_structure import Structure
     
     a=SpacegroupAnalyzer(Structure.from_file(filename))
     #print(a.get_conventional_to_primitive_transformation_matrix())
@@ -292,7 +292,7 @@ class Supercell:
         Anyway, the all Na1 is equivalent.
 
         Args:
-            original_structure (pymatgen.core.Structure, optional): the original structure. Defaults to Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif").
+            original_structure (kmcpy.external.pymatgen_structure, optional): the original structure. Defaults to Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif").
             
             local_env_cutoff_dict (dict, optional): environment cutoff dictionary that will be passed to the finding function. Defaults to {('Na+','Na+'):4,('Na+','Si4+'):4} This should include all interested site. for example, if Si4+ is the neighbor environment to be considered but not defined in dictionary, there will be some trouble.
             

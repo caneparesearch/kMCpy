@@ -9,7 +9,7 @@ import random
 import numpy as np
 from pymatgen.core import Structure,Lattice
 from numba.typed import List
-from pymatgen.core.structure import Structure
+from kmcpy.external.pymatgen_structure import Structure
 import numpy as np
 import pandas as pd
 from copy import copy
