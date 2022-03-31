@@ -15,35 +15,26 @@ def generate_events(api=1,**kwargs):
         raise NotImplementedError("debug information from event_generator.generate_events. Unsupport API value: api=",api)
 
 
-def generate_events2(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
-    """generate_events() looks for all possible swaps by given a primitive cell as defined in prim_fname(prim.json) with a supercell shape of [2,1,1] as default.
+def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label="Na1"):
 
-    Args:
-        prim_fname (_type_): _description_
-        supercell_shape (_type_): _description_
-        event_fname (_type_): _description_
-    """
     import json
     from pymatgen.core.structure import Structure
     from pymatgen.analysis.local_env import CutOffDictNN
     from pymatgen.core.lattice import Lattice
-    import multiprocessing
-    from joblib import Parallel, delayed
+
     
     print('Generating events ...')
     shape = supercell_shape
     
-    print('Initializing model with pirm.json at',prim_fname,'...')
-    with open(prim_fname,'r') as f:
-        prim = json.load(f)
-        prim_coords = [site['coordinate'] for site in prim['basis']]
-        prim_specie_cases = [site['occupant_dof'] for site in prim['basis']]
-        prim_lattice = Lattice(prim['lattice_vectors'])
-        prim_species = [s[0] for s in prim_specie_cases]# need to change: now from [Na,Li] it will choose Na
+    print('Initializing model with input cif file at',prim_cif_name,'...')
+
+    primitive_cell=Structure.from_cif(prim_cif_name)
+    
+
         
     supercell_shape_matrix = np.diag(supercell_shape)
     print('Supercell Shape:\n',supercell_shape_matrix)
-    structure = Structure(prim_lattice,prim_species,prim_coords)
+
     print('Converting supercell ...')
     structure.remove_species(['Zr','O'])
     structure.make_supercell(supercell_shape_matrix)
