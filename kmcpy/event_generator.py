@@ -22,7 +22,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
     import json
     from kmcpy.external.pymatgen_structure import Structure
-    from pymatgen.analysis.local_env import CutOffDictNN
+    from kmcpy.external.pymatgen_local_env import CutOffDictNN
     from pymatgen.core.lattice import Lattice
 
     
@@ -120,8 +120,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         if verbose:
             print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",local_env_info)
             for local_env_index in local_env_info:
-                print("distance from center to environment:",supercell[supercell_center_atom_index].distance(supercell[local_env_index]))
-                
+                #print("distance from center to environment:",supercell[supercell_center_atom_index].distance(supercell[local_env_index]))
+                pass
             for local_env_index1 in local_env_info:
                 for local_env_index2 in local_env_info:
                     pass
@@ -148,7 +148,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         # sublattice indices: local site index for each site
         events_site_list.append(event.sorted_sublattice_indices)
     
-    np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int))
+    np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int),fmt="%i")
     generate_event_kernal(len(supercell),np.array(events_site_list),event_kernal_fname=event_kernal_fname)
     pass
     
