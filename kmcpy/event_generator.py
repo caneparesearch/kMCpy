@@ -112,15 +112,25 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         wyckoff_sequence_of_this_center_atom=supercell[supercell_center_atom_index].properties["wyckoff_sequence"]
         local_env_info=[]# list of integer / indices of local environment
         
+        
+        
+        indices_dict_from_identifier=supercell.kmc_build_dict(skip_check=False)
+        
+        
+        
+        
         for neighbor_site_in_primitive_cell in local_env_info_dict[wyckoff_sequence_of_this_center_atom]:
             #print(_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))
-            local_env_info.append(supercell.find_site_by_wyckoff_sequence_label_and_supercell(wyckoff_sequence=neighbor_site_in_primitive_cell["wyckoff_sequence"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape),return_index=True))
+            
+            #local_env_info.append(supercell.find_site_by_wyckoff_sequence_label_and_supercell(wyckoff_sequence=neighbor_site_in_primitive_cell["wyckoff_sequence"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape),return_index=True))
+            
+            local_env_info.append(indices_dict_from_identifier[supercell.kmc_info_to_tuple(wyckoff_sequence=neighbor_site_in_primitive_cell["wyckoff_sequence"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))])
 
         
         if verbose:
             print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",local_env_info)
             for local_env_index in local_env_info:
-                #print("distance from center to environment:",supercell[supercell_center_atom_index].distance(supercell[local_env_index]))
+                #print("distance from center to environment:",supercell[supercell_center_atom_index].distance(supercell[local_env_index]))#debug
                 pass
             for local_env_index1 in local_env_info:
                 for local_env_index2 in local_env_info:
