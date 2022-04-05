@@ -115,7 +115,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         
         indices_dict_from_identifier=supercell.kmc_build_dict(skip_check=False)
-        
+        if verbose:
+            print(indices_dict_from_identifier)
         
         
         
