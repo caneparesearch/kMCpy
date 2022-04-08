@@ -64,6 +64,12 @@ class LocalClusterExpansion:
             template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
             is_write_basis (bool, optional): .?. Defaults to False.
             species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
+            
+            
+        220409: seems like no need to add the different sorting function to it. Becasue the 0th center_atom is working as the reference. Then the sequence is exactly the same
+        
+        
+            
         """
 
         
@@ -137,7 +143,7 @@ class LocalClusterExpansion:
             print('The point group of local environment is: ',PointGroupAnalyzer(local_env_structure).sch_symbol)
         return local_env_structure
 
-    def get_cluster_structure2(self,structure,center_site,cutoff = 4,is_write_basis=False): # return a molecule structure centeret center_site
+    def get_cluster_structure2(self,structure,center_site,cutoff = 4,is_write_basis=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}): # return a molecule structure centeret center_site
         """newer implementation of get_cluster_structure. From the centersite, find the neighbor sites in the sphere, sort them by the wyckoff sequence and the label. like [Na1-0,Na1-2,Na1-10,Na2-0,Na2-4,S-3]
         
         Be very careful that, the sorting sequence is different from 1st implmentation

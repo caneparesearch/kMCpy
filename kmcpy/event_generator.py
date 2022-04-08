@@ -30,14 +30,21 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     Args:
         prim_cif_name (str, optional): Path to the cif file. ONLY CIF FILE IS ACCEPTED! REMEMBER TO CHANGE THE label of different sites. Defaults to "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif".
         supercell_shape (list, optional): list of supercell shape with len=3. Defaults to [2,1,1].
+        
         local_env_cutoff_dict (dict, optional): cutoff dict for finding neighbors. Must include the charge otherwise cannot find. Defaults to {('Na+','Na+'):4,('Na+','Si4+'):4}.
+        
         event_fname (str, optional): output filename of event.json. Defaults to "events.json".
+        
         event_kernal_fname (str, optional): output csv file of event kernel, this is : which events need to be updated if event with index=column is updated. Defaults to 'event_kernal.csv'.
+        
         center_atom_label_or_indices (str / list , optional): string or list of integers . If passing a string, the program will find the indices of all sites in the cif file which has the label=string. if passing a list, then will treat it as the list of indices of center atom. (center of local cluster). Defaults to "Na1".
         diffuse_to_atom_label (str, optional): diffuse to what atom? . Defaults to "Na2".
         species_to_be_removed (list, optional): the species that do not participate in the local cluster expansion calculation. Defaults to ['Zr4+','O2-','O','Zr'].
         verbose (bool or int, optional): if False, then only limited output. If true, then standard verbose output. If verbose=2, a lot of annoying output. Defaults to False.
+        
         hacking_arg (dict, optional): dictionary of hacking arg. The key is the index of center atom, the value is a list, the element of the list is the "local_index" of neighbors. If hacking_ar is present, then when looking for the neighbors and trying to sort them, if the center_atom_index is in the hacking_arg_dict, then the neighbor will be arranged by the sequence of hacking_arg[center_atom_index] The example here is for the NASICON. Defaults to {1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}.
+        
+        If you do not pass into a hacking_arg, if the site can be correctly sorted by wyckoff sequence and label, then you are good, if cannot, then a json will be generated, also the dict will be printed to standard output to tell you the hacking_arg. This hacking_arg shall be passed to model.py
 
     Raises:
         TypeError: if center_atom_label_or_indices is neither list nor list
