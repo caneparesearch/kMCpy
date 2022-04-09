@@ -137,6 +137,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     reference_distance_matrix=build_distance_matrix_from_getnninfo_output(cutoffdnn_output=reference_neighbor_sequences)
             
     if verbose:
+        np.set_printoptions(precision=2,suppress=True)  
         print_divider()
         print("finding neighbors in primitive cell")
         print("looking for the neighbors of 1st center atom for reference. The 1st center atom is ",primitive_cell[center_atom_indices[0]])
@@ -273,7 +274,11 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         else: 
             print_divider()
             print("neighbors of ",primitive_cell[center_atom_index]," is not arranging correctly\n the distance matrix is:")      
-            np.set_printoptions(precision=3)      
+    
+            print(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence))
+            
+            print("the difference matrix is :")
+
             print(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence)-reference_distance_matrix)
             
             this_neighbor_sequence=brutely_rearrange_neighbors(wrong_neighbor_sequence=this_neighbor_sequence,corect_neighbor_sequence=reference_neighbor_sequences,reference_distance_matrix=reference_distance_matrix)
@@ -399,7 +404,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         if verbose:
             
-            np.set_printoptions(precision=3)
+
             print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",local_env_info)
             center_distance_matrix=np.array([])
             for local_env_index in local_env_info:
