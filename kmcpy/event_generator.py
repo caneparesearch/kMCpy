@@ -330,7 +330,11 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         for center_atom_index in center_atom_indices:
             print("finding local environment of",primitive_cell[center_atom_index],"the local info is ",local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])
 
-            print("center atom distance matrix: ",build_distance_matrix_from_getnninfo_output(local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])) 
+            print("different matrix: (should be 0)\n",build_distance_matrix_from_getnninfo_output(local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])-reference_distance_matrix)
+            
+         
+            
+            
     
     
     
@@ -339,10 +343,12 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     
     
     # create the supercell
+    
+    
     supercell=primitive_cell.make_kmc_supercell(supercell_shape)
     if verbose:
         print_divider()
-        print(supercell)
+        print("build the supercell:\n",supercell)
 
     
     
@@ -400,9 +406,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         
         """        
-        
 
-        
         for neighbor_site_in_primitive_cell in local_env_info_dict[wyckoff_sequence_of_this_center_atom]:
             #print(_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))
             
@@ -417,50 +421,68 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             
             the key to dictionary is kmc_info_to_tuple
             
+            This loop build the local_env_info list, [supercell_neighbor_index1, supercell_neighbor_index2, .....]
+            
             """
             
             local_env_info.append(indices_dict_from_identifier[supercell.kmc_info_to_tuple(wyckoff_sequence=neighbor_site_in_primitive_cell["wyckoff_sequence"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))])
 
         
         if verbose:
+            """
+            In this case , will do the validation of distance matrix
+            
+            Should greatly decrease the speed
+            
+            """
             # center atom distance matrix
             # this is distance matrix between center atom and neighbor atom
 
-            print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",[(supercell[global_index].properties["label"],supercell[global_index].properties["wyckoff_sequence"],supercell[global_index].properties["supercell"]) for global_index in local_env_info])
+            print_divider()
             center_distance_matrix=np.array([])
             for local_env_index in local_env_info:
                 if verbose==2:
                     print("distance from center to environment:",supercell[supercell_center_atom_index].properties,supercell[local_env_index].properties,supercell[supercell_center_atom_index].distance(supercell[local_env_index]))#debug
                 center_distance_matrix=np.append(center_distance_matrix,supercell[supercell_center_atom_index].distance(supercell[local_env_index]))
             print("center atom distance matrix: ",center_distance_matrix)
-                
-                
-            """    
-            # distance matrix
-            # this is distance matrix between neighbor atom and neighbor atom
             
-            sites_distance_matrix=np.zeros(shape=(len(local_env_info),len(local_env_info)))
+            # distance matrix of supercell neighbors
+            print_divider()
+
+            print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",[(supercell[global_index].properties["label"],supercell[global_index].properties["wyckoff_sequence"],supercell[global_index].properties["supercell"]) for global_index in local_env_info])
             
-            for (id1,local_env_index1) in enumerate(local_env_info):
-                for (id2,local_env_index2) in enumerate(local_env_info):
-            #        pass
-                    if verbose==2:
-                        print("distance of two local environment site,index1:",supercell[local_env_index1].properties," index2:",supercell[local_env_index2].properties," distance:",supercell[local_env_index1].distance(supercell[local_env_index2]))
+            unsorted_supercell_neighbors=local_env_finder.get_nn_info(supercell,supercell_center_atom_index)
+            
+            print("unsorted neighbors of this center atom by cutoffdnn is ",unsorted_supercell_neighbors)
+            
+            sorted_supercell_neighbors=[]
+            
+            for supercell_neighbor_index in local_env_info:
+                
+                # add the neighbor to sorted_supercell_neighbor in sequence
+                
+                for unsorted_neighbor in unsorted_supercell_neighbors:
                     
+                    if supercell[supercell_neighbor_index].properties["label"] == unsorted_neighbor["label"] and supercell[supercell_neighbor_index].properties["wyckoff_sequence"] == unsorted_neighbor["wyckoff_sequence"]:
+                        sorted_supercell_neighbors.append(unsorted_neighbor)
+                        break
+            
 
-                    
-                    sites_distance_matrix[id1][id2]=min(supercell[local_env_index1].distance(supercell[local_env_index2]),supercell[local_env_index1].distance(supercell[local_env_index2]))
-                    #print([(jimage,supercell[local_env_index1].distance(supercell[local_env_index2],jimage=list(jimage))) for jimage in itertools.product([0,1,-1],repeat=3)])
-                    #sites_distance_matrix[id1][id2]=min([abs(supercell[local_env_index1].distance(supercell[local_env_index2],jimage=list(jimage))) for jimage in itertools.product([0,1],repeat=3)])
+            this_supercell_distance_matrix=build_distance_matrix_from_getnninfo_output(cutoffdnn_output=sorted_supercell_neighbors)
 
-                    
-            print("sites distance matrix:",sites_distance_matrix)
-            if not np.allclose(sites_distance_matrix,reference_distance_matrix,rtol=rtol_for_neighbor):
-                print("The difference matrix is ",sites_distance_matrix-reference_distance_matrix)
-                raise ValueError("the distance matrix of this center atom site in supercell is different from the reference distance matrix. This should not happen!")
-                    
-            print("done for this center atom\n--------------------------------------\n\n\n")
-            """
+            print("rearrange it to",sorted_supercell_neighbors, "the distance matrix is ",this_supercell_distance_matrix)
+
+            if not np.allclose(this_supercell_distance_matrix,reference_distance_matrix,rtol=rtol_for_neighbor):
+                print("warning: The supercell distance matrix is different from reference distance matrix by:", this_supercell_distance_matrix-reference_distance_matrix)
+                raise ValueError("Supercell distance matrix is different from reference distance matrix")
+            else:
+                
+                print("this supercell distance matrix is validated to be same with reference distance matrix within tolerance of ", rtol_for_neighbor)
+            
+            
+            
+            
+ 
         for local_env in local_env_info:
             # generate event
             if supercell[local_env].properties["label"] == diffuse_to_atom_label:
