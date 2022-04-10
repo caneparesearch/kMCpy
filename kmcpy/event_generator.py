@@ -137,21 +137,17 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         """
     
         distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output)))
-        if verbose==2:
-            for sitedictindex1 in range(0,len(cutoffdnn_output)):
-                for sitedictindex2 in range(0,len(cutoffdnn_output)):
+          
 
-                    distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])            
-        else:
-            for sitedictindex1 in range(0,len(cutoffdnn_output)):
-                for sitedictindex2 in range(0,len(cutoffdnn_output)):
-                    """Reason for jimage=[0,0,0]
-                    
-                    site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!
+        for sitedictindex1 in range(0,len(cutoffdnn_output)):
+            for sitedictindex2 in range(0,len(cutoffdnn_output)):
+                """Reason for jimage=[0,0,0]
+                
+                site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!
 
-                    .
-                    """
-                    distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])
+                .
+                """
+                distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])
             
             
         
