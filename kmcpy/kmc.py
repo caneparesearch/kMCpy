@@ -371,6 +371,8 @@ class KMC:
         
         if use_numpy_random_kernel==True:
             self.rng=np.random.default_rng(seed=random_seed)
+        else:
+            self.rng=False
         
         
         print('Simulation condition: v =',v,'T = ',T)
