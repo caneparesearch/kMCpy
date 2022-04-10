@@ -5,7 +5,7 @@ import numpy as np
 from numba.typed import List
 import numba as nb
 from kmcpy.io import convert
-
+import itertools
 
 def print_divider():
     print("\n\n-------------------------------------------\n\n")
@@ -22,7 +22,7 @@ def generate_events(api=1,**kwargs):
 
 
 
-def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001):
+def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",convert_to_primitive_cell=True,supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001):
     """2nd version of generate_events2
     
     
@@ -30,6 +30,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     Args:
         prim_cif_name (str, optional): Path to the cif file. ONLY CIF FILE IS ACCEPTED! REMEMBER TO CHANGE THE label of different sites. Defaults to "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif".
         supercell_shape (list, optional): list of supercell shape with len=3. Defaults to [2,1,1].
+        
+        convert_to_primitive_cell(bool, optional): whether convert the input cif file to primitive cell (if R symmetry, from hexagonal to rhombohedral)
         
         local_env_cutoff_dict (dict, optional): cutoff dict for finding neighbors. Must include the charge otherwise cannot find. Defaults to {('Na+','Na+'):4,('Na+','Si4+'):4}.
         
@@ -68,7 +70,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     print('Initializing model with input cif file at',prim_cif_name,'...')
 
     # I only modify the from_cif!
-    primitive_cell=Structure.from_cif(prim_cif_name)
+    primitive_cell=Structure.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
     
     if add_oxidation_state:
         primitive_cell.add_oxidation_state_by_guess()
@@ -89,7 +91,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         for i in range(0,len(primitive_cell)):
             if primitive_cell[i].properties["label"]==center_atom_label_or_indices:
                 center_atom_indices.append(i)
-                print("please check if this is a center atom:",primitive_cell[i],primitive_cell[i].properties)
+                print("please check if this is a center atom:",primitive_cell[i],"fractional_coordinate:",primitive_cell[i].frac_coords,primitive_cell[i].properties)
         print_divider()
         print("all center atom indices:",center_atom_indices)
         
@@ -114,7 +116,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_indices[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])
     
     
-    def build_distance_matrix_from_getnninfo_output(cutoffdnn_output=reference_neighbor_sequences):
+    def build_distance_matrix_from_getnninfo_output(cutoffdnn_output=reference_neighbor_sequences,verbose=verbose):
         """build a distance matrix from the output of CutOffDictNN.get_nn_info
 
         nn_info looks like: 
@@ -135,25 +137,38 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         """
     
         distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output)))
-        
-        for sitedictindex1 in range(0,len(cutoffdnn_output)):
-            for sitedictindex2 in range(0,len(cutoffdnn_output)):
-                # get distance between two sites. Build the distance matrix
-                distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"])
+        if verbose==2:
+            for sitedictindex1 in range(0,len(cutoffdnn_output)):
+                for sitedictindex2 in range(0,len(cutoffdnn_output)):
+
+                    distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])            
+        else:
+            for sitedictindex1 in range(0,len(cutoffdnn_output)):
+                for sitedictindex2 in range(0,len(cutoffdnn_output)):
+                    """Reason for jimage=[0,0,0]
+                    
+                    site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!
+
+                    .
+                    """
+                    distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])
+            
+            
         
         return distance_matrix
     
     
     reference_distance_matrix=build_distance_matrix_from_getnninfo_output(cutoffdnn_output=reference_neighbor_sequences)
-            
+
     if verbose:
         np.set_printoptions(precision=2,suppress=True)  
+        np.savetxt("reference_distance_matrix.csv",reference_distance_matrix,delimiter=",",newline="\n")
         print_divider()
         print("finding neighbors in primitive cell")
         print("looking for the neighbors of 1st center atom for reference. The 1st center atom is ",primitive_cell[center_atom_indices[0]])
         print("neighbor is arranged in this way")
 
-        print([(neighbor["wyckoff_sequence"],neighbor["label"]) for neighbor in reference_neighbor_sequences])
+        print([(neighbor["wyckoff_sequence"],neighbor["label"],neighbor["image"]) for neighbor in reference_neighbor_sequences])
         print_divider()
         print("the reference distance matrix is ")
         print(reference_distance_matrix)
@@ -171,7 +186,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     
     
     def brutely_rearrange_neighbors(wrong_neighbor_sequence=reference_neighbor_sequences,corect_neighbor_sequence=reference_neighbor_sequences,reference_distance_matrix=reference_distance_matrix):
-        import itertools
+
         
         complete_list_for_iteration=[]
         
@@ -281,6 +296,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             # the distance matrix is correct, means that the neighbors are arranging in  a correct way 
             print_divider()
             print("neighbors of center atom at",primitive_cell[center_atom_index]," is arranging correctly. Carry on next center atom")
+            print([(neighbor["wyckoff_sequence"],neighbor["label"],neighbor["image"]) for neighbor in this_neighbor_sequence])
         else: 
             print_divider()
             print("neighbors of ",primitive_cell[center_atom_index]," is not arranging correctly\n the distance matrix is:")      
@@ -423,12 +439,12 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             print("center atom distance matrix: ",center_distance_matrix)
                 
                 
-                
+            """    
             # distance matrix
             # this is distance matrix between neighbor atom and neighbor atom
             
             sites_distance_matrix=np.zeros(shape=(len(local_env_info),len(local_env_info)))
-                
+            
             for (id1,local_env_index1) in enumerate(local_env_info):
                 for (id2,local_env_index2) in enumerate(local_env_info):
             #        pass
@@ -437,16 +453,18 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
                     
 
                     
-                    sites_distance_matrix[id1][id2]=supercell[local_env_index1].distance(supercell[local_env_index2])
-                    
+                    sites_distance_matrix[id1][id2]=min(supercell[local_env_index1].distance(supercell[local_env_index2]),supercell[local_env_index1].distance(supercell[local_env_index2]))
+                    #print([(jimage,supercell[local_env_index1].distance(supercell[local_env_index2],jimage=list(jimage))) for jimage in itertools.product([0,1,-1],repeat=3)])
+                    #sites_distance_matrix[id1][id2]=min([abs(supercell[local_env_index1].distance(supercell[local_env_index2],jimage=list(jimage))) for jimage in itertools.product([0,1],repeat=3)])
 
                     
             print("sites distance matrix:",sites_distance_matrix)
             if not np.allclose(sites_distance_matrix,reference_distance_matrix,rtol=rtol_for_neighbor):
-                raise ValueError("the distance matrix of this center atom site in supercell is different from the reference distance matrix. This should not happen! The difference matrix is ",sites_distance_matrix-reference_distance_matrix)
+                print("The difference matrix is ",sites_distance_matrix-reference_distance_matrix)
+                raise ValueError("the distance matrix of this center atom site in supercell is different from the reference distance matrix. This should not happen!")
                     
             print("done for this center atom\n--------------------------------------\n\n\n")
-        
+            """
         for local_env in local_env_info:
             # generate event
             if supercell[local_env].properties["label"] == diffuse_to_atom_label:
@@ -456,6 +474,9 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
                 this_event.initialization2(supercell_center_atom_index,local_env,local_env_info)
                 events.append(this_event)
                 events_dict.append(this_event.as_dict())            
+    
+    if len(events)==0:
+        raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the diffuse_to_atom_label?")
             
 
 
