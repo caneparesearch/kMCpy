@@ -22,7 +22,7 @@ def generate_events(api=1,**kwargs):
 
 
 
-def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}):
+def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001):
     """2nd version of generate_events2
     
     
@@ -43,6 +43,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         verbose (bool or int, optional): if False, then only limited output. If true, then standard verbose output. If verbose=2, a lot of annoying output. Defaults to False.
         
         hacking_arg (dict, optional): dictionary of hacking arg. The key is the index of center atom, the value is a list, the element of the list is the "local_index" of neighbors. If hacking_ar is present, then when looking for the neighbors and trying to sort them, if the center_atom_index is in the hacking_arg_dict, then the neighbor will be arranged by the sequence of hacking_arg[center_atom_index] The example here is for the NASICON. Defaults to {1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}.
+        
+        rtol_for_neighbor(float): tolerance for determining whether the distance matrix is the same. This is passed to np.allclose() function. Default to 0.001. No need to change this.
         
         If you do not pass into a hacking_arg, if the site can be correctly sorted by wyckoff sequence and label, then you are good, if cannot, then a json will be generated, also the dict will be printed to standard output to tell you the hacking_arg. This hacking_arg shall be passed to model.py
 
@@ -67,9 +69,17 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
     # I only modify the from_cif!
     primitive_cell=Structure.from_cif(prim_cif_name)
+    
+    if add_oxidation_state:
+        primitive_cell.add_oxidation_state_by_guess()
+    
     primitive_cell.remove_species(species_to_be_removed)
-    
-    
+
+    if verbose:
+        print_divider()
+        print("primitive cell:",primitive_cell)
+
+
     # find the indices of center atom, if not assigned explicitly
     if type(center_atom_label_or_indices) is str:
         center_atom_label=center_atom_label_or_indices
@@ -143,7 +153,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         print("looking for the neighbors of 1st center atom for reference. The 1st center atom is ",primitive_cell[center_atom_indices[0]])
         print("neighbor is arranged in this way")
 
-        print(reference_neighbor_sequences)
+        print([(neighbor["wyckoff_sequence"],neighbor["label"]) for neighbor in reference_neighbor_sequences])
         print_divider()
         print("the reference distance matrix is ")
         print(reference_distance_matrix)
@@ -189,7 +199,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
 
         print_divider()
-        print(" trying to search for a correct neighbor sequence.  progress is stored in logfile. As long as the array is changing, it should be working properly. Be patient.")        
+        print(" trying to search for a correct neighbor sequence.  progress is stored in logfile. As long as the array is changing, it should be working properly. Be positive, Be patient. It take around 90s for searching 12 neighbors. For more neighbors, the searching time increase in O(n!). ")        
         for re_sorted_neighbors_tuple in (itertools.product(*complete_list_for_iteration)):
 
             """re_sorted_neighbors_tuple is tuple format from itertools.product
@@ -223,10 +233,10 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
             
 
-            if np.allclose(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=re_sorted_neighbors_list),reference_distance_matrix,rtol=0.001):
+            if np.allclose(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=re_sorted_neighbors_list),reference_distance_matrix,rtol=rtol_for_neighbor):
                 print_divider()
                 print("Reorganized neighbors found. In this sequence of neighbor, the distance matrix should be same to the reference matrix ")
-                print(re_sorted_neighbors_list)
+                print([(neighbor["wyckoff_sequence"],neighbor["label"]) for neighbor in re_sorted_neighbors_list])
                 print("distance matrix is ")
                 print(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=re_sorted_neighbors_list))
                 print(" use this as the new sequence of neighbor.")
@@ -267,7 +277,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         
         
-        if np.allclose(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence),reference_distance_matrix,rtol=0.001):
+        if np.allclose(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence),reference_distance_matrix,rtol=rtol_for_neighbor):
             # the distance matrix is correct, means that the neighbors are arranging in  a correct way 
             print_divider()
             print("neighbors of center atom at",primitive_cell[center_atom_index]," is arranging correctly. Carry on next center atom")
@@ -307,13 +317,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         print("finish searching of neighbors. Revalidating the distance matrix. Make sure all of the distance matrix are the same!")
         for center_atom_index in center_atom_indices:
             print("finding local environment of",primitive_cell[center_atom_index],"the local info is ",local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])
-            
-            center_distance_matrix=np.array([])
-            
-            for neighbor_information in local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]]:
-                for neighbor_information2 in local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]]: 
-                    center_distance_matrix=np.append(center_distance_matrix,neighbor_information["site"].distance(neighbor_information2["site"]))
-            print("center atom distance matrix: ",center_distance_matrix)    
+
+            print("center atom distance matrix: ",build_distance_matrix_from_getnninfo_output(local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])) 
     
     
     
@@ -359,6 +364,9 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         return tuple(temp)    
     
     
+    
+    indices_dict_from_identifier=supercell.kmc_build_dict(skip_check=False)
+    
     for supercell_center_atom_index in supercell_center_atom_indices:
         
         # for center atoms of supercell, find the neighbors
@@ -380,7 +388,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         
         """        
-        indices_dict_from_identifier=supercell.kmc_build_dict(skip_check=False)
+        
 
         
         for neighbor_site_in_primitive_cell in local_env_info_dict[wyckoff_sequence_of_this_center_atom]:
@@ -403,9 +411,10 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
         
         if verbose:
-            
+            # center atom distance matrix
+            # this is distance matrix between center atom and neighbor atom
 
-            print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",local_env_info)
+            print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",[(supercell[global_index].properties["label"],supercell[global_index].properties["wyckoff_sequence"],supercell[global_index].properties["supercell"]) for global_index in local_env_info])
             center_distance_matrix=np.array([])
             for local_env_index in local_env_info:
                 if verbose==2:
@@ -415,27 +424,31 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
                 
                 
                 
+            # distance matrix
+            # this is distance matrix between neighbor atom and neighbor atom
+            
+            sites_distance_matrix=np.zeros(shape=(len(local_env_info),len(local_env_info)))
                 
-            sites_distance_matrix=np.array([])
-                
-            for local_env_index1 in local_env_info:
-                for local_env_index2 in local_env_info:
+            for (id1,local_env_index1) in enumerate(local_env_info):
+                for (id2,local_env_index2) in enumerate(local_env_info):
             #        pass
                     if verbose==2:
                         print("distance of two local environment site,index1:",supercell[local_env_index1].properties," index2:",supercell[local_env_index2].properties," distance:",supercell[local_env_index1].distance(supercell[local_env_index2]))
                     
 
                     
-                    sites_distance_matrix=np.append(sites_distance_matrix,supercell[local_env_index1].distance(supercell[local_env_index2]))
+                    sites_distance_matrix[id1][id2]=supercell[local_env_index1].distance(supercell[local_env_index2])
                     
 
                     
             print("sites distance matrix:",sites_distance_matrix)
+            if not np.allclose(sites_distance_matrix,reference_distance_matrix,rtol=rtol_for_neighbor):
+                raise ValueError("the distance matrix of this center atom site in supercell is different from the reference distance matrix. This should not happen! The difference matrix is ",sites_distance_matrix-reference_distance_matrix)
                     
             print("done for this center atom\n--------------------------------------\n\n\n")
         
         for local_env in local_env_info:
-                    
+            # generate event
             if supercell[local_env].properties["label"] == diffuse_to_atom_label:
                 # or for understanding, if any site in local environment, its label== "Na2"
                 # initialize the event
