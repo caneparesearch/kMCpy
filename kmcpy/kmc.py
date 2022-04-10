@@ -273,7 +273,7 @@ class KMC:
         except:
             pass
 
-    def propose(self,events,random_seed=114514,use_numpy_random_kernel=True,api=2,rng=np.random.default_rng(),**kwargs): # propose() will propose an event to be updated by update()
+    def propose(self,events,random_seed=123456,use_numpy_random_kernel=True,api=2,rng=np.random.default_rng(),**kwargs): # propose() will propose an event to be updated by update()
         """propose a new event to be updated by update()
 
         Args:
