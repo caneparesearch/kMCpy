@@ -5,7 +5,7 @@ This is related to the Table S3 in KMC support information pdf.
 """
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
-from kmcpy.external.pymatgen_structure import Molecule
+from pymatgen.core.structure import Molecule
 from kmcpy.external.pymatgen_structure import Structure
 import numpy as np
 import json
@@ -33,6 +33,7 @@ class LocalClusterExpansion:
             raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
 
     def initialization1(self,center_Na1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
+
         template_structure = Structure.from_file(template_cif_fname)
         template_structure.remove_oxidation_states()
         self.center_Na1 = template_structure[center_Na1_index]
@@ -72,7 +73,7 @@ class LocalClusterExpansion:
             
         """
 
-        
+
         template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
         template_structure.remove_oxidation_states()
         

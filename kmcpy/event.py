@@ -23,7 +23,7 @@ class Event:
         self.na1_index = na1_index
         self.na2_index = na2_index
         self.sorted_sublattice_indices = self.analyze_local_structure(local_env_info) # this is the sublattice indices that matches with the local cluster expansion
-        self.local_env_indices_list = [i['site_index'] for i in local_env_info]
+        self.local_env_indices_list = [i['site_index'] for i in local_env_info]# unsorted version of sorted_sublattice_indices
         self.local_env_indices_list_site = [i['site_index'] for i in local_env_info]
         
     def initialization2(self,center_atom=12,diffuse_to=15,sorted_sublattice_indices=[1,2,3,4,5]):
