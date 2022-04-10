@@ -79,8 +79,8 @@ class LocalClusterExpansion:
         if type(center_atom_index) is str:
         
         
-            for i in range(0,len(Structure.site_properties["label"])):
-                if Structure.site_properties["label"][i]==center_atom_index:
+            for i in range(0,len(template_structure.site_properties["label"])):
+                if template_structure.site_properties["label"][i]==center_atom_index:
                     # automatically find the indice
                     center_atom_indices=i
                     break
