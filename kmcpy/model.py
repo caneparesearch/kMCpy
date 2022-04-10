@@ -52,7 +52,7 @@ class LocalClusterExpansion:
             orbit.show_representative_cluster()
 
 
-    def initialization2(self,center_atom_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr']):
+    def initialization2(self,center_atom_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
         """2nd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
         
         Strictly use the cif file because I only modified the structure.from_cif
@@ -73,7 +73,7 @@ class LocalClusterExpansion:
         """
 
         
-        template_structure = Structure.from_cif(template_cif_fname)
+        template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
         template_structure.remove_oxidation_states()
         
         if type(center_atom_index) is str:
