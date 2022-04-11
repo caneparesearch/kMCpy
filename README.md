@@ -24,6 +24,9 @@ python numpy scipy pandas numba tables pymatgen
 `conda install python=3.8`
 3. Install required packages and kmcPy
 `pip install -r requirement.txt .`
+
+if unsuccessful: `conda install --file requirements. txt`
+
 4. For developer, use editable mode (developer mode) of pip
 `pip install -r requirement.txt -e .`
 
