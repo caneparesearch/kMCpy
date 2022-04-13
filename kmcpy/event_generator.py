@@ -22,7 +22,7 @@ def generate_events(api=1,**kwargs):
 
 
 
-def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",convert_to_primitive_cell=True,supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001):
+def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",convert_to_primitive_cell=True,supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001,export_reference_cluster="reference_cluster.cif"):
     """2nd version of generate_events2
     
     
@@ -114,6 +114,14 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     # I set this reference_neighbor_sequences, set the sequence of 1st center atom index as the reference
     
     reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_indices[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])
+
+
+    reference_cluster_sites=[primitive_cell[center_atom_indices[0]]]
+    for i in reference_neighbor_sequences:
+        reference_cluster_sites.append(i["site"])
+        
+    reference_cluster_structure=Structure.from_sites(sites=reference_cluster_sites)
+    reference_cluster_structure.to("cif",export_reference_cluster)    
     
     
     def build_distance_matrix_from_getnninfo_output(cutoffdnn_output=reference_neighbor_sequences,verbose=verbose):
