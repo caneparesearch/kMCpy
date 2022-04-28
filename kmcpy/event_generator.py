@@ -218,7 +218,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
 
         print_divider()
-        print(" trying to search for a correct neighbor sequence.  progress is stored in logfile. As long as the array is changing, it should be working properly. Be positive, Be patient. It take around 90s for searching 12 neighbors. For more neighbors, the searching time increase in O(n!). ")        
+        print(" trying to search for a correct neighbor sequence.  progress is stored in logfile. As long as the array is changing, it should be working properly. It take around 90s for searching 12 neighbors. For more neighbors, the searching time increase in O(n!). ")        
         for re_sorted_neighbors_tuple in (itertools.product(*complete_list_for_iteration)):
 
             """re_sorted_neighbors_tuple is tuple format from itertools.product

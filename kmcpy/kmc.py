@@ -340,6 +340,7 @@ class KMC:
             tracker.show_current_info(comp,current_pass)
 
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
+        
     def run_from_database2(self,kmc_pass=1000,equ_pass=1,v=5000000000000,T=298,events="./inputs/events.json",comp=1,structure_idx=1,random_seed=114514,use_numpy_random_kernel=True,verbose=False,**kwargs):
         api=2
         
