@@ -9,7 +9,7 @@ import random
 import numpy as np
 from pymatgen.core import Structure,Lattice
 from numba.typed import List
-from pymatgen.core.structure import Structure
+from kmcpy.external.pymatgen_structure import Structure
 import numpy as np
 import pandas as pd
 from copy import copy
@@ -43,8 +43,7 @@ class KMC:
         """
         if "api" in kwargs:
             self.api=kwargs["api"]
-        else:
-            self.api=1
+
             
             
         if self.api==1:
@@ -120,13 +119,13 @@ class KMC:
         self.prob_cum_list = np.cumsum(self.prob_list)
         return events
     
-    def initialization2(self,occ=np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]),prim_fname='./inputs/prim.json',fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',event_fname="./inputs/events.json",supercell_shape=[2,1,1],v=5000000000000,T=298,lce_fname="./inputs/lce.json",lce_site_fname="./inputs/lce_site.json",immutable_sites=["Zr","O"],verbose=False,**kwargs):
+    def initialization2(self,occ=np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]),prim_fname='./inputs/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',event_fname="./inputs/events.json",supercell_shape=[2,1,1],v=5000000000000,T=298,lce_fname="./inputs/lce.json",lce_site_fname="./inputs/lce_site.json",immutable_sites=["Zr","O"],verbose=False,convert_to_primitive_cell=False,**kwargs):
         """the 2nd version of initialization process. 
         
         
         Validate Args:
             occ (np.array, optional): this is the chebyshev occupation of sites, representing the initial state of the model. Defaults to np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]).
-            prim_fname (str, optional): the primitive cell of the input structure. Defaults to './inputs/prim.json'.
+            prim_fname (str, optional): the primitive cell of the input structure. Defaults to './inputs/prim.cif'.
             fitting_results (str, optional): This is the fitting results matrix, related to the activation barrier E_kra. Defaults to './inputs/fitting_results.json'.
             fitting_results_site (str, optional):  This is the fitting results matrix, related to the site energy E_end Defaults to './inputs/fitting_results_site.json'.
             event_fname (str, optional): record all possible event. Defaults to "./inputs/events.json".
@@ -137,48 +136,23 @@ class KMC:
             lce_site_fname (str, optional): This contains all lce orbit related to the activation barrier E_end. Defaults to "./inputs/lce_site.json".
             immutable_sites (list, optional):the sites that do not participate in the monte carlo process. For example,. in NaSICON, the Zr and O do not participate, the Na/Vac and P/S pairs are considered. Defaults to ["Zr","O"].
             verbose (bool, optional): trying to enable the verbose output. Defaults to False.
+            convert_to_primitive_cell(bool): whether or not convert input cif file to primitive cell
 
         Returns:
             list: a list of kmc.event.Event object
         """
 
-        print('Initializing kMC calculations with pirm.json at',prim_fname,'...')
+        print('Initializing kMC calculations with pirm.cif at',prim_fname,'...')
         
         
-        with open(prim_fname,'r') as f:
-            # load the primitive cell
-            prim = json.load(f)
-            
-            # load the coordinates of primitive cell, 
-            # typically  [site['coordinate']=[ 0.000000, 0.000000, 0.000000]
-            prim_coords = [site['coordinate'] for site in prim['basis']]
-            
-            # load the species. Some sites can be occupied by different elements, 
-            # For example, site['occupant_dof']= ["Si","P"]
-            
-            prim_specie_cases = [site['occupant_dof'] for site in prim['basis']]
-            
-            
-            # load the lattice parameter: typically
-            """  prim["lattice_vectors"]=[
-        [4.593150 ,2.651856  , 7.393667],
-        [-4.593150, 2.651856 , 7.393667],
-        [-0.000000, -5.303713, 7.393667]
-    ],
-            """
-            prim_lattice = Lattice(prim['lattice_vectors'])
-            
-            # choose the 1st specie in every site.
-            # For example, s= ["Si","P"]
-            # then the s[0] ="Si"           
-            prim_species = [s[0] for s in prim_specie_cases]
-            
+
+        self.structure=Structure.from_cif(prim_fname,primitive=convert_to_primitive_cell)
             
             
 
         supercell_shape_matrix = np.diag(supercell_shape)
         print('Supercell Shape:\n',supercell_shape_matrix)
-        self.structure = Structure(prim_lattice,prim_species,prim_coords)
+
         
         print('Converting to the supercell ...')
         print("removing the immutable sites:",immutable_sites)
@@ -273,7 +247,7 @@ class KMC:
         except:
             pass
 
-    def propose(self,events,random_seed=114514,use_numpy_random_kernel=True,api=2,rng=np.random.default_rng(),**kwargs): # propose() will propose an event to be updated by update()
+    def propose(self,events,random_seed=123456,use_numpy_random_kernel=True,api=2,rng=np.random.default_rng(),**kwargs): # propose() will propose an event to be updated by update()
         """propose a new event to be updated by update()
 
         Args:
@@ -366,11 +340,14 @@ class KMC:
             tracker.show_current_info(comp,current_pass)
 
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
+        
     def run_from_database2(self,kmc_pass=1000,equ_pass=1,v=5000000000000,T=298,events="./inputs/events.json",comp=1,structure_idx=1,random_seed=114514,use_numpy_random_kernel=True,verbose=False,**kwargs):
         api=2
         
         if use_numpy_random_kernel==True:
             self.rng=np.random.default_rng(seed=random_seed)
+        else:
+            self.rng=False
         
         
         print('Simulation condition: v =',v,'T = ',T)

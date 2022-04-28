@@ -5,7 +5,8 @@ This is related to the Table S3 in KMC support information pdf.
 """
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
-from pymatgen.core.structure import Molecule,Structure
+from pymatgen.core.structure import Molecule
+from kmcpy.external.pymatgen_structure import Structure
 import numpy as np
 import json
 import glob
@@ -17,10 +18,22 @@ class LocalClusterExpansion:
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-    def __init__(self):
+    def __init__(self,api=1):
+        self.api=api
         pass
+    
+    def initialization(self,**kwargs):
+        if self.api==1:
+            return self.initialization1(**kwargs)
+        
+        elif self.api==2:
+            return self.initialization2(**kwargs)
+        else:
+            
+            raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
 
-    def initialization(self,center_Na1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
+    def initialization1(self,center_Na1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
+        from pymatgen.core.structure import Structure
         template_structure = Structure.from_file(template_cif_fname)
         template_structure.remove_oxidation_states()
         self.center_Na1 = template_structure[center_Na1_index]
@@ -39,7 +52,87 @@ class LocalClusterExpansion:
         for orbit in self.orbits:
             orbit.show_representative_cluster()
 
-    def get_cluster_structure(self,structure,center_site,cutoff = 4,is_write_basis=False): # return a molecule structure centeret center_site
+
+    def initialization2(self,center_atom_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
+        """2nd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
+        
+        Strictly use the cif file because I only modified the structure.from_cif
+
+        Args:
+            center_atom_index (int or str, optional): index of center atom, for nasicon, find the 1st index of Na1. Instead, you can also input the label of center atom and let function to find the index of center atom. For example, if you input "Na1" for NaSICON structure, the program will go through all site and locate the 1st Na1 it finds.. Defaults to 0.
+            cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
+            cutoff_region (float, optional): cutoff for finding diffusion unit. Defaults to 4.
+            template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
+            is_write_basis (bool, optional): .?. Defaults to False.
+            species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
+            
+            
+        220409: seems like no need to add the different sorting function to it. Becasue the 0th center_atom is working as the reference. Then the sequence is exactly the same
+        
+        
+            
+        """
+
+
+        template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
+        template_structure.remove_oxidation_states()
+        
+        if type(center_atom_index) is str:
+        
+        
+            for i in range(0,len(template_structure.site_properties["label"])):
+                if template_structure.site_properties["label"][i]==center_atom_index:
+                    # automatically find the indice
+                    center_atom_indices=i
+                    break
+        
+        else:
+            center_atom_indices=center_atom_index
+        
+        
+        self.center_site = template_structure[center_atom_indices] #self.center_site: pymatgen.site
+        
+        
+        
+        template_structure.remove_sites([center_atom_indices])
+        
+        template_structure.remove_species(species_to_be_removed)
+        
+        print('Searching local env around',self.center_site ,'...')
+        
+    
+    
+        self.diffusion_unit_structure = self.get_cluster_structure2(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis)
+        
+        
+        # List all possible point, pair and triplet clusters
+        atom_index_list = np.arange(0,len(self.diffusion_unit_structure))
+        
+        cluster_indexes = list(combinations(atom_index_list,1))+list(combinations(atom_index_list,2))+list(combinations(atom_index_list,3))+list(combinations(atom_index_list,4))
+        
+        print(len(cluster_indexes),'clusters will be generated ...')
+        
+        self.clusters = self.clusters_constructor(cluster_indexes,[10]+cutoff_cluster)
+        
+        self.orbits = self.orbits_constructor(self.clusters)
+        
+        self.sublattice_indices = [[cluster.site_indices for cluster in orbit.clusters] for orbit in self.orbits] # sublattice_indices[orbit,cluster,site]
+        print('Type','Index','max_length','min_length','Point Group','Multiplicity',sep='\t')
+        for orbit in self.orbits:
+            orbit.show_representative_cluster()
+
+
+    def get_cluster_structure(self,**kwargs):
+        if self.api==1:
+            return self.get_cluster_structure1(**kwargs)
+        
+        elif self.api==2:
+            return self.get_cluster_structure2(**kwargs)
+        else:
+            
+            raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
+
+    def get_cluster_structure1(self,structure,center_site,cutoff = 4,is_write_basis=False): # return a molecule structure centeret center_site
         local_env_structure = [s[0] for s in structure.get_sites_in_sphere(center_site.coords,cutoff)]
         local_env_list_sorted = sorted(sorted(local_env_structure,key=lambda x:x.coords[0]),key = lambda x:x.specie)
         local_env_structure = Molecule.from_sites(local_env_list_sorted)
@@ -51,7 +144,45 @@ class LocalClusterExpansion:
             print('The point group of local environment is: ',PointGroupAnalyzer(local_env_structure).sch_symbol)
         return local_env_structure
 
-    def get_occupation_neb_cif(self,other_cif_name): # input is a cif structure
+    def get_cluster_structure2(self,structure,center_site,cutoff = 4,is_write_basis=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}): # return a molecule structure centeret center_site
+        """newer implementation of get_cluster_structure. From the centersite, find the neighbor sites in the sphere, sort them by the wyckoff sequence and the label. like [Na1-0,Na1-2,Na1-10,Na2-0,Na2-4,S-3]
+        
+        Be very careful that, the sorting sequence is different from 1st implmentation
+
+        Args:
+            structure (kmcpy.external.pymatgen_structure): Must be the structure generated by the FROM_CIF functino!!!!
+            center_site (pymatgen.core.site): a site object
+            cutoff (int, optional): cutoff of finding neighbors. Defaults to 4.
+            is_write_basis (bool, optional): ?. Defaults to False.
+
+        Returns:
+            pymatgen.core.Molecule: for generate the clusters in the next step.
+        """
+        local_env_sites = [s[0] for s in structure.get_sites_in_sphere(center_site.coords,cutoff)]
+        
+        
+        local_env_list_sorted = sorted(sorted(local_env_sites,key=lambda x:x.properties["wyckoff_sequence"]),key = lambda x:x.properties["label"])
+        
+        local_env_structure = Molecule.from_sites(local_env_list_sorted)
+        local_env_structure.translate_sites(np.arange(0,len(local_env_structure),1),-1*center_site.coords)
+        if is_write_basis:
+            print('Local environemnt: ')
+            print(local_env_structure)
+            local_env_structure.to('xyz','local_env.xyz')
+            print('The point group of local environment is: ',PointGroupAnalyzer(local_env_structure).sch_symbol)
+        return local_env_structure
+    
+    def get_occupation_neb_cif(self,**kwargs):
+        if self.api==1:
+            return self.get_occupation_neb_cif1(**kwargs)
+        
+        elif self.api==2:
+            return self.get_occupation_neb_cif2(**kwargs)
+        else:
+            
+            raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
+
+    def get_occupation_neb_cif1(self,other_cif_name): # input is a cif structure
         occupation = []
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
@@ -64,6 +195,21 @@ class LocalClusterExpansion:
                 occu = 1
             occupation.append(occu)
         return occupation
+
+    def get_occupation_neb_cif2(self,other_cif_name,species_to_be_removed=['Zr4+','O2-','O','Zr']): # input is a cif structure
+        occupation = []
+        other_structure = Structure.from_file(other_cif_name)
+        other_structure.remove_oxidation_states()
+        other_structure.remove_species(species_to_be_removed)
+        other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
+        for this_site in self.diffusion_unit_structure:
+            if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
+                occu = -1
+            else:
+                occu = 1
+            occupation.append(occu)
+        return occupation
+
     
     def get_correlation_matrix_neb_cif(self,other_cif_names):
         correlation_matrix = []
@@ -153,18 +299,31 @@ class LocalClusterExpansion:
             fhandle.write(jsonStr)
 
     def as_dict(self):
-        d = {"@module":self.__class__.__module__,
-        "@class": self.__class__.__name__,
-        "center_Na1":self.center_Na1.as_dict(),
-        "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
-        "clusters":[],
-        "orbits":[],
-        "sublattice_indices":self.sublattice_indices}
-
+        if self.api==1:
+            d = {"@module":self.__class__.__module__,
+            "@class": self.__class__.__name__,
+            "center_Na1":self.center_Na1.as_dict(),
+            "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
+            "clusters":[],
+            "orbits":[],
+            "sublattice_indices":self.sublattice_indices}
+        
+        elif self.api==2:
+            d = {"@module":self.__class__.__module__,
+            "@class": self.__class__.__name__,
+            "center_site":self.center_site.as_dict(),
+            "diffusion_unit_structure":self.diffusion_unit_structure.as_dict(),
+            "clusters":[],
+            "orbits":[],
+            "sublattice_indices":self.sublattice_indices}
+        else:
+            
+            raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
         for cluster in self.clusters:
             d["clusters"].append(cluster.as_dict())
         for orbit in self.orbits:
             d["orbits"].append(orbit.as_dict())
+
         return d
 
 
