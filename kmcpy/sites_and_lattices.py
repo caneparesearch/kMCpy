@@ -14,6 +14,18 @@ from kmcpy.event import Event
 # 看bond length 一不一样长
 # 测试一下生成的structure跟原来一不一样
 
+"""
+
+This file is not used anymore!
+    This file is not used anymore!
+        This file is not used anymore!
+            This file is not used anymore!
+                This file is not used anymore!
+                    This file is not used anymore!
+                        This file is not used anymore!
+"""
+
+
 
 def dot_product(array1,array2):
 
