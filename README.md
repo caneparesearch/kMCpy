@@ -9,6 +9,7 @@ python numpy scipy pandas numba tables pymatgen
 ## Regular X86-64
 1. Create a conda environment
 `conda create -n kmcpy`
+`conda activate kmcpy`
 2. Install pip
 `conda install pip`
 3. Install required packages and kmcPy
