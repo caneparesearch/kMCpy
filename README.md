@@ -6,17 +6,49 @@
 python numpy scipy pandas numba tables pymatgen
 
 # Installation Guide:
+## Regular X86-64
 1. Create a conda environment
 `conda create -n kmcpy`
+`conda activate kmcpy`
 2. Install pip
-`conda install pip`
+`conda install python=3.8`
 3. Install required packages and kmcPy
 `pip install -r requirement.txt .`
 4. For developer, use editable mode (developer mode) of pip
 `pip install -r requirement.txt -e .`
+
+## apple sillycon
+1. Create a conda environment
+`conda create -n kmcpy`
+`conda activate kmcpy`
+2. Install pip
+`conda install python=3.8`
+3. Install required packages and kmcPy
+`pip install -r requirement.txt .`
+if unsuccessful: 
+```
+conda install --file requirements.txt
+pip install .
+```
+
+4. For developer, use editable mode (developer mode) of pip
+`pip install -r requirement.txt -e .`
+or if unsuccessful: 
+```
+conda install --file requirements.txt
+pip install -e .
+```
 
 # Run Example:
 - `python run_kmc.py T `
 - T is temperature in Kelvin
 - This will run kMC started from the occupancy stored in initial_state.json 
 - `python run_kmc.py 573`
+
+
+# build docs:
+```
+cd doc
+pip install -r doc_requirements.txt
+make html
+```

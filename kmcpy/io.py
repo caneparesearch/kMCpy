@@ -79,8 +79,10 @@ def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,
 # to be developed
 
 class InputSet:
-    # a input set that containing the parameters for running a KMC simulation
-    
+    """
+    a flexible input set class for running KMC
+    just a dictionary
+    """
     def __init__(self,_parameters={},api=1) -> None:
         
         self._parameters=_parameters
@@ -101,17 +103,12 @@ class InputSet:
         return InputSet(_parameters,api)
 
     def report_parameter(self,format="equation"):
-        """report paramter, getting the default values of the parameter so that I can set the args of the functions. Development purpose
-
+        """
+        report_parameter, to print the parameters of this input set. This is only for development convenience
+        
+        for example: the output of a default input set is :v= 5000000000000,equ_pass= 1,kmc_pass= 1000,supercell_shape= [2, 1, 1],fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',lce_fname='./inputs/lce.json',lce_site_fname='./inputs/lce_site.json',prim_fname='./inputs/prim.json',event_fname='./inputs/events.json',event_kernel='./inputs/event_kernal.csv',mc_results='./initial_state.json',T= 298,comp= 1,structure_idx= 1,occ= [-1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1].
         Args:
-            format (str, optional): 
-            
-            format=dict, print a python dict
-            format=equation: print equations that is capable for **kwargs
-                for example: the output of a default input set is :
-                    v= 5000000000000,equ_pass= 1,kmc_pass= 1000,supercell_shape= [2, 1, 1],fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',lce_fname='./inputs/lce.json',lce_site_fname='./inputs/lce_site.json',prim_fname='./inputs/prim.json',event_fname='./inputs/events.json',event_kernel='./inputs/event_kernal.csv',mc_results='./initial_state.json',T= 298,comp= 1,structure_idx= 1,occ= [-1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1]
-            
-            . Defaults to "equation".
+            format (str, optional): "equation" or "dict". If format=dict, then print a python dict. format=equation: print equations that is capable for **kwargs.  Defaults to "equation".
         """
         if format=="dict":
             print(self._parameters)

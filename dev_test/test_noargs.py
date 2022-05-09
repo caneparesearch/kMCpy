@@ -27,11 +27,11 @@ def main(api=1,**kwargs):
 
         # # step 3 run kmc
         kmc.run_from_database(events=events_initialized,**inputset._parameters)
-    if api>1:
+    if api==2:
         raise NotImplementedError
     pass
 
 
 if __name__ == "__main__":
 
-    main()
+    main(api=2)
