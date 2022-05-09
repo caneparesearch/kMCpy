@@ -5,3 +5,4 @@ numba>=0.53.1
 pymatgen>=2021.3.4
 joblib>=1.0.1
 scikit-learn>=0.24.1
+glob2

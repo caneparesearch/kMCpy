@@ -1,4 +1,4 @@
-Walkthrough
+Introduction
 ===========
 
 introduction on different functions

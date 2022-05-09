@@ -1,7 +1,7 @@
-event_generator
+fitting
 =========================
 
-.. automodule:: kmcpy.event_generator
+.. automodule:: kmcpy.fitting
     :members:
     :inherited-members:
                   

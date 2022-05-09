@@ -19,6 +19,9 @@ from kmcpy.tracker import Tracker
 from kmcpy.event import Event
 from kmcpy.io import convert
 class KMC:
+    """
+    main function of kinetic monte carlo
+    """
     def __init__(self,**kwargs):
         if "api" in kwargs:
             self.api=kwargs["api"]

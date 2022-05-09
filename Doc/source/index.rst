@@ -9,7 +9,7 @@ introduction here:
    :maxdepth: 1
 
    install
-   test/tutorials.rst
+   test/validation_test.rst
    modules/api
    function_test/introduction.rst
    about

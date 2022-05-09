@@ -79,8 +79,10 @@ def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,
 # to be developed
 
 class InputSet:
-    # a input set that containing the parameters for running a KMC simulation
-    
+    """
+    a flexible input set class for running KMC
+    just a dictionary
+    """
     def __init__(self,_parameters={},api=1) -> None:
         
         self._parameters=_parameters

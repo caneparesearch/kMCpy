@@ -43,10 +43,10 @@ def gather_data(path):
 #    df_merged.drop(['hop_count','displacement','ekra','occupation'],axis=1,inplace=True)
     return df_merged
 
-
-df = gather_data('results*.csv.gz')
-print(df.columns)
-print(df)
-df.to_csv('gathered_results.csv.gz',compression='gzip')
-# print(df.D_J)
+if __name__=="__main__":
+    df = gather_data('results*.csv.gz')
+    print(df.columns)
+    print(df)
+    df.to_csv('gathered_results.csv.gz',compression='gzip')
+    # print(df.D_J)
 

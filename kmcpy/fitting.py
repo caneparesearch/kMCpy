@@ -8,6 +8,9 @@ import json
 from kmcpy.io import convert
 
 class Fitting:
+    """
+    main function of fitting the NEB result to the kinetic monte carlo input
+    """
     def __init__(self):
         pass
 
