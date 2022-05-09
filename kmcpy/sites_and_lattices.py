@@ -299,8 +299,7 @@ def get_rotation_matrices_from_pymatgen(filename="EntryWithCollCode15546_Na4Zr2S
 class Supercell:
     """Supercell class, class for generating the supercell , also include functions for finding nearest neighbors
     """
-    
-    def __init__(self,original_structure=Structure.from_file("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"), local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},reference_structure=PrimitiveCell.from_sites_and_symmetry_matrices(symmetry_operations=get_rotation_matrices_from_pymatgen("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),initial_sites=[Site(tag="Na1",relative_coordinate_in_cell=[0.0,0.0,0.0]),Site(tag="Na2",relative_coordinate_in_cell=[0.63967, 0., 0.25]),Site(tag="Si",relative_coordinate_in_cell=[0.29544,0.,0.25])]),verbose=False):
+    def __init__(self,original_structure=1, local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},reference_structure=1,verbose=False):
         """nearest neighbor analyzer object. Use pymatgen structure as well as primitiveCell to find nearest neighbors
         
         I don't want to write a CutOffDictNN again in sites_and_lattices.PrimitiveCell, so I use the pymatgen as reference structure and try to find corresponding indices.
