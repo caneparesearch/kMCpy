@@ -14,5 +14,5 @@ nbsphinx
 sphinx-autodoc-typehints
 tqdm
 psutil
-pyfftw
 Jinja2<3.1
+myst_parser

@@ -45,7 +45,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
     'nbsphinx',
-    'sphinx_autodoc_typehints'
+    'sphinx_autodoc_typehints',
+    'myst_parser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -71,3 +72,6 @@ html_static_path = []
 nbsphinx_prompt_width = '0'
 
 master_doc = 'index'
+
+
+source_suffix = ['.rst', '.md']
