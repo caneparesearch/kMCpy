@@ -1035,7 +1035,7 @@ class CifParser:
                     # (such as unintended use of `spin` and Species will have
                     # fictitious oxidation state).
                     raise NotImplementedError("Disordered magnetic structures not currently supported.")
-        print(coord_to_species)
+        #print(coord_to_species)
         if coord_to_species.items():
             """
             for idx, (comp, group) in enumerate(
@@ -1333,7 +1333,7 @@ class CifParser:
                     # (such as unintended use of `spin` and Species will have
                     # fictitious oxidation state).
                     raise NotImplementedError("Disordered magnetic structures not currently supported.")
-        print(coord_to_species)
+        #print(coord_to_species)
         if coord_to_species.items():
             """
             for idx, (comp, group) in enumerate(
