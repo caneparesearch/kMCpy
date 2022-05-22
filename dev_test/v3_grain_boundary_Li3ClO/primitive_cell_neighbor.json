@@ -1,0 +1,1900 @@
+{
+    "0": [
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    3.4e-06,
+                    0.6038398,
+                    0.52864755
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 158,
+                    "label": "Cl158"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.56223733861809,
+            "site_index": 158,
+            "wyckoff_sequence": 0,
+            "local_index": 158,
+            "label": "Cl158"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    6.34e-06,
+                    0.19368548,
+                    0.55406646
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 146,
+                    "label": "Cl146"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.7839936290055487,
+            "site_index": 146,
+            "wyckoff_sequence": 0,
+            "local_index": 146,
+            "label": "Cl146"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -0.49998301,
+                    0.23286346,
+                    0.49450517
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 117,
+                    "label": "Li117"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.728215974450637,
+            "site_index": 117,
+            "wyckoff_sequence": 0,
+            "local_index": 117,
+            "label": "Li117"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.50001699,
+                    0.23286346,
+                    0.49450517
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 117,
+                    "label": "Li117"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.728276981885318,
+            "site_index": 117,
+            "wyckoff_sequence": 0,
+            "local_index": 117,
+            "label": "Li117"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.50000545,
+                    0.42223363,
+                    0.53893124
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 62,
+                    "label": "Li62"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.567581857323904,
+            "site_index": 62,
+            "wyckoff_sequence": 0,
+            "local_index": 62,
+            "label": "Li62"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -0.49999455000000004,
+                    0.42223363,
+                    0.53893124
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 62,
+                    "label": "Li62"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.5675876472671657,
+            "site_index": 62,
+            "wyckoff_sequence": 0,
+            "local_index": 62,
+            "label": "Li62"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.50000979,
+                    0.10907134,
+                    0.53227197
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 118,
+                    "label": "Li118"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.840123814904724,
+            "site_index": 118,
+            "wyckoff_sequence": 0,
+            "local_index": 118,
+            "label": "Li118"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -0.49999021,
+                    0.10907134,
+                    0.53227197
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 118,
+                    "label": "Li118"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.8401161244109696,
+            "site_index": 118,
+            "wyckoff_sequence": 0,
+            "local_index": 118,
+            "label": "Li118"
+        }
+    ],
+    "3": [
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.99999735,
+                    0.60874413,
+                    0.46025982
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 123,
+                    "label": "Cl123"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.6016112600107304,
+            "site_index": 123,
+            "wyckoff_sequence": 0,
+            "local_index": 123,
+            "label": "Cl123"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -2.6499999999929358e-06,
+                    0.60874413,
+                    0.46025982
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 123,
+                    "label": "Cl123"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.6016361079734183,
+            "site_index": 123,
+            "wyckoff_sequence": 0,
+            "local_index": 123,
+            "label": "Cl123"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.99999747,
+                    0.19939953,
+                    0.43498721
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 127,
+                    "label": "Cl127"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.9722475628732528,
+            "site_index": 127,
+            "wyckoff_sequence": 0,
+            "local_index": 127,
+            "label": "Cl127"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -2.529999999945076e-06,
+                    0.19939953,
+                    0.43498721
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 127,
+                    "label": "Cl127"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.9722771462007382,
+            "site_index": 127,
+            "wyckoff_sequence": 0,
+            "local_index": 127,
+            "label": "Cl127"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.99996565,
+                    0.3283612,
+                    0.47040659
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 116,
+                    "label": "Li116"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.572870481138571,
+            "site_index": 116,
+            "wyckoff_sequence": 0,
+            "local_index": 116,
+            "label": "Li116"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -3.43499999999608e-05,
+                    0.3283612,
+                    0.47040659
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 116,
+                    "label": "Li116"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.5730920337485514,
+            "site_index": 116,
+            "wyckoff_sequence": 0,
+            "local_index": 116,
+            "label": "Li116"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.49998169,
+                    0.70398027,
+                    0.43672487
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 21,
+                    "label": "Li21"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.603581391383302,
+            "site_index": 21,
+            "wyckoff_sequence": 0,
+            "local_index": 21,
+            "label": "Li21"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.49997502,
+                    0.30324345,
+                    0.41321443
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 25,
+                    "label": "Li25"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.8856115351415377,
+            "site_index": 25,
+            "wyckoff_sequence": 0,
+            "local_index": 25,
+            "label": "Li25"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.50000777,
+                    0.11483926,
+                    0.45673722
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 35,
+                    "label": "Li35"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.761234580054859,
+            "site_index": 35,
+            "wyckoff_sequence": 0,
+            "local_index": 35,
+            "label": "Li35"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.9999969,
+                    0.50491464,
+                    0.42491688
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 39,
+                    "label": "Li39"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.7403173355037027,
+            "site_index": 39,
+            "wyckoff_sequence": 0,
+            "local_index": 39,
+            "label": "Li39"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -3.1000000000336314e-06,
+                    0.50491464,
+                    0.42491688
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 39,
+                    "label": "Li39"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.740338637725089,
+            "site_index": 39,
+            "wyckoff_sequence": 0,
+            "local_index": 39,
+            "label": "Li39"
+        }
+    ],
+    "108": [
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.99996881,
+                    0.39628353,
+                    0.0286483
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 156,
+                    "label": "Cl156"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.780497379720644,
+            "site_index": 156,
+            "wyckoff_sequence": 0,
+            "local_index": 156,
+            "label": "Cl156"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -3.118999999995875e-05,
+                    0.39628353,
+                    0.0286483
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 156,
+                    "label": "Cl156"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.7805898281589125,
+            "site_index": 156,
+            "wyckoff_sequence": 0,
+            "local_index": 156,
+            "label": "Cl156"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    2.61e-06,
+                    0.09083795,
+                    -0.005422269999999951
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 157,
+                    "label": "Cl157"
+                }
+            },
+            "image": [
+                0,
+                0,
+                -1
+            ],
+            "weight": 2.6546567028505668,
+            "site_index": 157,
+            "wyckoff_sequence": 0,
+            "local_index": 157,
+            "label": "Cl157"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    1.00000261,
+                    0.09083795,
+                    -0.005422269999999951
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 157,
+                    "label": "Cl157"
+                }
+            },
+            "image": [
+                1,
+                0,
+                -1
+            ],
+            "weight": 2.6547453919805473,
+            "site_index": 157,
+            "wyckoff_sequence": 0,
+            "local_index": 157,
+            "label": "Cl157"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.49997783,
+                    -0.10888281,
+                    0.03225737
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 113,
+                    "label": "Li113"
+                }
+            },
+            "image": [
+                0,
+                -1,
+                0
+            ],
+            "weight": 2.8181042655921402,
+            "site_index": 113,
+            "wyckoff_sequence": 0,
+            "local_index": 113,
+            "label": "Li113"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.49994613,
+                    0.30168439,
+                    0.05224497
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 22,
+                    "label": "Li22"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.7524699177113674,
+            "site_index": 22,
+            "wyckoff_sequence": 0,
+            "local_index": 22,
+            "label": "Li22"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.99997207,
+                    0.1060969,
+                    0.04176352
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 40,
+                    "label": "Li40"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.734886610331701,
+            "site_index": 40,
+            "wyckoff_sequence": 0,
+            "local_index": 40,
+            "label": "Li40"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    -2.7930000000009336e-05,
+                    0.1060969,
+                    0.04176352
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 40,
+                    "label": "Li40"
+                }
+            },
+            "image": [
+                -1,
+                0,
+                0
+            ],
+            "weight": 2.734976994881309,
+            "site_index": 40,
+            "wyckoff_sequence": 0,
+            "local_index": 40,
+            "label": "Li40"
+        }
+    ],
+    "110": [
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    1.00000803,
+                    0.39112353,
+                    0.96025325
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 141,
+                    "label": "Cl141"
+                }
+            },
+            "image": [
+                1,
+                0,
+                0
+            ],
+            "weight": 2.5528358205240904,
+            "site_index": 141,
+            "wyckoff_sequence": 0,
+            "local_index": 141,
+            "label": "Cl141"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Cl",
+                        "oxidation_state": -1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    1.00000982,
+                    0.80045621,
+                    0.93498519
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 145,
+                    "label": "Cl145"
+                }
+            },
+            "image": [
+                1,
+                0,
+                0
+            ],
+            "weight": 2.8070453467504266,
+            "site_index": 145,
+            "wyckoff_sequence": 0,
+            "local_index": 145,
+            "label": "Cl145"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    1.4999809499999999,
+                    0.76710352,
+                    0.99450201
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 111,
+                    "label": "Li111"
+                }
+            },
+            "image": [
+                1,
+                0,
+                0
+            ],
+            "weight": 2.7315857804518067,
+            "site_index": 111,
+            "wyckoff_sequence": 0,
+            "local_index": 111,
+            "label": "Li111"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.49998095,
+                    0.76710352,
+                    0.99450201
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 111,
+                    "label": "Li111"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.7316292710104415,
+            "site_index": 111,
+            "wyckoff_sequence": 0,
+            "local_index": 111,
+            "label": "Li111"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.50000546,
+                    0.57309365,
+                    0.95008261
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 57,
+                    "label": "Li57"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.5730402771568364,
+            "site_index": 57,
+            "wyckoff_sequence": 0,
+            "local_index": 57,
+            "label": "Li57"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    1.5000054600000001,
+                    0.57309365,
+                    0.95008261
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 57,
+                    "label": "Li57"
+                }
+            },
+            "image": [
+                1,
+                0,
+                0
+            ],
+            "weight": 2.5731391075577736,
+            "site_index": 57,
+            "wyckoff_sequence": 0,
+            "local_index": 57,
+            "label": "Li57"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    0.5000144,
+                    0.88504431,
+                    0.95673638
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 89,
+                    "label": "Li89"
+                }
+            },
+            "image": [
+                0,
+                0,
+                0
+            ],
+            "weight": 2.8555379713127067,
+            "site_index": 89,
+            "wyckoff_sequence": 0,
+            "local_index": 89,
+            "label": "Li89"
+        },
+        {
+            "site": {
+                "species": [
+                    {
+                        "element": "Li",
+                        "oxidation_state": 1.0,
+                        "occu": 1.0
+                    }
+                ],
+                "abc": [
+                    1.5000144,
+                    0.88504431,
+                    0.95673638
+                ],
+                "lattice": {
+                    "@module": "pymatgen.core.lattice",
+                    "@class": "Lattice",
+                    "matrix": [
+                        [
+                            3.850209269989045,
+                            0.0,
+                            -9.184735899884057e-06
+                        ],
+                        [
+                            2.6598744348287704e-05,
+                            8.715776504472947,
+                            0.0003092533572008101
+                        ],
+                        [
+                            0.0,
+                            0.0,
+                            72.62062044
+                        ]
+                    ]
+                },
+                "@module": "kmcpy.external.pymatgen_structure",
+                "@class": "PeriodicNeighbor",
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 89,
+                    "label": "Li89"
+                }
+            },
+            "image": [
+                1,
+                0,
+                0
+            ],
+            "weight": 2.855683066442455,
+            "site_index": 89,
+            "wyckoff_sequence": 0,
+            "local_index": 89,
+            "label": "Li89"
+        }
+    ]
+}

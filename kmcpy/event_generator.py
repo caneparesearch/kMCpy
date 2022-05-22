@@ -6,9 +6,165 @@ from numba.typed import List
 import numba as nb
 from kmcpy.io import convert
 import itertools
+import logging
 
 def print_divider():
     print("\n\n-------------------------------------------\n\n")
+
+class cluster_matcher():
+    
+    def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),reference_distance_matrix=np.array([[0,1],[1,0]]),reference_neighbor_sequence=[{}],neighbor_species_respective_reference_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])},neighbor_species_respective_reference_neighbor_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
+        """cluster matcher, the __init__ method shouln't be used. Use the from_reference_cluster() instead. This is cluster matcher to match the nearest neighbor info output from local_env.cutoffdictNN.get_nn_info. This cluster_matcher Class is initialized by a reference cluster, a distance matrix is built as reference. Then user can call the cluster_matcher.brutal_match function to sort another nn_info so that the sequence of neighbor of "another nn_info" is arranged so that the distance matrix are the same 
+
+        Args:
+            neighbor_species (tuple, optional): tuple ( tuple ( str(species), int(number_of_this_specie in neighbors)  )  ). Defaults to (('Cl-', 4),('Li+', 8)).
+            reference_distance_matrix (np.array, optional): np.2d array as distance matrix. Defaults to np.array([[0,1],[1,0]]).
+            reference_neighbor_sequence (list, optional): list of dictionary in the format of nn_info returning value. Defaults to [{}].
+            neighbor_species_respective_reference_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])}.
+            neighbor_species_respective_reference_neighbor_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {"Cl-":[{}],"Li+":[{}]}.
+        """
+        
+        self.neighbor_species=neighbor_species
+        self.reference_distance_matrix=reference_distance_matrix
+        self.neighbor_species_respective_reference_distance_matrix_dict=neighbor_species_respective_reference_distance_matrix_dict
+        self.neighbor_species_respective_reference_neighbor_sequence_dict=neighbor_species_respective_reference_neighbor_sequence_dict
+        self.reference_neighbor_sequence=reference_neighbor_sequence
+        
+        
+        logging.info("a cluster is created with "+str(self.neighbor_species))
+        logging.info("the distance matrix is "+str(self.reference_distance_matrix))
+        
+        
+        pass
+    
+    @classmethod
+    def from_reference_neighbor_sequences(self,reference_neighbor_sequences=[{}]):
+        cn_dict={}
+        neighbor_species_respective_reference_neighbor_sequence_dict={}
+        
+        for neighbor in reference_neighbor_sequences:
+            
+            site_element = neighbor["site"].species_string
+            
+            if site_element not in cn_dict:
+                cn_dict[site_element] = 1
+            else:
+                cn_dict[site_element] += 1
+            if site_element not in neighbor_species_respective_reference_neighbor_sequence_dict:
+                neighbor_species_respective_reference_neighbor_sequence_dict[site_element]=[neighbor]
+            else:
+                neighbor_species_respective_reference_neighbor_sequence_dict[site_element].append(neighbor)
+        
+            
+        neighbor_species_respective_reference_distance_matrix_dict={}
+        
+        for species in neighbor_species_respective_reference_neighbor_sequence_dict:
+            neighbor_species_respective_reference_distance_matrix_dict[species]=self.build_distance_matrix_from_getnninfo_output(neighbor_species_respective_reference_neighbor_sequence_dict[species])
+        
+        neighbor_species=tuple(sorted(cn_dict.items(),key=lambda x:x[0]))
+        
+        reference_distance_matrix=self.build_distance_matrix_from_getnninfo_output(reference_neighbor_sequences)
+        
+                
+        return cluster_matcher(neighbor_species=neighbor_species,reference_distance_matrix=reference_distance_matrix,reference_neighbor_sequence=reference_neighbor_sequences,neighbor_species_respective_reference_distance_matrix_dict=neighbor_species_respective_reference_distance_matrix_dict,neighbor_species_respective_reference_neighbor_sequence_dict=neighbor_species_respective_reference_neighbor_sequence_dict)
+        
+    
+    @classmethod
+    def build_distance_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
+        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+
+        nn_info looks like: 
+        [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
+        
+        or say:
+        
+        nn_info is a list, the elements of list is dictionary, the keys of dictionary are: "site":pymatgen.site, "wyckoff_sequence": ....
+        
+        Use the site.distance function to build matrix
+        
+
+        Args:
+            cutoffdnn_output (nn_info, optional): nninfo. Defaults to reference_neighbor_sequences.
+
+        Returns:
+            np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
+        """
+    
+        distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output)))
+          
+
+        for sitedictindex1 in range(0,len(cutoffdnn_output)):
+            for sitedictindex2 in range(0,sitedictindex1):
+                """Reason for jimage=[0,0,0]
+                
+                site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!
+
+                .
+                """
+                distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])
+            
+            
+        
+        return distance_matrix
+
+    def brutal_match(self,unsorted_nninfo=[{}],rtol=0.01):
+        """brutally sort the inputted unsorted_nninfo. Although brutal but fast enough for now
+
+        Args:
+            unsorted_nninfo (list, optional): the unsorted nn_info of an element. The nn_info are compared with the nn_info of class instance. Defaults to [{}].
+            rtol (float, optional): rtolerance of np.allclose in order to determine if the distance matrix are the same. Better not too small. Defaults to 0.01.
+
+        Raises:
+            ValueError: this will perform a check if the inputted unsorted nn_info has the same neighbor species type and amount
+            ValueError: if the unsorted_nninfo cannot be sort with reference of the distance matrix of this cluster_matcher instance. Probably due to too small rtol or it's just not the same clusters
+
+        Returns:
+            list of dictionary: in the format of cutoffdictNN.get_nn_info
+        """
+        
+        unsorted_cluster=cluster_matcher.from_reference_neighbor_sequences(unsorted_nninfo)
+        
+        if self.neighbor_species!=unsorted_cluster.neighbor_species:
+            raise ValueError("input cluster has different environment")
+        
+        sorted_neighbor_sequence_dict={}
+
+        for specie in unsorted_cluster.neighbor_species_respective_reference_neighbor_sequence_dict:
+            
+            sorted_neighbor_sequence_dict[specie]=[]
+            
+            for possible_local_sequence in itertools.permutations(unsorted_cluster.neighbor_species_respective_reference_neighbor_sequence_dict[specie]):
+                
+                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_respective_reference_distance_matrix_dict[specie],rtol=rtol):
+                    
+                    sorted_neighbor_sequence_dict[specie].append(list(possible_local_sequence))
+        
+        #logging.warning(str(sorted_neighbor_sequence_dict))
+        
+        
+        sorted_neighbor_sequence_list=[]
+        
+        for specie in sorted_neighbor_sequence_dict:
+            sorted_neighbor_sequence_list.append(sorted_neighbor_sequence_dict[specie])
+        
+        for possible_complete_sequence in itertools.product(*sorted_neighbor_sequence_list):
+            
+            #logging.warning(str(possible_complete_sequence))
+            
+            re_sorted_neighbors_list=[]
+            
+            for neighbor in possible_complete_sequence:
+
+                re_sorted_neighbors_list.extend(list(neighbor))               
+        
+            if np.allclose(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list),self.reference_distance_matrix,rtol=rtol):
+                return re_sorted_neighbors_list
+  
+        raise ValueError("sequence not founded!")                
+        
+
+
+
 
 def generate_events(api=1,**kwargs):
     
