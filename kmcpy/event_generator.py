@@ -1132,17 +1132,21 @@ def _generate_event_kernal(len_structure,events_site_list):
 
 
 def _generate_event_kernal3(len_structure,events_site_list):
-    """to be called by generate_event_kernal for generating the event_kernal.csv
+    """to be called by generate_event_kernal3 for generating the event_kernal.csv
+    
+    This is a very slow version that do not use the numba
+    
+    NEED FURTHER ALGO IMPROVEMENT FOR LARGER SUPERCELL
     
     for  a event and find all other event that include the site of this event
     
 
     Args:
         len_structure (int): _description_
-        events_site_list (_type_): _description_
+        events_site_list (list): list[ list[]  ]
 
     Returns:
-        _type_: _description_
+        list[ list[]  ]: _description_
     """
     n_sites  = len_structure
     all_site_list = np.arange(n_sites)
