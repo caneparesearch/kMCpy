@@ -1005,7 +1005,7 @@ def generate_events3(prim_cif_name="210.cif",local_env_cutoff_dict={("Li+","Cl-"
         events_site_list.append(event.sorted_sublattice_indices)
     
     #np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int),fmt="%i") # dimension not equal error
-    generate_event_kernal3(len(supercell),np.array(events_site_list),event_kernal_fname=event_kernal_fname)    
+    generate_event_kernal3(len(supercell),events_site_list,event_kernal_fname=event_kernal_fname)       
     
 def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
     """generate_events() looks for all possible swaps by given a primitive cell as defined in prim_fname(prim.json) with a supercell shape of [2,1,1] as default.
