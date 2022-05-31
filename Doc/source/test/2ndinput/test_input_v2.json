@@ -1,7 +1,7 @@
 {
     "v" : 5000000000000,
     "equ_pass" : 1,
-    "kmc_pass"  : 10000,
+    "kmc_pass"  : 100,
     "supercell_shape" : [2,1,1],
     "fitting_results" : "./2ndinput/fitting_results.json",
     "fitting_results_site" : "./2ndinput/fitting_results_site.json",
