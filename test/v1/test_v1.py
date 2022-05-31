@@ -47,7 +47,6 @@ class TestStringMethods(unittest.TestCase):
         kmc.run_from_database(events=events_initialized,**inputset._parameters)
         
         self.assertEqual(1,1)
-    
     pass
 if __name__ == '__main__':
     unittest.main()
