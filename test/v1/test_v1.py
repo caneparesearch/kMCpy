@@ -1,19 +1,20 @@
 import unittest
-
+from pathlib import Path
+import os 
 class TestStringMethods(unittest.TestCase):
+    
+    
     from kmcpy.model import LocalClusterExpansion
-
+    current_dir= Path(__file__).absolute().parent
+    os.chdir(current_dir)
     a=LocalClusterExpansion(api=1)
     a.initialization1(center_Na1_index=0,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif')
-    a.to_json("lce.json")
+    a.to_json("./lce.json")
     from kmcpy.event_generator import generate_events
-
+    # generate events to be implemented
 
     from kmcpy.io import InputSet,load_occ
     from kmcpy.kmc import KMC
-    import os
-    import sys
-
 
     inputset=InputSet.from_json("./test_input.json")
 
@@ -32,7 +33,7 @@ class TestStringMethods(unittest.TestCase):
 
     # # step 3 run kmc
     kmc.run_from_database(events=events_initialized,**inputset._parameters)
-
+    
     pass
 if __name__ == '__main__':
     unittest.main()

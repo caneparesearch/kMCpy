@@ -382,6 +382,8 @@ class KMC:
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
         if verbose:
             print("verbose information: kmc.KMC.run_from_database is called. API version 2")
+            
+
     # def run(self,kmc_pass,equ_pass,v,T,events):
     #     print('Simulation condition: v =',v,'T = ',T)
     #     self.v = v

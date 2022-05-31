@@ -3827,6 +3827,14 @@ class Structure(IStructure, collections.abc.MutableSequence):
 
 
     def make_kmc_supercell(self, scaling_matrix=(1,2,3)) -> "Structure":
+        """kmcpy function, nothing strange, just add a property to show which supercell this site belongs to
+
+        Args:
+            scaling_matrix (tuple, optional): scaling matrix . Defaults to (1,2,3).
+
+        Returns:
+            Structure: kmcpy.external.pymatgen_structure.Structure
+        """
 
 
         scale_matrix = np.array(scaling_matrix, int)
@@ -3891,7 +3899,7 @@ class Structure(IStructure, collections.abc.MutableSequence):
         Args:
             supercell (tuple, optional): belongs to which supercell. Defaults to (1,2,3).
             label (str, optional): label of the atom. Defaults to "Na2".
-            local_index (int, optional): wyckoff sequence. Defaults to 2.
+            local_index (int, optional): local_index as identifier. Defaults to 2.
 
         Returns:
             tuple: len=5 tuple 
@@ -3964,8 +3972,10 @@ class Structure(IStructure, collections.abc.MutableSequence):
         else:
             for site_index in range(0,len(self._sites)):
                 tmp_key=self.kmc_info_to_tuple3(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])
+                
                 if tmp_key in indices_dict_from_identifier:
                     raise KeyError("duplicate sites identifies by kmc_build_dict function. This shouldn't happen. Please check this site: ",self._sites.properties)
+                
                 indices_dict_from_identifier[self.kmc_info_to_tuple3(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])]=site_index
                 
         return indices_dict_from_identifier

@@ -1,8 +1,4 @@
-# give up!
-
-
-
-
+# not implemented!!!
 import numpy as np
 from sympy import chebyshevu
 from pymatgen.core import Structure

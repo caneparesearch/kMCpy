@@ -12,6 +12,7 @@ import json
 import glob
 from kmcpy.io import convert
 
+
 class LocalClusterExpansion:
     """
     LocalClusterExpansion will be initialized with a template structure where all the sites are occupied
@@ -28,6 +29,8 @@ class LocalClusterExpansion:
         
         elif self.api==2:
             return self.initialization2(**kwargs)
+        elif self.api==3:
+            return self.initialization3(**kwargs)
         else:
             
             raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
@@ -103,6 +106,66 @@ class LocalClusterExpansion:
     
     
         self.diffusion_unit_structure = self.get_cluster_structure2(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis)
+        
+        
+        # List all possible point, pair and triplet clusters
+        atom_index_list = np.arange(0,len(self.diffusion_unit_structure))
+        
+        cluster_indexes = list(combinations(atom_index_list,1))+list(combinations(atom_index_list,2))+list(combinations(atom_index_list,3))+list(combinations(atom_index_list,4))
+        
+        print(len(cluster_indexes),'clusters will be generated ...')
+        
+        self.clusters = self.clusters_constructor(cluster_indexes,[10]+cutoff_cluster)
+        
+        self.orbits = self.orbits_constructor(self.clusters)
+        
+        self.sublattice_indices = [[cluster.site_indices for cluster in orbit.clusters] for orbit in self.orbits] # sublattice_indices[orbit,cluster,site]
+        print('Type','Index','max_length','min_length','Point Group','Multiplicity',sep='\t')
+        for orbit in self.orbits:
+            orbit.show_representative_cluster()
+
+    def initialization3(self,atom_identifier_type="label",center_atom_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
+        """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
+        
+        Strictly use the cif file because I only modified the structure.from_cif
+
+        use structure matcher
+
+        Args:
+            atom_identifier_type="label",center_atom_identifier="Na1": refers to structure_operation.find_atom_indices
+            cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
+            cutoff_region (float, optional): cutoff for finding diffusion unit. Defaults to 4.
+            template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
+            is_write_basis (bool, optional): .?. Defaults to False.
+            species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
+        
+        
+            
+        """
+
+        from kmcpy.event_generator import find_atom_indices
+        
+        template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
+        template_structure.remove_oxidation_states()
+        template_structure.remove_species(species_to_be_removed)
+        
+        center_atom_indices=find_atom_indices(template_structure,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)
+        
+        center_atom_indices=center_atom_indices[0]# just use the first one        
+
+        self.center_site = template_structure[center_atom_indices] #self.center_site: pymatgen.site
+        
+        
+        
+        template_structure.remove_sites([center_atom_indices])
+        
+
+        
+        print('Searching local env around',self.center_site ,'...')
+        
+    
+        # fallback to the initial get cluster structure 
+        self.diffusion_unit_structure = self.get_cluster_structure1(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis)
         
         
         # List all possible point, pair and triplet clusters
@@ -308,7 +371,7 @@ class LocalClusterExpansion:
             "orbits":[],
             "sublattice_indices":self.sublattice_indices}
         
-        elif self.api==2:
+        elif self.api==2 or self.api==3:
             d = {"@module":self.__class__.__module__,
             "@class": self.__class__.__name__,
             "center_site":self.center_site.as_dict(),

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from sympy import primitive
 from kmcpy.event import Event
 import numpy as np
 from numba.typed import List
@@ -12,7 +13,7 @@ def print_divider():
     print("\n\n-------------------------------------------\n\n")
 
 
-def generate_events(api=1,**kwargs):
+def generate_events(api=3,**kwargs):
     
     if api==1:
         return generate_events1(**kwargs)
@@ -553,37 +554,40 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     generate_event_kernal(len(supercell),np.array(events_site_list),event_kernal_fname=event_kernal_fname)
     pass
     
-    
-    
-class cluster_matcher():
-    
-    def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),reference_distance_matrix=np.array([[0,1],[1,0]]),reference_neighbor_sequence=[{}],neighbor_species_respective_reference_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])},neighbor_species_respective_reference_neighbor_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
-        """cluster matcher, the __init__ method shouln't be used. Use the from_reference_cluster() instead. This is cluster matcher to match the nearest neighbor info output from local_env.cutoffdictNN.get_nn_info. This cluster_matcher Class is initialized by a reference cluster, a distance matrix is built as reference. Then user can call the cluster_matcher.brutal_match function to sort another nn_info so that the sequence of neighbor of "another nn_info" is arranged so that the distance matrix are the same 
+
+neighbor_info_logger=logging.getLogger("neighbor information:")
+neighbor_info_logger.setLevel("INFO")
+neighbor_info_logger.addHandler(logging.StreamHandler())
+neighbor_info_logger.addHandler(logging.FileHandler("debug.log"))
+
+class neighbor_info_matcher():
+    def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),distance_matrix=np.array([[0,1],[1,0]]),neighbor_sequence=[{}],neighbor_species_respective_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])},neighbor_species_respective_neighbor_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
+        """neighbor_info matcher, the __init__ method shouln't be used. Use the from_neighbor_info() instead. This is neighbor_info matcher to match the nearest neighbor info output from local_env.cutoffdictNN.get_nn_info. This neighbor_info_matcher Class is initialized by a reference neighbor_info, a distance matrix is built as reference. Then user can call the neighbor_info_matcher.brutal_match function to sort another nn_info so that the sequence of neighbor of "another nn_info" is arranged so that the distance matrix are the same 
 
         Args:
             neighbor_species (tuple, optional): tuple ( tuple ( str(species), int(number_of_this_specie in neighbors)  )  ). Defaults to (('Cl-', 4),('Li+', 8)).
-            reference_distance_matrix (np.array, optional): np.2d array as distance matrix. Defaults to np.array([[0,1],[1,0]]).
-            reference_neighbor_sequence (list, optional): list of dictionary in the format of nn_info returning value. Defaults to [{}].
-            neighbor_species_respective_reference_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])}.
-            neighbor_species_respective_reference_neighbor_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {"Cl-":[{}],"Li+":[{}]}.
+            distance_matrix (np.array, optional): np.2d array as distance matrix. Defaults to np.array([[0,1],[1,0]]).
+            neighbor_sequence (list, optional): list of dictionary in the format of nn_info returning value. Defaults to [{}].
+            neighbor_species_respective_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])}.
+            neighbor_species_respective_neighbor_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {"Cl-":[{}],"Li+":[{}]}.
         """
         
         self.neighbor_species=neighbor_species
-        self.reference_distance_matrix=reference_distance_matrix
-        self.neighbor_species_respective_reference_distance_matrix_dict=neighbor_species_respective_reference_distance_matrix_dict
-        self.neighbor_species_respective_reference_neighbor_sequence_dict=neighbor_species_respective_reference_neighbor_sequence_dict
-        self.reference_neighbor_sequence=reference_neighbor_sequence
+        self.distance_matrix=distance_matrix
+        self.neighbor_species_respective_distance_matrix_dict=neighbor_species_respective_distance_matrix_dict
+        self.neighbor_species_respective_neighbor_sequence_dict=neighbor_species_respective_neighbor_sequence_dict
+        self.neighbor_sequence=neighbor_sequence
         
     
         
         pass
     
     @classmethod
-    def from_reference_neighbor_sequences(self,reference_neighbor_sequences=[{}]):
+    def from_neighbor_sequences(self,neighbor_sequences=[{}]):
         cn_dict={}
-        neighbor_species_respective_reference_neighbor_sequence_dict={}
+        neighbor_species_respective_neighbor_sequence_dict={}
         
-        for neighbor in reference_neighbor_sequences:
+        for neighbor in neighbor_sequences:
             
             site_element = neighbor["site"].species_string
             
@@ -591,23 +595,23 @@ class cluster_matcher():
                 cn_dict[site_element] = 1
             else:
                 cn_dict[site_element] += 1
-            if site_element not in neighbor_species_respective_reference_neighbor_sequence_dict:
-                neighbor_species_respective_reference_neighbor_sequence_dict[site_element]=[neighbor]
+            if site_element not in neighbor_species_respective_neighbor_sequence_dict:
+                neighbor_species_respective_neighbor_sequence_dict[site_element]=[neighbor]
             else:
-                neighbor_species_respective_reference_neighbor_sequence_dict[site_element].append(neighbor)
+                neighbor_species_respective_neighbor_sequence_dict[site_element].append(neighbor)
         
             
-        neighbor_species_respective_reference_distance_matrix_dict={}
+        neighbor_species_respective_distance_matrix_dict={}
         
-        for species in neighbor_species_respective_reference_neighbor_sequence_dict:
-            neighbor_species_respective_reference_distance_matrix_dict[species]=self.build_distance_matrix_from_getnninfo_output(neighbor_species_respective_reference_neighbor_sequence_dict[species])
+        for species in neighbor_species_respective_neighbor_sequence_dict:
+            neighbor_species_respective_distance_matrix_dict[species]=self.build_distance_matrix_from_getnninfo_output(neighbor_species_respective_neighbor_sequence_dict[species])
         
         neighbor_species=tuple(sorted(cn_dict.items(),key=lambda x:x[0]))
         
-        reference_distance_matrix=self.build_distance_matrix_from_getnninfo_output(reference_neighbor_sequences)
+        distance_matrix=self.build_distance_matrix_from_getnninfo_output(neighbor_sequences)
         
                 
-        return cluster_matcher(neighbor_species=neighbor_species,reference_distance_matrix=reference_distance_matrix,reference_neighbor_sequence=reference_neighbor_sequences,neighbor_species_respective_reference_distance_matrix_dict=neighbor_species_respective_reference_distance_matrix_dict,neighbor_species_respective_reference_neighbor_sequence_dict=neighbor_species_respective_reference_neighbor_sequence_dict)
+        return neighbor_info_matcher(neighbor_species=neighbor_species,distance_matrix=distance_matrix,neighbor_sequence=neighbor_sequences,neighbor_species_respective_distance_matrix_dict=neighbor_species_respective_distance_matrix_dict,neighbor_species_respective_neighbor_sequence_dict=neighbor_species_respective_neighbor_sequence_dict)
         
     
     @classmethod
@@ -625,7 +629,7 @@ class cluster_matcher():
         
 
         Args:
-            cutoffdnn_output (nn_info, optional): nninfo. Defaults to reference_neighbor_sequences.
+            cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.
 
         Returns:
             np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
@@ -657,41 +661,41 @@ class cluster_matcher():
 
         Raises:
             ValueError: this will perform a check if the inputted unsorted nn_info has the same neighbor species type and amount
-            ValueError: if the unsorted_nninfo cannot be sort with reference of the distance matrix of this cluster_matcher instance. Probably due to too small rtol or it's just not the same clusters
+            ValueError: if the unsorted_nninfo cannot be sort with reference of the distance matrix of this neighbor_info_matcher instance. Probably due to too small rtol or it's just not the same neighbor_infos
 
         Returns:
             list of dictionary: in the format of cutoffdictNN.get_nn_info
         """
         
-        unsorted_cluster=cluster_matcher.from_reference_neighbor_sequences(unsorted_nninfo)
+        unsorted_neighbor_info=neighbor_info_matcher.from_neighbor_sequences(unsorted_nninfo)
         
-        if self.neighbor_species!=unsorted_cluster.neighbor_species:
-            raise ValueError("input cluster has different environment")
+        if self.neighbor_species!=unsorted_neighbor_info.neighbor_species:
+            raise ValueError("input neighbor_info has different environment")
         
-        if np.allclose(unsorted_cluster.reference_distance_matrix,self.reference_distance_matrix,rtol=rtol,atol=atol):
-            logging.info("no need to rearrange this cluster. The distance matrix is already the same. The differece matrix is : \n")
-            logging.info(str(unsorted_cluster.reference_distance_matrix-self.reference_distance_matrix))
+        if np.allclose(unsorted_neighbor_info.distance_matrix,self.distance_matrix,rtol=rtol,atol=atol):
+            neighbor_info_logger.info("no need to rearrange this neighbor_info. The distance matrix is already the same. The differece matrix is : \n")
+            neighbor_info_logger.info(str(unsorted_neighbor_info.distance_matrix-self.distance_matrix))
             
-            return unsorted_cluster.reference_neighbor_sequence
+            return unsorted_neighbor_info.neighbor_sequence
         
         
         
         sorted_neighbor_sequence_dict={}
 
-        for specie in unsorted_cluster.neighbor_species_respective_reference_neighbor_sequence_dict:
+        for specie in unsorted_neighbor_info.neighbor_species_respective_neighbor_sequence_dict:
             
             sorted_neighbor_sequence_dict[specie]=[]
 
-            for possible_local_sequence in itertools.permutations(unsorted_cluster.neighbor_species_respective_reference_neighbor_sequence_dict[specie]):
+            for possible_local_sequence in itertools.permutations(unsorted_neighbor_info.neighbor_species_respective_neighbor_sequence_dict[specie]):
                 
-                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_respective_reference_distance_matrix_dict[specie],rtol=rtol,atol=atol):
+                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_respective_distance_matrix_dict[specie],rtol=rtol,atol=atol):
                     
                     sorted_neighbor_sequence_dict[specie].append(list(possible_local_sequence))
             
             if len(sorted_neighbor_sequence_dict[specie])==0:
                 raise ValueError("no sorted sequence found for "+str(specie)+" please check if the rtol or atol is too small")
             
-        #logging.warning(str(sorted_neighbor_sequence_dict))
+        #neighbor_info_logger.warning(str(sorted_neighbor_sequence_dict))
         
         
         sorted_neighbor_sequence_list=[]
@@ -713,17 +717,17 @@ class cluster_matcher():
 
                     re_sorted_neighbors_list.extend(list(neighbor))               
             
-                this_smilarity_score=np.sum(np.abs(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)-self.reference_distance_matrix))
+                this_smilarity_score=np.sum(np.abs(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)-self.distance_matrix))
                 
                 if this_smilarity_score<closest_smilarity_score:
                     closest_smilarity_score=this_smilarity_score
                     closest_sequence=re_sorted_neighbors_list
                     
-            logging.warning("the closest cluster identified. Total difference"+str(closest_smilarity_score))
-            logging.info("new sorting is found,new distance matrix is ")
-            logging.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)))
-            logging.info("The differece matrix is : \n")
-            logging.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)-self.reference_distance_matrix))                            
+            neighbor_info_logger.warning("the closest neighbor_info identified. Total difference"+str(closest_smilarity_score))
+            neighbor_info_logger.info("new sorting is found,new distance matrix is ")
+            neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)))
+            neighbor_info_logger.info("The differece matrix is : \n")
+            neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)-self.distance_matrix))                            
             return closest_sequence
                 
             
@@ -732,7 +736,7 @@ class cluster_matcher():
         
             for possible_complete_sequence in itertools.product(*sorted_neighbor_sequence_list):
                 
-                #logging.warning(str(possible_complete_sequence))
+                #neighbor_info_logger.warning(str(possible_complete_sequence))
                 
                 re_sorted_neighbors_list=[]
                 
@@ -740,152 +744,161 @@ class cluster_matcher():
 
                     re_sorted_neighbors_list.extend(list(neighbor))               
             
-                if np.allclose(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list),self.reference_distance_matrix,rtol=rtol,atol=atol):
-                    logging.info("new sorting is found,new distance matrix is ")
-                    logging.info(str(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)))
-                    logging.warning("The differece matrix is : \n")
-                    logging.info(str(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)-self.reference_distance_matrix))                
+                if np.allclose(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list),self.distance_matrix,rtol=rtol,atol=atol):
+                    neighbor_info_logger.info("new sorting is found,new distance matrix is ")
+                    neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)))
+                    neighbor_info_logger.warning("The differece matrix is : \n")
+                    neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)-self.distance_matrix))                
                     
                     return re_sorted_neighbors_list
   
             raise ValueError("sequence not founded!")                
-   
+      
+      
+def find_atom_indices(structure,atom_identifier_type="specie",atom_identifier="Li+"):
+    """a function for generating a list of site indices that satisfy the identifier
 
-def generate_events3(prim_cif_name="210.cif",local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},atom_identifier_type="specie",center_atom_identifier="Li+",diffuse_to_atom_identifier="Li+",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,convert_to_primitive_cell=False,create_reference_cluster=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity=0):
+    Args:
+        structure (kmcpy.external.pymatgen_structure): structure object to work on
+        atom_identifier_type (str, optional): elect from: ["specie","label","list"]. Defaults to "specie".
+        atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
+        
+        typical input:
+        atom_identifier_type=specie, atom_identifier="Li+"
+        atom_identifier_type=label, atom_identifier="Li1"
+        atom_identifier_type=list, atom_identifier=[0,1,2,3,4,5]
+
+    Raises:
+        ValueError: atom_identifier_type argument is strange
+
+    Returns:
+        list: list of atom indices that satisfy the identifier
+    """
+    center_atom_indices=[]    
+    if atom_identifier_type=="specie":
+        for i in range(0,len(structure)):
+            if atom_identifier in structure[i].species:
+                center_atom_indices.append(i)
+                
+    elif atom_identifier_type=="label":
+
+        for i in range(0,len(structure)):
+            if structure[i].properties["label"]==atom_identifier:
+                center_atom_indices.append(i)
+                
+    elif atom_identifier_type=="list":
+        center_atom_indices=atom_identifier
+    
+    else:
+        raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
+    
+    neighbor_info_logger.warning("please check if these are center atom:")
+    for i in center_atom_indices:
+        
+        neighbor_info_logger.warning(str(structure[i]))        
+    
+    return center_atom_indices
+        
+def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},atom_identifier_type="specie",center_atom_identifier="Li+",diffuse_to_atom_identifier="Li+",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
 
     # --------------
     import json
     import logging
     from kmcpy.external.pymatgen_structure import Structure
     from kmcpy.external.pymatgen_local_env import CutOffDictNN
+
     from kmcpy.io import convert
     from kmcpy.event import Event
     
-    logging.basicConfig(level=verbosity,handlers=[
-        logging.FileHandler("debug.log"),
-        logging.StreamHandler()
-    ])
-    logging.warning("Extracting clusters from primitive cell structure. This primitive cell can also be grain boundary")
+    
+    event_generator_logger=logging.getLogger("event generator")
+    event_generator_logger.setLevel(verbosity)
+    event_generator_logger.addHandler(logging.StreamHandler())
+    
+    event_generator_logger.addHandler(logging.FileHandler("debug.log"))
+    event_generator_logger.warning("Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet.")
     
     primitive_cell=Structure.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
     primitive_cell.add_oxidation_state_by_guess()
     primitive_cell.remove_species(species_to_be_removed)
     
-    logging.warning("primitive cell composition after adding oxidation state and removing uninvolved species: ")
+    event_generator_logger.warning("primitive cell composition after adding oxidation state and removing uninvolved species: ")
     
-    logging.info(primitive_cell.composition)
+    event_generator_logger.info(str(primitive_cell.composition))
     
-    logging.warning("building center atom index list")
+    event_generator_logger.warning("building center atom index list")
     
     
-    center_atom_indices=[]    
-    if atom_identifier_type=="specie":
-        for i in range(0,len(primitive_cell)):
-            if center_atom_identifier in primitive_cell[i].species:
-                center_atom_indices.append(i)
-                
-    elif atom_identifier_type=="label":
-
-        for i in range(0,len(primitive_cell)):
-            if primitive_cell[i].properties["label"]==center_atom_identifier:
-                center_atom_indices.append(i)
-                
-    elif atom_identifier_type=="list":
-        center_atom_indices=center_atom_identifier
-    
-    else:
-        raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
-    
-    logging.info("please check if these are center atom:")
-    for i in center_atom_indices:
-        
-        logging.info(str(primitive_cell[i]))        
-        
-        
+    center_atom_indices=find_atom_indices(primitive_cell,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)  
         
     #--------
     
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
     
-    reference_cluster_dict={}
+    reference_local_env_dict={}
     
     local_env_info_dict = {}
    
    
-    reference_cluster_type=0
+    reference_local_env_type=0
     
-    logging.info("start finding the neighboring sequence of center atoms")
-    logging.info("total number of center atoms:"+str(len(center_atom_indices)))
+    event_generator_logger.info("start finding the neighboring sequence of center atoms")
+    event_generator_logger.info("total number of center atoms:"+str(len(center_atom_indices)))
+    
     neighbor_has_been_found=0
     
     for center_atom_index in center_atom_indices:
         
-        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_index),key=lambda x:x["weight"]),key = lambda x:x["label"])      
+        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
                     
-        this_cluster=cluster_matcher.from_reference_neighbor_sequences(unsorted_neighbor_sequences)
+        this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
-        
-        
-        if this_cluster.neighbor_species not in reference_cluster_dict:
+        if this_nninfo.neighbor_species not in reference_local_env_dict:
             
-            if create_reference_cluster:
-                reference_cluster_sites=[primitive_cell[center_atom_index]]
+            # then take this as the reference neighbor info sequence
+            
+            if export_local_env_structure:
+                
+                reference_local_env_sites=[primitive_cell[center_atom_index]]
                 
                 for i in unsorted_neighbor_sequences:
                     
-                    reference_cluster_sites.append(i["site"])
-                    reference_cluster_structure=Structure.from_sites(sites=reference_cluster_sites)
+                    reference_local_env_sites.append(i["site"])
+                    reference_local_env_structure=Structure.from_sites(sites=reference_local_env_sites)
                     
-                reference_cluster_structure.to("cif",str(reference_cluster_type)+"th_reference_cluster.cif") 
-                reference_cluster_type+=1
+                reference_local_env_structure.to("cif",str(reference_local_env_type)+"th_reference_local_env.cif") 
+                reference_local_env_type+=1
                 
-                logging.info(str(reference_cluster_type)+"th type of reference cluster structure cif file is created. please check")
+                event_generator_logger.info(str(reference_local_env_type)+"th type of reference local_env structure cif file is created. please check")
             
-            reference_cluster_dict[this_cluster.neighbor_species]=this_cluster
+            reference_local_env_dict[this_nninfo.neighbor_species]=this_nninfo
 
-            local_env_info_dict[primitive_cell[center_atom_index].properties['local_index']]=this_cluster.reference_neighbor_sequence
+            local_env_info_dict[primitive_cell[center_atom_index].properties['local_index']]=this_nninfo.neighbor_sequence
             
             
-            logging.warning("a new type of cluster is recognized with the species "+str(this_cluster.neighbor_species)+" \nthe distance matrix are \n"+str(this_cluster.reference_distance_matrix))
+            event_generator_logger.warning("a new type of cluster is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
 
             
         else:
-            logging.info("a cluster is created with the species "+str(this_cluster.neighbor_species)+" \nthe distance matrix are \n"+str(this_cluster.reference_distance_matrix))
+            event_generator_logger.info("a cluster is created with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
             
             
 
-            sorted_neighbor_sequence=reference_cluster_dict[this_cluster.neighbor_species].brutal_match(this_cluster.reference_neighbor_sequence,rtol=distance_matrix_rtol,atol=distance_matrix_atol,find_nearest_if_fail=find_nearest_if_fail)
+            sorted_neighbor_sequence=reference_local_env_dict[this_nninfo.neighbor_species].brutal_match(this_nninfo.neighbor_sequence,rtol=distance_matrix_rtol,atol=distance_matrix_atol,find_nearest_if_fail=find_nearest_if_fail)
             
             local_env_info_dict[primitive_cell[center_atom_index].properties['local_index']]=sorted_neighbor_sequence
             
         neighbor_has_been_found+=1
-        logging.warning(str(neighbor_has_been_found)+" out of "+str(len(center_atom_indices))+" neighboring sequence has been found")
-     
-
-    #return local_env_info_dict          
+        
+        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(center_atom_indices))+" neighboring sequence has been found")
+        
 
   
     supercell=primitive_cell.make_kmc_supercell(supercell_shape)
-    logging.warning("supercell is created")
-    logging.info(str(supercell))
+    event_generator_logger.warning("supercell is created")
+    event_generator_logger.info(str(supercell))
     
-    supercell_center_atom_indices=[]
-    if atom_identifier_type=="specie":
-        for i in range(0,len(supercell)):
-            if center_atom_identifier in supercell[i].species:
-                supercell_center_atom_indices.append(i)
-                
-    elif atom_identifier_type=="label":
-
-        for i in range(0,len(supercell)):
-            if supercell[i].properties["label"]==center_atom_identifier:
-                supercell_center_atom_indices.append(i)
-                
-    elif atom_identifier_type=="list":
-        supercell_center_atom_indices=center_atom_identifier
-    
-    else:
-        raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
+    supercell_center_atom_indices=find_atom_indices(supercell,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)
 
             
     events = []
@@ -988,9 +1001,6 @@ def generate_events3(prim_cif_name="210.cif",local_env_cutoff_dict={("Li+","Cl-"
             else:
                 raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
             
-            
-            
-    
     if len(events)==0:
         raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the diffuse_to_atom_label?")
     
@@ -1000,12 +1010,15 @@ def generate_events3(prim_cif_name="210.cif",local_env_cutoff_dict={("Li+","Cl-"
         fhandle.write(jsonStr)
     
     events_site_list = []
+    
+    
+    
     for event in events:
         # sublattice indices: local site index for each site
         events_site_list.append(event.sorted_sublattice_indices)
     
     #np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int),fmt="%i") # dimension not equal error
-    generate_event_kernal3(len(supercell),events_site_list,event_kernal_fname=event_kernal_fname)       
+    generate_event_kernal(len(supercell),np.array(events_site_list),event_kernal_fname=event_kernal_fname)       
     
 def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
     """generate_events() looks for all possible swaps by given a primitive cell as defined in prim_fname(prim.json) with a supercell shape of [2,1,1] as default.

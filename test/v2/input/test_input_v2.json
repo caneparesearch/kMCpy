@@ -1,7 +1,7 @@
 {
     "v" : 5000000000000,
     "equ_pass" : 1,
-    "kmc_pass"  : 10000,
+    "kmc_pass"  : 1000,
     "supercell_shape" : [2,1,1],
     "fitting_results" : "./input/fitting_results.json",
     "fitting_results_site" : "./input/fitting_results_site.json",
@@ -18,7 +18,7 @@
     "api":2,
     "immutable_sites": ["Zr","O","Zr4+","O2-"],
     "verbose": true,
-    "random_seed": null,
-    "use_numpy_random_kernel":false,
+    "random_seed": 12345,
+    "use_numpy_random_kernel":true,
     "convert_to_primitive_cell":true
 }
