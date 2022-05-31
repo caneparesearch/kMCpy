@@ -167,3 +167,5 @@ dev_test/lce.json
 reference_distance_matrix.csv
 
 *.code-workspace
+
+!test
