@@ -20,7 +20,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        pip install -r requirement.txt .
+        pip install -r requirement.txt -e .
 
     - name: Lint with flake8
       run: |
