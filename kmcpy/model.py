@@ -11,7 +11,7 @@ import numpy as np
 import json
 import glob
 from kmcpy.io import convert
-from kmcpy.structure_operation import neighbor_info_matcher
+
 
 class LocalClusterExpansion:
     """
@@ -143,7 +143,7 @@ class LocalClusterExpansion:
             
         """
 
-        from kmcpy.structure_operation import find_atom_indices,neighbor_info_matcher
+        from kmcpy.event_generator import find_atom_indices
         
         template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
         template_structure.remove_oxidation_states()
@@ -164,7 +164,7 @@ class LocalClusterExpansion:
         print('Searching local env around',self.center_site ,'...')
         
     
-    
+        # fallback to the initial get cluster structure 
         self.diffusion_unit_structure = self.get_cluster_structure1(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis)
         
         

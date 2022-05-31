@@ -50,5 +50,6 @@ pip install -e .
 ```
 cd doc
 pip install -r doc_requirements.txt
-make html
+cd ..
+python dev_deploy.py
 ```
