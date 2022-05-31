@@ -6,7 +6,7 @@
 python numpy scipy pandas numba tables pymatgen
 
 # Installation Guide:
-## Regular X86-64
+## Ubuntu x86-64
 1. Create a conda environment
 `conda create -n kmcpy`
 `conda activate kmcpy`

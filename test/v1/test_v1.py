@@ -33,7 +33,7 @@ class TestStringMethods(unittest.TestCase):
 
     # # step 3 run kmc
     kmc.run_from_database(events=events_initialized,**inputset._parameters)
-
+    
     pass
 if __name__ == '__main__':
     unittest.main()

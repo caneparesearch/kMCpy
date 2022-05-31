@@ -169,3 +169,4 @@ reference_distance_matrix.csv
 *.code-workspace
 
 !test
+!EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif

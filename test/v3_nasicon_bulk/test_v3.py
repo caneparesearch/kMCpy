@@ -48,6 +48,25 @@ class generate_local_cluster_exapnsion(unittest.TestCase):
     a=LocalClusterExpansion(api=3)
     a.initialization3(atom_identifier_type="label",center_atom_identifier="Na1",cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif')
     a.to_json("lce.json")
+    
+class kmc_main_function(unittest.TestCase):
+    from kmcpy.io import InputSet,load_occ
+    from kmcpy.kmc import KMC
+    api=2
+    inputset=InputSet.from_json("input/test_input_v3.json",api=2)
 
+    print(inputset._parameters.keys())
+    print(inputset._parameters["mc_results"])
+    inputset.parameter_checker()
+
+    inputset.set_parameter("occ",load_occ(fname=inputset._parameters["mc_results"],shape=inputset._parameters["supercell_shape"],select_sites=inputset._parameters["select_sites"],api=inputset.api,verbose=True))
+    kmc = KMC(api=api)
+    events_initialized = kmc.initialization(**inputset._parameters) # v in 10^13 hz
+
+    # # step 2 compute the site kernal (used for kmc run)
+    kmc.load_site_event_list(inputset._parameters["event_kernel"])
+
+    # # step 3 run kmc
+    kmc.run_from_database(events=events_initialized,**inputset._parameters)
 if __name__ == '__main__':
     unittest.main()
