@@ -800,6 +800,33 @@ def find_atom_indices(structure,atom_identifier_type="specie",atom_identifier="L
     return center_atom_indices
         
 def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},atom_identifier_type="specie",center_atom_identifier="Li+",diffuse_to_atom_identifier="Li+",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
+    """3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of center atoms (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment
+
+    Args:
+        prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. Defaults to "210.cif".
+        convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
+        local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
+        atom_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
+        center_atom_identifier (str, optional): identifier for center atom. Defaults to "Li+".
+        diffuse_to_atom_identifier (str, optional): identifier for the atom that center atom will diffuse to . Defaults to "Li+".
+        species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to ["O2-","O"].
+        distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.
+        distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.
+        find_nearest_if_fail (bool, optional): if fail to sort the neighbor with given rtolerance and atolerance, find the best sorting that have most similar distance matrix? This should be False for bull model because if fail to find the sorting ,there must be something wrong. For grain boundary , better set this to True because they have various coordination type. Defaults to True.
+        export_local_env_structure (bool, optional): whether to export the local environment structure to cif file. If set to true, for each representatibe local environment structure, a cif file will be generated for further investigation. This is for debug purpose. Once confirming that the code is doing correct thing, it's better to turn off this feature. Defaults to True.
+        supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
+        event_fname (str, optional): file name for the events json file. Defaults to "events.json".
+        event_kernal_fname (str, optional): file name for event kernal. Defaults to 'event_kernal.csv'.
+        verbosity (str, optional): verbosity that passed to logging.logger. Select from ["INFO","warning"], higher level not yet implemented. Defaults to "INFO".
+
+    Raises:
+        NotImplementedError: the atom identifier type=list is not yet implemented
+        ValueError: unrecognized atom identifier type 
+        ValueError: if no events are generated, there might be something wrong with cif file? or atom identifier?
+
+    Returns:
+        nothign: nothing is returned
+    """
 
     # --------------
     import json
@@ -810,25 +837,24 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     from kmcpy.io import convert
     from kmcpy.event import Event
     
-    
+    # build the logger
     event_generator_logger=logging.getLogger("event generator")
     event_generator_logger.setLevel(verbosity)
     event_generator_logger.addHandler(logging.StreamHandler())
-    
     event_generator_logger.addHandler(logging.FileHandler("debug.log"))
     event_generator_logger.warning("Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet.")
     
+    
+    # generate primitive cell
     primitive_cell=Structure.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
     primitive_cell.add_oxidation_state_by_guess()
     primitive_cell.remove_species(species_to_be_removed)
     
     event_generator_logger.warning("primitive cell composition after adding oxidation state and removing uninvolved species: ")
-    
     event_generator_logger.info(str(primitive_cell.composition))
-    
     event_generator_logger.warning("building center atom index list")
     
-    
+
     center_atom_indices=find_atom_indices(primitive_cell,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)  
         
     #--------
@@ -949,14 +975,13 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
              local_env_info_dict[local_index_of_this_center_atom]
             
-            In primitive cell, the center atom has 1 unique identifier: The "wyckoff sequence inside the primitive cell"
+            In primitive cell, the center atom has 1 unique identifier: The "local index inside the primitive cell"
             
-            IN supercell, the center atom has an additional unique identifier: belongs to which supercell
+            IN supercell, the center atom has an additional unique identifier: belongs t o which supercell
             
-            However, as long as the "wyckoff sequence inside the primitive cell" is the same, no matter which supercell this center atom belongs to, the sequence of "wyckoff sequence" of its neighbor sites are the same. In primitive cell, center atom with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every center atom with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
+            However, as long as the "local index inside the primitive cell" is the same, no matter which supercell this center atom belongs to, the sequence of "local index" of its neighbor sites are the same. In primitive cell, center atom with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every center atom with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
             
-            Mapping the sequence in primitive cell to supercell!
-            
+            In the loop. I'm mapping the sequence in primitive cell to supercell!
             
             In order to accelerate the speed
 
@@ -970,14 +995,17 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             """
             
-            local_env_info.append(indices_dict_from_identifier[supercell.kmc_info_to_tuple3(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))])
+            neighbor_site_around_supercell_center_atom_belongs_to_supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
+            
+            tuple_key_of_such_neighbor_site=supercell.kmc_info_to_tuple3(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=neighbor_site_around_supercell_center_atom_belongs_to_supercell)
+            
+            local_env_info.append(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])
 
         for local_env in local_env_info:
             # generate event
             
             if atom_identifier_type=="specie":
                 if diffuse_to_atom_identifier in supercell[local_env].species  :
-                    # or for understanding, if any site in local environment, its label== "Na2"
                     # initialize the event
                     this_event = Event()
                     this_event.initialization2(supercell_center_atom_index,local_env,local_env_info)
@@ -995,9 +1023,8 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                     events_dict.append(this_event.as_dict())   
                         
             elif atom_identifier_type=="list":
-                raise NotImplementedError("how to do this....") 
-                        
-            
+                raise NotImplementedError("how to do this.... atom identifier_type=list is not implemented in finding neighbors") 
+                                   
             else:
                 raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
             
@@ -1010,9 +1037,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
         fhandle.write(jsonStr)
     
     events_site_list = []
-    
-    
-    
+
     for event in events:
         # sublattice indices: local site index for each site
         events_site_list.append(event.sorted_sublattice_indices)
