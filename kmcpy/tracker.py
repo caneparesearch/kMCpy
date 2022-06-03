@@ -105,6 +105,9 @@ class Tracker:
         (4-3*comp)*self.frac_na_at_na1[-1],(4-3*comp)/3*(1-self.frac_na_at_na1[-1])))
         # print('Center of mass (Na):',np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))
         # print('MSD = ',np.linalg.norm(np.sum(self.displacement,axis=0))**2,'time = ',self.time)
+        
+    def return_current_info(self):
+        return (self.time,self.results['msd'][-1],self.results['D_J'][-1],self.results['D_tracer'][-1],self.results['conductivity'][-1],self.results['H_R'][-1],self.results['f'][-1])
 
     def summary(self,comp,current_pass):
         # print('\nTracker Summary:')
@@ -182,7 +185,7 @@ class Tracker:
             d = self.as_dict()
             jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
             fhandle.write(jsonStr)
-    
+
     @classmethod
     def from_json(self,fname):
         print('Loading:',fname)
