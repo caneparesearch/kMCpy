@@ -1,7 +1,7 @@
 import unittest
 
 class Test_version3(unittest.TestCase):
-    def neighbor_info_matcher(self):
+    def test_neighbor_info_matcher(self):
         from pathlib import Path
         import os
         current_dir= Path(__file__).absolute().parent
@@ -21,18 +21,26 @@ class Test_version3(unittest.TestCase):
         reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(nasicon,center_Na1[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])     
 
         np.set_printoptions(precision=2,suppress=True)
-        a=neighbor_info_matcher.from_neighbor_sequences(neighbor_sequences=reference_neighbor_sequences)
+        reference_neighbor=neighbor_info_matcher.from_neighbor_sequences(neighbor_sequences=reference_neighbor_sequences)
 
 
-        print(a.neighbor_species)
-        print(a.distance_matrix)
-        print(a.neighbor_species_respective_distance_matrix_dict)
-        print(a.neighbor_species_respective_neighbor_sequence_dict)
+        print(reference_neighbor.neighbor_species)
+        print(reference_neighbor.distance_matrix)
+        print(reference_neighbor.neighbor_species_respective_distance_matrix_dict)
+        print(reference_neighbor.neighbor_species_respective_neighbor_sequence_dict)
 
 
         wrong_sequence_neighbor=sorted(sorted(local_env_finder.get_nn_info(nasicon,center_Na1[1]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"]) 
+        
+        self.assertFalse(np.allclose(neighbor_info_matcher.from_neighbor_sequences(neighbor_sequences=wrong_sequence_neighbor).distance_matrix,reference_neighbor.distance_matrix,rtol=0.01,atol=0.01))
+        
+        
+        resorted_wrong_sequence=reference_neighbor.brutal_match(wrong_sequence_neighbor,rtol=0.01)
+        
+        resorted_neighbor=neighbor_info_matcher.from_neighbor_sequences(neighbor_sequences=resorted_wrong_sequence)
+        
+        self.assertTrue(np.allclose(reference_neighbor.distance_matrix,resorted_neighbor.distance_matrix,rtol=0.01,atol=0.01))
 
-        a.brutal_match(wrong_sequence_neighbor,rtol=0.01)
         
     def test_generate_events(self):
         from pathlib import Path
@@ -73,6 +81,7 @@ class Test_version3(unittest.TestCase):
         os.chdir(current_dir)
         from kmcpy.io import InputSet,load_occ
         from kmcpy.kmc import KMC
+        import numpy as np
         api=2
         inputset=InputSet.from_json("input/test_input_v3.json",api=2)
 
@@ -88,8 +97,11 @@ class Test_version3(unittest.TestCase):
         kmc.load_site_event_list(inputset._parameters["event_kernel"])
 
         # # step 3 run kmc
-        kmc.run_from_database(events=events_initialized,**inputset._parameters)
-        self.assertEqual(1,1)
-
+        kmc_tracker=kmc.run_from_database(events=events_initialized,**inputset._parameters)
+        self.assertTrue(np.allclose(np.array(kmc_tracker.return_current_info()),np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)),rtol=0.01,atol=0.01))
+        
+        
+        # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct
+        
 if __name__ == '__main__':
     unittest.main()
