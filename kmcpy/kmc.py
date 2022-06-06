@@ -180,14 +180,14 @@ class KMC:
         self.structure.make_supercell(supercell_shape_matrix)
         
         print('Loading fitting results: E_kra ...')
-        fitting_results = Fitting.from_json(fitting_results)
-        # fitting_results = pd.read_json(fitting_results,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
+        # fitting_results = Fitting.from_json(fitting_results)
+        fitting_results = pd.read_json(fitting_results,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
         self.keci = fitting_results.keci
         self.empty_cluster = fitting_results.empty_cluster
 
         print('Loading fitting results: site energy ...')
-        fitting_results = Fitting.from_json(fitting_results_site)
-        # fitting_results_site = pd.read_json(fitting_results_site,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
+        # fitting_results = Fitting.from_json(fitting_results_site)
+        fitting_results_site = pd.read_json(fitting_results_site,orient='index').sort_values(by=['time_stamp'],ascending=False).iloc[0]
         self.keci_site = fitting_results_site.keci
         self.empty_cluster_site = fitting_results_site.empty_cluster
 
