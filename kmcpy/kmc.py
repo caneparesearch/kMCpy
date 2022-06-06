@@ -12,6 +12,7 @@ from numba.typed import List
 from kmcpy.external.pymatgen_structure import Structure
 import numpy as np
 from copy import copy
+import pandas as pd
 import json
 from kmcpy.model import LocalClusterExpansion
 from kmcpy.tracker import Tracker
