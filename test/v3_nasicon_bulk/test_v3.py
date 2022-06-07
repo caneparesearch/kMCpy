@@ -2,6 +2,7 @@ import unittest
 
 class Test_version3(unittest.TestCase):
     def test_neighbor_info_matcher(self):
+        print("neighbor info matcher testing")
         from pathlib import Path
         import os
         current_dir= Path(__file__).absolute().parent
@@ -55,7 +56,7 @@ class Test_version3(unittest.TestCase):
         from kmcpy.event_generator import generate_events3
         generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,diffuse_to_atom_identifier=diffuse_to_atom_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=False,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO")
 
-        generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,diffuse_to_atom_identifier=diffuse_to_atom_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO")
+        generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,diffuse_to_atom_identifier=diffuse_to_atom_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="./input/events.json",event_kernal_fname='./input/event_kernal.csv',verbosity="INFO")
         
         self.assertEqual(1,1)
 
@@ -70,8 +71,8 @@ class Test_version3(unittest.TestCase):
         atom_identifier_type="label"
         center_atom_identifier="Na1"
         a=LocalClusterExpansion(api=3)
-        a.initialization3(atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif')
-        a.to_json("lce.json")
+        a.initialization3(atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
+        a.to_json("./input/lce.json")
         self.assertEqual(1,1)
     
     def test_kmc_main_function(self):
@@ -98,7 +99,8 @@ class Test_version3(unittest.TestCase):
 
         # # step 3 run kmc
         kmc_tracker=kmc.run_from_database(events=events_initialized,**inputset._parameters)
-        self.assertTrue(np.allclose(np.array(kmc_tracker.return_current_info()),np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)),rtol=0.01,atol=0.01))
+        print(kmc_tracker.return_current_info())
+        self.assertTrue(np.allclose(np.array(kmc_tracker.return_current_info()),np.array((3.508959816621752e-06, 101.40523388197452, 1.8796478422471864e-09, 4.816490697215713e-10, 0.15190642462810805, 0.2562443128419963, 0.24387012300994337)),rtol=0.01,atol=0.01))
         
         
         # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct

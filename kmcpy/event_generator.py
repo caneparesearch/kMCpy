@@ -28,7 +28,13 @@ def generate_events(api=3,**kwargs):
 
 
 def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",convert_to_primitive_cell=True,supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001,export_reference_cluster="reference_cluster.cif"):
-    """2nd version of generate_events2
+    """
+    XIE WEIHANG
+    
+    220603: This function should no longer be used! Just use the generate_event_v3, which is fast and behave more likely as the original generate_events_v1
+    
+    
+    This is 2nd version of generate_events2
     
     methodology: set the 1st center atom as the reference center atom. Set the neighbors sequence (i.e. environment/cluster) of 1st center atom as the reference sequence. Calculate the distance matrix of reference cluster as reference distance matrix following the reference sequence. For all other center atom in the primitive cell, calculate its distance matrix. If the same as reference distance matrix, then pass. If different from reference, then brutally rearrange the sequence of neighbor until the distance matrix are the same
 
@@ -800,7 +806,9 @@ def find_atom_indices(structure,atom_identifier_type="specie",atom_identifier="L
     return center_atom_indices
         
 def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},atom_identifier_type="specie",center_atom_identifier="Li+",diffuse_to_atom_identifier="Li+",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
-    """3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of center atoms (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment
+    """
+    220603 XIE WEIHANG    
+    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of center atoms (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
 
     Args:
         prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. Defaults to "210.cif".
@@ -825,7 +833,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
         ValueError: if no events are generated, there might be something wrong with cif file? or atom identifier?
 
     Returns:
-        nothign: nothing is returned
+        nothing: nothing is returned
     """
 
     # --------------
