@@ -1,5 +1,5 @@
 
-name: Python Package using Conda
+name: test on windows
 
 on: [push]
 
