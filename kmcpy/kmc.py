@@ -323,7 +323,7 @@ class KMC:
         if self.api==1:
             self.run_from_database1(**kwargs)
         if self.api==2:
-            self.run_from_database2(**kwargs)
+            return self.run_from_database2(**kwargs)
             
             
     def run_from_database1(self,kmc_pass=1000,equ_pass=1,v=5000000000000,T=298,events="./inputs/events.json",comp=1,structure_idx=1,**kwargs):
@@ -395,6 +395,7 @@ class KMC:
         tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
         if verbose:
             print("verbose information: kmc.KMC.run_from_database is called. API version 2")
+        return tracker
             
 
     # def run(self,kmc_pass,equ_pass,v,T,events):

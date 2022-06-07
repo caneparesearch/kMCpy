@@ -1,5 +1,5 @@
 
-name: Python Package using Conda
+name: test on ubuntu
 
 on: [push]
 
@@ -22,6 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirement.txt -e .
+        pip install pytest-ordering
 
     - name: Lint with flake8
       run: |
