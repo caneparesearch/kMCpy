@@ -1,6 +1,7 @@
 import unittest
-
+import pytest
 class Test_version3(unittest.TestCase):
+    @pytest.mark.order(1)
     def test_neighbor_info_matcher(self):
         print("neighbor info matcher testing")
         from pathlib import Path
@@ -42,7 +43,7 @@ class Test_version3(unittest.TestCase):
         
         self.assertTrue(np.allclose(reference_neighbor.distance_matrix,resorted_neighbor.distance_matrix,rtol=0.01,atol=0.01))
 
-        
+    @pytest.mark.order(2)        
     def test_generate_events(self):
         from pathlib import Path
         import os
@@ -65,7 +66,7 @@ class Test_version3(unittest.TestCase):
         self.assertEqual(len(reference_local_env_dict),1)  # only one type of local environment should be found. If more than 1, raise error.
 
 
-
+    @pytest.mark.order(3)
     def test_generate_local_cluster_exapnsion(self):
         from pathlib import Path
         import os
@@ -78,7 +79,7 @@ class Test_version3(unittest.TestCase):
         a.initialization3(atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
         a.to_json("./input/lce.json")
         self.assertEqual(1,1)
-    
+    @pytest.mark.order(4)    
     def test_kmc_main_function(self):
         from pathlib import Path
         import os
@@ -108,6 +109,7 @@ class Test_version3(unittest.TestCase):
         
         
         # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct
+    @pytest.mark.order(5)
     def test_kmc_main_function_randomized(self):
         from pathlib import Path
         import os
