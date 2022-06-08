@@ -82,6 +82,12 @@ class Test_version3(unittest.TestCase):
         self.assertEqual(1,1)
         
     def test_fitting(self):
+        from pathlib import Path
+        import os
+        current_dir= Path(__file__).absolute().parent
+        os.chdir(current_dir)
+
+
         from kmcpy.fitting import Fitting
         import numpy as np
 
