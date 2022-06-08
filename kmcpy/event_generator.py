@@ -27,7 +27,7 @@ def generate_events(api=3,**kwargs):
 
 
 
-def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",convert_to_primitive_cell=True,supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',center_atom_label_or_indices="Na1",diffuse_to_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001,export_reference_cluster="reference_cluster.cif"):
+def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",convert_to_primitive_cell=True,supercell_shape=[2,1,1],local_env_cutoff_dict = {('Na+','Na+'):4,('Na+','Si4+'):4},event_fname="events.json",event_kernal_fname='event_kernal.csv',mobile_ion_specie_1_index_label_or_indices="Na1",mobile_ion_specie_2_index_atom_label="Na2",species_to_be_removed=['Zr4+','O2-','O','Zr'],verbose=False,hacking_arg={1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]},add_oxidation_state=True,rtol_for_neighbor=0.001,export_reference_cluster="reference_cluster.cif"):
     """
     XIE WEIHANG
     
@@ -50,19 +50,19 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         event_kernal_fname (str, optional): output csv file of event kernel, this is : which events need to be updated if event with index=column is updated. Defaults to 'event_kernal.csv'.
         
-        center_atom_label_or_indices (str / list , optional): string or list of integers . If passing a string, the program will find the indices of all sites in the cif file which has the label=string. if passing a list, then will treat it as the list of indices of center atom. (center of local cluster). Defaults to "Na1".
-        diffuse_to_atom_label (str, optional): diffuse to what atom? . Defaults to "Na2".
+        mobile_ion_specie_1_index_label_or_indices (str / list , optional): string or list of integers . If passing a string, the program will find the indices of all sites in the cif file which has the label=string. if passing a list, then will treat it as the list of indices of center atom. (center of local cluster). Defaults to "Na1".
+        mobile_ion_specie_2_index_atom_label (str, optional): diffuse to what atom? . Defaults to "Na2".
         species_to_be_removed (list, optional): the species that do not participate in the local cluster expansion calculation. Defaults to ['Zr4+','O2-','O','Zr'].
         verbose (bool or int, optional): if False, then only limited output. If true, then standard verbose output. If verbose=2, a lot of annoying output. Defaults to False.
         
-        hacking_arg (dict, optional): dictionary of hacking arg. The key is the index of center atom, the value is a list, the element of the list is the "local_index" of neighbors. If hacking_ar is present, then when looking for the neighbors and trying to sort them, if the center_atom_index is in the hacking_arg_dict, then the neighbor will be arranged by the sequence of hacking_arg[center_atom_index] The example here is for the NASICON. Defaults to {1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}.
+        hacking_arg (dict, optional): dictionary of hacking arg. The key is the index of center atom, the value is a list, the element of the list is the "local_index" of neighbors. If hacking_ar is present, then when looking for the neighbors and trying to sort them, if the mobile_ion_specie_1_index_index is in the hacking_arg_dict, then the neighbor will be arranged by the sequence of hacking_arg[mobile_ion_specie_1_index_index] The example here is for the NASICON. Defaults to {1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}.
         
         rtol_for_neighbor(float): tolerance for determining whether the distance matrix is the same. This is passed to np.allclose() function. Default to 0.001. No need to change this.
         
         If you do not pass into a hacking_arg, if the site can be correctly sorted by wyckoff sequence and label, then you are good, if cannot, then a json will be generated, also the dict will be printed to standard output to tell you the hacking_arg. This hacking_arg shall be passed to model.py
 
     Raises:
-        TypeError: if center_atom_label_or_indices is neither list nor list
+        TypeError: if mobile_ion_specie_1_index_label_or_indices is neither list nor list
         ValueError:.?
 
     Returns:
@@ -94,24 +94,24 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
 
     # find the indices of center atom, if not assigned explicitly
-    if type(center_atom_label_or_indices) is str:
-        center_atom_label=center_atom_label_or_indices
-        center_atom_indices=[]
+    if type(mobile_ion_specie_1_index_label_or_indices) is str:
+        mobile_ion_specie_1_index_label=mobile_ion_specie_1_index_label_or_indices
+        mobile_ion_specie_1_index_indices=[]
         print_divider()
         print("receive string type in 'center atom label' parameter. Trying to find the indices of center atom")        
         for i in range(0,len(primitive_cell)):
-            if primitive_cell[i].properties["label"]==center_atom_label_or_indices:
-                center_atom_indices.append(i)
+            if primitive_cell[i].properties["label"]==mobile_ion_specie_1_index_label_or_indices:
+                mobile_ion_specie_1_index_indices.append(i)
                 print("please check if this is a center atom:",primitive_cell[i],"fractional_coordinate:",primitive_cell[i].frac_coords,primitive_cell[i].properties)
         print_divider()
-        print("all center atom indices:",center_atom_indices)
+        print("all center atom indices:",mobile_ion_specie_1_index_indices)
         
-    elif type(center_atom_label_or_indices) is list:
-        center_atom_indices=center_atom_label_or_indices
-        center_atom_label=primitive_cell[center_atom_label_or_indices[0]].properties["label"]
+    elif type(mobile_ion_specie_1_index_label_or_indices) is list:
+        mobile_ion_specie_1_index_indices=mobile_ion_specie_1_index_label_or_indices
+        mobile_ion_specie_1_index_label=primitive_cell[mobile_ion_specie_1_index_label_or_indices[0]].properties["label"]
         
     else:
-        raise TypeError("center_atom_label_or_indices is either string or list")
+        raise TypeError("mobile_ion_specie_1_index_label_or_indices is either string or list")
                 
     #-------------------------------------------
     # find the reference cluster----------------
@@ -120,9 +120,9 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
     # one primitive cell may have more than 1 center atom (for NaSICON, more than 1 Na1). Set the 1st Na1 (center atom) as the reference
 
-    reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_indices[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])       
+    reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_indices[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])       
 
-    reference_cluster_sites=[primitive_cell[center_atom_indices[0]]]
+    reference_cluster_sites=[primitive_cell[mobile_ion_specie_1_index_indices[0]]]
     for i in reference_neighbor_sequences:
         reference_cluster_sites.append(i["site"])
     
@@ -176,7 +176,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         np.savetxt("reference_distance_matrix.csv",reference_distance_matrix,delimiter=",",newline="\n")
         print_divider()
         print("finding neighbors in primitive cell")
-        print("looking for the neighbors of 1st center atom for reference. The 1st center atom is ",primitive_cell[center_atom_indices[0]])
+        print("looking for the neighbors of 1st center atom for reference. The 1st center atom is ",primitive_cell[mobile_ion_specie_1_index_indices[0]])
         print("neighbor is arranged in this way")
 
         print([(neighbor["wyckoff_sequence"],neighbor["label"],neighbor["image"]) for neighbor in reference_neighbor_sequences])
@@ -303,7 +303,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
     new_hacking_arg={}# brutally rearrange neighbor cost time. Hacking arg = rearranged neighbor sequence of which the distance matrix is the same as reference distance matrix
 
-    for center_atom_index in center_atom_indices:
+    for mobile_ion_specie_1_index_index in mobile_ion_specie_1_index_indices:
         
         # try to find the sorted neighbors by wyckoff sequence and label
         # if the distance matrix is the same as the reference matrix (distance matrix of the 1st center atom), then we are good
@@ -318,30 +318,30 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         """
         
         if not hacking_arg:
-            this_neighbor_sequence=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_index),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])
+            this_neighbor_sequence=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_index),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])
         else:
-            if center_atom_index in hacking_arg:
+            if mobile_ion_specie_1_index_index in hacking_arg:
                 if verbose: 
                     print_divider()
                     print("hacking arg triggered")
                 this_neighbor_sequence=[]
-                for local_index in hacking_arg[center_atom_index]:
-                    for unsorted_neighbor in local_env_finder.get_nn_info(primitive_cell,center_atom_index):
+                for local_index in hacking_arg[mobile_ion_specie_1_index_index]:
+                    for unsorted_neighbor in local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_index):
                         if unsorted_neighbor["local_index"]==local_index:
                             this_neighbor_sequence.append(unsorted_neighbor)
             else:
-                this_neighbor_sequence=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_index),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])
+                this_neighbor_sequence=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_index),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])
         
         
         
         if np.allclose(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence),reference_distance_matrix,rtol=rtol_for_neighbor):
             # the distance matrix is correct, means that the neighbors are arranging in  a correct way 
             print_divider()
-            print("neighbors of center atom at",primitive_cell[center_atom_index]," is arranging correctly. Carry on next center atom")
+            print("neighbors of center atom at",primitive_cell[mobile_ion_specie_1_index_index]," is arranging correctly. Carry on next center atom")
             print([(neighbor["wyckoff_sequence"],neighbor["label"],neighbor["image"]) for neighbor in this_neighbor_sequence])
         else: 
             print_divider()
-            print("neighbors of ",primitive_cell[center_atom_index]," is not arranging correctly\n the distance matrix is:")      
+            print("neighbors of ",primitive_cell[mobile_ion_specie_1_index_index]," is not arranging correctly\n the distance matrix is:")      
     
             print(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence))
             
@@ -351,15 +351,15 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             
             this_neighbor_sequence=brutely_rearrange_neighbors(wrong_neighbor_sequence=this_neighbor_sequence,corect_neighbor_sequence=reference_neighbor_sequences,reference_distance_matrix=reference_distance_matrix)
             
-            hacking_arg_for_this_center_atom=[]
+            hacking_arg_for_this_mobile_ion_specie_1_index=[]
             
             for sorted_neighbor in this_neighbor_sequence:
-                hacking_arg_for_this_center_atom.append(sorted_neighbor["local_index"])
+                hacking_arg_for_this_mobile_ion_specie_1_index.append(sorted_neighbor["local_index"])
                 
-            new_hacking_arg[center_atom_index]=hacking_arg_for_this_center_atom
+            new_hacking_arg[mobile_ion_specie_1_index_index]=hacking_arg_for_this_mobile_ion_specie_1_index
 
         
-        local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]]=this_neighbor_sequence
+        local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties["wyckoff_sequence"]]=this_neighbor_sequence
 
     if len(new_hacking_arg)>0:
         print_divider()
@@ -373,10 +373,10 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         #print(local_env_info_dict)    
         print_divider()
         print("finish searching of neighbors. Revalidating the distance matrix. Make sure all of the distance matrix are the same!")
-        for center_atom_index in center_atom_indices:
-            print("finding local environment of",primitive_cell[center_atom_index],"the local info is ",local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])
+        for mobile_ion_specie_1_index_index in mobile_ion_specie_1_index_indices:
+            print("finding local environment of",primitive_cell[mobile_ion_specie_1_index_index],"the local info is ",local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties["wyckoff_sequence"]])
 
-            print("different matrix: (should be 0)\n",build_distance_matrix_from_getnninfo_output(local_env_info_dict[primitive_cell[center_atom_index].properties["wyckoff_sequence"]])-reference_distance_matrix)
+            print("different matrix: (should be 0)\n",build_distance_matrix_from_getnninfo_output(local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties["wyckoff_sequence"]])-reference_distance_matrix)
                      
     
     # finish trying to align all other clusters in the primitive cell to the reference_neighbor_sequences ------------------  
@@ -397,10 +397,10 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     
     # find the center atom indices of supercell
     # each primitive cell has 2 Na1 center atoms. For supercell, each "image" has 2 center atoms
-    supercell_center_atom_indices=[]
+    supercell_mobile_ion_specie_1_index_indices=[]
     for i in range(0,len(supercell)):
-        if supercell[i].properties["label"]==center_atom_label:
-            supercell_center_atom_indices.append(i)    
+        if supercell[i].properties["label"]==mobile_ion_specie_1_index_label:
+            supercell_mobile_ion_specie_1_index_indices.append(i)    
             
     events = []
     events_dict = []
@@ -435,20 +435,20 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
     indices_dict_from_identifier=supercell.kmc_build_dict(skip_check=False)#a dictionary. Key is the tuple with same format as class.kmc_info_to_tuple, Value is the global indices
     
-    for supercell_center_atom_index in supercell_center_atom_indices:
+    for supercell_mobile_ion_specie_1_index_index in supercell_mobile_ion_specie_1_index_indices:
         
         # for center atoms of newly generated supercell, find the neighbors
         
         
-        this_center_atom_belongs_to_supercell=supercell[supercell_center_atom_index].properties["supercell"]
-        wyckoff_sequence_of_this_center_atom=supercell[supercell_center_atom_index].properties["wyckoff_sequence"]
+        this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index_index].properties["supercell"]
+        wyckoff_sequence_of_this_mobile_ion_specie_1_index=supercell[supercell_mobile_ion_specie_1_index_index].properties["wyckoff_sequence"]
         local_env_info=[]# list of integer / indices of local environment
         
         
-        for neighbor_site_in_primitive_cell in local_env_info_dict[wyckoff_sequence_of_this_center_atom]:
+        for neighbor_site_in_primitive_cell in local_env_info_dict[wyckoff_sequence_of_this_mobile_ion_specie_1_index]:
             """
             
-             local_env_info_dict[wyckoff_sequence_of_this_center_atom]
+             local_env_info_dict[wyckoff_sequence_of_this_mobile_ion_specie_1_index]
             
             In primitive cell, the center atom has 1 unique identifier: The "wyckoff sequence inside the primitive cell"
             
@@ -471,7 +471,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             
             """
             
-            local_env_info.append(indices_dict_from_identifier[supercell.kmc_info_to_tuple(wyckoff_sequence=neighbor_site_in_primitive_cell["wyckoff_sequence"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))])
+            local_env_info.append(indices_dict_from_identifier[supercell.kmc_info_to_tuple(wyckoff_sequence=neighbor_site_in_primitive_cell["wyckoff_sequence"],label=neighbor_site_in_primitive_cell["label"],supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_mobile_ion_specie_1_index_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape))])
 
         
         if verbose:
@@ -488,8 +488,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             center_distance_matrix=np.array([])
             for local_env_index in local_env_info:
                 if verbose==2:
-                    print("distance from center to environment:",supercell[supercell_center_atom_index].properties,supercell[local_env_index].properties,supercell[supercell_center_atom_index].distance(supercell[local_env_index]))#debug
-                center_distance_matrix=np.append(center_distance_matrix,supercell[supercell_center_atom_index].distance(supercell[local_env_index]))
+                    print("distance from center to environment:",supercell[supercell_mobile_ion_specie_1_index_index].properties,supercell[local_env_index].properties,supercell[supercell_mobile_ion_specie_1_index_index].distance(supercell[local_env_index]))#debug
+                center_distance_matrix=np.append(center_distance_matrix,supercell[supercell_mobile_ion_specie_1_index_index].distance(supercell[local_env_index]))
             print("center atom distance matrix: ",center_distance_matrix)
             
             # distance matrix of supercell neighbors
@@ -498,9 +498,9 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             
             #print(build_distance_matrix_from_getnninfo_output(local_env_info))
 
-            print("finding local environment of",supercell[supercell_center_atom_index],"the local info is ",[(supercell[global_index].properties["label"],supercell[global_index].properties["wyckoff_sequence"],supercell[global_index].properties["supercell"]) for global_index in local_env_info])
+            print("finding local environment of",supercell[supercell_mobile_ion_specie_1_index_index],"the local info is ",[(supercell[global_index].properties["label"],supercell[global_index].properties["wyckoff_sequence"],supercell[global_index].properties["supercell"]) for global_index in local_env_info])
             
-            unsorted_supercell_neighbors=local_env_finder.get_nn_info(supercell,supercell_center_atom_index)
+            unsorted_supercell_neighbors=local_env_finder.get_nn_info(supercell,supercell_mobile_ion_specie_1_index_index)
             
             print("unsorted neighbors of this center atom by cutoffdnn is ",unsorted_supercell_neighbors)
             
@@ -533,16 +533,16 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
         for local_env in local_env_info:
             # generate event
-            if supercell[local_env].properties["label"] == diffuse_to_atom_label:
+            if supercell[local_env].properties["label"] == mobile_ion_specie_2_index_atom_label:
                 # or for understanding, if any site in local environment, its label== "Na2"
                 # initialize the event
                 this_event = Event()
-                this_event.initialization2(supercell_center_atom_index,local_env,local_env_info)
+                this_event.initialization2(supercell_mobile_ion_specie_1_index_index,local_env,local_env_info)
                 events.append(this_event)
                 events_dict.append(this_event.as_dict())            
     
     if len(events)==0:
-        raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the diffuse_to_atom_label?")
+        raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the mobile_ion_specie_2_index_atom_label?")
             
 
 
@@ -761,51 +761,51 @@ class neighbor_info_matcher():
             raise ValueError("sequence not founded!")                
       
       
-def find_atom_indices(structure,atom_identifier_type="specie",atom_identifier="Li+"):
+def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identifier="Li+"):
     """a function for generating a list of site indices that satisfy the identifier
 
     Args:
         structure (kmcpy.external.pymatgen_structure): structure object to work on
-        atom_identifier_type (str, optional): elect from: ["specie","label","list"]. Defaults to "specie".
+        mobile_ion_identifier_type (str, optional): elect from: ["specie","label","list"]. Defaults to "specie".
         atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
         
         typical input:
-        atom_identifier_type=specie, atom_identifier="Li+"
-        atom_identifier_type=label, atom_identifier="Li1"
-        atom_identifier_type=list, atom_identifier=[0,1,2,3,4,5]
+        mobile_ion_identifier_type=specie, atom_identifier="Li+"
+        mobile_ion_identifier_type=label, atom_identifier="Li1"
+        mobile_ion_identifier_type=list, atom_identifier=[0,1,2,3,4,5]
 
     Raises:
-        ValueError: atom_identifier_type argument is strange
+        ValueError: mobile_ion_identifier_type argument is strange
 
     Returns:
         list: list of atom indices that satisfy the identifier
     """
-    center_atom_indices=[]    
-    if atom_identifier_type=="specie":
+    mobile_ion_specie_1_index_indices=[]    
+    if mobile_ion_identifier_type=="specie":
         for i in range(0,len(structure)):
             if atom_identifier in structure[i].species:
-                center_atom_indices.append(i)
+                mobile_ion_specie_1_index_indices.append(i)
                 
-    elif atom_identifier_type=="label":
+    elif mobile_ion_identifier_type=="label":
 
         for i in range(0,len(structure)):
             if structure[i].properties["label"]==atom_identifier:
-                center_atom_indices.append(i)
+                mobile_ion_specie_1_index_indices.append(i)
                 
-    elif atom_identifier_type=="list":
-        center_atom_indices=atom_identifier
+    elif mobile_ion_identifier_type=="list":
+        mobile_ion_specie_1_index_indices=atom_identifier
     
     else:
-        raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
+        raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
     
     neighbor_info_logger.warning("please check if these are center atom:")
-    for i in center_atom_indices:
+    for i in mobile_ion_specie_1_index_indices:
         
         neighbor_info_logger.warning(str(structure[i]))        
     
-    return center_atom_indices
+    return mobile_ion_specie_1_index_indices
         
-def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},atom_identifier_type="specie",center_atom_identifier="Li+",diffuse_to_atom_identifier="Li+",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
+def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",mobile_ion_specie_2_identifier="Na2",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
     """
     220603 XIE WEIHANG    
     3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of center atoms (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
@@ -814,9 +814,9 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
         prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. Defaults to "210.cif".
         convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
         local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
-        atom_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
-        center_atom_identifier (str, optional): identifier for center atom. Defaults to "Li+".
-        diffuse_to_atom_identifier (str, optional): identifier for the atom that center atom will diffuse to . Defaults to "Li+".
+        mobile_ion_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
+        mobile_ion_specie_1_identifier (str, optional): identifier for center atom. Defaults to "Li+".
+        mobile_ion_specie_2_identifier (str, optional): identifier for the atom that center atom will diffuse to . Defaults to "Li+".
         species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to ["O2-","O"].
         distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.
         distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.
@@ -863,7 +863,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     event_generator_logger.warning("building center atom index list")
     
 
-    center_atom_indices=find_atom_indices(primitive_cell,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)  
+    mobile_ion_specie_1_index_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
         
     #--------
     
@@ -877,13 +877,13 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     reference_local_env_type=0
     
     event_generator_logger.info("start finding the neighboring sequence of center atoms")
-    event_generator_logger.info("total number of center atoms:"+str(len(center_atom_indices)))
+    event_generator_logger.info("total number of center atoms:"+str(len(mobile_ion_specie_1_index_indices)))
     
     neighbor_has_been_found=0
     
-    for center_atom_index in center_atom_indices:
+    for mobile_ion_specie_1_index_index in mobile_ion_specie_1_index_indices:
         
-        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,center_atom_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
+        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
                     
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
@@ -893,7 +893,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             if export_local_env_structure:
                 
-                reference_local_env_sites=[primitive_cell[center_atom_index]]
+                reference_local_env_sites=[primitive_cell[mobile_ion_specie_1_index_index]]
                 
                 for i in unsorted_neighbor_sequences:
                     
@@ -907,7 +907,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             reference_local_env_dict[this_nninfo.neighbor_species]=this_nninfo
 
-            local_env_info_dict[primitive_cell[center_atom_index].properties['local_index']]=this_nninfo.neighbor_sequence
+            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties['local_index']]=this_nninfo.neighbor_sequence
             
             
             event_generator_logger.warning("a new type of cluster is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
@@ -920,11 +920,11 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
 
             sorted_neighbor_sequence=reference_local_env_dict[this_nninfo.neighbor_species].brutal_match(this_nninfo.neighbor_sequence,rtol=distance_matrix_rtol,atol=distance_matrix_atol,find_nearest_if_fail=find_nearest_if_fail)
             
-            local_env_info_dict[primitive_cell[center_atom_index].properties['local_index']]=sorted_neighbor_sequence
+            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties['local_index']]=sorted_neighbor_sequence
             
         neighbor_has_been_found+=1
         
-        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(center_atom_indices))+" neighboring sequence has been found")
+        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(mobile_ion_specie_1_index_indices))+" neighboring sequence has been found")
         
 
   
@@ -932,7 +932,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     event_generator_logger.warning("supercell is created")
     event_generator_logger.info(str(supercell))
     
-    supercell_center_atom_indices=find_atom_indices(supercell,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)
+    supercell_mobile_ion_specie_1_index_indices=find_atom_indices(supercell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
 
             
     events = []
@@ -967,21 +967,21 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with same format as class.kmc_info_to_tuple, Value is the global indices   
 
     
-    for supercell_center_atom_index in supercell_center_atom_indices:
+    for supercell_mobile_ion_specie_1_index_index in supercell_mobile_ion_specie_1_index_indices:
         
         # for center atoms of newly generated supercell, find the neighbors
 
-        this_center_atom_belongs_to_supercell=supercell[supercell_center_atom_index].properties["supercell"]
+        this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index_index].properties["supercell"]
         
-        local_index_of_this_center_atom=supercell[supercell_center_atom_index].properties["local_index"]
+        local_index_of_this_mobile_ion_specie_1_index=supercell[supercell_mobile_ion_specie_1_index_index].properties["local_index"]
         
         local_env_info=[]# list of integer / indices of local environment
         
         
-        for neighbor_site_in_primitive_cell in local_env_info_dict[local_index_of_this_center_atom]:
+        for neighbor_site_in_primitive_cell in local_env_info_dict[local_index_of_this_mobile_ion_specie_1_index]:
             """
             
-             local_env_info_dict[local_index_of_this_center_atom]
+             local_env_info_dict[local_index_of_this_mobile_ion_specie_1_index]
             
             In primitive cell, the center atom has 1 unique identifier: The "local index inside the primitive cell"
             
@@ -1003,41 +1003,41 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             """
             
-            neighbor_site_around_supercell_center_atom_belongs_to_supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_center_atom_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
+            neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_mobile_ion_specie_1_index_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
             
-            tuple_key_of_such_neighbor_site=supercell.kmc_info_to_tuple3(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=neighbor_site_around_supercell_center_atom_belongs_to_supercell)
+            tuple_key_of_such_neighbor_site=supercell.kmc_info_to_tuple3(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell)
             
             local_env_info.append(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])
 
         for local_env in local_env_info:
             # generate event
             
-            if atom_identifier_type=="specie":
-                if diffuse_to_atom_identifier in supercell[local_env].species  :
+            if mobile_ion_identifier_type=="specie":
+                if mobile_ion_specie_2_identifier in supercell[local_env].species  :
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization2(supercell_center_atom_index,local_env,local_env_info)
+                    this_event.initialization2(supercell_mobile_ion_specie_1_index_index,local_env,local_env_info)
                     events.append(this_event)
                     events_dict.append(this_event.as_dict())   
                         
-            elif atom_identifier_type=="label":
+            elif mobile_ion_identifier_type=="label":
 
-                if supercell[local_env].properties["label"] == diffuse_to_atom_identifier:
+                if supercell[local_env].properties["label"] == mobile_ion_specie_2_identifier:
                     # or for understanding, if any site in local environment, its label== "Na2"
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization2(supercell_center_atom_index,local_env,local_env_info)
+                    this_event.initialization2(supercell_mobile_ion_specie_1_index_index,local_env,local_env_info)
                     events.append(this_event)
                     events_dict.append(this_event.as_dict())   
                         
-            elif atom_identifier_type=="list":
+            elif mobile_ion_identifier_type=="list":
                 raise NotImplementedError("how to do this.... atom identifier_type=list is not implemented in finding neighbors") 
                                    
             else:
-                raise ValueError('unrecognized atom_identifier_type. Please select from: ["specie","label","list"] ')
+                raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
             
     if len(events)==0:
-        raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the diffuse_to_atom_label?")
+        raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the mobile_ion_specie_2_index_atom_label?")
     
     print('Saving:',event_fname)
     with open(event_fname,'w') as fhandle:
@@ -1094,7 +1094,7 @@ def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname=
     # print(structure.lattice.matrix)
     # np.savetxt('latt.txt',np.array(structure.lattice.matrix))
     
-    # change the parameter name to center_site (center_atom). 
+    # change the parameter name to center_site (mobile_ion_specie_1_index). 
     # this information  can be loaded from input (future feature)
     # currently, the sodium1 is the first two sites in prim.json
     # need to generalize to arbitrary sequence
@@ -1123,7 +1123,7 @@ def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname=
     
     events = []
     events_dict = []
-    for (na1_index,(na1_site,local_env_info)) in enumerate(zip(na_1_sites,local_env_info_list)):
+    for (mobile_ion_specie_1_index,(na1_site,local_env_info)) in enumerate(zip(na_1_sites,local_env_info_list)):
         for local_env in local_env_info:
             # only consider the environment of Na, but not S or P.
             # need generalization for other system.
@@ -1132,7 +1132,7 @@ def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname=
             # probably become a list.
             if "Na" in local_env['site'].specie.symbol:
                 this_event = Event()
-                this_event.initialization(na1_index,local_env['site_index'],local_env_info)
+                this_event.initialization(mobile_ion_specie_1_index,local_env['site_index'],local_env_info)
                 events.append(this_event)
                 events_dict.append(this_event.as_dict())
     print('Saving:',event_fname)
@@ -1168,14 +1168,14 @@ def _generate_event_kernal(len_structure,events_site_list):
     for site in all_site_list:
         # print('Looking for site:',site)
         row = List()
-        is_Na1=False
+        #is_Na1=False
         event_index = 0
         for event in events_site_list:
             if site in event:
                 row.append(event_index)
             event_index+=1
-            if len(row)==0:
-                is_Na1=True
+            #if len(row)==0:
+            #    is_Na1=True
         results.append(row)
     return results
 
@@ -1237,7 +1237,8 @@ def generate_event_kernal3(len_structure,events_site_list,event_kernal_fname='ev
     """
     event_kernal.csv: 
         event_kernal[i] tabulates the index of sites that have to be updated after event[i] has been executed
-        
+       
+    a very slow version of generate event kernal, designed to be used for grain boundary models. This function shouldn't be called anyway. 
         
     
     """

@@ -1,7 +1,7 @@
 [
     {
-        "na1_index": 0,
-        "na2_index": 4,
+        "mobile_ion_specie_1_index": 0,
+        "mobile_ion_specie_2_index": 4,
         "sorted_sublattice_indices": [
             4,
             6,
@@ -46,8 +46,8 @@
         ]
     },
     {
-        "na1_index": 0,
-        "na2_index": 6,
+        "mobile_ion_specie_1_index": 0,
+        "mobile_ion_specie_2_index": 6,
         "sorted_sublattice_indices": [
             4,
             6,
@@ -92,8 +92,8 @@
         ]
     },
     {
-        "na1_index": 0,
-        "na2_index": 8,
+        "mobile_ion_specie_1_index": 0,
+        "mobile_ion_specie_2_index": 8,
         "sorted_sublattice_indices": [
             4,
             6,
@@ -138,8 +138,8 @@
         ]
     },
     {
-        "na1_index": 0,
-        "na2_index": 10,
+        "mobile_ion_specie_1_index": 0,
+        "mobile_ion_specie_2_index": 10,
         "sorted_sublattice_indices": [
             4,
             6,
@@ -184,8 +184,8 @@
         ]
     },
     {
-        "na1_index": 0,
-        "na2_index": 12,
+        "mobile_ion_specie_1_index": 0,
+        "mobile_ion_specie_2_index": 12,
         "sorted_sublattice_indices": [
             4,
             6,
@@ -230,8 +230,8 @@
         ]
     },
     {
-        "na1_index": 0,
-        "na2_index": 14,
+        "mobile_ion_specie_1_index": 0,
+        "mobile_ion_specie_2_index": 14,
         "sorted_sublattice_indices": [
             4,
             6,
@@ -276,8 +276,8 @@
         ]
     },
     {
-        "na1_index": 1,
-        "na2_index": 5,
+        "mobile_ion_specie_1_index": 1,
+        "mobile_ion_specie_2_index": 5,
         "sorted_sublattice_indices": [
             5,
             7,
@@ -322,8 +322,8 @@
         ]
     },
     {
-        "na1_index": 1,
-        "na2_index": 7,
+        "mobile_ion_specie_1_index": 1,
+        "mobile_ion_specie_2_index": 7,
         "sorted_sublattice_indices": [
             5,
             7,
@@ -368,8 +368,8 @@
         ]
     },
     {
-        "na1_index": 1,
-        "na2_index": 9,
+        "mobile_ion_specie_1_index": 1,
+        "mobile_ion_specie_2_index": 9,
         "sorted_sublattice_indices": [
             5,
             7,
@@ -414,8 +414,8 @@
         ]
     },
     {
-        "na1_index": 1,
-        "na2_index": 11,
+        "mobile_ion_specie_1_index": 1,
+        "mobile_ion_specie_2_index": 11,
         "sorted_sublattice_indices": [
             5,
             7,
@@ -460,8 +460,8 @@
         ]
     },
     {
-        "na1_index": 1,
-        "na2_index": 13,
+        "mobile_ion_specie_1_index": 1,
+        "mobile_ion_specie_2_index": 13,
         "sorted_sublattice_indices": [
             5,
             7,
@@ -506,8 +506,8 @@
         ]
     },
     {
-        "na1_index": 1,
-        "na2_index": 15,
+        "mobile_ion_specie_1_index": 1,
+        "mobile_ion_specie_2_index": 15,
         "sorted_sublattice_indices": [
             5,
             7,
@@ -552,8 +552,8 @@
         ]
     },
     {
-        "na1_index": 2,
-        "na2_index": 5,
+        "mobile_ion_specie_1_index": 2,
+        "mobile_ion_specie_2_index": 5,
         "sorted_sublattice_indices": [
             5,
             8,
@@ -598,8 +598,8 @@
         ]
     },
     {
-        "na1_index": 2,
-        "na2_index": 8,
+        "mobile_ion_specie_1_index": 2,
+        "mobile_ion_specie_2_index": 8,
         "sorted_sublattice_indices": [
             5,
             8,
@@ -644,8 +644,8 @@
         ]
     },
     {
-        "na1_index": 2,
-        "na2_index": 7,
+        "mobile_ion_specie_1_index": 2,
+        "mobile_ion_specie_2_index": 7,
         "sorted_sublattice_indices": [
             5,
             8,
@@ -690,8 +690,8 @@
         ]
     },
     {
-        "na1_index": 2,
-        "na2_index": 13,
+        "mobile_ion_specie_1_index": 2,
+        "mobile_ion_specie_2_index": 13,
         "sorted_sublattice_indices": [
             5,
             8,
@@ -736,8 +736,8 @@
         ]
     },
     {
-        "na1_index": 2,
-        "na2_index": 10,
+        "mobile_ion_specie_1_index": 2,
+        "mobile_ion_specie_2_index": 10,
         "sorted_sublattice_indices": [
             5,
             8,
@@ -782,8 +782,8 @@
         ]
     },
     {
-        "na1_index": 2,
-        "na2_index": 14,
+        "mobile_ion_specie_1_index": 2,
+        "mobile_ion_specie_2_index": 14,
         "sorted_sublattice_indices": [
             5,
             8,
@@ -828,54 +828,8 @@
         ]
     },
     {
-        "na1_index": 3,
-        "na2_index": 4,
-        "sorted_sublattice_indices": [
-            4,
-            9,
-            6,
-            12,
-            11,
-            15,
-            16,
-            21,
-            18,
-            24,
-            23,
-            27
-        ],
-        "local_env_indices_list": [
-            4,
-            9,
-            6,
-            12,
-            11,
-            15,
-            16,
-            21,
-            18,
-            24,
-            23,
-            27
-        ],
-        "local_env_indices_list_site": [
-            4,
-            9,
-            6,
-            12,
-            11,
-            15,
-            16,
-            21,
-            18,
-            24,
-            23,
-            27
-        ]
-    },
-    {
-        "na1_index": 3,
-        "na2_index": 9,
+        "mobile_ion_specie_1_index": 3,
+        "mobile_ion_specie_2_index": 4,
         "sorted_sublattice_indices": [
             4,
             9,
@@ -920,8 +874,8 @@
         ]
     },
     {
-        "na1_index": 3,
-        "na2_index": 6,
+        "mobile_ion_specie_1_index": 3,
+        "mobile_ion_specie_2_index": 9,
         "sorted_sublattice_indices": [
             4,
             9,
@@ -966,8 +920,8 @@
         ]
     },
     {
-        "na1_index": 3,
-        "na2_index": 12,
+        "mobile_ion_specie_1_index": 3,
+        "mobile_ion_specie_2_index": 6,
         "sorted_sublattice_indices": [
             4,
             9,
@@ -1012,8 +966,8 @@
         ]
     },
     {
-        "na1_index": 3,
-        "na2_index": 11,
+        "mobile_ion_specie_1_index": 3,
+        "mobile_ion_specie_2_index": 12,
         "sorted_sublattice_indices": [
             4,
             9,
@@ -1058,8 +1012,54 @@
         ]
     },
     {
-        "na1_index": 3,
-        "na2_index": 15,
+        "mobile_ion_specie_1_index": 3,
+        "mobile_ion_specie_2_index": 11,
+        "sorted_sublattice_indices": [
+            4,
+            9,
+            6,
+            12,
+            11,
+            15,
+            16,
+            21,
+            18,
+            24,
+            23,
+            27
+        ],
+        "local_env_indices_list": [
+            4,
+            9,
+            6,
+            12,
+            11,
+            15,
+            16,
+            21,
+            18,
+            24,
+            23,
+            27
+        ],
+        "local_env_indices_list_site": [
+            4,
+            9,
+            6,
+            12,
+            11,
+            15,
+            16,
+            21,
+            18,
+            24,
+            23,
+            27
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 3,
+        "mobile_ion_specie_2_index": 15,
         "sorted_sublattice_indices": [
             4,
             9,
