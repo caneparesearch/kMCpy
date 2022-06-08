@@ -36,7 +36,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     
     This is 2nd version of generate_events2
     
-    methodology: set the 1st center atom as the reference center atom. Set the neighbors sequence (i.e. environment/cluster) of 1st center atom as the reference sequence. Calculate the distance matrix of reference cluster as reference distance matrix following the reference sequence. For all other center atom in the primitive cell, calculate its distance matrix. If the same as reference distance matrix, then pass. If different from reference, then brutally rearrange the sequence of neighbor until the distance matrix are the same
+    methodology: set the 1st mobile ion specie 1 as the reference mobile ion specie 1. Set the neighbors sequence (i.e. environment/cluster) of 1st mobile ion specie 1 as the reference sequence. Calculate the distance matrix of reference cluster as reference distance matrix following the reference sequence. For all other mobile ion specie 1 in the primitive cell, calculate its distance matrix. If the same as reference distance matrix, then pass. If different from reference, then brutally rearrange the sequence of neighbor until the distance matrix are the same
 
     Args:
         prim_cif_name (str, optional): Path to the cif file. ONLY CIF FILE IS ACCEPTED! REMEMBER TO CHANGE THE label of different sites. Defaults to "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif".
@@ -50,12 +50,12 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         
         event_kernal_fname (str, optional): output csv file of event kernel, this is : which events need to be updated if event with index=column is updated. Defaults to 'event_kernal.csv'.
         
-        mobile_ion_specie_1_index_label_or_indices (str / list , optional): string or list of integers . If passing a string, the program will find the indices of all sites in the cif file which has the label=string. if passing a list, then will treat it as the list of indices of center atom. (center of local cluster). Defaults to "Na1".
+        mobile_ion_specie_1_index_label_or_indices (str / list , optional): string or list of integers . If passing a string, the program will find the indices of all sites in the cif file which has the label=string. if passing a list, then will treat it as the list of indices of mobile ion specie 1. (center of local cluster). Defaults to "Na1".
         mobile_ion_specie_2_index_atom_label (str, optional): diffuse to what atom? . Defaults to "Na2".
         species_to_be_removed (list, optional): the species that do not participate in the local cluster expansion calculation. Defaults to ['Zr4+','O2-','O','Zr'].
         verbose (bool or int, optional): if False, then only limited output. If true, then standard verbose output. If verbose=2, a lot of annoying output. Defaults to False.
         
-        hacking_arg (dict, optional): dictionary of hacking arg. The key is the index of center atom, the value is a list, the element of the list is the "local_index" of neighbors. If hacking_ar is present, then when looking for the neighbors and trying to sort them, if the mobile_ion_specie_1_index_index is in the hacking_arg_dict, then the neighbor will be arranged by the sequence of hacking_arg[mobile_ion_specie_1_index_index] The example here is for the NASICON. Defaults to {1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}.
+        hacking_arg (dict, optional): dictionary of hacking arg. The key is the index of mobile ion specie 1, the value is a list, the element of the list is the "local_index" of neighbors. If hacking_ar is present, then when looking for the neighbors and trying to sort them, if the mobile_ion_specie_1_index_index is in the hacking_arg_dict, then the neighbor will be arranged by the sequence of hacking_arg[mobile_ion_specie_1_index_index] The example here is for the NASICON. Defaults to {1:[27,29,28,30,32,31,117,119,118,120,122,121],2:[21,22,23,32,30,31,111,112,113,122,120,121],3:[18,20,19,34,33,35,108,110,109,124,123,125],5:[21,23,22,24,26,25,111,113,112,114,116,115]}.
         
         rtol_for_neighbor(float): tolerance for determining whether the distance matrix is the same. This is passed to np.allclose() function. Default to 0.001. No need to change this.
         
@@ -93,18 +93,18 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         print("primitive cell:",primitive_cell)
 
 
-    # find the indices of center atom, if not assigned explicitly
+    # find the indices of mobile ion specie 1, if not assigned explicitly
     if type(mobile_ion_specie_1_index_label_or_indices) is str:
         mobile_ion_specie_1_index_label=mobile_ion_specie_1_index_label_or_indices
         mobile_ion_specie_1_index_indices=[]
         print_divider()
-        print("receive string type in 'center atom label' parameter. Trying to find the indices of center atom")        
+        print("receive string type in 'mobile ion specie 1 label' parameter. Trying to find the indices of mobile ion specie 1")        
         for i in range(0,len(primitive_cell)):
             if primitive_cell[i].properties["label"]==mobile_ion_specie_1_index_label_or_indices:
                 mobile_ion_specie_1_index_indices.append(i)
-                print("please check if this is a center atom:",primitive_cell[i],"fractional_coordinate:",primitive_cell[i].frac_coords,primitive_cell[i].properties)
+                print("please check if this is a mobile ion specie 1:",primitive_cell[i],"fractional_coordinate:",primitive_cell[i].frac_coords,primitive_cell[i].properties)
         print_divider()
-        print("all center atom indices:",mobile_ion_specie_1_index_indices)
+        print("all mobile ion specie 1 indices:",mobile_ion_specie_1_index_indices)
         
     elif type(mobile_ion_specie_1_index_label_or_indices) is list:
         mobile_ion_specie_1_index_indices=mobile_ion_specie_1_index_label_or_indices
@@ -118,7 +118,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
 
-    # one primitive cell may have more than 1 center atom (for NaSICON, more than 1 Na1). Set the 1st Na1 (center atom) as the reference
+    # one primitive cell may have more than 1 mobile ion specie 1 (for NaSICON, more than 1 Na1). Set the 1st Na1 (mobile ion specie 1) as the reference
 
     reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_indices[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])       
 
@@ -176,14 +176,14 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         np.savetxt("reference_distance_matrix.csv",reference_distance_matrix,delimiter=",",newline="\n")
         print_divider()
         print("finding neighbors in primitive cell")
-        print("looking for the neighbors of 1st center atom for reference. The 1st center atom is ",primitive_cell[mobile_ion_specie_1_index_indices[0]])
+        print("looking for the neighbors of 1st mobile ion specie 1 for reference. The 1st mobile ion specie 1 is ",primitive_cell[mobile_ion_specie_1_index_indices[0]])
         print("neighbor is arranged in this way")
 
         print([(neighbor["wyckoff_sequence"],neighbor["label"],neighbor["image"]) for neighbor in reference_neighbor_sequences])
         print_divider()
         print("the reference distance matrix is ")
         print(reference_distance_matrix)
-        print("all other center atoms should arrange in this way. If not, then will try to rearrange the sequence of their neighbor")
+        print("all other mobile ion specie 1s should arrange in this way. If not, then will try to rearrange the sequence of their neighbor")
         print("starting the validation process")
     #-------------------------------------------  
     
@@ -306,12 +306,12 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     for mobile_ion_specie_1_index_index in mobile_ion_specie_1_index_indices:
         
         # try to find the sorted neighbors by wyckoff sequence and label
-        # if the distance matrix is the same as the reference matrix (distance matrix of the 1st center atom), then we are good
-        # if not the same, we have to modify the sequence of neighbors around this center atom in order to get the same matrix
+        # if the distance matrix is the same as the reference matrix (distance matrix of the 1st mobile ion specie 1), then we are good
+        # if not the same, we have to modify the sequence of neighbors around this mobile ion specie 1 in order to get the same matrix
         # now, using the brutal force to find the new sequence
         """hacking_arg:
 
-            hacking arg is from a already completed calculation where you after hours of computing, finally use the brute force to find the correct sequence of neighbors for each center atom
+            hacking arg is from a already completed calculation where you after hours of computing, finally use the brute force to find the correct sequence of neighbors for each mobile ion specie 1
             
             then will arrange following the hacking_arg
     
@@ -337,7 +337,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
         if np.allclose(build_distance_matrix_from_getnninfo_output(cutoffdnn_output=this_neighbor_sequence),reference_distance_matrix,rtol=rtol_for_neighbor):
             # the distance matrix is correct, means that the neighbors are arranging in  a correct way 
             print_divider()
-            print("neighbors of center atom at",primitive_cell[mobile_ion_specie_1_index_index]," is arranging correctly. Carry on next center atom")
+            print("neighbors of mobile ion specie 1 at",primitive_cell[mobile_ion_specie_1_index_index]," is arranging correctly. Carry on next mobile ion specie 1")
             print([(neighbor["wyckoff_sequence"],neighbor["label"],neighbor["image"]) for neighbor in this_neighbor_sequence])
         else: 
             print_divider()
@@ -395,8 +395,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 
     
     
-    # find the center atom indices of supercell
-    # each primitive cell has 2 Na1 center atoms. For supercell, each "image" has 2 center atoms
+    # find the mobile ion specie 1 indices of supercell
+    # each primitive cell has 2 Na1 mobile ion specie 1s. For supercell, each "image" has 2 mobile ion specie 1s
     supercell_mobile_ion_specie_1_index_indices=[]
     for i in range(0,len(supercell)):
         if supercell[i].properties["label"]==mobile_ion_specie_1_index_label:
@@ -437,7 +437,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
     
     for supercell_mobile_ion_specie_1_index_index in supercell_mobile_ion_specie_1_index_indices:
         
-        # for center atoms of newly generated supercell, find the neighbors
+        # for mobile ion specie 1s of newly generated supercell, find the neighbors
         
         
         this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index_index].properties["supercell"]
@@ -450,11 +450,11 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             
              local_env_info_dict[wyckoff_sequence_of_this_mobile_ion_specie_1_index]
             
-            In primitive cell, the center atom has 1 unique identifier: The "wyckoff sequence inside the primitive cell"
+            In primitive cell, the mobile ion specie 1 has 1 unique identifier: The "wyckoff sequence inside the primitive cell"
             
-            IN supercell, the center atom has an additional unique identifier: belongs to which supercell
+            IN supercell, the mobile ion specie 1 has an additional unique identifier: belongs to which supercell
             
-            However, as long as the "wyckoff sequence inside the primitive cell" is the same, no matter which supercell this center atom belongs to, the sequence of "wyckoff sequence" of its neighbor sites are the same. In primitive cell, center atom with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every center atom with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
+            However, as long as the "wyckoff sequence inside the primitive cell" is the same, no matter which supercell this mobile ion specie 1 belongs to, the sequence of "wyckoff sequence" of its neighbor sites are the same. In primitive cell, mobile ion specie 1 with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every mobile ion specie 1 with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
             
             Mapping the sequence in primitive cell to supercell!
             
@@ -481,8 +481,8 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             Should greatly decrease the speed
             
             """
-            # center atom distance matrix
-            # this is distance matrix between center atom and neighbor atom
+            # mobile ion specie 1 distance matrix
+            # this is distance matrix between mobile ion specie 1 and neighbor atom
 
             print_divider()
             center_distance_matrix=np.array([])
@@ -490,7 +490,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
                 if verbose==2:
                     print("distance from center to environment:",supercell[supercell_mobile_ion_specie_1_index_index].properties,supercell[local_env_index].properties,supercell[supercell_mobile_ion_specie_1_index_index].distance(supercell[local_env_index]))#debug
                 center_distance_matrix=np.append(center_distance_matrix,supercell[supercell_mobile_ion_specie_1_index_index].distance(supercell[local_env_index]))
-            print("center atom distance matrix: ",center_distance_matrix)
+            print("mobile ion specie 1 distance matrix: ",center_distance_matrix)
             
             # distance matrix of supercell neighbors
             print_divider()
@@ -502,7 +502,7 @@ def generate_events2(prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
             
             unsorted_supercell_neighbors=local_env_finder.get_nn_info(supercell,supercell_mobile_ion_specie_1_index_index)
             
-            print("unsorted neighbors of this center atom by cutoffdnn is ",unsorted_supercell_neighbors)
+            print("unsorted neighbors of this mobile ion specie 1 by cutoffdnn is ",unsorted_supercell_neighbors)
             
             sorted_supercell_neighbors=[]
             
@@ -798,7 +798,7 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
     else:
         raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
     
-    neighbor_info_logger.warning("please check if these are center atom:")
+    neighbor_info_logger.warning("please check if these are mobile ion specie 1:")
     for i in mobile_ion_specie_1_index_indices:
         
         neighbor_info_logger.warning(str(structure[i]))        
@@ -808,15 +808,15 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
 def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",mobile_ion_specie_2_identifier="Na2",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
     """
     220603 XIE WEIHANG    
-    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of center atoms (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
+    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile ion specie 1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
 
     Args:
         prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. Defaults to "210.cif".
         convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
         local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
         mobile_ion_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
-        mobile_ion_specie_1_identifier (str, optional): identifier for center atom. Defaults to "Li+".
-        mobile_ion_specie_2_identifier (str, optional): identifier for the atom that center atom will diffuse to . Defaults to "Li+".
+        mobile_ion_specie_1_identifier (str, optional): identifier for mobile ion specie 1. Defaults to "Li+".
+        mobile_ion_specie_2_identifier (str, optional): identifier for the atom that mobile ion specie 1 will diffuse to . Defaults to "Li+".
         species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to ["O2-","O"].
         distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.
         distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.
@@ -860,7 +860,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
     event_generator_logger.warning("primitive cell composition after adding oxidation state and removing uninvolved species: ")
     event_generator_logger.info(str(primitive_cell.composition))
-    event_generator_logger.warning("building center atom index list")
+    event_generator_logger.warning("building mobile ion specie 1 index list")
     
 
     mobile_ion_specie_1_index_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
@@ -876,8 +876,8 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
    
     reference_local_env_type=0
     
-    event_generator_logger.info("start finding the neighboring sequence of center atoms")
-    event_generator_logger.info("total number of center atoms:"+str(len(mobile_ion_specie_1_index_indices)))
+    event_generator_logger.info("start finding the neighboring sequence of mobile ion specie 1s")
+    event_generator_logger.info("total number of mobile ion specie 1s:"+str(len(mobile_ion_specie_1_index_indices)))
     
     neighbor_has_been_found=0
     
@@ -969,7 +969,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
     for supercell_mobile_ion_specie_1_index_index in supercell_mobile_ion_specie_1_index_indices:
         
-        # for center atoms of newly generated supercell, find the neighbors
+        # for mobile ion specie 1s of newly generated supercell, find the neighbors
 
         this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index_index].properties["supercell"]
         
@@ -983,11 +983,11 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
              local_env_info_dict[local_index_of_this_mobile_ion_specie_1_index]
             
-            In primitive cell, the center atom has 1 unique identifier: The "local index inside the primitive cell"
+            In primitive cell, the mobile ion specie 1 has 1 unique identifier: The "local index inside the primitive cell"
             
-            IN supercell, the center atom has an additional unique identifier: belongs t o which supercell
+            IN supercell, the mobile ion specie 1 has an additional unique identifier: belongs t o which supercell
             
-            However, as long as the "local index inside the primitive cell" is the same, no matter which supercell this center atom belongs to, the sequence of "local index" of its neighbor sites are the same. In primitive cell, center atom with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every center atom with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
+            However, as long as the "local index inside the primitive cell" is the same, no matter which supercell this mobile ion specie 1 belongs to, the sequence of "local index" of its neighbor sites are the same. In primitive cell, mobile ion specie 1 with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every mobile ion specie 1 with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
             
             In the loop. I'm mapping the sequence in primitive cell to supercell!
             
@@ -1098,7 +1098,7 @@ def generate_events1(prim_fname="prim.json",supercell_shape=[2,1,1],event_fname=
     # this information  can be loaded from input (future feature)
     # currently, the sodium1 is the first two sites in prim.json
     # need to generalize to arbitrary sequence
-    # future code: the input shall be a list, telling the index of center atom / Na1
+    # future code: the input shall be a list, telling the index of mobile ion specie 1 / Na1
     # current value 2, equivalent [0,1] (len([0,1])=2)
     #  future input [0,1] or any indices
     
