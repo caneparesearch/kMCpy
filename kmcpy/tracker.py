@@ -183,10 +183,10 @@ class Tracker:
 
         k = 8.617333262145*10**(-2) # unit in meV/K
         try:
-            n = (self.n_na)/self.volume # e per Angst^3 vacancy is the carrier
+            n = (self.n_mobile_ion_specie)/self.volume # e per Angst^3 vacancy is the carrier
             conductivity = D_J*n*self.q**2/(k*T)*1.602*10**11 # to mS/cm
         except:
-            n = (self.n_mobile_ion_specie)/self.volume
+            n = (self.n_na)/self.volume
             conductivity = D_J*n*q**2/(k*T)*1.602*10**11 # to mS/cm
         return conductivity
 
