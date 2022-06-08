@@ -1,6 +1,7 @@
 import unittest
 import pytest
 class Test_version3(unittest.TestCase):
+    
     @pytest.mark.order(1)
     def test_neighbor_info_matcher(self):
         print("neighbor info matcher testing")
@@ -49,15 +50,15 @@ class Test_version3(unittest.TestCase):
         import os
         current_dir= Path(__file__).absolute().parent
         os.chdir(current_dir)
-        atom_identifier_type="label"
-        center_atom_identifier="Na1"
-        diffuse_to_atom_identifier="Na2"
+        mobile_ion_identifier_type="label"
+        mobile_ion_specie_1_identifier="Na1"
+        mobile_ion_specie_2_identifier="Na2"
         prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
         local_env_cutoff_dict={('Na+','Na+'):4,('Na+','Si4+'):4}
         from kmcpy.event_generator import generate_events3
-        generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,diffuse_to_atom_identifier=diffuse_to_atom_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=False,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO")
+        generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier=mobile_ion_specie_2_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=False,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO")
 
-        reference_local_env_dict=generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,diffuse_to_atom_identifier=diffuse_to_atom_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="./input/events.json",event_kernal_fname='./input/event_kernal.csv',verbosity="INFO")
+        reference_local_env_dict=generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier=mobile_ion_specie_2_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="./input/events.json",event_kernal_fname='./input/event_kernal.csv',verbosity="INFO")
         
         print("reference_local_env_dict:",reference_local_env_dict)
         
@@ -73,12 +74,25 @@ class Test_version3(unittest.TestCase):
         current_dir= Path(__file__).absolute().parent
         os.chdir(current_dir)
         from kmcpy.model import LocalClusterExpansion
-        atom_identifier_type="label"
-        center_atom_identifier="Na1"
+        mobile_ion_identifier_type="label"
+        mobile_ion_specie_1_identifier="Na1"
         a=LocalClusterExpansion(api=3)
-        a.initialization3(atom_identifier_type=atom_identifier_type,center_atom_identifier=center_atom_identifier,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
+        a.initialization3(mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
         a.to_json("./input/lce.json")
         self.assertEqual(1,1)
+        
+    def test_fitting(self):
+        from kmcpy.fitting import Fitting
+        import numpy as np
+
+        local_cluster_expansion_fit = Fitting()
+
+        y_pred, y_true = local_cluster_expansion_fit.fit(alpha=1.5,max_iter=1000000,ekra_fname='fitting/local_cluster_expansion/e_kra.txt',keci_fname='keci.txt',
+            weight_fname='fitting/local_cluster_expansion/weight.txt',corr_fname='fitting/local_cluster_expansion/correlation_matrix.txt',
+            fit_results_fname='fitting_results.json')
+        print("fitting",y_pred, y_true )
+        self.assertTrue(np.allclose(y_pred, y_true,rtol=0.3,atol=10.0))
+        
     @pytest.mark.order(4)    
     def test_kmc_main_function(self):
         from pathlib import Path
@@ -88,8 +102,8 @@ class Test_version3(unittest.TestCase):
         from kmcpy.io import InputSet,load_occ
         from kmcpy.kmc import KMC
         import numpy as np
-        api=2
-        inputset=InputSet.from_json("input/test_input_v3.json",api=2)
+        api=3
+        inputset=InputSet.from_json("input/test_input_v3.json",api=api)
 
         print(inputset._parameters.keys())
         print(inputset._parameters["mc_results"])
@@ -118,8 +132,8 @@ class Test_version3(unittest.TestCase):
         from kmcpy.io import InputSet,load_occ
         from kmcpy.kmc import KMC
         import numpy as np
-        api=2
-        inputset=InputSet.from_json("input/test_input_v3.json",api=2)
+        api=3
+        inputset=InputSet.from_json("input/test_input_v3.json",api=3)
 
         print(inputset._parameters.keys())
         print(inputset._parameters["mc_results"])

@@ -35,12 +35,12 @@ class LocalClusterExpansion:
             
             raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
 
-    def initialization1(self,center_Na1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
+    def initialization1(self,center_mobile_ion_specie_1_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False):
         from pymatgen.core.structure import Structure
         template_structure = Structure.from_file(template_cif_fname)
         template_structure.remove_oxidation_states()
-        self.center_Na1 = template_structure[center_Na1_index]
-        template_structure.remove_sites([center_Na1_index])
+        self.center_Na1 = template_structure[center_mobile_ion_specie_1_index]
+        template_structure.remove_sites([center_mobile_ion_specie_1_index])
         template_structure.remove_species(['Zr4+','O2-','O','Zr'])
         print('Searching local env around',self.center_Na1,'...')
         self.diffusion_unit_structure = self.get_cluster_structure(structure = template_structure,cutoff = cutoff_region, center_site = self.center_Na1,is_write_basis = is_write_basis)
@@ -56,13 +56,13 @@ class LocalClusterExpansion:
             orbit.show_representative_cluster()
 
 
-    def initialization2(self,center_atom_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
+    def initialization2(self,mobile_ion_specie_1_index_index=0,cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
         """2nd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
         
         Strictly use the cif file because I only modified the structure.from_cif
 
         Args:
-            center_atom_index (int or str, optional): index of center atom, for nasicon, find the 1st index of Na1. Instead, you can also input the label of center atom and let function to find the index of center atom. For example, if you input "Na1" for NaSICON structure, the program will go through all site and locate the 1st Na1 it finds.. Defaults to 0.
+            mobile_ion_specie_1_index_index (int or str, optional): index of center atom, for nasicon, find the 1st index of Na1. Instead, you can also input the label of center atom and let function to find the index of center atom. For example, if you input "Na1" for NaSICON structure, the program will go through all site and locate the 1st Na1 it finds.. Defaults to 0.
             cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
             cutoff_region (float, optional): cutoff for finding diffusion unit. Defaults to 4.
             template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
@@ -70,7 +70,7 @@ class LocalClusterExpansion:
             species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
             
             
-        220409: seems like no need to add the different sorting function to it. Becasue the 0th center_atom is working as the reference. Then the sequence is exactly the same
+        220409: seems like no need to add the different sorting function to it. Becasue the 0th mobile_ion_specie_1_index is working as the reference. Then the sequence is exactly the same
         
         
             
@@ -80,24 +80,24 @@ class LocalClusterExpansion:
         template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
         template_structure.remove_oxidation_states()
         
-        if type(center_atom_index) is str:
+        if type(mobile_ion_specie_1_index_index) is str:
         
         
             for i in range(0,len(template_structure.site_properties["label"])):
-                if template_structure.site_properties["label"][i]==center_atom_index:
+                if template_structure.site_properties["label"][i]==mobile_ion_specie_1_index_index:
                     # automatically find the indice
-                    center_atom_indices=i
+                    mobile_ion_specie_1_index_indices=i
                     break
         
         else:
-            center_atom_indices=center_atom_index
+            mobile_ion_specie_1_index_indices=mobile_ion_specie_1_index_index
         
         
-        self.center_site = template_structure[center_atom_indices] #self.center_site: pymatgen.site
+        self.center_site = template_structure[mobile_ion_specie_1_index_indices] #self.center_site: pymatgen.site
         
         
         
-        template_structure.remove_sites([center_atom_indices])
+        template_structure.remove_sites([mobile_ion_specie_1_index_indices])
         
         template_structure.remove_species(species_to_be_removed)
         
@@ -124,7 +124,7 @@ class LocalClusterExpansion:
         for orbit in self.orbits:
             orbit.show_representative_cluster()
 
-    def initialization3(self,atom_identifier_type="label",center_atom_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
+    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False):
         """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
         
         Strictly use the cif file because I only modified the structure.from_cif
@@ -132,7 +132,7 @@ class LocalClusterExpansion:
         use structure matcher
 
         Args:
-            atom_identifier_type="label",center_atom_identifier="Na1": refers to structure_operation.find_atom_indices
+            mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1": refers to structure_operation.find_atom_indices
             cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
             cutoff_region (float, optional): cutoff for finding diffusion unit. Defaults to 4.
             template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
@@ -149,15 +149,15 @@ class LocalClusterExpansion:
         template_structure.remove_oxidation_states()
         template_structure.remove_species(species_to_be_removed)
         
-        center_atom_indices=find_atom_indices(template_structure,atom_identifier_type=atom_identifier_type,atom_identifier=center_atom_identifier)
+        mobile_ion_specie_1_index_indices=find_atom_indices(template_structure,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
         
-        center_atom_indices=center_atom_indices[0]# just use the first one        
+        mobile_ion_specie_1_index_indices=mobile_ion_specie_1_index_indices[0]# just use the first one        
 
-        self.center_site = template_structure[center_atom_indices] #self.center_site: pymatgen.site
+        self.center_site = template_structure[mobile_ion_specie_1_index_indices] #self.center_site: pymatgen.site
         
         
         
-        template_structure.remove_sites([center_atom_indices])
+        template_structure.remove_sites([mobile_ion_specie_1_index_indices])
         
 
         

@@ -323,9 +323,9 @@ class Supercell:
         
     
     
-    def find(self,index_of_center_atom_of_pymatgen_structure=0):
+    def find(self,index_of_mobile_ion_specie_1_index_of_pymatgen_structure=0):
         
-        """find the nearest neighbor of site at index_of_center_atom in pymatgen structure, and get its wyckoff sequence and tag using the reference PrimitiveCell object
+        """find the nearest neighbor of site at index_of_mobile_ion_specie_1_index in pymatgen structure, and get its wyckoff sequence and tag using the reference PrimitiveCell object
         
         index in pymatgen structure may be different from index in primitivecell. But, the range is the same. If there is 6 Na1 in pymatgen primitive cell that occupying index0~5, then index0~5 in primitivecell is also Na1
         
@@ -335,7 +335,7 @@ class Supercell:
         
 
         Args:
-            index_of_center_atom (int, optional): index of center atom, for NaSiCON, interested indices of center atom are 0 and 1. Defaults to 0.
+            index_of_mobile_ion_specie_1_index (int, optional): index of center atom, for NaSiCON, interested indices of center atom are 0 and 1. Defaults to 0.
             verbose (bool, optional):  whether to enable verbose output(not implemented). Defaults to False.
 
         Returns:
@@ -345,14 +345,14 @@ class Supercell:
         from pymatgen.analysis.local_env import CutOffDictNN
         local_env_finder = CutOffDictNN(self.local_env_cutoff_dict)
 
-        local_env_info_list =local_env_finder.get_nn_info(self.structure,index_of_center_atom_of_pymatgen_structure)
+        local_env_info_list =local_env_finder.get_nn_info(self.structure,index_of_mobile_ion_specie_1_index_of_pymatgen_structure)
 
         neighbor_list={}
         
         
         
         # see what is the corresponding index in the primitive cell
-        index_of_center_atom_of_primitive_cell=self.reference_structure.what_is_it_at(self.structure[index_of_center_atom_of_pymatgen_structure].frac_coords,raise_error=True)
+        index_of_mobile_ion_specie_1_index_of_primitive_cell=self.reference_structure.what_is_it_at(self.structure[index_of_mobile_ion_specie_1_index_of_pymatgen_structure].frac_coords,raise_error=True)
         
         
 
@@ -368,8 +368,8 @@ class Supercell:
 
         if self.verbose: 
             print("Supercell.find is called")
-            print("input parameter: index of center atom of pymatgen cell:",index_of_center_atom_of_pymatgen_structure)
-            print("index_of_center_atom_of_primitive_cell",index_of_center_atom_of_primitive_cell)
+            print("input parameter: index of center atom of pymatgen cell:",index_of_mobile_ion_specie_1_index_of_pymatgen_structure)
+            print("index_of_mobile_ion_specie_1_index_of_primitive_cell",index_of_mobile_ion_specie_1_index_of_primitive_cell)
             print("neighbor_list",neighbor_list)
             
             print("validation purpose, please check the sequence is correct")
@@ -384,23 +384,23 @@ class Supercell:
 
 
         # typical return: 
-        # index_of_center_atom_of_primitive_cell=('Na1', 3)
+        # index_of_mobile_ion_specie_1_index_of_primitive_cell=('Na1', 3)
         # neighbor_list={'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]})
         # neighbor_list={"tag_of_neighbor_element":[(wyckoff_sequence,image)]}
         # image: supercell shift
         # if current center Na1 is at supercell[3,4,5], neighbor Na2 has image (0,-1,1) means that this neighbor is at [3,3,6]                
-        return index_of_center_atom_of_primitive_cell,neighbor_list
+        return index_of_mobile_ion_specie_1_index_of_primitive_cell,neighbor_list
 
     
-    def create_supercell(self,indices_of_center_atom=[0,1,2,3,4,5],center_atom_tag="Na1",diffuse_to="Na2",environment=["Na2","Si"],supercell_shape=[5,6,7],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
+    def create_supercell(self,indices_of_mobile_ion_specie_1_index=[0,1,2,3,4,5],mobile_ion_specie_1_index_tag="Na1",mobile_ion_specie_2_index="Na2",environment=["Na2","Si"],supercell_shape=[5,6,7],event_fname="events.json",event_kernal_fname='event_kernal.csv'):
         """
 
 
 
         Args:
-            indices_of_center_atom (list, optional): indices of center atom, for example if center atom is Na1, the multiplicity is 6, then it is [0,1,2,3,4,5  ]. Defaults to [0,1,2,3,4,5].
-            center_atom_tag (str, optional): the tag of center atom. Notice that the indices of center atom from pymatgen is usually different with the indices(wyckoff sequence) in PrimitiveCell. This is to check if indices_of_center_atom coorespond to corrent site. Will raise error if the indices of center atom is corresponding to different site. . Defaults to "Na1".
-            diffuse_to (str, optional): diffuse path, from Na1 to Na2. Defaults to "Na2".
+            indices_of_mobile_ion_specie_1_index (list, optional): indices of center atom, for example if center atom is Na1, the multiplicity is 6, then it is [0,1,2,3,4,5  ]. Defaults to [0,1,2,3,4,5].
+            mobile_ion_specie_1_index_tag (str, optional): the tag of center atom. Notice that the indices of center atom from pymatgen is usually different with the indices(wyckoff sequence) in PrimitiveCell. This is to check if indices_of_mobile_ion_specie_1_index coorespond to corrent site. Will raise error if the indices of center atom is corresponding to different site. . Defaults to "Na1".
+            mobile_ion_specie_2_index (str, optional): diffuse path, from Na1 to Na2. Defaults to "Na2".
             environment (list, optional): list of tag(string) , this is the list of environment component.For NAsicon, include the Na2 Si, but no Zr or O. Defaults to ["Na2","Si"].
             supercell_shape (list, optional): list of supercell shape, better use list but not np.array . Defaults to [5,6,7].
             event_fname (str, optional): the event file name. Defaults to "events.json".
@@ -455,23 +455,23 @@ class Supercell:
         events=[]
         events_dict = []        
         
-        for index_of_center_atom in indices_of_center_atom:
+        for index_of_mobile_ion_specie_1_index in indices_of_mobile_ion_specie_1_index:
             # index of center atom =0 in indices=[0,1,2,3,4,5]
             
             
             
-            center_atom_information,neighbor_dict=self.find(index_of_center_atom_of_pymatgen_structure=index_of_center_atom)
+            mobile_ion_specie_1_index_information,neighbor_dict=self.find(index_of_mobile_ion_specie_1_index_of_pymatgen_structure=index_of_mobile_ion_specie_1_index)
             
             """neighbor_dict sample {'Si': [(7, (0, 0, 0)), (9, (0, -1, 0)), (11, (-1, -1, 0)), (12, (-1, 0, 0)), (14, (-1, -1, 0)), (16, (0, 0, 0))], 'Na2': [(7, (0, 0, 0)), (9, (-1, -1, 0)), (11, (-1, 0, 0)), (12, (0, 0, 0)), (14, (-1, -1, 0)), (16, (0, -1, 0))]}
             
-            center_atom_information=('Na1', 3)
+            mobile_ion_specie_1_index_information=('Na1', 3)
             
             See here, the 0th element in pymatgen structure does not necessarily correspond to the 0th element of Primitive cell. Here 0 -> 3, not sure about others
             """
             
-            if center_atom_information[0] != center_atom_tag:
+            if mobile_ion_specie_1_index_information[0] != mobile_ion_specie_1_index_tag:
                 # a raw check if both atoms are Na1
-                raise ValueError("indices_of_center_atom is not appropriate, index",index_of_center_atom," is not center atom")
+                raise ValueError("indices_of_mobile_ion_specie_1_index is not appropriate, index",index_of_mobile_ion_specie_1_index," is not center atom")
             
             
 
@@ -486,11 +486,11 @@ class Supercell:
                         
                         
                         # key to the center atom
-                        center_atom_key=(i,j,k,center_atom_information[1])
+                        mobile_ion_specie_1_index_key=(i,j,k,mobile_ion_specie_1_index_information[1])
                         
                         
                         all_neighbors=[]
-                        #diffuse_to_neighbors=[]
+                        #mobile_ion_specie_2_index_neighbors=[]
 
                         for environment_atom in environment:
                             # 5 loops, center atom -> supercell -> Environment atom that taken in consider (choose one between ["Na2" and "Si"])
@@ -521,16 +521,16 @@ class Supercell:
                                 # generate the key to the neighbor site in order to find the global sequence
                                 # a 4 element tuple
                                 
-                                diffuse_to_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
+                                mobile_ion_specie_2_index_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
                                 
                                 if self.verbose:
-                                    print("diffuse_to_atom_key",diffuse_to_atom_key)         
+                                    print("mobile_ion_specie_2_index_atom_key",mobile_ion_specie_2_index_atom_key)         
                                     pass                                
                                 
                                 
                                 
-                                #supercell_sites[environment_atom][diffuse_to_atom_key] is a interger, which is the global sequence
-                                all_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
+                                #supercell_sites[environment_atom][mobile_ion_specie_2_index_atom_key] is a interger, which is the global sequence
+                                all_neighbors.append(supercell_sites[environment_atom][mobile_ion_specie_2_index_atom_key])
 
 
 
@@ -541,14 +541,14 @@ class Supercell:
                         now only the diffusion path, in this case, Na1 -> Na2
                         
                         """                   
-                        for neighbor in neighbor_dict[diffuse_to]:
+                        for neighbor in neighbor_dict[mobile_ion_specie_2_index]:
                             # for each Na2, create the event
 
                                 
-                            diffuse_to_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
-                            #diffuse_to_neighbors.append(supercell_sites[environment_atom][diffuse_to_atom_key])
+                            mobile_ion_specie_2_index_atom_key=self._equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[i,j,k],image_of_site=neighbor[1],supercell_shape=supercell_shape,additional_input=neighbor[0])
+                            #mobile_ion_specie_2_index_neighbors.append(supercell_sites[environment_atom][mobile_ion_specie_2_index_atom_key])
                             this_event = Event()
-                            this_event.initialization2(center_atom=supercell_sites[center_atom_tag][center_atom_key],diffuse_to=supercell_sites[environment_atom][diffuse_to_atom_key],sorted_sublattice_indices=all_neighbors)
+                            this_event.initialization2(mobile_ion_specie_1_index=supercell_sites[mobile_ion_specie_1_index_tag][mobile_ion_specie_1_index_key],mobile_ion_specie_2_index=supercell_sites[environment_atom][mobile_ion_specie_2_index_atom_key],sorted_sublattice_indices=all_neighbors)
                             events.append(this_event)
                             events_dict.append(this_event.as_dict())
                             

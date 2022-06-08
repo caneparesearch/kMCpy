@@ -10,7 +10,7 @@ class TestStringMethods(unittest.TestCase):
         current_dir= Path(__file__).absolute().parent
         os.chdir(current_dir)    
         a=LocalClusterExpansion(api=1)
-        a.initialization1(center_Na1_index=0,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif')
+        a.initialization1(center_mobile_ion_specie_1_index=0,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif')
         a.to_json("./lce.json")
         self.assertEqual(1,1)
         

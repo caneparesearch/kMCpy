@@ -45,7 +45,7 @@ def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,
             occupation = (np.array(json.load(f)['occupation']).reshape((42,)+(shape[0],shape[1],shape[2]))[select_sites].flatten('C')) # the global occupation array in the format of (site,x,y,z)
         occupation_chebyshev = np.where(occupation==0, -1, occupation)  # replace 0 with -1 for Chebyshev basis
         return occupation_chebyshev
-    if api==2:
+    if api==2 or api==3:
         
         with open(fname,'r') as f:
             
@@ -176,8 +176,15 @@ class InputSet:
                 if i not in self._parameters:
                     print(i+" is not defined yet in the parameters!")
                     raise ValueError('This program is exploding due to undefined parameter.')
-        if self.api==2:
+        elif self.api==2:
             for i in ['v', 'equ_pass', 'kmc_pass', 'supercell_shape', 'fitting_results', 'fitting_results_site', 'lce_fname', 'lce_site_fname', 'prim_fname', 'event_fname', 'event_kernel', 'mc_results', 'T', 'comp', 'structure_idx',"select_sites"]:
                 if i not in self._parameters:
                     print(i+" is not defined yet in the parameters!")
                     raise ValueError('This program is exploding due to undefined parameter.')
+        elif self.api==3:
+            for i in ['v', 'equ_pass', 'kmc_pass', 'supercell_shape', 'fitting_results', 'fitting_results_site', 'lce_fname', 'lce_site_fname', 'prim_fname', 'event_fname', 'event_kernel', 'mc_results', 'T', 'comp','dimension','q',"select_sites"]:
+                if i not in self._parameters:
+                    print(i+" is not defined yet in the parameters!")
+                    raise ValueError('This program is exploding due to undefined parameter. Please check input json file')
+        else:
+            raise NotImplementedError("api version not implemented")
