@@ -55,6 +55,33 @@ class Tracker:
         self.r0 = self.frac_coords[self.na_locations]@self.latt.matrix
         
     def initialization3(self,occ_initial=[1,-1,-1,1],structure=None,T=298,v=5E13,q=1.0,mobile_ion_specie="Na",dimension=3,elem_hop_distance=3.4778,**kwargs):
+        """
+        
+        220609
+        
+        XIEWEIHANG
+        
+        updated initialization function
+
+        Args:
+        
+            occ_initial (list, optional): list for the initial occupation received from io.Inputset(). Defaults to [1,-1,-1,1].
+            
+            structure (external.pymatgen_structure.Structure, optional): structure object for extracting the mobile ion content. Defaults to None.
+            
+            T (int, optional): temperature. Defaults to 298.
+            
+            v (float, optional): frequency constant, see the article for detail. Defaults to 5E13.
+            
+            q (float, optional): charge of mobile ion specie, for Na ion, it is 1.0. Defaults to 1.0.
+            
+            mobile_ion_specie (str, optional): mobile ion specie identifier to search from the structure. Defaults to "Na".
+            
+            dimension (int, optional): dimension of diffusion, for NaSICON it is 3D diffusion so dimension=3, for LiCoO2 it is 2D diffusion so dimension=2. Defaults to 3.
+            
+            elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.
+            
+        """
         print('Initializing Tracker version3...')
         self.dimension=dimension
         self.q=q
