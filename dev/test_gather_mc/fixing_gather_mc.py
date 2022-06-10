@@ -81,7 +81,7 @@ def get_occ(mc_poscar,template_structure):
 def _get_occ(casm_frac_coords,template_frac_coords,casm_species,template_species,lattice):
     occ = np.zeros(len(template_species),dtype=np.int64)
     for i,(template_frac_coord,template_specie) in enumerate(zip(template_frac_coords,template_species)):
-        diff_frac = casm_frac_coords-template_frac_coord-0.999999999
+        diff_frac = casm_frac_coords-template_frac_coord
         diff_frac = diff_frac-rnd(diff_frac) # for periodic condition
         diff_cart = diff_frac@lattice
         dists_cart = norm(diff_cart)
