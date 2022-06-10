@@ -20,40 +20,10 @@ class Tracker:
         pass
 
     def initialization(self,*args,**kwargs):
-        if self.api<3:
-            return self.initialization1(*args,**kwargs)
-        elif self.api==3:
-            return self.initialization3(*args,**kwargs)
-        else:
-            raise NotImplementedError("tracker api not implemented.")
 
-    def initialization1(self,occ_initial,structure,T,v,**kwargs):
-        print('Initializing Tracker ...')
-        self.T = T
-        self.v = v
-        self.occ_initial = copy(occ_initial)
-        self.frac_coords = structure.frac_coords
-        self.latt = structure.lattice
-        self.volume = structure.volume
-        self.n_na_sites = len([el.symbol for el in structure.species if 'Na' in el.symbol])
-        self.n_si_sites = len([el.symbol for el in structure.species if 'Si' in el.symbol])
-        self.na_locations = np.where(self.occ_initial[0:self.n_na_sites]==-1)[0] # na_si_site_indices[na_si_indices]
-        print('Initial Na locations =',self.na_locations)
-        self.n_na = len(self.na_locations)
-        self.n_si = len(np.where(self.occ_initial[self.n_na_sites:]==-1)[0])
-        print('n_Na =',self.n_na,'n_Na_sites = ',self.n_na_sites)
-        self.frac_na_at_na1 = [np.count_nonzero(self.na_locations < self.n_na_sites/4)/self.n_na]
-        print('n_Na% @ Na(1) =',self.frac_na_at_na1[0])
-        self.displacement = np.zeros((len(self.na_locations),3)) # displacement stores the displacement vector for each ion
-        self.hop_counter = np.zeros(len(self.na_locations),dtype=np.int64) 
-        self.time = 0
-       # self.barrier = []
-        self.results = {'time':[],'D_J':[],'D_tracer':[],'conductivity':[],'f':[],'H_R':[],
-        'final_na_at_na1':[],'average_na_at_na1':[],'msd':[]}
-        
-        print('Center of mass (Na):',np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))
-        self.r0 = self.frac_coords[self.na_locations]@self.latt.matrix
-        
+        return self.initialization3(*args,**kwargs)
+
+
     def initialization3(self,occ_initial=[1,-1,-1,1],structure=None,T=298,v=5E13,q=1.0,mobile_ion_specie="Na",dimension=3,elem_hop_distance=3.4778,**kwargs):
         """
         
