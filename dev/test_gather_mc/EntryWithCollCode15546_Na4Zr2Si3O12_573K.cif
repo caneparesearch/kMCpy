@@ -1,0 +1,115 @@
+#(C) 2021 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
+data_15546-ICSD
+_database_code_ICSD 15546
+_audit_creation_date 1981-12-31
+_chemical_name_common 'Sodium zirconium silicate *'
+_chemical_formula_structural 'Na4 Zr2 Si3 O12'
+_chemical_formula_sum 'Na4 O12 Si3 Zr2'
+_chemical_name_structure_type Na4Zr2(SiO4)3
+_exptl_crystal_density_diffrn 3.38
+_diffrn_ambient_temperature 573.
+_citation_title 'Crystal structure and ionic conductivity in Na4 Zr2 Si3 O12'
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'Journal of Solid State Chemistry' 1981 39 219 229 JSSCBI
+loop_
+_citation_author_citation_id
+_citation_author_name
+primary 'Duc Tran Qui'
+primary 'Capponi, J.J.'
+primary 'Joubert, J.C.'
+primary 'Shannon, R.D.'
+_cell_length_a 9.1863(5)
+_cell_length_b 9.1863
+_cell_length_c 22.181(2)
+_cell_angle_alpha 90.
+_cell_angle_beta 90.
+_cell_angle_gamma 120.
+_cell_volume 1621.04
+_cell_formula_units_Z 6
+_space_group_name_H-M_alt 'R -3 c H'
+_space_group_IT_number 167
+loop_
+_space_group_symop_id
+_space_group_symop_operation_xyz
+1 'x-y, -y, -z+1/2'
+2 '-x, -x+y, -z+1/2'
+3 'y, x, -z+1/2'
+4 'x-y, x, -z'
+5 'y, -x+y, -z'
+6 '-x, -y, -z'
+7 '-x+y, y, z+1/2'
+8 'x, x-y, z+1/2'
+9 '-y, -x, z+1/2'
+10 '-x+y, -x, z'
+11 '-y, x-y, z'
+12 'x, y, z'
+13 'x-y+2/3, -y+1/3, -z+5/6'
+14 '-x+2/3, -x+y+1/3, -z+5/6'
+15 'y+2/3, x+1/3, -z+5/6'
+16 'x-y+2/3, x+1/3, -z+1/3'
+17 'y+2/3, -x+y+1/3, -z+1/3'
+18 '-x+2/3, -y+1/3, -z+1/3'
+19 '-x+y+2/3, y+1/3, z+5/6'
+20 'x+2/3, x-y+1/3, z+5/6'
+21 '-y+2/3, -x+1/3, z+5/6'
+22 '-x+y+2/3, -x+1/3, z+1/3'
+23 '-y+2/3, x-y+1/3, z+1/3'
+24 'x+2/3, y+1/3, z+1/3'
+25 'x-y+1/3, -y+2/3, -z+1/6'
+26 '-x+1/3, -x+y+2/3, -z+1/6'
+27 'y+1/3, x+2/3, -z+1/6'
+28 'x-y+1/3, x+2/3, -z+2/3'
+29 'y+1/3, -x+y+2/3, -z+2/3'
+30 '-x+1/3, -y+2/3, -z+2/3'
+31 '-x+y+1/3, y+2/3, z+1/6'
+32 'x+1/3, x-y+2/3, z+1/6'
+33 '-y+1/3, -x+2/3, z+1/6'
+34 '-x+y+1/3, -x+2/3, z+2/3'
+35 '-y+1/3, x-y+2/3, z+2/3'
+36 'x+1/3, y+2/3, z+2/3'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Zr4+ 4
+Na1+ 1
+O2- -2
+Si4+ 4
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+Zr1 Zr4+ 12 c 0 0 0.14719(3) . 1.
+Na1 Na1+ 6 b 0 0 0 . 1.
+Na2 Na1+ 18 e -.36033(43) 0 0.25 . 1.
+O1 O2- 36 f 0.18534(32) 0.16651(40) 0.08652(16) . 1.
+O2 O2- 36 f 0.18214(49) 0.02102(54) 0.19199(20) . 1.
+Si1 Si4+ 18 e 0.29544(14) 0 0.25 . 1.
+loop_
+_atom_site_aniso_label
+_atom_site_aniso_type_symbol
+_atom_site_aniso_U_11
+_atom_site_aniso_U_22
+_atom_site_aniso_U_33
+_atom_site_aniso_U_12
+_atom_site_aniso_U_13
+_atom_site_aniso_U_23
+Zr1 Zr4+ 0.0088(1) 0.0088 0.0093(2) 0.0044 0 0
+Na1 Na1+ 0.0702(32) 0.0702 0.0236 0.0351 0 0
+Na2 Na1+ 0.0368(24) 0.0274(25) 0.1314(46) 0.0137 0.01275 0.0255(30)
+O1 O2- 0.0148(12) 0.0135(14) 0.0201(13) -.0016(8) 0.0114(9) 0.0082(12)
+O2 O2- 0.0278(17) 0.0315(21) 0.0340(17) 0.0199(16) -.0199(18) -.0040(14)
+Si1 Si4+ 0.0053(3) 0.0077(4) 0.0096(6) 0.00385 0.00195 0.0039(5)
+#End of TTdata_15546-ICSD

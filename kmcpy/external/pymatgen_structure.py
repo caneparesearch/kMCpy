@@ -3826,7 +3826,7 @@ class Structure(IStructure, collections.abc.MutableSequence):
         self._lattice = s.lattice
 
 
-    def make_kmc_supercell(self, scaling_matrix=(1,2,3)) -> "Structure":
+    def make_kmc_supercell(self, scaling_matrix=(1,2,3),to_unit_cell=True) -> "Structure":
         """kmcpy function, nothing strange, just add a property to show which supercell this site belongs to
 
         Args:
@@ -3865,14 +3865,22 @@ class Structure(IStructure, collections.abc.MutableSequence):
                     new_lattice,
                     properties=this_properties,
                     coords_are_cartesian=True,
-                    to_unit_cell=False,
+                    to_unit_cell=True,
                     skip_checks=True,
                 )
                 
                 new_sites.append(s)
 
         new_charge = self._charge * np.linalg.det(scale_matrix) if self._charge else None
-        return Structure.from_sites(new_sites, charge=new_charge, to_unit_cell=True)
+        
+        supercell=Structure.from_sites(new_sites, charge=new_charge, to_unit_cell=True)
+        
+        if to_unit_cell:
+            for site in supercell:
+                site.to_unit_cell(in_place=True)
+        self._sites = supercell.sites
+        self._lattice = supercell.lattice
+        return supercell
 
 
     def kmc_info_to_tuple(self,supercell=(1,2,3),label="Na2",wyckoff_sequence=2): 
