@@ -21,6 +21,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
+        conda install pytables
         pip install -r requirement.txt -e .
         pip install pytest-ordering
 

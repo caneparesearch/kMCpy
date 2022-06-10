@@ -20,41 +20,38 @@ class Tracker:
         pass
 
     def initialization(self,*args,**kwargs):
-        if self.api<3:
-            return self.initialization1(*args,**kwargs)
-        elif self.api==3:
-            return self.initialization3(*args,**kwargs)
-        else:
-            raise NotImplementedError("tracker api not implemented.")
 
-    def initialization1(self,occ_initial,structure,T,v,**kwargs):
-        print('Initializing Tracker ...')
-        self.T = T
-        self.v = v
-        self.occ_initial = copy(occ_initial)
-        self.frac_coords = structure.frac_coords
-        self.latt = structure.lattice
-        self.volume = structure.volume
-        self.n_na_sites = len([el.symbol for el in structure.species if 'Na' in el.symbol])
-        self.n_si_sites = len([el.symbol for el in structure.species if 'Si' in el.symbol])
-        self.na_locations = np.where(self.occ_initial[0:self.n_na_sites]==-1)[0] # na_si_site_indices[na_si_indices]
-        print('Initial Na locations =',self.na_locations)
-        self.n_na = len(self.na_locations)
-        self.n_si = len(np.where(self.occ_initial[self.n_na_sites:]==-1)[0])
-        print('n_Na =',self.n_na,'n_Na_sites = ',self.n_na_sites)
-        self.frac_na_at_na1 = [np.count_nonzero(self.na_locations < self.n_na_sites/4)/self.n_na]
-        print('n_Na% @ Na(1) =',self.frac_na_at_na1[0])
-        self.displacement = np.zeros((len(self.na_locations),3)) # displacement stores the displacement vector for each ion
-        self.hop_counter = np.zeros(len(self.na_locations),dtype=np.int64) 
-        self.time = 0
-       # self.barrier = []
-        self.results = {'time':[],'D_J':[],'D_tracer':[],'conductivity':[],'f':[],'H_R':[],
-        'final_na_at_na1':[],'average_na_at_na1':[],'msd':[]}
-        
-        print('Center of mass (Na):',np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))
-        self.r0 = self.frac_coords[self.na_locations]@self.latt.matrix
-        
+        return self.initialization3(*args,**kwargs)
+
+
     def initialization3(self,occ_initial=[1,-1,-1,1],structure=None,T=298,v=5E13,q=1.0,mobile_ion_specie="Na",dimension=3,elem_hop_distance=3.4778,**kwargs):
+        """
+        
+        220609
+        
+        XIEWEIHANG
+        
+        updated initialization function
+
+        Args:
+        
+            occ_initial (list, optional): list for the initial occupation received from io.Inputset(). Defaults to [1,-1,-1,1].
+            
+            structure (external.pymatgen_structure.Structure, optional): structure object for extracting the mobile ion content. Defaults to None.
+            
+            T (int, optional): temperature. Defaults to 298.
+            
+            v (float, optional): frequency constant, see the article for detail. Defaults to 5E13.
+            
+            q (float, optional): charge of mobile ion specie, for Na ion, it is 1.0. Defaults to 1.0.
+            
+            mobile_ion_specie (str, optional): mobile ion specie identifier to search from the structure. Defaults to "Na".
+            
+            dimension (int, optional): dimension of diffusion, for NaSICON it is 3D diffusion so dimension=3, for LiCoO2 it is 2D diffusion so dimension=2. Defaults to 3.
+            
+            elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.
+            
+        """
         print('Initializing Tracker version3...')
         self.dimension=dimension
         self.q=q

@@ -1,0 +1,112 @@
+
+#(C) 2021 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
+data_44707-ICSD
+_database_code_ICSD 44707
+_audit_creation_date 2000-12-16
+_chemical_name_common 'Trisodium tetrathioantimonate'
+_chemical_formula_structural 'Na3 (Sb S4)'
+_chemical_formula_sum 'Na3 S4 Sb1'
+_chemical_name_structure_type Tl3VS4
+_exptl_crystal_density_diffrn 2.87
+_citation_title
+
+;
+Zur Strukturchemie der Alkalisalze der Tetrathiosaeuren der Elemente der 5.
+Hauptgruppe
+;
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'Zeitschrift fuer Anorganische und Allgemeine Chemie (1950) (DE)' 1976
+425 67 80 ZAACAB
+loop_
+_citation_author_citation_id
+_citation_author_name
+primary 'Graf, H.'
+primary 'Schaefer, H.'
+_cell_length_a 7.17(1)
+_cell_length_b 7.17
+_cell_length_c 7.17
+_cell_angle_alpha 90.
+_cell_angle_beta 90.
+_cell_angle_gamma 90.
+_cell_volume 368.6
+_cell_formula_units_Z 2
+_space_group_name_H-M_alt 'I -4 3 m'
+_space_group_IT_number 217
+loop_
+_space_group_symop_id
+_space_group_symop_operation_xyz
+1 '-z, -y, x'
+2 '-y, -x, z'
+3 '-x, -z, y'
+4 '-z, -x, y'
+5 '-y, -z, x'
+6 '-x, -y, z'
+7 '-z, y, -x'
+8 '-y, x, -z'
+9 '-x, z, -y'
+10 '-z, x, -y'
+11 '-y, z, -x'
+12 '-x, y, -z'
+13 'z, -y, -x'
+14 'y, -x, -z'
+15 'x, -z, -y'
+16 'z, -x, -y'
+17 'y, -z, -x'
+18 'x, -y, -z'
+19 'z, y, x'
+20 'y, x, z'
+21 'x, z, y'
+22 'z, x, y'
+23 'y, z, x'
+24 'x, y, z'
+25 '-z+1/2, -y+1/2, x+1/2'
+26 '-y+1/2, -x+1/2, z+1/2'
+27 '-x+1/2, -z+1/2, y+1/2'
+28 '-z+1/2, -x+1/2, y+1/2'
+29 '-y+1/2, -z+1/2, x+1/2'
+30 '-x+1/2, -y+1/2, z+1/2'
+31 '-z+1/2, y+1/2, -x+1/2'
+32 '-y+1/2, x+1/2, -z+1/2'
+33 '-x+1/2, z+1/2, -y+1/2'
+34 '-z+1/2, x+1/2, -y+1/2'
+35 '-y+1/2, z+1/2, -x+1/2'
+36 '-x+1/2, y+1/2, -z+1/2'
+37 'z+1/2, -y+1/2, -x+1/2'
+38 'y+1/2, -x+1/2, -z+1/2'
+39 'x+1/2, -z+1/2, -y+1/2'
+40 'z+1/2, -x+1/2, -y+1/2'
+41 'y+1/2, -z+1/2, -x+1/2'
+42 'x+1/2, -y+1/2, -z+1/2'
+43 'z+1/2, y+1/2, x+1/2'
+44 'y+1/2, x+1/2, z+1/2'
+45 'x+1/2, z+1/2, y+1/2'
+46 'z+1/2, x+1/2, y+1/2'
+47 'y+1/2, z+1/2, x+1/2'
+48 'x+1/2, y+1/2, z+1/2'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Sb5+ 5
+Na1+ 1
+S2- -2
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+Sb1 Sb5+ 2 a 0 0 0 . 1.
+Na1 Na1+ 6 b 0 0.5 0.5 . 1.
+S1 S2- 8 c 0.187 0.187 0.187 . 1.
+#End of TTdata_44707-ICSD

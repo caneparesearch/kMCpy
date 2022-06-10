@@ -19,27 +19,7 @@ class Event:
     def __init__(self):
         pass
 
-    def initialization(self,mobile_ion_specie_1_index,mobile_ion_specie_2_index,local_env_info):
-        self.mobile_ion_specie_1_index = mobile_ion_specie_1_index
-        self.mobile_ion_specie_2_index = mobile_ion_specie_2_index
-        self.sorted_sublattice_indices = self.analyze_local_structure(local_env_info) # this is the sublattice indices that matches with the local cluster expansion
-        self.local_env_indices_list = [i['site_index'] for i in local_env_info]# unsorted version of sorted_sublattice_indices
-        self.local_env_indices_list_site = [i['site_index'] for i in local_env_info]
-        
-    def initialization2(self,mobile_ion_specie_1_index=12,mobile_ion_specie_2_index=15,sorted_sublattice_indices=[1,2,3,4,5]):
-        """2nd version of initialization. The input sorted_sublattice_indices is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version
-
-        Args:
-            mobile_ion_specie_1_index (int, optional): the global index (index in supercell) of the center atom. Defaults to 12.
-            mobile_ion_specie_2_index (int, optional): the global index of the atom that the center atom is about to diffuse to. Defaults to 15.
-            sorted_sublattice_indices (list, optional): list of integers, which is the sorted sublattice indices. Defaults to [1,2,3,4,5].
-        """
-        self.mobile_ion_specie_1_index = mobile_ion_specie_1_index
-        self.mobile_ion_specie_2_index = mobile_ion_specie_2_index
-        self.sorted_sublattice_indices = sorted_sublattice_indices # this is the sublattice indices that matches with the local cluster expansion
-        self.local_env_indices_list = sorted_sublattice_indices
-        self.local_env_indices_list_site = sorted_sublattice_indices
-        
+   
     def initialization3(self,mobile_ion_specie_1_index=12,mobile_ion_specie_2_index=15,sorted_sublattice_indices=[1,2,3,4,5]):
         """2nd version of initialization. The input sorted_sublattice_indices is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version
 

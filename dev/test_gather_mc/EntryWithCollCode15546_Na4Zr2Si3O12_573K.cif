@@ -1,4 +1,3 @@
-
 #(C) 2021 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
 data_15546-ICSD
 _database_code_ICSD 15546
