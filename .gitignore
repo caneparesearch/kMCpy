@@ -172,3 +172,4 @@ reference_distance_matrix.csv
 !EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 test/v3_nasicon_bulk/fitting_results.json
 test/v3_nasicon_bulk/fitting_results.json
+!test/v3_Na3SbS4_bulk/Na3SbS4_cubic.cif
