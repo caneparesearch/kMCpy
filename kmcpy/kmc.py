@@ -332,6 +332,27 @@ class KMC:
     structure_idx=1,
     elem_hop_distance=3.47782,
     **kwargs):
+        """kmc main function version 3. Previous versions are removed for readability
+
+        Args:
+            kmc_pass (int, optional): number of pass to run. Defaults to 1000.
+            equ_pass (int, optional): _description_. Defaults to 1.
+            v (int, optional): refer to paper. Defaults to 5000000000000.
+            T (int, optional): refer to paper, temperature. Defaults to 298.
+            events (str, optional): path to event.json. Defaults to "./inputs/events.json".
+            comp (int, optional): composition, refer to paper. Defaults to 1.
+            random_seed (int, optional): random seed. Should only be provided when test the KMC function. IF not testing as developer ,strictly set this to None. Defaults to 114514.
+            use_numpy_random_kernel (bool, optional): whether use numpy random kernel which enable manually assign the random seed. If not testing as a developer, strictly set this to False. Defaults to True.
+            verbose (bool, optional): verbose output. Defaults to False.
+            mobile_ion_specie (str, optional): mobile ion specie to track. Defaults to 'Na'.
+            q (float, optional): charge of mobile ion specie. Defaults to 1.0.
+            dimension (int, optional): dimension of diffusion. For LiCoO2 it is 2 (2D diffusion). for NaSICON it is 3. Defaults to 3.
+            structure_idx (int, optional): structure index . Defaults to 1.
+            elem_hop_distance (float, optional): the hopping distance for the mobile ion specie, for NasiCON, this is the distance between Na1 and nearest Na2 site, for LiCoO2, this is the distance between 2 Li site. Defaults to 3.47782.
+
+        Returns:
+            kmcpy.tracker.Tracker: return the tracker for testing unit to assert some functions.
+        """
         api=3
         
         if use_numpy_random_kernel==True:
