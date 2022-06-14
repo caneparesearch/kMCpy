@@ -52,15 +52,15 @@ class LocalClusterExpansion:
         template_structure.remove_oxidation_states()
         template_structure.remove_species(species_to_be_removed)
         
-        mobile_ion_specie_1_index_indices=find_atom_indices(template_structure,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
+        mobile_ion_specie_1_indices=find_atom_indices(template_structure,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
         
-        mobile_ion_specie_1_index_indices=mobile_ion_specie_1_index_indices[0]# just use the first one        
+        mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one        
 
-        self.center_site = template_structure[mobile_ion_specie_1_index_indices] #self.center_site: pymatgen.site
+        self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
         
         
         
-        template_structure.remove_sites([mobile_ion_specie_1_index_indices])
+        template_structure.remove_sites([mobile_ion_specie_1_indices])
         
 
         

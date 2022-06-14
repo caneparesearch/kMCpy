@@ -239,30 +239,30 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
     Returns:
         list: list of atom indices that satisfy the identifier
     """
-    mobile_ion_specie_1_index_indices=[]    
+    mobile_ion_specie_1_indices=[]    
     if mobile_ion_identifier_type=="specie":
         for i in range(0,len(structure)):
             if atom_identifier in structure[i].species:
-                mobile_ion_specie_1_index_indices.append(i)
+                mobile_ion_specie_1_indices.append(i)
                 
     elif mobile_ion_identifier_type=="label":
 
         for i in range(0,len(structure)):
             if structure[i].properties["label"]==atom_identifier:
-                mobile_ion_specie_1_index_indices.append(i)
+                mobile_ion_specie_1_indices.append(i)
                 
     elif mobile_ion_identifier_type=="list":
-        mobile_ion_specie_1_index_indices=atom_identifier
+        mobile_ion_specie_1_indices=atom_identifier
     
     else:
         raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
     
     neighbor_info_logger.warning("please check if these are mobile ion specie 1:")
-    for i in mobile_ion_specie_1_index_indices:
+    for i in mobile_ion_specie_1_indices:
         
         neighbor_info_logger.warning(str(structure[i]))        
     
-    return mobile_ion_specie_1_index_indices
+    return mobile_ion_specie_1_indices
         
 def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",mobile_ion_specie_2_identifier="Na2",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
     """
@@ -322,7 +322,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     event_generator_logger.warning("building mobile ion specie 1 index list")
     
 
-    mobile_ion_specie_1_index_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
+    mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
         
     #--------
     
@@ -344,13 +344,13 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     reference_local_env_type=0
     
     event_generator_logger.info("start finding the neighboring sequence of mobile ion specie 1s")
-    event_generator_logger.info("total number of mobile ion specie 1s:"+str(len(mobile_ion_specie_1_index_indices)))
+    event_generator_logger.info("total number of mobile ion specie 1s:"+str(len(mobile_ion_specie_1_indices)))
     
     neighbor_has_been_found=0
     
-    for mobile_ion_specie_1_index_index in mobile_ion_specie_1_index_indices:
+    for mobile_ion_specie_1_index in mobile_ion_specie_1_indices:
         
-        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
+        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
                     
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
@@ -360,7 +360,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             if export_local_env_structure:
                 
-                reference_local_env_sites=[primitive_cell[mobile_ion_specie_1_index_index]]
+                reference_local_env_sites=[primitive_cell[mobile_ion_specie_1_index]]
                 
                 for i in unsorted_neighbor_sequences:
                     
@@ -374,7 +374,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             reference_local_env_dict[this_nninfo.neighbor_species]=this_nninfo
 
-            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties['local_index']]=this_nninfo.neighbor_sequence
+            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index].properties['local_index']]=this_nninfo.neighbor_sequence
             
             
             event_generator_logger.warning("a new type of local environment is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
@@ -387,11 +387,11 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
 
             sorted_neighbor_sequence=reference_local_env_dict[this_nninfo.neighbor_species].brutal_match(this_nninfo.neighbor_sequence,rtol=distance_matrix_rtol,atol=distance_matrix_atol,find_nearest_if_fail=find_nearest_if_fail)
             
-            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties['local_index']]=sorted_neighbor_sequence
+            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index].properties['local_index']]=sorted_neighbor_sequence
             
         neighbor_has_been_found+=1
         
-        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(mobile_ion_specie_1_index_indices))+" neighboring sequence has been found")
+        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(mobile_ion_specie_1_indices))+" neighboring sequence has been found")
         
 
   
@@ -399,7 +399,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     event_generator_logger.warning("supercell is created")
     event_generator_logger.info(str(supercell))
     
-    supercell_mobile_ion_specie_1_index_indices=find_atom_indices(supercell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
+    supercell_mobile_ion_specie_1_indices=find_atom_indices(supercell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
 
             
     events = []
@@ -434,13 +434,13 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with same format as class.kmc_info_to_tuple, Value is the global indices   
 
     
-    for supercell_mobile_ion_specie_1_index_index in supercell_mobile_ion_specie_1_index_indices:
+    for supercell_mobile_ion_specie_1_index in supercell_mobile_ion_specie_1_indices:
         
         # for mobile ion specie 1s of newly generated supercell, find the neighbors
 
-        this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index_index].properties["supercell"]
+        this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index].properties["supercell"]
         
-        local_index_of_this_mobile_ion_specie_1_index=supercell[supercell_mobile_ion_specie_1_index_index].properties["local_index"]
+        local_index_of_this_mobile_ion_specie_1_index=supercell[supercell_mobile_ion_specie_1_index].properties["local_index"]
         
         local_env_info=[]# list of integer / indices of local environment
         
@@ -483,7 +483,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                 if mobile_ion_specie_2_identifier in supercell[local_env].species  :
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization2(supercell_mobile_ion_specie_1_index_index,local_env,local_env_info)
+                    this_event.initialization2(supercell_mobile_ion_specie_1_index,local_env,local_env_info)
                     events.append(this_event)
                     events_dict.append(this_event.as_dict())   
                         
@@ -493,7 +493,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                     # or for understanding, if any site in local environment, its label== "Na2"
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization3(supercell_mobile_ion_specie_1_index_index,local_env,local_env_info)
+                    this_event.initialization3(supercell_mobile_ion_specie_1_index,local_env,local_env_info)
                     events.append(this_event)
                     events_dict.append(this_event.as_dict())   
                         

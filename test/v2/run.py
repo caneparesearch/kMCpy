@@ -15,7 +15,7 @@ class TestStringMethods(unittest.TestCase):
     from kmcpy.model import LocalClusterExpansion
 
     a=LocalClusterExpansion(api=2)
-    a.initialization(mobile_ion_specie_1_index_index="Na1",cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./input/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=convert_to_primitive_cell)
+    a.initialization(mobile_ion_specie_1_index="Na1",cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./input/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=convert_to_primitive_cell)
     a.to_json("input/lce.json")
     a.to_json("input/lce_site.json")
 
