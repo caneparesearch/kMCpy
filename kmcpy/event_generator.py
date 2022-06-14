@@ -465,7 +465,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                 if mobile_ion_specie_2_identifier in supercell[local_env].species  :
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization2(supercell_mobile_ion_specie_1_index,local_env,local_env_info)
+                    this_event.initialization3(supercell_mobile_ion_specie_1_index,local_env,local_env_info)
                     events.append(this_event)
                     events_dict.append(this_event.as_dict())   
                         
