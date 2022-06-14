@@ -29,9 +29,6 @@ class Test_version3(unittest.TestCase):
 
         print(reference_neighbor.neighbor_species)
         print(reference_neighbor.distance_matrix)
-        print(reference_neighbor.neighbor_species_respective_distance_matrix_dict)
-        print(reference_neighbor.neighbor_species_respective_neighbor_sequence_dict)
-
 
         wrong_sequence_neighbor=sorted(sorted(local_env_finder.get_nn_info(nasicon,center_Na1[1]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"]) 
         
