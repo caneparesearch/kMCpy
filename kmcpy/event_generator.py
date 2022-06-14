@@ -257,7 +257,7 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
     else:
         raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
     
-    neighbor_info_logger.warning("please check if these are mobile ion specie 1:")
+    neighbor_info_logger.warning("please check if these are mobile_ion_specie_1:")
     for i in mobile_ion_specie_1_indices:
         
         neighbor_info_logger.warning(str(structure[i]))        
@@ -267,15 +267,15 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
 def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",mobile_ion_specie_2_identifier="Na2",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="INFO"):
     """
     220603 XIE WEIHANG    
-    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile ion specie 1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
+    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile_ion_specie_1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
 
     Args:
         prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. Defaults to "210.cif".
         convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
         local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
         mobile_ion_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
-        mobile_ion_specie_1_identifier (str, optional): identifier for mobile ion specie 1. Defaults to "Li+".
-        mobile_ion_specie_2_identifier (str, optional): identifier for the atom that mobile ion specie 1 will diffuse to . Defaults to "Li+".
+        mobile_ion_specie_1_identifier (str, optional): identifier for mobile_ion_specie_1. Defaults to "Li+".
+        mobile_ion_specie_2_identifier (str, optional): identifier for the atom that mobile_ion_specie_1 will diffuse to . Defaults to "Li+".
         species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to ["O2-","O"].
         distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.
         distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.
@@ -319,7 +319,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
     event_generator_logger.warning("primitive cell composition after adding oxidation state and removing uninvolved species: ")
     event_generator_logger.info(str(primitive_cell.composition))
-    event_generator_logger.warning("building mobile ion specie 1 index list")
+    event_generator_logger.warning("building mobile_ion_specie_1 index list")
     
 
     mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
@@ -343,8 +343,8 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
    
     reference_local_env_type=0
     
-    event_generator_logger.info("start finding the neighboring sequence of mobile ion specie 1s")
-    event_generator_logger.info("total number of mobile ion specie 1s:"+str(len(mobile_ion_specie_1_indices)))
+    event_generator_logger.info("start finding the neighboring sequence of mobile_ion_specie_1s")
+    event_generator_logger.info("total number of mobile_ion_specie_1s:"+str(len(mobile_ion_specie_1_indices)))
     
     neighbor_has_been_found=0
     
@@ -407,30 +407,36 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
 
     
-    indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with same format as class.kmc_info_to_tuple, Value is the global indices   
+    indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
+    
+
 
     
     for supercell_mobile_ion_specie_1_index in supercell_mobile_ion_specie_1_indices:
         
-        # for mobile ion specie 1s of newly generated supercell, find the neighbors
+        # for mobile_ion_specie_1s of newly generated supercell, find the neighbors
 
-        this_mobile_ion_specie_1_index_belongs_to_supercell=supercell[supercell_mobile_ion_specie_1_index].properties["supercell"]
+        supercell_tuple=supercell[supercell_mobile_ion_specie_1_index].properties["supercell"]
         
-        local_index_of_this_mobile_ion_specie_1_index=supercell[supercell_mobile_ion_specie_1_index].properties["local_index"]
+        local_index_of_this_mobile_ion_specie_1=supercell[supercell_mobile_ion_specie_1_index].properties["local_index"]
         
         local_env_info=[]# list of integer / indices of local environment
         
         
-        for neighbor_site_in_primitive_cell in local_env_info_dict[local_index_of_this_mobile_ion_specie_1_index]:
+        for neighbor_site_in_primitive_cell in local_env_info_dict[local_index_of_this_mobile_ion_specie_1]:
             """
             
-             local_env_info_dict[local_index_of_this_mobile_ion_specie_1_index]
+             local_env_info_dict[local_index_of_this_mobile_ion_specie_1]
             
-            In primitive cell, the mobile ion specie 1 has 1 unique identifier: The "local index inside the primitive cell"
+            In primitive cell, the mobile_ion_specie_1 has 1 unique identifier: The "local index inside the primitive cell"
             
-            IN supercell, the mobile ion specie 1 has an additional unique identifier: belongs t o which supercell
+            In supercell, the mobile_ion_specie_1 has an additional unique identifier: "supercell_tuple"
             
-            However, as long as the "local index inside the primitive cell" is the same, no matter which supercell this mobile ion specie 1 belongs to, the sequence of "local index" of its neighbor sites are the same. In primitive cell, mobile ion specie 1 with index 1 has neighbor arranged in 1,3,2,4,6,5, then for every mobile ion specie 1 with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
+            However, as long as the "local index inside the primitive cell" is the same, 
+            no matter which supercell this mobile_ion_specie_1 belongs to, 
+            the sequence of "local index" of its neighbor sites are the same. 
+            For example, In primitive cell, mobile_ion_specie_1 with index 1 has neighbor arranged in 1,3,2,4,6,5, 
+            then for every mobile_ion_specie_1 with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
             
             In the loop. I'm mapping the sequence in primitive cell to supercell!
             
@@ -446,9 +452,9 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             """
             
-            neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell=equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_mobile_ion_specie_1_index_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
+            normalized_supercell_tuple=normalize_supercell_tuple(site_belongs_to_supercell=supercell_tuple,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
             
-            tuple_key_of_such_neighbor_site=supercell.kmc_info_to_tuple3(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell)
+            tuple_key_of_such_neighbor_site=supercell.site_index_vector(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=normalized_supercell_tuple)
             
             local_env_info.append(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])
 
@@ -499,30 +505,33 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     return reference_local_env_dict
     
     
-def equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7],additional_input=False,verbose=False):
-    """finding the equivalent position in periodic supercell considering the periodic boundary condition
+def normalize_supercell_tuple(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7],additional_input=False,verbose=False):
+    """finding the equivalent position in periodic supercell considering the periodic boundary condition. i.e., normalize the supercell tuple to make sure that each component of supercell is greater than zero
+    
+    
+    for example,
+    
+        # 5 1 7 with image 0 -1 1 -> 5 0 8 -> in periodic 567 supercell should change to 561, suppose supercell start with index1
+    
     input:
     site_belongs_to_supercell: site belongs to which supercell
 
     Returns:
-        _type_: _description_
+        tuple: supercell tuple
     """
     if verbose:
         print ("equivalent position",site_belongs_to_supercell,image_of_site)
-    # 5 1 7 with image 0 -1 1 -> 5 0 8 -> in periodic 567 supercell should change to 561, suppose supercell start with index1
+
     
-    temp=np.array(site_belongs_to_supercell)+np.array(image_of_site)
-    # 517+(0-11)=508
+    supercell=np.array(site_belongs_to_supercell)+np.array(image_of_site)
+
+    supercell=np.mod(supercell,supercell_shape)
     
-    
-    # 508-1=4-17 mod: 4 5 0 
-    #+1 : 561
-    temp=np.mod(temp,supercell_shape)
-    
-    temp=temp.tolist()
+    supercell=supercell.tolist()
     if additional_input is not False:
-        temp.append(additional_input)
-    return tuple(temp)    
+        supercell.append(additional_input)
+        
+    return tuple(supercell)    
     
     
 @nb.njit

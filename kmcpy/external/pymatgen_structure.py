@@ -3898,7 +3898,7 @@ class Structure(IStructure, collections.abc.MutableSequence):
         tmp_list=[supercell[0],supercell[1],supercell[2],label,wyckoff_sequence]
         return tuple(tmp_list)
 
-    def kmc_info_to_tuple3(self,supercell=(1,2,3),label="Na2",local_index=2): 
+    def site_index_vector(self,supercell=(1,2,3),label="Na2",local_index=2): 
         """
         this is also a KMC specified function. Convert the information of supercell, label, local_index into a tuple .This tuple is working as the key to the dictionary from kmc_build_dict. Mainly for accelerating the searching progress
         
@@ -3976,15 +3976,15 @@ class Structure(IStructure, collections.abc.MutableSequence):
         if skip_check:
         
             for site_index in range(0,len(self._sites)):
-                indices_dict_from_identifier[self.kmc_info_to_tuple3(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])]=site_index
+                indices_dict_from_identifier[self.site_index_vector(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])]=site_index
         else:
             for site_index in range(0,len(self._sites)):
-                tmp_key=self.kmc_info_to_tuple3(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])
+                tmp_key=self.site_index_vector(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])
                 
                 if tmp_key in indices_dict_from_identifier:
                     raise KeyError("duplicate sites identifies by kmc_build_dict function. This shouldn't happen. Please check this site: ",self._sites.properties)
                 
-                indices_dict_from_identifier[self.kmc_info_to_tuple3(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])]=site_index
+                indices_dict_from_identifier[self.site_index_vector(supercell=self._sites[site_index].properties["supercell"],label=self._sites[site_index].properties["label"],local_index=self._sites[site_index].properties["local_index"])]=site_index
                 
         return indices_dict_from_identifier
             
