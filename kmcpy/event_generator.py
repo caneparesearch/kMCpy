@@ -405,31 +405,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     events = []
     events_dict = []
     
-    def _equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7],additional_input=False,verbose=False):
-        """finding the equivalent position in periodic supercell considering the periodic boundary condition
-        input:
-        site_belongs_to_supercell: site belongs to which supercell
 
-        Returns:
-            _type_: _description_
-        """
-        if verbose:
-            print ("equivalent position",site_belongs_to_supercell,image_of_site)
-        # 5 1 7 with image 0 -1 1 -> 5 0 8 -> in periodic 567 supercell should change to 561, suppose supercell start with index1
-        
-        temp=np.array(site_belongs_to_supercell)+np.array(image_of_site)
-        # 517+(0-11)=508
-        
-        
-        # 508-1=4-17 mod: 4 5 0 
-        #+1 : 561
-        temp=np.mod(temp,supercell_shape)
-        
-        temp=temp.tolist()
-        if additional_input is not False:
-            temp.append(additional_input)
-        return tuple(temp)    
-    
     
     indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with same format as class.kmc_info_to_tuple, Value is the global indices   
 
@@ -470,7 +446,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             
             """
             
-            neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell=_equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_mobile_ion_specie_1_index_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
+            neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell=equivalent_position_in_periodic_supercell(site_belongs_to_supercell=this_mobile_ion_specie_1_index_belongs_to_supercell,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
             
             tuple_key_of_such_neighbor_site=supercell.kmc_info_to_tuple3(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=neighbor_site_around_supercell_mobile_ion_specie_1_index_belongs_to_supercell)
             
@@ -521,6 +497,32 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     generate_event_kernal(len(supercell),np.array(events_site_list),event_kernal_fname=event_kernal_fname)       
     
     return reference_local_env_dict
+    
+    
+def equivalent_position_in_periodic_supercell(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7],additional_input=False,verbose=False):
+    """finding the equivalent position in periodic supercell considering the periodic boundary condition
+    input:
+    site_belongs_to_supercell: site belongs to which supercell
+
+    Returns:
+        _type_: _description_
+    """
+    if verbose:
+        print ("equivalent position",site_belongs_to_supercell,image_of_site)
+    # 5 1 7 with image 0 -1 1 -> 5 0 8 -> in periodic 567 supercell should change to 561, suppose supercell start with index1
+    
+    temp=np.array(site_belongs_to_supercell)+np.array(image_of_site)
+    # 517+(0-11)=508
+    
+    
+    # 508-1=4-17 mod: 4 5 0 
+    #+1 : 561
+    temp=np.mod(temp,supercell_shape)
+    
+    temp=temp.tolist()
+    if additional_input is not False:
+        temp.append(additional_input)
+    return tuple(temp)    
     
     
 @nb.njit
