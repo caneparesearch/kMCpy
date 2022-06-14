@@ -329,9 +329,17 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
     
     reference_local_env_dict={}
+    """this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1
+    
+    The key is a tuple type: For NaSICON, there is only one type of local environment: 6 Na2 and 6 Si. The tuple is in the format of (('Na+', 6), ('Si4+', 6)) . The key is a neighbor_info_matcher as the reference local environment.
+    """
+    
+    
     
     local_env_info_dict = {}
-   
+    """add summary to be done
+
+    """
    
     reference_local_env_type=0
     
@@ -369,11 +377,11 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
             local_env_info_dict[primitive_cell[mobile_ion_specie_1_index_index].properties['local_index']]=this_nninfo.neighbor_sequence
             
             
-            event_generator_logger.warning("a new type of cluster is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
+            event_generator_logger.warning("a new type of local environment is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
 
             
         else:
-            event_generator_logger.info("a cluster is created with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
+            event_generator_logger.info("a local environment is created with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
             
             
 
