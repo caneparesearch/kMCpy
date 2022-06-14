@@ -26,33 +26,44 @@ neighbor_info_logger.addHandler(logging.StreamHandler())
 neighbor_info_logger.addHandler(logging.FileHandler("debug.log"))
 
 class neighbor_info_matcher():
-    def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),distance_matrix=np.array([[0,1],[1,0]]),neighbor_sequence=[{}],neighbor_species_respective_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])},neighbor_species_respective_neighbor_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
+    def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),distance_matrix=np.array([[0,1],[1,0]]),neighbor_sequence=[{}],neighbor_species_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])},neighbor_species_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
         """neighbor_info matcher, the __init__ method shouln't be used. Use the from_neighbor_info() instead. This is neighbor_info matcher to match the nearest neighbor info output from local_env.cutoffdictNN.get_nn_info. This neighbor_info_matcher Class is initialized by a reference neighbor_info, a distance matrix is built as reference. Then user can call the neighbor_info_matcher.brutal_match function to sort another nn_info so that the sequence of neighbor of "another nn_info" is arranged so that the distance matrix are the same 
 
         Args:
             neighbor_species (tuple, optional): tuple ( tuple ( str(species), int(number_of_this_specie in neighbors)  )  ). Defaults to (('Cl-', 4),('Li+', 8)).
             distance_matrix (np.array, optional): np.2d array as distance matrix. Defaults to np.array([[0,1],[1,0]]).
             neighbor_sequence (list, optional): list of dictionary in the format of nn_info returning value. Defaults to [{}].
-            neighbor_species_respective_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])}.
-            neighbor_species_respective_neighbor_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {"Cl-":[{}],"Li+":[{}]}.
+            neighbor_species_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])}.
+            neighbor_species_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {"Cl-":[{}],"Li+":[{}]}.
         """
         
         self.neighbor_species=neighbor_species
         self.distance_matrix=distance_matrix
-        self.neighbor_species_respective_distance_matrix_dict=neighbor_species_respective_distance_matrix_dict
-        self.neighbor_species_respective_neighbor_sequence_dict=neighbor_species_respective_neighbor_sequence_dict
+        self.neighbor_species_distance_matrix_dict=neighbor_species_distance_matrix_dict
+        self.neighbor_species_sequence_dict=neighbor_species_sequence_dict
         self.neighbor_sequence=neighbor_sequence
-        
-    
-        
-        pass
     
     @classmethod
     def from_neighbor_sequences(self,neighbor_sequences=[{}]):
+        """generally generate the neighbor info matcher from this
+
+        Args:
+            neighbor_sequences (list, optional): list of dictionary from cutoffdictNN.get_nn_info(). Defaults to [{}].
+
+        Returns:
+            neighbor_info_matcher: a neighbor_info_matcher object, initialized from get_nn_info output
+        """
+        
+        # -------------------------------------------------------
+        # this part of function is adapted from pymatgen.analysis.local_env
+        #Shyue Ping Ong, William Davidson Richards, Anubhav Jain, Geoffroy Hautier, Michael Kocher, Shreyas Cholia, Dan Gunter, Vincent Chevrier, Kristin A. Persson, Gerbrand Ceder. Python Materials Genomics (pymatgen) : A Robust, Open-Source Python Library for Materials Analysis. Computational Materials Science, 2013, 68, 314-319. doi:10.1016/j.commatsci.2012.10.028
         cn_dict={}
-        neighbor_species_respective_neighbor_sequence_dict={}
+        
+        neighbor_species_sequence_dict={}
         
         for neighbor in neighbor_sequences:
+            """for example NaSICON has 12 neighbors, 6 Na and 6 Si, here for neighbor we build the coordination number dict.
+            """
             
             site_element = neighbor["site"].species_string
             
@@ -60,23 +71,24 @@ class neighbor_info_matcher():
                 cn_dict[site_element] = 1
             else:
                 cn_dict[site_element] += 1
-            if site_element not in neighbor_species_respective_neighbor_sequence_dict:
-                neighbor_species_respective_neighbor_sequence_dict[site_element]=[neighbor]
+            if site_element not in neighbor_species_sequence_dict:
+                neighbor_species_sequence_dict[site_element]=[neighbor]
             else:
-                neighbor_species_respective_neighbor_sequence_dict[site_element].append(neighbor)
-        
+                neighbor_species_sequence_dict[site_element].append(neighbor)
+        # end of adapting.
+        # -------------------------------------------------------        
             
-        neighbor_species_respective_distance_matrix_dict={}
+        neighbor_species_distance_matrix_dict={}
         
-        for species in neighbor_species_respective_neighbor_sequence_dict:
-            neighbor_species_respective_distance_matrix_dict[species]=self.build_distance_matrix_from_getnninfo_output(neighbor_species_respective_neighbor_sequence_dict[species])
+        for species in neighbor_species_sequence_dict:
+            neighbor_species_distance_matrix_dict[species]=self.build_distance_matrix_from_getnninfo_output(neighbor_species_sequence_dict[species])
         
         neighbor_species=tuple(sorted(cn_dict.items(),key=lambda x:x[0]))
         
         distance_matrix=self.build_distance_matrix_from_getnninfo_output(neighbor_sequences)
         
                 
-        return neighbor_info_matcher(neighbor_species=neighbor_species,distance_matrix=distance_matrix,neighbor_sequence=neighbor_sequences,neighbor_species_respective_distance_matrix_dict=neighbor_species_respective_distance_matrix_dict,neighbor_species_respective_neighbor_sequence_dict=neighbor_species_respective_neighbor_sequence_dict)
+        return neighbor_info_matcher(neighbor_species=neighbor_species,distance_matrix=distance_matrix,neighbor_sequence=neighbor_sequences,neighbor_species_distance_matrix_dict=neighbor_species_distance_matrix_dict,neighbor_species_sequence_dict=neighbor_species_sequence_dict)
         
     
     @classmethod
@@ -117,19 +129,23 @@ class neighbor_info_matcher():
         
         return distance_matrix
 
-    def brutal_match(self,unsorted_nninfo=[{}],rtol=0.01,atol=0.01,find_nearest_if_fail=True):
-        """brutally sort the inputted unsorted_nninfo. Although brutal but fast enough for now
+    def brutal_match(self,unsorted_nninfo=[{}],rtol=0.001,atol=0.001,find_nearest_if_fail=False):
+        """brutally sort the input unsorted_nninfo. Although brutal but fast enough for now
 
         Args:
             unsorted_nninfo (list, optional): the unsorted nn_info of an element. The nn_info are compared with the nn_info of class instance. Defaults to [{}].
-            rtol (float, optional): rtolerance of np.allclose in order to determine if the distance matrix are the same. Better not too small. Defaults to 0.01.
+            
+            Tolerance: Refer to np.allclose
+            rtol (float, optional): relative tolerance of np.allclose in order to determine if the distance matrix are the same. Better not too small. Defaults to 0.01.
+            atol (float, optional): absolute tolerance
+            find_nearest_if_fail(bool, optional): This should be true only for grain boundary model! 
 
         Raises:
             ValueError: this will perform a check if the inputted unsorted nn_info has the same neighbor species type and amount
             ValueError: if the unsorted_nninfo cannot be sort with reference of the distance matrix of this neighbor_info_matcher instance. Probably due to too small rtol or it's just not the same neighbor_infos
 
         Returns:
-            list of dictionary: in the format of cutoffdictNN.get_nn_info
+            sorted nninfo, as list of dictionary: in the format of cutoffdictNN.get_nn_info
         """
         
         unsorted_neighbor_info=neighbor_info_matcher.from_neighbor_sequences(unsorted_nninfo)
@@ -147,13 +163,13 @@ class neighbor_info_matcher():
         
         sorted_neighbor_sequence_dict={}
 
-        for specie in unsorted_neighbor_info.neighbor_species_respective_neighbor_sequence_dict:
+        for specie in unsorted_neighbor_info.neighbor_species_sequence_dict:
             
             sorted_neighbor_sequence_dict[specie]=[]
 
-            for possible_local_sequence in itertools.permutations(unsorted_neighbor_info.neighbor_species_respective_neighbor_sequence_dict[specie]):
+            for possible_local_sequence in itertools.permutations(unsorted_neighbor_info.neighbor_species_sequence_dict[specie]):
                 
-                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_respective_distance_matrix_dict[specie],rtol=rtol,atol=atol):
+                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_distance_matrix_dict[specie],rtol=rtol,atol=atol):
                     
                     sorted_neighbor_sequence_dict[specie].append(list(possible_local_sequence))
             
@@ -221,11 +237,11 @@ class neighbor_info_matcher():
       
       
 def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identifier="Li+"):
-    """a function for generating a list of site indices that satisfy the identifier
+    """a function for generating a list of site indices that satisfies the identifier
 
     Args:
         structure (kmcpy.external.pymatgen_structure): structure object to work on
-        mobile_ion_identifier_type (str, optional): elect from: ["specie","label","list"]. Defaults to "specie".
+        mobile_ion_identifier_type (str, optional): elect from: ["specie","label"]. Defaults to "specie".
         atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
         
         typical input:
@@ -251,11 +267,11 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
             if structure[i].properties["label"]==atom_identifier:
                 mobile_ion_specie_1_indices.append(i)
                 
-    elif mobile_ion_identifier_type=="list":
-        mobile_ion_specie_1_indices=atom_identifier
+    #elif mobile_ion_identifier_type=="list":
+        #mobile_ion_specie_1_indices=atom_identifier
     
     else:
-        raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
+        raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] ')
     
     neighbor_info_logger.warning("please check if these are mobile_ion_specie_1:")
     for i in mobile_ion_specie_1_indices:
@@ -444,9 +460,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
 
             use the dictionary to store the index of atoms
             
-            indices_dict_from_identifier is a dictionary by pymatgen_structure.kmc_build_dict()
-            
-            the key to dictionary is kmc_info_to_tuple
+            indices_dict_from_identifier is a dictionary by pymatgen_structure.kmc_build_dict(). Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
             
             This loop build the local_env_info list, [supercell_neighbor_index1, supercell_neighbor_index2, .....]
             
@@ -460,8 +474,15 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
 
         for local_env in local_env_info:
             # generate event
-            
+            """
+            generally use the mobile_ion_identifier_type="label", to see the Na1 and Na2 of nasicon.
+
+            specie is suitable for grain boundary model. Generally don't use it
+
+
+            """
             if mobile_ion_identifier_type=="specie":
+
                 if mobile_ion_specie_2_identifier in supercell[local_env].species  :
                     # initialize the event
                     this_event = Event()
@@ -480,13 +501,14 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                     events_dict.append(this_event.as_dict())   
                         
             elif mobile_ion_identifier_type=="list":
-                raise NotImplementedError("how to do this.... atom identifier_type=list is not implemented in finding neighbors") 
+                raise NotImplementedError() 
+                #"potentially implement this for grain boundary model"
                                    
             else:
-                raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label","list"] ')
+                raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] ')
             
     if len(events)==0:
-        raise ValueError("There is no events generated. This is probably caused by wrong input parameters. Probably check the mobile_ion_specie_2_index_atom_label?")
+        raise ValueError("There is no event generated. This is probably caused by wrong input parameters.")
     
     print('Saving:',event_fname)
     with open(event_fname,'w') as fhandle:
@@ -584,12 +606,3 @@ def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='eve
             f.write('\n')
     return event_kernal
 
-# def generate_event_kernal(len_structure):
-#     import subprocess, os
-#     print('Computing site_event_list  ...')
-#     home = os.getcwd()
-#     subprocess.run(["rm","-f","generate_list.x"])
-#     subprocess.run(["g++","-std=c++11","generate_list.cpp","-o","generate_list.x"])
-#     subprocess.run(["./generate_list.x",str(len_structure)])
-#     os.rename("results.csv",home+"/"+"event_kernal.csv")
-#     os.chdir(home)
