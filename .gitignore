@@ -173,3 +173,7 @@ reference_distance_matrix.csv
 test/v3_nasicon_bulk/fitting_results.json
 test/v3_nasicon_bulk/fitting_results.json
 !test/v3_Na3SbS4_bulk/Na3SbS4_cubic.cif
+
+
+test/v3_nasicon_bulk/input/lce.json
+test/v3_nasicon_bulk/gather_mc_data/prim.json
