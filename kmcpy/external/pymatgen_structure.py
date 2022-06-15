@@ -3873,13 +3873,12 @@ class Structure(IStructure, collections.abc.MutableSequence):
 
         new_charge = self._charge * np.linalg.det(scale_matrix) if self._charge else None
         
-        supercell=Structure.from_sites(new_sites, charge=new_charge, to_unit_cell=True)
+        supercell=Structure.from_sites(new_sites, charge=new_charge, to_unit_cell=to_unit_cell)
         
         if to_unit_cell:
             for site in supercell:
                 site.to_unit_cell(in_place=True)
-        self._sites = supercell.sites
-        self._lattice = supercell.lattice
+
         return supercell
 
 

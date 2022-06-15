@@ -158,5 +158,34 @@ class Test_version3(unittest.TestCase):
         
         # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct
         
+        
+    def test_gather_mc_data(self):
+        from pathlib import Path
+        import os
+        current_dir= Path(__file__).absolute().parent
+        os.chdir(current_dir)        
+        from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
+        from kmcpy.external.pymatgen_structure import Structure
+        import numpy as np
+        structure_from_json=generate_supercell("./gather_mc_data/prim.json",(8,8,8))
+        df = gather_data('comp*',structure_from_json)
+        df.to_hdf('gather_mc_data/mc_results_json.h5',key='df',complevel=9,mode='w')
+        df.to_json('gather_mc_data/mc_results_json.json',orient="index")
+        occ1=df["occ"]
+        
+        
+        structure_from_cif=Structure.from_cif("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",primitive=True)
+        structure_from_cif.remove_species(['Zr','O',"Zr4+","O2-"])
+        structure_from_cif.remove_oxidation_states()
+        structure_from_cif=structure_from_cif.make_kmc_supercell([8,8,8])
+        df2 = gather_data('comp*',structure_from_cif)
+        df2.to_hdf('gather_mc_data/mc_results_cif.h5',key='df',complevel=9,mode='w')
+        df2.to_json('gather_mc_data/mc_results_cif.json',orient="index")
+        occ2=df2["occ"]
+        for i in range(0,len(occ1[0])):
+            if occ1[0][i]!=occ2[0][i]:
+                print(i,occ1[i],occ2[i])
+        self.assertTrue(np.allclose(occ1[0],occ2[0],rtol=0.001,atol=0.001))
+        
 if __name__ == '__main__':
     unittest.main()
