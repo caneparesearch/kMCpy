@@ -519,7 +519,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
 
     for event in events:
         # sublattice indices: local site index for each site
-        events_site_list.append(event.sorted_sublattice_indices)
+        events_site_list.append(event.local_env_indices_list)
     
     #np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int),fmt="%i") # dimension not equal error
     generate_event_kernal(len(supercell),np.array(events_site_list),event_kernal_fname=event_kernal_fname)       

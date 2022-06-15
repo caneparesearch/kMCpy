@@ -136,7 +136,7 @@ class KMC:
             event.set_sublattice_indices(sublattice_indices,sublattice_indices_site)
             event.initialize_corr()
             event.update_event(self.occ_global,v,T,self.keci,self.empty_cluster,self.keci_site,self.empty_cluster_site)
-            events_site_list.append(event.sorted_sublattice_indices)
+            events_site_list.append(event.local_env_indices_list)
             events.append(event)
             
         print('Initializing hopping probabilities ...')

@@ -14,25 +14,25 @@ class Event:
     """
     mobile_ion_specie_1_index
     mobile_ion_specie_2_index
-    sorted_sublattice_indices
+    local_env_indices_list
     """
     def __init__(self):
         pass
 
    
-    def initialization3(self,mobile_ion_specie_1_index=12,mobile_ion_specie_2_index=15,sorted_sublattice_indices=[1,2,3,4,5]):
-        """3rd version of initialization. The input sorted_sublattice_indices is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version
+    def initialization3(self,mobile_ion_specie_1_index=12,mobile_ion_specie_2_index=15,local_env_indices_list=[1,2,3,4,5]):
+        """3rd version of initialization. The input local_env_indices_list is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version
 
         Args:
             mobile_ion_specie_1_index (int, optional): the global index (index in supercell) of the center atom. Defaults to 12.
             mobile_ion_specie_2_index (int, optional): the global index of the atom that the center atom is about to diffuse to. Defaults to 15.
-            sorted_sublattice_indices (list, optional): list of integers, which is the sorted sublattice indices. Defaults to [1,2,3,4,5].
+            local_env_indices_list (list, optional): list of integers, which is a list of indices of the neighboring sites in supercell, and is already sorted. Defaults to [1,2,3,4,5].
         """
         self.mobile_ion_specie_1_index = mobile_ion_specie_1_index
         self.mobile_ion_specie_2_index = mobile_ion_specie_2_index
-        self.sorted_sublattice_indices = sorted_sublattice_indices # this is the sublattice indices that matches with the local cluster expansion
-        self.local_env_indices_list = sorted_sublattice_indices 
-        self.local_env_indices_list_site = sorted_sublattice_indices
+
+        self.local_env_indices_list = local_env_indices_list 
+        self.local_env_indices_list_site = local_env_indices_list
         
     def set_sublattice_indices(self,sublattice_indices,sublattice_indices_site):
         self.sublattice_indices = sublattice_indices# this stores the site indices from local_cluster_expansion object
@@ -40,7 +40,7 @@ class Event:
 
     def show_info(self):
         print('Event: mobile_ion(1)mobile_ion(1)[',self.mobile_ion_specie_1_index,']<--> mobile_ion(2)[',self.mobile_ion_specie_2_index,']')
-        # print('Global sites indices are (excluding O and Zr):',self.sorted_sublattice_indices)
+        # print('Global sites indices are (excluding O and Zr):',self.local_env_indices_list)
         # print('Local template structure:')
         # print(self.sorted_local_structure)
 
@@ -64,12 +64,12 @@ class Event:
         indices_sites_group_sorted = sorted(sorted(indices_sites_group,key=lambda x:x[1].coords[0]),key = lambda x:x[1].specie)
         
         
-        sorted_sublattice_indices = [s[0] for s in indices_sites_group_sorted]
-        return sorted_sublattice_indices
+        local_env_indices_list = [s[0] for s in indices_sites_group_sorted]
+        return local_env_indices_list
     
     # @profile
     def set_occ(self,occ_global):
-        self.occ_sublat = deepcopy(occ_global[self.sorted_sublattice_indices]) # occ is an 1D numpy array
+        self.occ_sublat = deepcopy(occ_global[self.local_env_indices_list]) # occ is an 1D numpy array
     
     # @profile
     def initialize_corr(self):
@@ -103,7 +103,7 @@ class Event:
     def as_dict(self):
         d = {"mobile_ion_specie_1_index":self.mobile_ion_specie_1_index,
         "mobile_ion_specie_2_index":self.mobile_ion_specie_2_index,
-        "sorted_sublattice_indices":self.sorted_sublattice_indices,
+        "local_env_indices_list":self.local_env_indices_list,
         "local_env_indices_list":self.local_env_indices_list,
         "local_env_indices_list_site":self.local_env_indices_list_site}
         return d
