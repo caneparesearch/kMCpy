@@ -87,7 +87,8 @@ class neighbor_info_matcher():
         
         distance_matrix=self.build_distance_matrix_from_getnninfo_output(neighbor_sequences)
         
-                
+        
+         
         return neighbor_info_matcher(neighbor_species=neighbor_species,distance_matrix=distance_matrix,neighbor_sequence=neighbor_sequences,neighbor_species_distance_matrix_dict=neighbor_species_distance_matrix_dict,neighbor_species_sequence_dict=neighbor_species_sequence_dict)
         
     
@@ -129,6 +130,44 @@ class neighbor_info_matcher():
         
         return distance_matrix
 
+    @classmethod
+    def build_angle_matrix_from_getnninfo_output(self,structure,cutoffdnn_output=[{}]):
+        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+
+        nn_info looks like: 
+        [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
+        
+        or say:
+        
+        nn_info is a list, the elements of list is dictionary, the keys of dictionary are: "site":pymatgen.site, "wyckoff_sequence": ....
+        
+        Use the site.distance function to build matrix
+        
+
+        Args:
+            cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.
+
+        Returns:
+            np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
+        """
+    
+        distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output),len(cutoffdnn_output)))
+          
+
+        for sitedictindex1 in range(0,len(cutoffdnn_output)):
+            for sitedictindex2 in range(0,sitedictindex1):
+                for sitedictindex3 in range(0,sitedictindex2):
+
+                    distance_matrix[sitedictindex1][sitedictindex2][sitedictindex3]=structure.get_angle(cutoffdnn_output[sitedictindex1]["site"],cutoffdnn_output[sitedictindex2]["site"],cutoffdnn_output[sitedictindex3]["site"])
+            
+            
+        
+        return distance_matrix
+
+
+
+    
+    
     def brutal_match(self,unsorted_nninfo=[{}],rtol=0.001,atol=0.001,find_nearest_if_fail=False):
         """brutally sort the input unsorted_nninfo. Although brutal but fast enough for now
 
@@ -369,6 +408,8 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
         unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
                     
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
+        
+        print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
         
         if this_nninfo.neighbor_species not in reference_local_env_dict:
             
