@@ -8,6 +8,7 @@ import numba as nb
 from kmcpy.io import convert
 import itertools
 import logging
+from pymatgen.util.coord import get_angle
 
 def print_divider():
     print("\n\n-------------------------------------------\n\n")
@@ -131,7 +132,7 @@ class neighbor_info_matcher():
         return distance_matrix
 
     @classmethod
-    def build_angle_matrix_from_getnninfo_output(self,structure,cutoffdnn_output=[{}]):
+    def build_angle_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
         """build a distance matrix from the output of CutOffDictNN.get_nn_info
 
         nn_info looks like: 
@@ -148,21 +149,22 @@ class neighbor_info_matcher():
             cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.
 
         Returns:
-            np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
+            np.3darray: 3d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
         """
     
-        distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output),len(cutoffdnn_output)))
+        angle_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output),len(cutoffdnn_output)))
           
-
+        
         for sitedictindex1 in range(0,len(cutoffdnn_output)):
             for sitedictindex2 in range(0,sitedictindex1):
                 for sitedictindex3 in range(0,sitedictindex2):
-
-                    distance_matrix[sitedictindex1][sitedictindex2][sitedictindex3]=structure.get_angle(cutoffdnn_output[sitedictindex1]["site"],cutoffdnn_output[sitedictindex2]["site"],cutoffdnn_output[sitedictindex3]["site"])
+                    v1=cutoffdnn_output[sitedictindex2]["site"].coords-cutoffdnn_output[sitedictindex1]["site"].coords
+                    v2=cutoffdnn_output[sitedictindex3]["site"].coords-cutoffdnn_output[sitedictindex1]["site"].coords
+                    angle_matrix[sitedictindex1][sitedictindex2][sitedictindex3]=get_angle(v1,v2,"degrees")
             
             
         
-        return distance_matrix
+        return angle_matrix
 
 
 
