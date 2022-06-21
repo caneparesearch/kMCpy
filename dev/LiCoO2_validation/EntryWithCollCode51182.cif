@@ -91,7 +91,6 @@ _atom_site_fract_z
 _atom_site_B_iso_or_equiv
 _atom_site_occupancy
 Li1 Li1+ 3 a 0 0 0 . 1.
-Dummy 
 Co1 Co3+ 3 b 0 0 0.5 . 1.
 O1 O2- 6 c 0 0 0.23951(15) . 1.
 loop_

@@ -166,9 +166,7 @@ class neighbor_info_matcher():
         
         return angle_matrix
 
-
-
-    
+                    
     
     def brutal_match(self,unsorted_nninfo=[{}],rtol=0.001,atol=0.001,find_nearest_if_fail=False):
         """brutally sort the input unsorted_nninfo. Although brutal but fast enough for now
@@ -411,7 +409,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                     
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
-        print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
+        #print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
         
         if this_nninfo.neighbor_species not in reference_local_env_dict:
             
