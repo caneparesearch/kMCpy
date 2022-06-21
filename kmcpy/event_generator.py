@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from turtle import distance
 from sympy import primitive
 from kmcpy.event import Event
 import numpy as np
@@ -8,6 +9,7 @@ import numba as nb
 from kmcpy.io import convert
 import itertools
 import logging
+from pymatgen.util.coord import get_angle
 
 def print_divider():
     print("\n\n-------------------------------------------\n\n")
@@ -117,7 +119,7 @@ class neighbor_info_matcher():
           
 
         for sitedictindex1 in range(0,len(cutoffdnn_output)):
-            for sitedictindex2 in range(0,sitedictindex1):
+            for sitedictindex2 in range(0,len(cutoffdnn_output)):
                 """Reason for jimage=[0,0,0]
                 
                 site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!
@@ -131,7 +133,7 @@ class neighbor_info_matcher():
         return distance_matrix
 
     @classmethod
-    def build_angle_matrix_from_getnninfo_output(self,structure,cutoffdnn_output=[{}]):
+    def build_angle_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
         """build a distance matrix from the output of CutOffDictNN.get_nn_info
 
         nn_info looks like: 
@@ -148,28 +150,95 @@ class neighbor_info_matcher():
             cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.
 
         Returns:
-            np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
+            np.3darray: 3d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
         """
     
-        distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output),len(cutoffdnn_output)))
+        angle_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output),len(cutoffdnn_output)))
           
-
+        
         for sitedictindex1 in range(0,len(cutoffdnn_output)):
-            for sitedictindex2 in range(0,sitedictindex1):
-                for sitedictindex3 in range(0,sitedictindex2):
-
-                    distance_matrix[sitedictindex1][sitedictindex2][sitedictindex3]=structure.get_angle(cutoffdnn_output[sitedictindex1]["site"],cutoffdnn_output[sitedictindex2]["site"],cutoffdnn_output[sitedictindex3]["site"])
+            for sitedictindex2 in range(0,len(cutoffdnn_output)):
+                for sitedictindex3 in range(0,len(cutoffdnn_output)):
+                    v1=cutoffdnn_output[sitedictindex2]["site"].coords-cutoffdnn_output[sitedictindex1]["site"].coords
+                    v2=cutoffdnn_output[sitedictindex3]["site"].coords-cutoffdnn_output[sitedictindex1]["site"].coords
+                    angle_matrix[sitedictindex1][sitedictindex2][sitedictindex3]=get_angle(v1,v2,"degrees")
             
             
         
-        return distance_matrix
+        return angle_matrix
+
+    def rearrange(self,wrong_distance_matrix_of_specie=[],species='Na',atol=0.01,rtol=0.01):
+        """
+        A very fast version of rearranging the neighbors with same species
+
+        Args:
+            wrong_distance_matrix_of_specie (np.2Drray, optional): distance matrix of wrong distance matrix that is supposed to be rearranged and match with self.distance matrix. Defaults to [].
+            species (str, optional): the species to match, is the key to self.neighbor_species_distance_matrix_dict. Defaults to 'Na'.
+
+        Raises:
+            ValueError: no correct sequence found
+
+        Returns:
+            list: list of list, of which is the sequence of index of rearranged sequence
+        """
+        # distance_matrix=distance matrix of wrong neighbor sequence
+        correct_distance_matrix=self.neighbor_species_distance_matrix_dict[species]# np.2darray
+        previous_possible_sequences=[]
+        
+        for i in range(0,len(correct_distance_matrix)):
+            previous_possible_sequences.append([i])# init
+        
+        for i in range(0,len(correct_distance_matrix)-1):
+        
+            new_possible_sequences=[]
+            
+            correct_distance_matrix_in_this_round=correct_distance_matrix[0:2+i,0:2+i]
+            
+            
+            for previous_possible_sequence in previous_possible_sequences:
+                for i in range(0,len(correct_distance_matrix)):
+                    if i not in previous_possible_sequence:
+                        tmp_sequence=previous_possible_sequence.copy()
+                        #print(tmp_sequence)
+                        tmp_sequence.append(i)
+                        tmp_rebuilt_submatrix=self.rebuild_submatrix(distance_matrix=wrong_distance_matrix_of_specie,sequences=tmp_sequence)
+                        if np.allclose(tmp_rebuilt_submatrix,correct_distance_matrix_in_this_round,atol=atol,rtol=rtol):
+                            new_possible_sequences.append(tmp_sequence)
+                            
+            previous_possible_sequences=new_possible_sequences.copy()
+            
+        if len(new_possible_sequences)==0:
+            raise ValueError("new possible sequence=0.")
+
+        return new_possible_sequences
+            
 
 
+    def rebuild_submatrix(self,distance_matrix,sequences=[2,1]):
+        """rebuild the submatrix, with given seuqneces and distance matrix, rebuild the distance matrix from given sequence
 
-    
-    
+        Args:
+            distance_matrix (np.2Darray): distance matrix, length = sequences.len()
+            sequences (list, optional): new sequences. Defaults to [2,1].
+
+        Returns:
+            np.2darray: rebuilt matrix
+        """
+        # wrong_distance_matrix is the matrix that is different from the reference.
+        rebuilt_matrix=np.zeros(shape=(len(sequences),len(sequences)))
+        
+        for idx1 in range(len(sequences)):
+            for idx2 in range(len(sequences)):
+                rebuilt_matrix[idx1][idx2]=distance_matrix[sequences[idx1]][sequences[idx2]]
+        return rebuilt_matrix
+
+
     def brutal_match(self,unsorted_nninfo=[{}],rtol=0.001,atol=0.001,find_nearest_if_fail=False):
         """brutally sort the input unsorted_nninfo. Although brutal but fast enough for now
+        
+        update 220621: not fast enough for LiCoO2 with 12 neighbors,
+        
+        rewrite the finding sequence algo. Now is freaking fast again!
 
         Args:
             unsorted_nninfo (list, optional): the unsorted nn_info of an element. The nn_info are compared with the nn_info of class instance. Defaults to [{}].
@@ -204,14 +273,27 @@ class neighbor_info_matcher():
 
         for specie in unsorted_neighbor_info.neighbor_species_sequence_dict:
             
+            rearranged_sequences_of_neighbor=self.rearrange(wrong_distance_matrix_of_specie=unsorted_neighbor_info.neighbor_species_distance_matrix_dict[specie],species=specie,atol=atol,rtol=rtol)
+            
             sorted_neighbor_sequence_dict[specie]=[]
+            for rearranged_sequence_of_neighbor in rearranged_sequences_of_neighbor:
+                possible_local_sequence=[]
+                for new_index in rearranged_sequence_of_neighbor:
+                    possible_local_sequence.append(unsorted_neighbor_info.neighbor_species_sequence_dict[specie][new_index])
+                sorted_neighbor_sequence_dict[specie].append(possible_local_sequence)
+            
+            
 
+            """
+            print(sorted_neighbor_sequence_dict[specie])
+            raise ValueError()
+            
             for possible_local_sequence in itertools.permutations(unsorted_neighbor_info.neighbor_species_sequence_dict[specie]):
                 
                 if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_distance_matrix_dict[specie],rtol=rtol,atol=atol):
                     
                     sorted_neighbor_sequence_dict[specie].append(list(possible_local_sequence))
-            
+            """
             if len(sorted_neighbor_sequence_dict[specie])==0:
                 raise ValueError("no sorted sequence found for "+str(specie)+" please check if the rtol or atol is too small")
             
@@ -273,8 +355,9 @@ class neighbor_info_matcher():
                     return re_sorted_neighbors_list
   
             raise ValueError("sequence not founded!")                
-      
-      
+  
+  
+  
 def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identifier="Li+"):
     """a function for generating a list of site indices that satisfies the identifier
 
@@ -409,7 +492,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                     
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
-        print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
+        #print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
         
         if this_nninfo.neighbor_species not in reference_local_env_dict:
             
