@@ -167,7 +167,20 @@ class neighbor_info_matcher():
         
         return angle_matrix
 
-    def rearrange(self,wrong_distance_matrix_of_specie=[],species='Na'):
+    def rearrange(self,wrong_distance_matrix_of_specie=[],species='Na',atol=0.01,rtol=0.01):
+        """
+        A very fast version of rearranging the neighbors with same species
+
+        Args:
+            wrong_distance_matrix_of_specie (np.2Drray, optional): distance matrix of wrong distance matrix that is supposed to be rearranged and match with self.distance matrix. Defaults to [].
+            species (str, optional): the species to match, is the key to self.neighbor_species_distance_matrix_dict. Defaults to 'Na'.
+
+        Raises:
+            ValueError: no correct sequence found
+
+        Returns:
+            list: list of list, of which is the sequence of index of rearranged sequence
+        """
         # distance_matrix=distance matrix of wrong neighbor sequence
         correct_distance_matrix=self.neighbor_species_distance_matrix_dict[species]# np.2darray
         previous_possible_sequences=[]
@@ -189,7 +202,7 @@ class neighbor_info_matcher():
                         #print(tmp_sequence)
                         tmp_sequence.append(i)
                         tmp_rebuilt_submatrix=self.rebuild_submatrix(distance_matrix=wrong_distance_matrix_of_specie,sequences=tmp_sequence)
-                        if np.allclose(tmp_rebuilt_submatrix,correct_distance_matrix_in_this_round,atol=0.01,rtol=0.01):
+                        if np.allclose(tmp_rebuilt_submatrix,correct_distance_matrix_in_this_round,atol=atol,rtol=rtol):
                             new_possible_sequences.append(tmp_sequence)
                             
             previous_possible_sequences=new_possible_sequences.copy()
@@ -202,6 +215,15 @@ class neighbor_info_matcher():
 
 
     def rebuild_submatrix(self,distance_matrix,sequences=[2,1]):
+        """rebuild the submatrix, with given seuqneces and distance matrix, rebuild the distance matrix from given sequence
+
+        Args:
+            distance_matrix (np.2Darray): distance matrix, length = sequences.len()
+            sequences (list, optional): new sequences. Defaults to [2,1].
+
+        Returns:
+            np.2darray: rebuilt matrix
+        """
         # wrong_distance_matrix is the matrix that is different from the reference.
         rebuilt_matrix=np.zeros(shape=(len(sequences),len(sequences)))
         
@@ -213,6 +235,10 @@ class neighbor_info_matcher():
 
     def brutal_match(self,unsorted_nninfo=[{}],rtol=0.001,atol=0.001,find_nearest_if_fail=False):
         """brutally sort the input unsorted_nninfo. Although brutal but fast enough for now
+        
+        update 220621: not fast enough for LiCoO2 with 12 neighbors,
+        
+        rewrite the finding sequence algo. Now is freaking fast again!
 
         Args:
             unsorted_nninfo (list, optional): the unsorted nn_info of an element. The nn_info are compared with the nn_info of class instance. Defaults to [{}].
@@ -247,7 +273,7 @@ class neighbor_info_matcher():
 
         for specie in unsorted_neighbor_info.neighbor_species_sequence_dict:
             
-            rearranged_sequences_of_neighbor=self.rearrange(wrong_distance_matrix_of_specie=unsorted_neighbor_info.neighbor_species_distance_matrix_dict[specie],species=specie)
+            rearranged_sequences_of_neighbor=self.rearrange(wrong_distance_matrix_of_specie=unsorted_neighbor_info.neighbor_species_distance_matrix_dict[specie],species=specie,atol=atol,rtol=rtol)
             
             sorted_neighbor_sequence_dict[specie]=[]
             for rearranged_sequence_of_neighbor in rearranged_sequences_of_neighbor:
