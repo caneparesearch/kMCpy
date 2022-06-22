@@ -34,7 +34,7 @@ class Test_version3(unittest.TestCase):
         mobile_ion_specie_2_identifier="Li1"
         prim_cif_name="LiCoO2_dummy_added.cif"
         local_env_cutoff_dict={('Na+','Li+'):4.31}
-        species_to_be_removed=["O2-","O","Co+","Co"]
+        species_to_be_removed=["O2-","O","Co+","Co","Co3+"]
         a=LocalClusterExpansion(api=3)
         a.initialization3(mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,cutoff_cluster=[6,6,0],cutoff_region=4.31,template_cif_fname="LiCoO2_dummy_added.cif",convert_to_primitive_cell=False,species_to_be_removed=species_to_be_removed,exclude_species=["Na","Na+"])
         a.to_json("./input/lce.json")
