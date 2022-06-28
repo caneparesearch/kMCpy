@@ -15,7 +15,8 @@ class Test_version3():
         self.test_generate_events()
         self.test_kmc_main_function()
         tock=time.time()
-        print("elapsed time for ",self.supercell, tock-tick)    
+        print("elapsed time for ",self.supercell, tock-tick)
+        return (self.supercell, tock-tick)    
     
     def test_generate_events(self):
         from pathlib import Path
@@ -46,12 +47,14 @@ class Test_version3():
         inputset=InputSet.from_json("input/test_input_v3.json",api=api)
 
         inputset.parameter_checker()
-
-        inputset.set_parameter("occ",load_occ(fname=inputset._parameters["mc_results"],shape=inputset._parameters["supercell_shape"],select_sites=inputset._parameters["select_sites"],api=inputset.api,verbose=True))
         inputset.set_parameter("supercell_shape",self.supercell)
+        inputset.set_parameter("occ",load_occ(fname=inputset._parameters["mc_results"],shape=inputset._parameters["supercell_shape"],select_sites=inputset._parameters["select_sites"],api=inputset.api,verbose=True))
+
         
         kmc = KMC(api=api)
+
         events_initialized = kmc.initialization(**inputset._parameters) # v in 10^13 hz
+
 
         # # step 2 compute the site kernal (used for kmc run)
         kmc.load_site_event_list(inputset._parameters["event_kernel"])
@@ -67,4 +70,4 @@ class Test_version3():
 if __name__ == '__main__':
     for i in range(1,12):
         a=Test_version3(supercell=[i,i,i])
-        a.time_test()
+        b=a.time_test()
