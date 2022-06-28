@@ -236,88 +236,10 @@ class KMC:
         self.prob_cum_list = np.cumsum(self.prob_list)
 
     def run_from_database(self,verbose=False,**kwargs):
-        if "api" in kwargs:
-            self.api=kwargs["api"]
-        if verbose:
-            print("Verbose output started:\nFunction: kmc.run_from_database.\n parameters received:",kwargs,"end of this verbose output")
-        if self.api==1:
-            self.run_from_database1(**kwargs)
-        if self.api==2:
-            return self.run_from_database2(**kwargs)
-        if self.api==3:
-            return self.run3(**kwargs)           
+
+        return self.run3(**kwargs)           
             
-    def run_from_database1(self,kmc_pass=1000,equ_pass=1,v=5000000000000,T=298,events="./inputs/events.json",comp=1,structure_idx=1,**kwargs):
-        #api=1
-        api=1
-        print('Simulation condition: v =',v,'T = ',T)
-        self.v = v
-        self.T = T
-        pass_length = len([el.symbol for el in self.structure.species if 'Na' in el.symbol])
-        print('============================================================')
-        print('Start running kMC ... ')
-        print('\nInitial occ_global, prob_list and prob_cum_list')
-        print('Starting Equilbrium ...')
-        for current_pass in np.arange(equ_pass):
-            for this_kmc in np.arange(pass_length):
-                event,time_change = self.propose(events)
-                self.update(event,events)
 
-        print('Start running kMC ...')
-        tracker = Tracker()
-        tracker.initialization(self.occ_global,self.structure,self.T,self.v)
-        print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
-        for current_pass in np.arange(kmc_pass):
-            for this_kmc in np.arange(pass_length):
-                event,time_change = self.propose(events)
-                tracker.update(event,self.occ_global,time_change)
-                self.update(event,events)
-
-            previous_conduct = tracker.summary(comp,current_pass)
-            tracker.show_current_info(comp,current_pass)
-
-        tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
-        
-    def run_from_database2(self,kmc_pass=1000,equ_pass=1,v=5000000000000,T=298,events="./inputs/events.json",comp=1,structure_idx=1,random_seed=114514,use_numpy_random_kernel=True,verbose=False,**kwargs):
-        api=2
-        
-        if use_numpy_random_kernel==True:
-            self.rng=np.random.default_rng(seed=random_seed)
-        else:
-            self.rng=False
-        
-        
-        print('Simulation condition: v =',v,'T = ',T)
-        self.v = v
-        self.T = T
-        pass_length = len([el.symbol for el in self.structure.species if 'Na' in el.symbol])
-        print('============================================================')
-        print('Start running kMC ... ')
-        print('\nInitial occ_global, prob_list and prob_cum_list')
-        print('Starting Equilbrium ...')
-        for current_pass in np.arange(equ_pass):
-            for this_kmc in np.arange(pass_length):
-                event,time_change = self.propose(events,random_seed=random_seed,use_numpy_random_kernel=use_numpy_random_kernel,api=api,rng=self.rng,verbose=verbose)
-                self.update(event,events)
-
-        print('Start running kMC ...')
-        tracker = Tracker()
-        tracker.initialization(self.occ_global,self.structure,self.T,self.v)
-        print('Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf\t\tOccNa(1)\tOccNa(2)')
-        for current_pass in np.arange(kmc_pass):
-            for this_kmc in np.arange(pass_length):
-                event,time_change = self.propose(events,random_seed=random_seed,use_numpy_random_kernel=use_numpy_random_kernel,api=api,rng=self.rng,verbose=verbose)
-                tracker.update(event,self.occ_global,time_change)
-                self.update(event,events)
-
-            previous_conduct = tracker.summary(comp,current_pass)
-            tracker.show_current_info(comp,current_pass)
-
-        tracker.write_results(comp,structure_idx,current_pass,self.occ_global)
-        if verbose:
-            print("verbose information: kmc.KMC.run_from_database is called. API version 2")
-        return tracker
-    
     def run3(self,kmc_pass=1000,
     equ_pass=1,v=5000000000000,
     T=298,

@@ -77,45 +77,11 @@ class Tracker:
         
         print('Center of mass (Na):',np.mean(self.frac_coords[self.mobile_ion_specie_locations]@self.latt.matrix,axis=0))
         self.r0 = self.frac_coords[self.mobile_ion_specie_locations]@self.latt.matrix
+        
     def update(self,*args,**kwargs):
-        if self.api<3:
-            return self.update1(*args,**kwargs)
-        elif self.api==3:
-            return self.update3(*args,**kwargs)
-        else:
-            raise NotImplementedError("tracker api not implemented.")
-    def update1(self,event,current_occ,time_change): # this should be called after update() of KMC run
-        na_1_coord = copy(self.frac_coords[event.mobile_ion_specie_1_index])
-        na_2_coord = copy(self.frac_coords[event.mobile_ion_specie_2_index])
-        na_1_occ = current_occ[event.mobile_ion_specie_1_index]
-        na_2_occ = current_occ[event.mobile_ion_specie_2_index]
 
-        # print('---------------------Tracker info---------------------')
-        # print('Na(1) at',na_1_coord,'with idx:',event.mobile_ion_specie_1_index,na_1_occ)
-        # print('Na(2) at',na_2_coord,'with idx:',event.mobile_ion_specie_2_index,na_2_occ)
-        # print('Time now:',self.time)
-        # print('Hop counter: ',self.hop_counter)
-        # print(event.probability)
-        # print('Before update Na locations =',self.na_locations)
-        # print('Occupation before update: ',current_occ)
-        direction = int((na_2_occ - na_1_occ)/2) # na1 -> na2 direction = 1; na2 -> na1 direction = -1
-        displacement_frac = copy(direction*(na_2_coord - na_1_coord))
-        displacement_frac -= np.array([int(round(i)) for i in displacement_frac]) # for periodic condition
-        displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
-        if direction == -1: # Na(2) -> Na(1)
-            # print('Diffuse direction: Na(2) -> Na(1)')
-            na_to_diff = np.where(self.na_locations==event.mobile_ion_specie_2_index)[0][0]
-            self.na_locations[na_to_diff] = event.mobile_ion_specie_1_index
-        elif direction == 1: # Na(1) -> Na(2)
-            # print('Diffuse direction: Na(1) -> Na(2)')
-            na_to_diff = np.where(self.na_locations==event.mobile_ion_specie_1_index)[0][0]
-            self.na_locations[na_to_diff] = event.mobile_ion_specie_2_index
-        else:
-            print('Proposed a wrong event! Please check the code!')
-        self.displacement[na_to_diff] += copy(np.array(displacement_cart))
-        self.hop_counter[na_to_diff] += 1
-        self.time+=time_change
-        self.frac_na_at_na1.append(np.count_nonzero(self.na_locations < self.n_na_sites/4)/self.n_na)
+        return self.update3(*args,**kwargs)
+
 
     def update3(self,event,current_occ,time_change): # this should be called after update() of KMC run
         mobile_ion_specie_1_coord = copy(self.frac_coords[event.mobile_ion_specie_1_index])
@@ -152,25 +118,18 @@ class Tracker:
 
     def calc_D_J(self,d=3):
         displacement_vector_tot = np.linalg.norm(np.sum(self.displacement,axis=0))
-        try:
-            D_J = displacement_vector_tot**2/(2*self.dimension*self.time*self.n_mobile_ion_specie)*10**(-16) # to cm^2/s
-        except:
-            D_J = displacement_vector_tot**2/(2*d*self.time*self.n_na)*10**(-16) # to cm^2/s
+        
+        D_J = displacement_vector_tot**2/(2*self.dimension*self.time*self.n_mobile_ion_specie)*10**(-16) # to cm^2/s
+
         return D_J
     
     def calc_D_tracer(self,d=3):
-        try:
-            D_tracer = np.mean(np.linalg.norm(self.displacement,axis=1)**2)/(2*self.dimension*self.time)*10**(-16)
-        except:
-            D_tracer = np.mean(np.linalg.norm(self.displacement,axis=1)**2)/(2*d*self.time)*10**(-16)
+        D_tracer = np.mean(np.linalg.norm(self.displacement,axis=1)**2)/(2*self.dimension*self.time)*10**(-16)
 
         return D_tracer
     
     def calc_corr_factor(self,a=3.47782): # a is the hopping distance in Angstrom
-        try:
-            corr_factor = np.linalg.norm(self.displacement,axis=1)**2/(self.hop_counter*self.elem_hop_dist**2)
-        except:
-            corr_factor = np.linalg.norm(self.displacement,axis=1)**2/(self.hop_counter*a**2)
+        corr_factor = np.linalg.norm(self.displacement,axis=1)**2/(self.hop_counter*self.elem_hop_distance**2)
         
         corr_factor = np.nan_to_num(corr_factor,nan=0)
     
@@ -179,19 +138,15 @@ class Tracker:
     def calc_conductivity(self,D_J,D_tracer,q=1, T = 300):
 
         k = 8.617333262145*10**(-2) # unit in meV/K
-        try:
-            n = (self.n_mobile_ion_specie)/self.volume # e per Angst^3 vacancy is the carrier
-            conductivity = D_J*n*self.q**2/(k*T)*1.602*10**11 # to mS/cm
-        except:
-            n = (self.n_na)/self.volume
-            conductivity = D_J*n*q**2/(k*T)*1.602*10**11 # to mS/cm
+
+        n = (self.n_mobile_ion_specie)/self.volume # e per Angst^3 vacancy is the carrier
+        conductivity = D_J*n*self.q**2/(k*self.T)*1.602*10**11 # to mS/cm
+
         return conductivity
 
     def show_current_info(self,comp,current_pass):
-        try:
-            print('%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%4.2f\t%4.2f' % (current_pass,self.time,self.results['msd'][-1],self.results['D_J'][-1],self.results['D_tracer'][-1],self.results['conductivity'][-1],self.results['H_R'][-1],self.results['f'][-1],(4-3*comp)*self.frac_na_at_na1[-1],(4-3*comp)/3*(1-self.frac_na_at_na1[-1])))
-        except:
-            print('%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E' % (current_pass,self.time,self.results['msd'][-1],self.results['D_J'][-1],self.results['D_tracer'][-1],self.results['conductivity'][-1],self.results['H_R'][-1],self.results['f'][-1]))
+
+        print('%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E' % (current_pass,self.time,self.results['msd'][-1],self.results['D_J'][-1],self.results['D_tracer'][-1],self.results['conductivity'][-1],self.results['H_R'][-1],self.results['f'][-1]))
         # print('Center of mass (Na):',np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))
         # print('MSD = ',np.linalg.norm(np.sum(self.displacement,axis=0))**2,'time = ',self.time)
         
@@ -219,7 +174,7 @@ class Tracker:
         D_J = self.calc_D_J()
         D_tracer = self.calc_D_tracer()
         f = self.calc_corr_factor()
-        conductivity = self.calc_conductivity(D_J=D_J,D_tracer=D_tracer,q = 1,T=self.T)
+        conductivity = self.calc_conductivity(D_J=D_J,D_tracer=D_tracer,q = self.q,T=self.T)
         H_R = D_tracer/D_J
         
         msd =  np.mean(np.linalg.norm(self.displacement,axis=1)**2) # MSD = sum_i(|r_i|^2)/N
@@ -233,11 +188,6 @@ class Tracker:
         self.results['conductivity'].append(conductivity)
         self.results['time'].append(copy(self.time))
         self.results['msd'].append(msd)
-        try:
-            self.results['final_na_at_na1'].append(copy(self.frac_na_at_na1[-1]))
-            self.results['average_na_at_na1'].append(copy(sum(self.frac_na_at_na1)/len(self.frac_na_at_na1)))
-        except:
-            pass
 
         return conductivity
     
@@ -251,27 +201,9 @@ class Tracker:
         df.to_csv('results_'+str(comp)+'_'+str(structure_idx)+'.csv.gz',compression='gzip')
     
     def as_dict(self):
-        try:
-            d = {"@module":self.__class__.__module__,
-        "@class": self.__class__.__name__,
-        "T":self.T,
-        "occ_initial":self.occ_initial,
-        "frac_coords":self.frac_coords,
-        "latt":self.latt.as_dict(),
-        "volume":self.volume,
-        "n_na_sites":self.n_na_sites,
-        "n_si_sites":self.n_si_sites,
-        "na_locations":self.na_locations,
-        "n_na":self.n_na,
-        "n_si":self.n_si,
-        "frac_na_at_na1":self.frac_na_at_na1,
-        "displacement":self.displacement,
-        "hop_counter":self.hop_counter,
-        "time":self.time,
-        "results":self.results,
-        "r0":self.r0}
-        except:
-            d = {"@module":self.__class__.__module__,
+
+
+        d = {"@module":self.__class__.__module__,
         "@class": self.__class__.__name__,
         "T":self.T,
         "occ_initial":self.occ_initial,
