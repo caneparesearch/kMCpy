@@ -68,6 +68,11 @@ class Test_version3():
 
         
 if __name__ == '__main__':
-    for i in range(1,12):
-        a=Test_version3(supercell=[i,i,i])
-        b=a.time_test()
+    with open("time_log.txt","w") as t:
+        content=""
+        for i in range(1,8):
+            a=Test_version3(supercell=[i,i,i])
+            b=a.time_test()
+            content+=str(b)
+        t.write(content)
+        
