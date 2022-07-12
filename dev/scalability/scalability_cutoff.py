@@ -40,24 +40,48 @@ if __name__ == '__main__':
     with open("cutoff_scalability.txt","w") as t:
         content=""
         data=[]
-        for i in range(4,11):
+        for i in range(4,14):
             a=Test_version3(cutoff1=i)
             b=a.time_test()
             data.append(b)
             content+=str(b)
         t.write(content)
 
-del data[0]
+del data[0] #first run time is outlier
         
 import matplotlib.pyplot as plt
 import numpy as np
+
 var=[]
 run_time=[]
-predict=[]
+
 for j in range(0,len(data)):
     var.append(str(data[j][0]))
     run_time.append(data[j][1])
-    predict.append(j)
+
+all=[]
+
+for w in data:
+    for x in w[0]:
+        all.append(x[1])
+
+pairs=list(zip(all,all[1:]+all[:1]))
+
+d=1
+t=len(pairs)/2
+while t>0:
+    del pairs[d]
+    d+=1
+    t-=1
+
+del pairs[0]
+del run_time[0]
+del var[0]
+
+prods=[]
+for p in range(0,len(pairs)):
+    prod=pairs[p][0]*pairs[p][1]
+    prods.append(prod)
 
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
@@ -71,19 +95,19 @@ def eq2(x,k1,k2):
 def eq3(x,z1,z2,z3):
     return z2*z1**x + z3
 
-popt1,_=curve_fit(eq1,predict,run_time)
+popt1,_=curve_fit(eq1,prods,run_time)
 c1=popt1
-fit1=eq1(predict,c1)
+fit1=eq1(prods,c1)
 r2_1=r2_score(run_time,fit1)
 
-popt2,_=curve_fit(eq2,predict,run_time)
+popt2,_=curve_fit(eq2,prods,run_time)
 k1,k2=popt2
-fit2=eq2(predict,k1,k2)
+fit2=eq2(prods,k1,k2)
 r2_2=r2_score(run_time,fit2)
 
-popt3,_=curve_fit(eq3,predict,run_time)
+popt3,_=curve_fit(eq3,prods,run_time)
 z1,z2,z3=popt3
-fit3=eq3(predict,z1,z2,z3)
+fit3=eq3(prods,z1,z2,z3)
 r2_3=r2_score(run_time,fit3)
 
 plt.scatter(var,run_time)
