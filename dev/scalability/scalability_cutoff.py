@@ -36,17 +36,59 @@ class Test_version3():
             return i
         #return reference_local_env_dict[0]
 
-        
-  
-
-  
-        
 if __name__ == '__main__':
     with open("cutoff_scalability.txt","w") as t:
         content=""
-        for i in range(4,10):
+        data=[]
+        for i in range(4,11):
             a=Test_version3(cutoff1=i)
             b=a.time_test()
+            data.append(b)
             content+=str(b)
         t.write(content)
+
+del data[0]
         
+import matplotlib.pyplot as plt
+import numpy as np
+var=[]
+run_time=[]
+predict=[]
+for j in range(0,len(data)):
+    var.append(str(data[j][0]))
+    run_time.append(data[j][1])
+    predict.append(j)
+
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
+
+def eq1(x,c1):
+    return c1**x
+
+def eq2(x,k1,k2):
+    return k2*k1**x
+
+def eq3(x,z1,z2,z3):
+    return z2*z1**x + z3
+
+popt1,_=curve_fit(eq1,predict,run_time)
+c1=popt1
+fit1=eq1(predict,c1)
+r2_1=r2_score(run_time,fit1)
+
+popt2,_=curve_fit(eq2,predict,run_time)
+k1,k2=popt2
+fit2=eq2(predict,k1,k2)
+r2_2=r2_score(run_time,fit2)
+
+popt3,_=curve_fit(eq3,predict,run_time)
+z1,z2,z3=popt3
+fit3=eq3(predict,z1,z2,z3)
+r2_3=r2_score(run_time,fit3)
+
+plt.scatter(var,run_time)
+plt.plot(fit1,label=r2_1,color="red")
+plt.plot(fit2,label=r2_2,color="blue")
+plt.plot(fit3,label=r2_3,color="green")
+plt.legend(loc="upper left")
+plt.show()
