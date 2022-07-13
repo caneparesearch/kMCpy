@@ -40,7 +40,7 @@ if __name__ == '__main__':
     with open("cutoff_scalability.txt","w") as t:
         content=""
         data=[]
-        for i in range(4,14):
+        for i in range(4,15):
             a=Test_version3(cutoff1=i)
             b=a.time_test()
             data.append(b)
@@ -74,6 +74,7 @@ while t>0:
     d+=1
     t-=1
 
+#delete a repeated data point
 del pairs[0]
 del run_time[0]
 del var[0]
@@ -95,17 +96,17 @@ def eq2(x,k1,k2):
 def eq3(x,z1,z2,z3):
     return z2*z1**x + z3
 
-popt1,_=curve_fit(eq1,prods,run_time)
+popt1,_=curve_fit(eq1,prods,run_time,maxfev=2000)
 c1=popt1
 fit1=eq1(prods,c1)
 r2_1=r2_score(run_time,fit1)
 
-popt2,_=curve_fit(eq2,prods,run_time)
+popt2,_=curve_fit(eq2,prods,run_time,maxfev=5000)
 k1,k2=popt2
 fit2=eq2(prods,k1,k2)
 r2_2=r2_score(run_time,fit2)
 
-popt3,_=curve_fit(eq3,prods,run_time)
+popt3,_=curve_fit(eq3,prods,run_time,maxfev=5000)
 z1,z2,z3=popt3
 fit3=eq3(prods,z1,z2,z3)
 r2_3=r2_score(run_time,fit3)
@@ -115,4 +116,6 @@ plt.plot(fit1,label=r2_1,color="red")
 plt.plot(fit2,label=r2_2,color="blue")
 plt.plot(fit3,label=r2_3,color="green")
 plt.legend(loc="upper left")
+plt.xlabel("var")
+plt.ylabel("run_time")
 plt.show()
