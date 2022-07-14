@@ -8,3 +8,4 @@ joblib>1.0.1
 scikit-learn>0.24.1
 pytest
 glob2
+gooey
