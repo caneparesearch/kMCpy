@@ -13,6 +13,7 @@ Raises:
 
 from kmcpy.io import InputSet,load_occ
 from kmcpy.kmc import KMC
+from gooey import Gooey, GooeyParser
 
 import argparse
 
@@ -20,14 +21,17 @@ import argparse
 
 
 
-
+@Gooey
 def main(api=3,**kwargs):
     """
     This is the wrapper for executing KMC
     
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('incar', metavar='N', type=str,help='path to the input.json')
+    parser = GooeyParser(description="My Cool GUI Program!") 
+    parser.add_argument('Filename', widget="FileChooser")
+    parser.add_argument('Date', widget="DateChooser")
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('incar', metavar='N', type=str,help='path to the input.json')
     args = parser.parse_args()
     inputset=InputSet.from_json(args.incar,api=api)
     inputset.parameter_checker()

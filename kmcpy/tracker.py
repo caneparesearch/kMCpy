@@ -64,7 +64,7 @@ class Tracker:
         self.volume = structure.volume
         self.n_mobile_ion_specie_site = len([el.symbol for el in structure.species if mobile_ion_specie in el.symbol])
         self.mobile_ion_specie_locations = np.where(self.occ_initial[0:self.n_mobile_ion_specie_site]==-1)[0] # na_si_site_indices[na_si_indices]
-        print('Initial mobile ion locations =',self.mobile_ion_specie_locations)
+        #print('Initial mobile ion locations =',self.mobile_ion_specie_locations)
         self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
         
         print('number of mobile ion specie =',self.n_mobile_ion_specie)

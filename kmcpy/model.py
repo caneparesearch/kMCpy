@@ -26,7 +26,8 @@ class LocalClusterExpansion:
 
         return self.initialization3(**kwargs)
 
-    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[]):
+    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],**kwargs):
+        print(is_write_basis)
         """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
         
         Strictly use the cif file because I only modified the structure.from_cif
