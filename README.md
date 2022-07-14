@@ -12,32 +12,13 @@ python numpy scipy pandas numba tables pymatgen
 `conda activate kmcpy`
 2. Install pip
 `conda install python=3.8`
+2.1 for Apple M1 chip:
+`conda instal hdf5`
 3. Install required packages and kmcPy
 `pip install -r requirement.txt .`
 4. For developer, use editable mode (developer mode) of pip
 `pip install -r requirement.txt -e .`
 
-## apple sillycon
-1. Create a conda environment
-`conda create -n kmcpy`
-`conda activate kmcpy`
-2. Install pip
-`conda install python=3.8`
-3. Install required packages and kmcPy
-`pip install -r requirement.txt .`
-if unsuccessful: 
-```
-conda install --file requirements.txt
-pip install .
-```
-
-4. For developer, use editable mode (developer mode) of pip
-`pip install -r requirement.txt -e .`
-or if unsuccessful: 
-```
-conda install --file requirements.txt
-pip install -e .
-```
 
 # Run Example:
 - `python run_kmc.py T `
