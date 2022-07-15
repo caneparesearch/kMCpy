@@ -12,10 +12,10 @@ from kmcpy.kmc import KMC
 from kmcpy.event_generator import generate_events3
 from kmcpy.model import LocalClusterExpansion
 from kmcpy.external.pymatgen_structure import Structure
-
+import kmcpy._version
 @Gooey(optional_cols=2, program_name="kmcpy",default_size=(1024, 768))
 def main():
-    settings_msg = 'kmcpy'
+    settings_msg = 'kmcpy version '+kmcpy._version.__version__
     parser = GooeyParser(description=settings_msg)
     parser.add_argument('--verbose', help='be verbose', dest='verbose',
                         action='store_true', default=False)
