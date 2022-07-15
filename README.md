@@ -21,19 +21,22 @@ python numpy scipy pandas numba tables pymatgen
 4. For developer, use editable mode (developer mode) of pip
 `conda install wxpython`
 `pip install -r requirement.txt .`
-
-
-# Run Example:
-- `python run_kmc.py T `
-- T is temperature in Kelvin
-- This will run kMC started from the occupancy stored in initial_state.json 
-- `python run_kmc.py 573`
-
-
-# build docs:
+for building docs:
 ```
 cd doc
 pip install -r doc_requirements.txt
 cd ..
 python dev_deploy.py
 ```
+
+# Run:
+The wrapper is in the executable/ folder
+run this to add the them in the path
+```
+export PATH=`pwd`/executable:$PATH
+```
+if GUI not enabled:
+`wrapper.py PATH_TO_INPUT.json`
+if enabled:
+`gui_wrapper.py` 
+
