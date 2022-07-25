@@ -1,0 +1,3584 @@
+{
+    "@module": "kmcpy.model",
+    "@class": "LocalClusterExpansion",
+    "center_site": {
+        "species": [
+            {
+                "element": "Na",
+                "occu": 1.0
+            }
+        ],
+        "abc": [
+            0.249999,
+            0.249999,
+            0.499999
+        ],
+        "lattice": {
+            "@module": "pymatgen.core.lattice",
+            "@class": "Lattice",
+            "matrix": [
+                [
+                    12.447922792224032,
+                    0.0,
+                    -0.3695794546419789
+                ],
+                [
+                    -0.3807152255335277,
+                    12.44210035960144,
+                    -0.36958122237698865
+                ],
+                [
+                    0.0,
+                    0.0,
+                    12.453409
+                ]
+            ]
+        },
+        "@module": "pymatgen.core.sites",
+        "@class": "PeriodicSite",
+        "properties": {
+            "wyckoff_sequence": 0,
+            "local_index": 0,
+            "label": "Na1"
+        }
+    },
+    "diffusion_unit_structure": {
+        "@module": "pymatgen.core.structure",
+        "@class": "Molecule",
+        "charge": 0,
+        "spin_multiplicity": 1,
+        "sites": [
+            {
+                "name": "Na",
+                "species": [
+                    {
+                        "element": "Na",
+                        "occu": 1.0
+                    }
+                ],
+                "xyz": [
+                    -3.08667222439634,
+                    -0.8299503044872139,
+                    0.947705199864334
+                ],
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 30,
+                    "label": "Na2"
+                }
+            },
+            {
+                "name": "Na",
+                "species": [
+                    {
+                        "element": "Na",
+                        "occu": 1.0
+                    }
+                ],
+                "xyz": [
+                    -0.9255268984396738,
+                    3.1104255530974836,
+                    0.7629156518658791
+                ],
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 8,
+                    "label": "Na2"
+                }
+            },
+            {
+                "name": "Na",
+                "species": [
+                    {
+                        "element": "Na",
+                        "occu": 1.0
+                    }
+                ],
+                "xyz": [
+                    -0.8557452240364078,
+                    0.8299005360857756,
+                    -3.11345014728442
+                ],
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 12,
+                    "label": "Na2"
+                }
+            },
+            {
+                "name": "Na",
+                "species": [
+                    {
+                        "element": "Na",
+                        "occu": 1.0
+                    }
+                ],
+                "xyz": [
+                    0.8556848879985748,
+                    -0.8299627465875732,
+                    3.1132545885438034
+                ],
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 22,
+                    "label": "Na2"
+                }
+            },
+            {
+                "name": "Na",
+                "species": [
+                    {
+                        "element": "Na",
+                        "occu": 1.0
+                    }
+                ],
+                "xyz": [
+                    0.9254707502693211,
+                    -3.110624626703237,
+                    -0.7629701577140491
+                ],
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 26,
+                    "label": "Na2"
+                }
+            },
+            {
+                "name": "Na",
+                "species": [
+                    {
+                        "element": "Na",
+                        "occu": 1.0
+                    }
+                ],
+                "xyz": [
+                    3.0864994763381506,
+                    0.8299005360857756,
+                    -0.9477483610630797
+                ],
+                "properties": {
+                    "wyckoff_sequence": 0,
+                    "local_index": 16,
+                    "label": "Na2"
+                }
+            }
+        ]
+    },
+    "clusters": [
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0
+            ],
+            "type": "point",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "Kh",
+            "max_length": 0,
+            "min_length": 0,
+            "bond_distances": []
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                1
+            ],
+            "type": "point",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "Kh",
+            "max_length": 0,
+            "min_length": 0,
+            "bond_distances": []
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                2
+            ],
+            "type": "point",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "Kh",
+            "max_length": 0,
+            "min_length": 0,
+            "bond_distances": []
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                3
+            ],
+            "type": "point",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "Kh",
+            "max_length": 0,
+            "min_length": 0,
+            "bond_distances": []
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                4
+            ],
+            "type": "point",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "Kh",
+            "max_length": 0,
+            "min_length": 0,
+            "bond_distances": []
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                5
+            ],
+            "type": "point",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "Kh",
+            "max_length": 0,
+            "min_length": 0,
+            "bond_distances": []
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                1
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.497917095277564,
+            "min_length": 4.497917095277564,
+            "bond_distances": [
+                4.497917095277564
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                2
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.921902360628534,
+            "min_length": 4.921902360628534,
+            "bond_distances": [
+                4.921902360628534
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                3
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.4979755175651635,
+            "min_length": 4.4979755175651635,
+            "bond_distances": [
+                4.4979755175651635
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                4
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.921907840685405,
+            "min_length": 4.921907840685405,
+            "bond_distances": [
+                4.921907840685405
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                1,
+                2
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.497985731871647,
+            "min_length": 4.497985731871647,
+            "bond_distances": [
+                4.497985731871647
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                1,
+                3
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.921734297755797,
+            "min_length": 4.921734297755797,
+            "bond_distances": [
+                4.921734297755797
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                1,
+                5
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.921739667054664,
+            "min_length": 4.921739667054664,
+            "bond_distances": [
+                4.921739667054664
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                2,
+                4
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.921912746795296,
+            "min_length": 4.921912746795296,
+            "bond_distances": [
+                4.921912746795296
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                2,
+                5
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.4979503670531535,
+            "min_length": 4.4979503670531535,
+            "bond_distances": [
+                4.4979503670531535
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                3,
+                4
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.497933632401365,
+            "min_length": 4.497933632401365,
+            "bond_distances": [
+                4.497933632401365
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                3,
+                5
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.921729858640315,
+            "min_length": 4.921729858640315,
+            "bond_distances": [
+                4.921729858640315
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                4,
+                5
+            ],
+            "type": "pair",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 1,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D*h",
+            "max_length": 4.4979914070505895,
+            "min_length": 4.4979914070505895,
+            "bond_distances": [
+                4.4979914070505895
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                1,
+                2
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "C2v",
+            "max_length": 4.921902360628534,
+            "min_length": 4.497917095277564,
+            "bond_distances": [
+                4.497917095277564,
+                4.497985731871647,
+                4.921902360628534
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                1,
+                3
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "C2v",
+            "max_length": 4.921734297755797,
+            "min_length": 4.497917095277564,
+            "bond_distances": [
+                4.497917095277564,
+                4.4979755175651635,
+                4.921734297755797
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                2,
+                4
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D3h",
+            "max_length": 4.921912746795296,
+            "min_length": 4.921902360628534,
+            "bond_distances": [
+                4.921902360628534,
+                4.921907840685405,
+                4.921912746795296
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                0,
+                3,
+                4
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -3.08667222439634,
+                            -0.8299503044872139,
+                            0.947705199864334
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 30,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "C2v",
+            "max_length": 4.921907840685405,
+            "min_length": 4.497933632401365,
+            "bond_distances": [
+                4.497933632401365,
+                4.4979755175651635,
+                4.921907840685405
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                1,
+                2,
+                5
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "C2v",
+            "max_length": 4.921739667054664,
+            "min_length": 4.4979503670531535,
+            "bond_distances": [
+                4.4979503670531535,
+                4.497985731871647,
+                4.921739667054664
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                1,
+                3,
+                5
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.9255268984396738,
+                            3.1104255530974836,
+                            0.7629156518658791
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 8,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "D3h",
+            "max_length": 4.921739667054664,
+            "min_length": 4.921729858640315,
+            "bond_distances": [
+                4.921729858640315,
+                4.921734297755797,
+                4.921739667054664
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                2,
+                4,
+                5
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            -0.8557452240364078,
+                            0.8299005360857756,
+                            -3.11345014728442
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 12,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "C2v",
+            "max_length": 4.921912746795296,
+            "min_length": 4.4979503670531535,
+            "bond_distances": [
+                4.4979503670531535,
+                4.4979914070505895,
+                4.921912746795296
+            ]
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Cluster",
+            "site_indices": [
+                3,
+                4,
+                5
+            ],
+            "type": "triplet",
+            "structure": {
+                "@module": "pymatgen.core.structure",
+                "@class": "Molecule",
+                "charge": 0,
+                "spin_multiplicity": 2,
+                "sites": [
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.8556848879985748,
+                            -0.8299627465875732,
+                            3.1132545885438034
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 22,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            0.9254707502693211,
+                            -3.110624626703237,
+                            -0.7629701577140491
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 26,
+                            "label": "Na2"
+                        }
+                    },
+                    {
+                        "name": "Na",
+                        "species": [
+                            {
+                                "element": "Na",
+                                "occu": 1.0
+                            }
+                        ],
+                        "xyz": [
+                            3.0864994763381506,
+                            0.8299005360857756,
+                            -0.9477483610630797
+                        ],
+                        "properties": {
+                            "wyckoff_sequence": 0,
+                            "local_index": 16,
+                            "label": "Na2"
+                        }
+                    }
+                ]
+            },
+            "sym": "C2v",
+            "max_length": 4.921729858640315,
+            "min_length": 4.497933632401365,
+            "bond_distances": [
+                4.497933632401365,
+                4.4979914070505895,
+                4.921729858640315
+            ]
+        }
+    ],
+    "orbits": [
+        {
+            "@module": "kmcpy.model",
+            "@class": "Orbit",
+            "clusters": [
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0
+                    ],
+                    "type": "point",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "Kh",
+                    "max_length": 0,
+                    "min_length": 0,
+                    "bond_distances": []
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        1
+                    ],
+                    "type": "point",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "Kh",
+                    "max_length": 0,
+                    "min_length": 0,
+                    "bond_distances": []
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        2
+                    ],
+                    "type": "point",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "Kh",
+                    "max_length": 0,
+                    "min_length": 0,
+                    "bond_distances": []
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        3
+                    ],
+                    "type": "point",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "Kh",
+                    "max_length": 0,
+                    "min_length": 0,
+                    "bond_distances": []
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        4
+                    ],
+                    "type": "point",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "Kh",
+                    "max_length": 0,
+                    "min_length": 0,
+                    "bond_distances": []
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        5
+                    ],
+                    "type": "point",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "Kh",
+                    "max_length": 0,
+                    "min_length": 0,
+                    "bond_distances": []
+                }
+            ],
+            "multiplicity": 6
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Orbit",
+            "clusters": [
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        1
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.497917095277564,
+                    "min_length": 4.497917095277564,
+                    "bond_distances": [
+                        4.497917095277564
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        3
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.4979755175651635,
+                    "min_length": 4.4979755175651635,
+                    "bond_distances": [
+                        4.4979755175651635
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        1,
+                        2
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.497985731871647,
+                    "min_length": 4.497985731871647,
+                    "bond_distances": [
+                        4.497985731871647
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        2,
+                        5
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.4979503670531535,
+                    "min_length": 4.4979503670531535,
+                    "bond_distances": [
+                        4.4979503670531535
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        3,
+                        4
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.497933632401365,
+                    "min_length": 4.497933632401365,
+                    "bond_distances": [
+                        4.497933632401365
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        4,
+                        5
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.4979914070505895,
+                    "min_length": 4.4979914070505895,
+                    "bond_distances": [
+                        4.4979914070505895
+                    ]
+                }
+            ],
+            "multiplicity": 6
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Orbit",
+            "clusters": [
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        2
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.921902360628534,
+                    "min_length": 4.921902360628534,
+                    "bond_distances": [
+                        4.921902360628534
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        4
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.921907840685405,
+                    "min_length": 4.921907840685405,
+                    "bond_distances": [
+                        4.921907840685405
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        1,
+                        3
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.921734297755797,
+                    "min_length": 4.921734297755797,
+                    "bond_distances": [
+                        4.921734297755797
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        1,
+                        5
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.921739667054664,
+                    "min_length": 4.921739667054664,
+                    "bond_distances": [
+                        4.921739667054664
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        2,
+                        4
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.921912746795296,
+                    "min_length": 4.921912746795296,
+                    "bond_distances": [
+                        4.921912746795296
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        3,
+                        5
+                    ],
+                    "type": "pair",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 1,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D*h",
+                    "max_length": 4.921729858640315,
+                    "min_length": 4.921729858640315,
+                    "bond_distances": [
+                        4.921729858640315
+                    ]
+                }
+            ],
+            "multiplicity": 6
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Orbit",
+            "clusters": [
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        1,
+                        2
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "C2v",
+                    "max_length": 4.921902360628534,
+                    "min_length": 4.497917095277564,
+                    "bond_distances": [
+                        4.497917095277564,
+                        4.497985731871647,
+                        4.921902360628534
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        1,
+                        3
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "C2v",
+                    "max_length": 4.921734297755797,
+                    "min_length": 4.497917095277564,
+                    "bond_distances": [
+                        4.497917095277564,
+                        4.4979755175651635,
+                        4.921734297755797
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        3,
+                        4
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "C2v",
+                    "max_length": 4.921907840685405,
+                    "min_length": 4.497933632401365,
+                    "bond_distances": [
+                        4.497933632401365,
+                        4.4979755175651635,
+                        4.921907840685405
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        1,
+                        2,
+                        5
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "C2v",
+                    "max_length": 4.921739667054664,
+                    "min_length": 4.4979503670531535,
+                    "bond_distances": [
+                        4.4979503670531535,
+                        4.497985731871647,
+                        4.921739667054664
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        2,
+                        4,
+                        5
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "C2v",
+                    "max_length": 4.921912746795296,
+                    "min_length": 4.4979503670531535,
+                    "bond_distances": [
+                        4.4979503670531535,
+                        4.4979914070505895,
+                        4.921912746795296
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        3,
+                        4,
+                        5
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "C2v",
+                    "max_length": 4.921729858640315,
+                    "min_length": 4.497933632401365,
+                    "bond_distances": [
+                        4.497933632401365,
+                        4.4979914070505895,
+                        4.921729858640315
+                    ]
+                }
+            ],
+            "multiplicity": 6
+        },
+        {
+            "@module": "kmcpy.model",
+            "@class": "Orbit",
+            "clusters": [
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        0,
+                        2,
+                        4
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -3.08667222439634,
+                                    -0.8299503044872139,
+                                    0.947705199864334
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 30,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.8557452240364078,
+                                    0.8299005360857756,
+                                    -3.11345014728442
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 12,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.9254707502693211,
+                                    -3.110624626703237,
+                                    -0.7629701577140491
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 26,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D3h",
+                    "max_length": 4.921912746795296,
+                    "min_length": 4.921902360628534,
+                    "bond_distances": [
+                        4.921902360628534,
+                        4.921907840685405,
+                        4.921912746795296
+                    ]
+                },
+                {
+                    "@module": "kmcpy.model",
+                    "@class": "Cluster",
+                    "site_indices": [
+                        1,
+                        3,
+                        5
+                    ],
+                    "type": "triplet",
+                    "structure": {
+                        "@module": "pymatgen.core.structure",
+                        "@class": "Molecule",
+                        "charge": 0,
+                        "spin_multiplicity": 2,
+                        "sites": [
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    -0.9255268984396738,
+                                    3.1104255530974836,
+                                    0.7629156518658791
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 8,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    0.8556848879985748,
+                                    -0.8299627465875732,
+                                    3.1132545885438034
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 22,
+                                    "label": "Na2"
+                                }
+                            },
+                            {
+                                "name": "Na",
+                                "species": [
+                                    {
+                                        "element": "Na",
+                                        "occu": 1.0
+                                    }
+                                ],
+                                "xyz": [
+                                    3.0864994763381506,
+                                    0.8299005360857756,
+                                    -0.9477483610630797
+                                ],
+                                "properties": {
+                                    "wyckoff_sequence": 0,
+                                    "local_index": 16,
+                                    "label": "Na2"
+                                }
+                            }
+                        ]
+                    },
+                    "sym": "D3h",
+                    "max_length": 4.921739667054664,
+                    "min_length": 4.921729858640315,
+                    "bond_distances": [
+                        4.921729858640315,
+                        4.921734297755797,
+                        4.921739667054664
+                    ]
+                }
+            ],
+            "multiplicity": 2
+        }
+    ],
+    "sublattice_indices": [
+        [
+            [
+                0
+            ],
+            [
+                1
+            ],
+            [
+                2
+            ],
+            [
+                3
+            ],
+            [
+                4
+            ],
+            [
+                5
+            ]
+        ],
+        [
+            [
+                0,
+                1
+            ],
+            [
+                0,
+                3
+            ],
+            [
+                1,
+                2
+            ],
+            [
+                2,
+                5
+            ],
+            [
+                3,
+                4
+            ],
+            [
+                4,
+                5
+            ]
+        ],
+        [
+            [
+                0,
+                2
+            ],
+            [
+                0,
+                4
+            ],
+            [
+                1,
+                3
+            ],
+            [
+                1,
+                5
+            ],
+            [
+                2,
+                4
+            ],
+            [
+                3,
+                5
+            ]
+        ],
+        [
+            [
+                0,
+                1,
+                2
+            ],
+            [
+                0,
+                1,
+                3
+            ],
+            [
+                0,
+                3,
+                4
+            ],
+            [
+                1,
+                2,
+                5
+            ],
+            [
+                2,
+                4,
+                5
+            ],
+            [
+                3,
+                4,
+                5
+            ]
+        ],
+        [
+            [
+                0,
+                2,
+                4
+            ],
+            [
+                1,
+                3,
+                5
+            ]
+        ]
+    ]
+}

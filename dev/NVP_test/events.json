@@ -1,674 +1,1922 @@
 [
     {
         "mobile_ion_specie_1_index": 0,
-        "mobile_ion_specie_2_index": 4,
+        "mobile_ion_specie_2_index": 61,
         "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ],
         "local_env_indices_list_site": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ]
     },
     {
         "mobile_ion_specie_1_index": 0,
-        "mobile_ion_specie_2_index": 7,
+        "mobile_ion_specie_2_index": 16,
         "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ],
         "local_env_indices_list_site": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ]
     },
     {
         "mobile_ion_specie_1_index": 0,
-        "mobile_ion_specie_2_index": 9,
+        "mobile_ion_specie_2_index": 24,
         "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ],
         "local_env_indices_list_site": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ]
     },
     {
         "mobile_ion_specie_1_index": 0,
-        "mobile_ion_specie_2_index": 10,
+        "mobile_ion_specie_2_index": 44,
         "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ],
         "local_env_indices_list_site": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ]
     },
     {
         "mobile_ion_specie_1_index": 0,
-        "mobile_ion_specie_2_index": 13,
+        "mobile_ion_specie_2_index": 52,
         "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ],
         "local_env_indices_list_site": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ]
     },
     {
         "mobile_ion_specie_1_index": 0,
-        "mobile_ion_specie_2_index": 14,
+        "mobile_ion_specie_2_index": 32,
         "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ],
         "local_env_indices_list_site": [
-            4,
-            7,
-            9,
-            10,
-            13,
-            14
+            61,
+            16,
+            24,
+            44,
+            52,
+            32
         ]
     },
     {
         "mobile_ion_specie_1_index": 1,
-        "mobile_ion_specie_2_index": 5,
+        "mobile_ion_specie_2_index": 60,
         "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ],
         "local_env_indices_list_site": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ]
     },
     {
         "mobile_ion_specie_1_index": 1,
-        "mobile_ion_specie_2_index": 6,
+        "mobile_ion_specie_2_index": 17,
         "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ],
         "local_env_indices_list_site": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ]
     },
     {
         "mobile_ion_specie_1_index": 1,
-        "mobile_ion_specie_2_index": 8,
+        "mobile_ion_specie_2_index": 25,
         "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ],
         "local_env_indices_list_site": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ]
     },
     {
         "mobile_ion_specie_1_index": 1,
-        "mobile_ion_specie_2_index": 11,
+        "mobile_ion_specie_2_index": 45,
         "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ],
         "local_env_indices_list_site": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ]
     },
     {
         "mobile_ion_specie_1_index": 1,
-        "mobile_ion_specie_2_index": 12,
+        "mobile_ion_specie_2_index": 53,
         "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ],
         "local_env_indices_list_site": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ]
     },
     {
         "mobile_ion_specie_1_index": 1,
-        "mobile_ion_specie_2_index": 15,
+        "mobile_ion_specie_2_index": 33,
         "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ],
         "local_env_indices_list_site": [
-            5,
-            6,
-            8,
-            11,
-            12,
-            15
+            60,
+            17,
+            25,
+            45,
+            53,
+            33
         ]
     },
     {
         "mobile_ion_specie_1_index": 2,
-        "mobile_ion_specie_2_index": 4,
+        "mobile_ion_specie_2_index": 56,
         "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ],
         "local_env_indices_list_site": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ]
     },
     {
         "mobile_ion_specie_1_index": 2,
-        "mobile_ion_specie_2_index": 6,
+        "mobile_ion_specie_2_index": 20,
         "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ],
         "local_env_indices_list_site": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ]
     },
     {
         "mobile_ion_specie_1_index": 2,
-        "mobile_ion_specie_2_index": 8,
+        "mobile_ion_specie_2_index": 28,
         "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ],
         "local_env_indices_list_site": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ]
     },
     {
         "mobile_ion_specie_1_index": 2,
-        "mobile_ion_specie_2_index": 10,
+        "mobile_ion_specie_2_index": 40,
         "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ],
         "local_env_indices_list_site": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ]
     },
     {
         "mobile_ion_specie_1_index": 2,
-        "mobile_ion_specie_2_index": 12,
+        "mobile_ion_specie_2_index": 48,
         "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ],
         "local_env_indices_list_site": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ]
     },
     {
         "mobile_ion_specie_1_index": 2,
-        "mobile_ion_specie_2_index": 14,
+        "mobile_ion_specie_2_index": 36,
         "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
-        ],
-        "local_env_indices_list": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ],
         "local_env_indices_list_site": [
-            4,
-            6,
-            8,
-            10,
-            12,
-            14
+            56,
+            20,
+            28,
+            40,
+            48,
+            36
         ]
     },
     {
         "mobile_ion_specie_1_index": 3,
-        "mobile_ion_specie_2_index": 5,
+        "mobile_ion_specie_2_index": 57,
         "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ],
         "local_env_indices_list_site": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ]
     },
     {
         "mobile_ion_specie_1_index": 3,
-        "mobile_ion_specie_2_index": 7,
+        "mobile_ion_specie_2_index": 21,
         "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ],
         "local_env_indices_list_site": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ]
     },
     {
         "mobile_ion_specie_1_index": 3,
-        "mobile_ion_specie_2_index": 9,
+        "mobile_ion_specie_2_index": 29,
         "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ],
         "local_env_indices_list_site": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ]
     },
     {
         "mobile_ion_specie_1_index": 3,
-        "mobile_ion_specie_2_index": 11,
+        "mobile_ion_specie_2_index": 41,
         "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ],
         "local_env_indices_list_site": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ]
     },
     {
         "mobile_ion_specie_1_index": 3,
-        "mobile_ion_specie_2_index": 13,
+        "mobile_ion_specie_2_index": 49,
         "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ],
         "local_env_indices_list_site": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ]
     },
     {
         "mobile_ion_specie_1_index": 3,
-        "mobile_ion_specie_2_index": 15,
+        "mobile_ion_specie_2_index": 37,
         "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
-        ],
-        "local_env_indices_list": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
         ],
         "local_env_indices_list_site": [
-            5,
-            7,
-            9,
-            11,
-            13,
-            15
+            57,
+            21,
+            29,
+            41,
+            49,
+            37
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 4,
+        "mobile_ion_specie_2_index": 58,
+        "local_env_indices_list": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ],
+        "local_env_indices_list_site": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 4,
+        "mobile_ion_specie_2_index": 22,
+        "local_env_indices_list": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ],
+        "local_env_indices_list_site": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 4,
+        "mobile_ion_specie_2_index": 30,
+        "local_env_indices_list": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ],
+        "local_env_indices_list_site": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 4,
+        "mobile_ion_specie_2_index": 42,
+        "local_env_indices_list": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ],
+        "local_env_indices_list_site": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 4,
+        "mobile_ion_specie_2_index": 50,
+        "local_env_indices_list": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ],
+        "local_env_indices_list_site": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 4,
+        "mobile_ion_specie_2_index": 38,
+        "local_env_indices_list": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ],
+        "local_env_indices_list_site": [
+            58,
+            22,
+            30,
+            42,
+            50,
+            38
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 5,
+        "mobile_ion_specie_2_index": 59,
+        "local_env_indices_list": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ],
+        "local_env_indices_list_site": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 5,
+        "mobile_ion_specie_2_index": 23,
+        "local_env_indices_list": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ],
+        "local_env_indices_list_site": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 5,
+        "mobile_ion_specie_2_index": 31,
+        "local_env_indices_list": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ],
+        "local_env_indices_list_site": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 5,
+        "mobile_ion_specie_2_index": 43,
+        "local_env_indices_list": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ],
+        "local_env_indices_list_site": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 5,
+        "mobile_ion_specie_2_index": 51,
+        "local_env_indices_list": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ],
+        "local_env_indices_list_site": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 5,
+        "mobile_ion_specie_2_index": 39,
+        "local_env_indices_list": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ],
+        "local_env_indices_list_site": [
+            59,
+            23,
+            31,
+            43,
+            51,
+            39
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 6,
+        "mobile_ion_specie_2_index": 63,
+        "local_env_indices_list": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ],
+        "local_env_indices_list_site": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 6,
+        "mobile_ion_specie_2_index": 18,
+        "local_env_indices_list": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ],
+        "local_env_indices_list_site": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 6,
+        "mobile_ion_specie_2_index": 26,
+        "local_env_indices_list": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ],
+        "local_env_indices_list_site": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 6,
+        "mobile_ion_specie_2_index": 46,
+        "local_env_indices_list": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ],
+        "local_env_indices_list_site": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 6,
+        "mobile_ion_specie_2_index": 54,
+        "local_env_indices_list": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ],
+        "local_env_indices_list_site": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 6,
+        "mobile_ion_specie_2_index": 34,
+        "local_env_indices_list": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ],
+        "local_env_indices_list_site": [
+            63,
+            18,
+            26,
+            46,
+            54,
+            34
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 7,
+        "mobile_ion_specie_2_index": 62,
+        "local_env_indices_list": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ],
+        "local_env_indices_list_site": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 7,
+        "mobile_ion_specie_2_index": 19,
+        "local_env_indices_list": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ],
+        "local_env_indices_list_site": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 7,
+        "mobile_ion_specie_2_index": 27,
+        "local_env_indices_list": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ],
+        "local_env_indices_list_site": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 7,
+        "mobile_ion_specie_2_index": 47,
+        "local_env_indices_list": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ],
+        "local_env_indices_list_site": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 7,
+        "mobile_ion_specie_2_index": 55,
+        "local_env_indices_list": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ],
+        "local_env_indices_list_site": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 7,
+        "mobile_ion_specie_2_index": 35,
+        "local_env_indices_list": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ],
+        "local_env_indices_list_site": [
+            62,
+            19,
+            27,
+            47,
+            55,
+            35
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 8,
+        "mobile_ion_specie_2_index": 34,
+        "local_env_indices_list": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ],
+        "local_env_indices_list_site": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 8,
+        "mobile_ion_specie_2_index": 28,
+        "local_env_indices_list": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ],
+        "local_env_indices_list_site": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 8,
+        "mobile_ion_specie_2_index": 22,
+        "local_env_indices_list": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ],
+        "local_env_indices_list_site": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 8,
+        "mobile_ion_specie_2_index": 50,
+        "local_env_indices_list": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ],
+        "local_env_indices_list_site": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 8,
+        "mobile_ion_specie_2_index": 40,
+        "local_env_indices_list": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ],
+        "local_env_indices_list_site": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 8,
+        "mobile_ion_specie_2_index": 62,
+        "local_env_indices_list": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ],
+        "local_env_indices_list_site": [
+            34,
+            28,
+            22,
+            50,
+            40,
+            62
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 9,
+        "mobile_ion_specie_2_index": 35,
+        "local_env_indices_list": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ],
+        "local_env_indices_list_site": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 9,
+        "mobile_ion_specie_2_index": 29,
+        "local_env_indices_list": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ],
+        "local_env_indices_list_site": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 9,
+        "mobile_ion_specie_2_index": 23,
+        "local_env_indices_list": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ],
+        "local_env_indices_list_site": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 9,
+        "mobile_ion_specie_2_index": 51,
+        "local_env_indices_list": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ],
+        "local_env_indices_list_site": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 9,
+        "mobile_ion_specie_2_index": 41,
+        "local_env_indices_list": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ],
+        "local_env_indices_list_site": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 9,
+        "mobile_ion_specie_2_index": 63,
+        "local_env_indices_list": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ],
+        "local_env_indices_list_site": [
+            35,
+            29,
+            23,
+            51,
+            41,
+            63
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 10,
+        "mobile_ion_specie_2_index": 32,
+        "local_env_indices_list": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ],
+        "local_env_indices_list_site": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 10,
+        "mobile_ion_specie_2_index": 30,
+        "local_env_indices_list": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ],
+        "local_env_indices_list_site": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 10,
+        "mobile_ion_specie_2_index": 20,
+        "local_env_indices_list": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ],
+        "local_env_indices_list_site": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 10,
+        "mobile_ion_specie_2_index": 48,
+        "local_env_indices_list": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ],
+        "local_env_indices_list_site": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 10,
+        "mobile_ion_specie_2_index": 42,
+        "local_env_indices_list": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ],
+        "local_env_indices_list_site": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 10,
+        "mobile_ion_specie_2_index": 60,
+        "local_env_indices_list": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ],
+        "local_env_indices_list_site": [
+            32,
+            30,
+            20,
+            48,
+            42,
+            60
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 11,
+        "mobile_ion_specie_2_index": 33,
+        "local_env_indices_list": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ],
+        "local_env_indices_list_site": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 11,
+        "mobile_ion_specie_2_index": 31,
+        "local_env_indices_list": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ],
+        "local_env_indices_list_site": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 11,
+        "mobile_ion_specie_2_index": 21,
+        "local_env_indices_list": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ],
+        "local_env_indices_list_site": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 11,
+        "mobile_ion_specie_2_index": 49,
+        "local_env_indices_list": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ],
+        "local_env_indices_list_site": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 11,
+        "mobile_ion_specie_2_index": 43,
+        "local_env_indices_list": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ],
+        "local_env_indices_list_site": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 11,
+        "mobile_ion_specie_2_index": 61,
+        "local_env_indices_list": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ],
+        "local_env_indices_list_site": [
+            33,
+            31,
+            21,
+            49,
+            43,
+            61
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 12,
+        "mobile_ion_specie_2_index": 39,
+        "local_env_indices_list": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ],
+        "local_env_indices_list_site": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 12,
+        "mobile_ion_specie_2_index": 24,
+        "local_env_indices_list": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ],
+        "local_env_indices_list_site": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 12,
+        "mobile_ion_specie_2_index": 18,
+        "local_env_indices_list": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ],
+        "local_env_indices_list_site": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 12,
+        "mobile_ion_specie_2_index": 54,
+        "local_env_indices_list": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ],
+        "local_env_indices_list_site": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 12,
+        "mobile_ion_specie_2_index": 44,
+        "local_env_indices_list": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ],
+        "local_env_indices_list_site": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 12,
+        "mobile_ion_specie_2_index": 58,
+        "local_env_indices_list": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ],
+        "local_env_indices_list_site": [
+            39,
+            24,
+            18,
+            54,
+            44,
+            58
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 13,
+        "mobile_ion_specie_2_index": 38,
+        "local_env_indices_list": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ],
+        "local_env_indices_list_site": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 13,
+        "mobile_ion_specie_2_index": 25,
+        "local_env_indices_list": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ],
+        "local_env_indices_list_site": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 13,
+        "mobile_ion_specie_2_index": 19,
+        "local_env_indices_list": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ],
+        "local_env_indices_list_site": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 13,
+        "mobile_ion_specie_2_index": 55,
+        "local_env_indices_list": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ],
+        "local_env_indices_list_site": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 13,
+        "mobile_ion_specie_2_index": 45,
+        "local_env_indices_list": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ],
+        "local_env_indices_list_site": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 13,
+        "mobile_ion_specie_2_index": 59,
+        "local_env_indices_list": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ],
+        "local_env_indices_list_site": [
+            38,
+            25,
+            19,
+            55,
+            45,
+            59
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 14,
+        "mobile_ion_specie_2_index": 37,
+        "local_env_indices_list": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ],
+        "local_env_indices_list_site": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 14,
+        "mobile_ion_specie_2_index": 26,
+        "local_env_indices_list": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ],
+        "local_env_indices_list_site": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 14,
+        "mobile_ion_specie_2_index": 16,
+        "local_env_indices_list": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ],
+        "local_env_indices_list_site": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 14,
+        "mobile_ion_specie_2_index": 52,
+        "local_env_indices_list": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ],
+        "local_env_indices_list_site": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 14,
+        "mobile_ion_specie_2_index": 46,
+        "local_env_indices_list": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ],
+        "local_env_indices_list_site": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 14,
+        "mobile_ion_specie_2_index": 56,
+        "local_env_indices_list": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ],
+        "local_env_indices_list_site": [
+            37,
+            26,
+            16,
+            52,
+            46,
+            56
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 15,
+        "mobile_ion_specie_2_index": 36,
+        "local_env_indices_list": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ],
+        "local_env_indices_list_site": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 15,
+        "mobile_ion_specie_2_index": 27,
+        "local_env_indices_list": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ],
+        "local_env_indices_list_site": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 15,
+        "mobile_ion_specie_2_index": 17,
+        "local_env_indices_list": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ],
+        "local_env_indices_list_site": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 15,
+        "mobile_ion_specie_2_index": 53,
+        "local_env_indices_list": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ],
+        "local_env_indices_list_site": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 15,
+        "mobile_ion_specie_2_index": 47,
+        "local_env_indices_list": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ],
+        "local_env_indices_list_site": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ]
+    },
+    {
+        "mobile_ion_specie_1_index": 15,
+        "mobile_ion_specie_2_index": 57,
+        "local_env_indices_list": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
+        ],
+        "local_env_indices_list_site": [
+            36,
+            27,
+            17,
+            53,
+            47,
+            57
         ]
     }
 ]

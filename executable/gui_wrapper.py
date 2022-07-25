@@ -29,7 +29,7 @@ def main():
         'event', help='generate files required for local cluster expansion')
     event_parser.add_argument('prim_cif_name',
                              help='path to the cif file for generating local cluster expansion',
-                             type=str, widget='FileChooser',default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif")
+                             type=str, widget='FileChooser',default="/Users/weihangxie/Documents/GitHub/kmcPy_dev/dev/NVP_test/prim.cif")
     event_parser.add_argument("convert_to_primitive_cell",choices=["yes","no"],default="yes")
     event_parser.add_argument("mobile_ion_identifier_type",choices=["label","specie"],default="label")
     event_parser.add_argument("mobile_ion_specie_1_identifier",default="Na1")
@@ -41,7 +41,7 @@ def main():
     event_parser.add_argument("cutoff_for_triplet_cluster",default=6,type=int)
     event_parser.add_argument("cutoff_for_quadruplet_cluster",default=0,type=int)
     event_parser.add_argument("species_to_be_removed",default="Zr4+,O2-,O,Zr")
-    event_parser.add_argument("events_output_dir",default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk/input",widget="DirChooser")
+    event_parser.add_argument("events_output_dir",default="/Users/weihangxie/Documents/GitHub/kmcPy_dev/dev/NVP_test",widget="DirChooser")
     event_parser.add_argument("supercell_shape",default="2,1,1")
     #event_parser.add_argument("generate_events")
     
