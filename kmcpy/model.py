@@ -28,6 +28,7 @@ class LocalClusterExpansion:
 
     def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],**kwargs):
         print(is_write_basis)
+ 
         """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
         
         Strictly use the cif file because I only modified the structure.from_cif
@@ -42,7 +43,9 @@ class LocalClusterExpansion:
             is_write_basis (bool, optional): .?. Defaults to False.
             species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
         
-        
+        If the next-step KMC is not based on the same lce object generated in this step, then be careful with 2 things:
+        1) the Ekra generated in this step can be transferred to the KMC, within which the orbitals are arranged in the same way as here;
+        2) the sublattice_indices are exactly corresponding to the input structure used in the KMC step, which might in need of re-cunstruction of a lce object using the same KMC-input structure.
             
         """
 
