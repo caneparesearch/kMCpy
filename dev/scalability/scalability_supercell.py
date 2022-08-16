@@ -30,12 +30,13 @@ class Test_version3():
         local_env_cutoff_dict={('Na+','Na+'):4,('Na+','Si4+'):4}
         from kmcpy.event_generator import generate_events3
 
-        reference_local_env_dict=generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier=mobile_ion_specie_2_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=self.supercell,event_fname="./input/events.json",event_kernal_fname='./input/event_kernal.csv',verbosity="INFO")
+        reference_local_env_dict=generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier=mobile_ion_specie_2_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=self.supercell,event_fname="./input/events.json",event_kernal_fname='./input/event_kernal.csv',verbosity="CRITICAL")
         
 
  
   
     def test_kmc_main_function(self):
+        return 0
         from pathlib import Path
         import os
         current_dir= Path(__file__).absolute().parent
@@ -71,7 +72,7 @@ if __name__ == '__main__':
     with open("supercell_scalability_log.txt","w") as t:
         content=""
         data=[]
-        for i in range(1,5):
+        for i in range(1,15):
             a=Test_version3(supercell=[i,i,i])
             b=a.time_test()
             data.append(b)
@@ -80,26 +81,30 @@ if __name__ == '__main__':
         
 import matplotlib.pyplot as plt
 import numpy as np
+
+for na_cutoff in range(4,8):
+
+
 cell_size=[]
 run_time=[]
 predict=[]
-for j in range(0,len(data)):
-    cell_size.append(str(data[j][0]))
+for j in range(1,len(data)):
+    cell_size.append((j+1)**3)
     run_time.append(data[j][1])
-    predict.append(j)
+    predict.append((j+1)**3)
 predict=np.array(predict)
 
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 
-def eq1(x,c1):
-    return c1**x
+def eq1(x,c1,c2):
+    return c2*x**c1
 
 def eq2(x,k1,k2):
-    return k2*k1**x
+    return k2+k1*x
 
 def eq3(x,z1,z2,z3):
-    return z2*z1**x + z3
+    return z2*x+z1*x*np.log(x) + z3
 
 #def eq4(x,a1,a2,a3):
 #    return a1*x**2 + a2*x + a3
@@ -111,16 +116,16 @@ def eq3(x,z1,z2,z3):
 #    return x**p
 
 popt1,_=curve_fit(eq1,predict,run_time)
-c1=popt1
-fit1=eq1(predict,c1)
+#c1=popt1
+fit1=eq1(predict,*popt1)
 r2_1=r2_score(run_time,fit1)
 
-popt2,_=curve_fit(eq2,predict,run_time)
+popt2,_=curve_fit(eq2,predict,run_time,)
 k1,k2=popt2
 fit2=eq2(predict,k1,k2)
 r2_2=r2_score(run_time,fit2)
 
-popt3,_=curve_fit(eq3,predict,run_time)
+popt3,_=curve_fit(eq3,predict,run_time,p0=(1,1,1))
 z1,z2,z3=popt3
 fit3=eq3(predict,z1,z2,z3)
 r2_3=r2_score(run_time,fit3)
@@ -141,10 +146,11 @@ r2_3=r2_score(run_time,fit3)
 #r2_6=r2_score(run_time,fit6)
 
 plt.scatter(cell_size,run_time)
-plt.plot(fit1,label=r2_1,color="red")
-plt.plot(fit2,label=r2_2,color="blue")
-plt.plot(fit3,label=r2_3,color="green")
+plt.plot(np.linspace(0,max(cell_size),100),eq1(np.linspace(0,max(cell_size),100),*popt1),label="O(x^1.6)",color="red")
+#plt.plot(np.linspace(0,max(cell_size),100),eq2(np.linspace(0,max(cell_size),100),*popt2),label=r2_2,color="blue")
+#plt.plot(np.linspace(0,max(cell_size),100),eq3(np.linspace(0,max(cell_size),100),*popt3),label=r2_3,color="green")
 plt.legend(loc="upper left")
-plt.xlabel("cell_size")
-plt.ylabel("run_time (sec)")
-plt.show()
+plt.xlabel("cell size")
+plt.ylabel("run time (sec)")
+plt.savefig("supercell.jpg",dpi=1000)
+print(popt1,popt2,popt3)

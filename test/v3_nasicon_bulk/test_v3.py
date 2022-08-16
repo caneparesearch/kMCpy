@@ -152,6 +152,8 @@ class Test_version3(unittest.TestCase):
 
         # # step 3 run kmc
         kmc_tracker=kmc.run_from_database(events=events_initialized,**inputset._parameters)
+        
+        
         print(kmc_tracker.return_current_info())
         self.assertFalse(np.allclose(np.array(kmc_tracker.return_current_info()),np.array((3.508959816621752e-06, 101.40523388197452, 1.8796478422471864e-09, 4.816490697215713e-10, 0.15190642462810805, 0.2562443128419963, 0.24387012300994337)),rtol=0.01,atol=0.01))
         

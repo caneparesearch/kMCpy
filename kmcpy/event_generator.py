@@ -452,8 +452,8 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
     # generate primitive cell
     primitive_cell=Structure.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
-    primitive_cell.add_oxidation_state_by_element({"Na":1,"O":-2,"P":5,"Si":4,"V":2.5})
-    #primitive_cell.add_oxidation_state_by_guess()
+    #primitive_cell.add_oxidation_state_by_element({"Na":1,"O":-2,"P":5,"Si":4,"V":2.5})
+    primitive_cell.add_oxidation_state_by_guess()
     
     primitive_cell.remove_species(species_to_be_removed)
     
