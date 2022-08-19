@@ -101,6 +101,21 @@ def main():
     kmc_parser.add_argument("--api",default=3,type=int)    
     kmc_parser.add_argument("verbose",default=True,type=bool)
     kmc_parser.add_argument("equ_pass",default=1,type=int)
+
+
+    fitting_parser = subs.add_parser(
+        'fitting', help='fit the local cluster expansion model.')
+
+
+    fitting_parser.add_argument("alpha",default=1.5,type=float)
+    fitting_parser.add_argument("max_iter",default=1000000,type=int)
+    fitting_parser.add_argument("ekra_fname",default="ekra.txt",type=str)
+    fitting_parser.add_argument("keci_fname",default="keci.txt",type=str)
+    fitting_parser.add_argument("weight_fname",default='weight.txt',type=str)
+    fitting_parser.add_argument("corr_fname",default='correlation_matrix.txt',type=str)
+    fitting_parser.add_argument("fit_results_fname",default='fitting_results.json',type=str)
+
+    
             
     args=parser.parse_args()
 
@@ -162,7 +177,11 @@ def main():
         # # step 3 run kmc
         kmc.run_from_database(events=events_initialized,**vars(args))
 
-
+    if args.command=="fitting":
+        from kmcpy.fitting import Fitting
+        y_pred, y_true = Fitting.fit(**vars(args))
+        print("fitting",y_pred, y_true )        
+        
 
 if __name__ == '__main__':
     main()
