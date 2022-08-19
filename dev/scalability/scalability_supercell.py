@@ -82,8 +82,6 @@ if __name__ == '__main__':
 import matplotlib.pyplot as plt
 import numpy as np
 
-for na_cutoff in range(4,8):
-
 
 cell_size=[]
 run_time=[]
