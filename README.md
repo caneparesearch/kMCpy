@@ -19,8 +19,13 @@ python numpy scipy pandas numba tables pymatgen
         `conda install wxpython`
         `pip install -r requirement.txt .`
 4. For developer, use editable mode (developer mode) of pip
+
+
 `conda install wxpython`
-`pip install -r requirement.txt .`
+
+`pip install -r requirement.txt -e .`
+
+
 for building docs:
 ```
 cd doc
