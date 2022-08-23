@@ -36,7 +36,6 @@ class Test_version3():
  
   
     def test_kmc_main_function(self):
-        return 0
         from pathlib import Path
         import os
         current_dir= Path(__file__).absolute().parent
@@ -72,7 +71,7 @@ if __name__ == '__main__':
     with open("supercell_scalability_log.txt","w") as t:
         content=""
         data=[]
-        for i in range(1,15):
+        for i in range(1,10):
             a=Test_version3(supercell=[i,i,i])
             b=a.time_test()
             data.append(b)
