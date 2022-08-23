@@ -128,7 +128,7 @@ class Tracker:
 
         return D_tracer
     
-    def calc_corr_factor(self,a=3.47782): # a is the hopping distance in Angstrom
+    def calc_corr_factor(self): # a is the hopping distance in Angstrom
         corr_factor = np.linalg.norm(self.displacement,axis=1)**2/(self.hop_counter*self.elem_hop_distance**2)
         
         corr_factor = np.nan_to_num(corr_factor,nan=0)
