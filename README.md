@@ -7,21 +7,15 @@ python numpy scipy pandas numba tables pymatgen
 
 # Installation Guide:
 1. Create a conda environment
-`conda create -n kmcpy`
-`conda activate kmcpy`
-2. Install pip and dependencies
-`conda install python=3.8 hdf5`
 
-3. Install required packages and kmcPy
-    - if no need of gui:
-        `pip install -r requirement.txt .`
-    - if enable GUI
-        `conda install wxpython`
-        `pip install -r requirement.txt .`
-4. For developer, use editable mode (developer mode) of pip
+```conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
+conda activate kmcpy```
 
+2. Install required packages and kmcPy
 
-`conda install wxpython`
+`pip install -r requirement.txt .`
+
+3. For developer, use editable mode (developer mode) of pip
 
 `pip install -r requirement.txt -e .`
 
