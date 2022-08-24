@@ -8,8 +8,10 @@ python numpy scipy pandas numba tables pymatgen
 # Installation Guide:
 1. Create a conda environment
 
-```conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
-conda activate kmcpy```
+```
+conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
+conda activate kmcpy
+```
 
 2. Install required packages and kmcPy
 
@@ -29,13 +31,20 @@ python dev_deploy.py
 ```
 
 # Run:
+
 The wrapper is in the executable/ folder
+
 run this to add the them in the path
+
 ```
 export PATH=`pwd`/executable:$PATH
 ```
+
 if GUI not enabled:
+
 `wrapper.py PATH_TO_INPUT.json`
+
 if enabled:
+
 `gui_wrapper.py` 
 
