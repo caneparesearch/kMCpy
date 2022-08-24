@@ -28,7 +28,7 @@ def load_occ(fname="./initial_state.json",shape=[2,1,1],select_sites=[0,1,2,3,4,
     """load occupation data
 
     Args:
-        fname (str, optional): initial occupation that includes immutable site(for example, Zr, O). Defaults to "./initial_state.json".
+        fname (str, optional): initial occupation that also includes immutable site(for example, Zr, O). Defaults to "./initial_state.json".
         shape (list, optional): supercell shape. Defaults to [2,1,1].
         select_sites (list, optional): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12.  . Defaults to [0,1,2,3,4,5,6,7,12,13,14,15,16,17].
         api (int, optional): version. Defaults to 1.

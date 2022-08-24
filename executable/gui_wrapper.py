@@ -22,48 +22,73 @@ def main():
     
     subs = parser.add_subparsers(help='commands', dest='command')
     
+    # local cluster expansion
+    lce_parser = subs.add_parser(
+        'LocalClusterExpansion', help='generate files required for local cluster expansion')
+    lce_parser.add_argument('prim_cif_name',
+                             help='path to the cif file for generating local cluster expansion',
+                             type=str, widget='FileChooser',default="~/Documents/GitHub/kmcPy_dev/test/v3_nasicon_bulk/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif")
+    lce_parser.add_argument("convert_to_primitive_cell",choices=["yes","no"],default="yes")
+    lce_parser.add_argument("mobile_ion_identifier_type",choices=["label","specie"],default="label")
+    lce_parser.add_argument("mobile_ion_specie_1_identifier",default="Na1")
+    lce_parser.add_argument("mobile_ion_specie_2_identifier",default="Na2")
+    lce_parser.add_argument("species_to_be_removed",default="Zr4+,O2-,O,Zr")
+    lce_parser.add_argument("cutoff_region",default=4.0)
+    lce_parser.add_argument("cutoff_for_point_cluster",default=10,type=int)
+    lce_parser.add_argument("cutoff_for_pair_cluster",default=6,type=int)
+    lce_parser.add_argument("cutoff_for_triplet_cluster",default=6,type=int)
+    lce_parser.add_argument("cutoff_for_quadruplet_cluster",default=0,type=int)
+    lce_parser.add_argument("--is_write_basis",action="store_true")
+    lce_parser.add_argument("local_cluster_expansion_json",default="~/Documents/GitHub/kmcPy_dev/test/v3_nasicon_bulk/lce.json")
     
     
     # event generator + local cluster expansion
     event_parser = subs.add_parser(
-        'event', help='generate files required for local cluster expansion')
+        'GenerateEvents', help='generate events')
     event_parser.add_argument('prim_cif_name',
                              help='path to the cif file for generating local cluster expansion',
-                             type=str, widget='FileChooser',default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif")
+                             type=str, widget='FileChooser',default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk")
     event_parser.add_argument("convert_to_primitive_cell",choices=["yes","no"],default="yes")
     event_parser.add_argument("mobile_ion_identifier_type",choices=["label","specie"],default="label")
     event_parser.add_argument("mobile_ion_specie_1_identifier",default="Na1")
     event_parser.add_argument("mobile_ion_specie_2_identifier",default="Na2")
     event_parser.add_argument("local_env_cutoff_dict",default="Na+,Na+,4.0;Na+,Si4+,4.0")    
-    event_parser.add_argument("cutoff_region",default=4.0)
-    event_parser.add_argument("cutoff_for_point_cluster",default=10,type=int)
-    event_parser.add_argument("cutoff_for_pair_cluster",default=6,type=int)
-    event_parser.add_argument("cutoff_for_triplet_cluster",default=6,type=int)
-    event_parser.add_argument("cutoff_for_quadruplet_cluster",default=0,type=int)
     event_parser.add_argument("species_to_be_removed",default="Zr4+,O2-,O,Zr")
-    event_parser.add_argument("events_output_dir",default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk/input",widget="DirChooser")
+    event_parser.add_argument("events_output_dir",default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk",widget="DirChooser")
     event_parser.add_argument("supercell_shape",default="2,1,1")
     #event_parser.add_argument("generate_events")
     
     # output
     event_parser.add_argument("verbosity",choices=["INFO","WARNING","CRITICAL"],default="WARNING")
-    event_parser.add_argument("--is_write_basis",action="store_true")
     event_parser.add_argument("--export_local_env_structure",action="store_true")
 
 
     # things that shouldn't change at all
     event_parser.add_argument("event_fname",default="events.json")
     event_parser.add_argument("event_kernal_fname",default="event_kernal.csv")
-    event_parser.add_argument("distance_matrix_rtol",default=0.01,type=float)
-    event_parser.add_argument("distance_matrix_atol",default=0.01,type=float)
-    event_parser.add_argument("find_nearest_if_fail",default=False)
-    event_parser.add_argument("local_cluster_expansion_json",default="lce.json")
     
+    
+    event_parser.add_argument("--distance_matrix_rtol",default=0.01,type=float)
+    event_parser.add_argument("--distance_matrix_atol",default=0.01,type=float)
+    event_parser.add_argument("--find_nearest_if_fail",default=False)
 
+    
+    fitting_parser = subs.add_parser(
+        'fitLCEmodel', help='fit the local cluster expansion model.')
+
+
+    fitting_parser.add_argument("alpha",default=1.5,type=float)
+    fitting_parser.add_argument("max_iter",default=1000000,type=int)
+    fitting_parser.add_argument("ekra_fname",default="ekra.txt",type=str)
+    fitting_parser.add_argument("keci_fname",default="keci.txt",type=str)
+    fitting_parser.add_argument("weight_fname",default='weight.txt',type=str)
+    fitting_parser.add_argument("corr_fname",default='correlation_matrix.txt',type=str)
+    fitting_parser.add_argument("fit_results_fname",default='fitting_results.json',type=str)
+    fitting_parser.add_argument("work_dir",default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk")
 
     # kmc task
     kmc_parser = subs.add_parser(
-        'kmc', help='generate files required for local cluster expansion')
+        'KMCSimulation', help='generate files required for local cluster expansion')
     # directory and read files
     kmc_parser.add_argument("work_dir",default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk")
     kmc_parser.add_argument("fitting_results",default="./input/fitting_results.json",type=str)
@@ -101,6 +126,10 @@ def main():
     kmc_parser.add_argument("--api",default=3,type=int)    
     kmc_parser.add_argument("verbose",default=True,type=bool)
     kmc_parser.add_argument("equ_pass",default=1,type=int)
+
+
+
+    
             
     args=parser.parse_args()
 
@@ -111,20 +140,19 @@ def main():
         args.convert_to_primitive_cell=False 
         
 
-           
-    if args.command=="event":
-        np.set_printoptions(precision=2)
-        # species to be removed
+    
+    if args.command=='LocalClusterExpansion':
         args.species_to_be_removed=args.species_to_be_removed.split(",")
-        
-        # convert to primitive cell
-
-            
-        # cutoff cluster
         cutoff_cluster=[int(args.cutoff_for_pair_cluster),int(args.cutoff_for_triplet_cluster),int(args.cutoff_for_quadruplet_cluster)]
+        print((vars(args)))
+        a=LocalClusterExpansion(api=3)
+        a.initialization3(cutoff_cluster=cutoff_cluster,template_cif_fname=args.prim_cif_name,**vars(args))
+        a.to_json(args.local_cluster_expansion_json)
         
         
-        # local env cutoff dict
+    if args.command=='GenerateEvents':
+        np.set_printoptions(precision=2)
+        args.species_to_be_removed=args.species_to_be_removed.split(",")
         tmp_local_env_cutoff_dict={}
         
         for cutoff in args.local_env_cutoff_dict.split(";"):
@@ -142,12 +170,9 @@ def main():
         
         print((vars(args)))
         
-        a=LocalClusterExpansion(api=3)
-        a.initialization3(cutoff_cluster=cutoff_cluster,template_cif_fname=args.prim_cif_name,**vars(args))
-        a.to_json(args.events_output_dir+"/"+args.local_cluster_expansion_json)
-        
         generate_events3(**vars(args))
-    if args.command=="kmc":
+        
+    if args.command=='KMCSimulation':
         
         args.supercell_shape=[int(scale) for scale in args.supercell_shape.split(",")]  
         args.select_sites=[int(scale) for scale in args.select_sites.split(",")]
@@ -162,7 +187,12 @@ def main():
         # # step 3 run kmc
         kmc.run_from_database(events=events_initialized,**vars(args))
 
-
+    if args.command=='fitLCEmodel':
+        from kmcpy.fitting import Fitting
+        os.chdir(args.work_dir)
+        y_pred, y_true = Fitting.fit(**vars(args))
+        print("fitting",y_pred, y_true )        
+        
 
 if __name__ == '__main__':
     main()

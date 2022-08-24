@@ -146,7 +146,7 @@ cython_debug/
 
 .DS_Store
 .vscode/
-test/
+
 # Ignore results
 *.csv.gz
 
@@ -168,7 +168,6 @@ reference_distance_matrix.csv
 
 *.code-workspace
 
-!test
 !EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif
 test/v3_nasicon_bulk/fitting_results.json
 test/v3_nasicon_bulk/fitting_results.json
@@ -186,3 +185,5 @@ mc_results_cif.h5
 mc_results_json.h5
 test/v3_nasicon_bulk/gather_mc_data/mc_results_cif.h5
 test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
+dev/scalability/input/*
+qstatqstat
