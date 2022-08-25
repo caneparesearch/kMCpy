@@ -10,10 +10,10 @@ python numpy scipy pandas numba tables pymatgen
 if experiencing error information like this when installing kmpcy:
 
 ```
-      error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
+error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
       [end of output]
 
-  note: This error originates from a subprocess, and is likely not a problem with pip.
+ note: This error originates from a subprocess, and is likely not a problem with pip.
   ERROR: Failed building wheel for pymatgen
   Building wheel for kmcPy (setup.py) ... done
   Created wheel for kmcPy: filename=kmcPy-0.1.dev0-py3-none-any.whl size=124937 sha256=1282afef8589ee100a8d4fa1b53748d2d69a2e041d8c8662cfa8374a23222d60
