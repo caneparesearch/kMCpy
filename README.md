@@ -28,7 +28,7 @@ Please visit the prompted website, follow the instruction to download Microsoft 
 
 # Installation Guide:
 
-- With GUI enabled (recommended in MacOS, ubuntu, windows, etc...)
+- With GUI enabled (Recommended for Windows, Macos, Linux personal computer)
 
 ```
 conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
@@ -37,7 +37,7 @@ pip install -r requirement_gui.txt .
 ```
 
 
-- with no GUI enabled (for command line, running on server)
+- with no GUI enabled (for command line environment running on server)
 
 ```
 conda create -n kmcpy python=3.8 hdf5 -c conda-forge
@@ -65,11 +65,11 @@ if GUI enabled:
 
 try:
 
-`python gui_wrapper.py` 
+`pythonw gui_wrapper.py` 
 
 or
 
-`pythonw gui_wrapper`
+`python gui_wrapper`
 
 
 if GUI not enabled:
