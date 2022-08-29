@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 26.4.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 570.5 563.2" style="enable-background:new 0 0 570.5 563.2;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#4383C4;}
+	.st1{font-family:'Helvetica-Light';}
+	.st2{font-size:70px;}
+	.st3{fill:#DF5F31;}
+	.st4{font-family:'Helvetica-LightOblique';}
+	.st5{font-size:12px;}
+	.st6{fill:#231F20;}
+	.st7{fill:#DF5E30;}
+	.st8{fill:#D5272A;stroke:#231F20;stroke-miterlimit:10;}
+	.st9{fill:none;stroke:#EE4728;stroke-width:0.8244;stroke-miterlimit:10;}
+	.st10{fill:#FFFFFF;stroke:#EE4728;stroke-width:0.8244;stroke-miterlimit:10;}
+	.st11{fill:none;stroke:#FFFFFF;stroke-width:0.4122;stroke-miterlimit:10;}
+	.st12{fill:none;stroke:#4084C4;stroke-width:0.8244;stroke-miterlimit:10;}
+	.st13{fill:#FFFFFF;stroke:#4073B8;stroke-width:0.8244;stroke-miterlimit:10;}
+	.st14{fill:none;stroke:#231F20;stroke-width:0.3681;stroke-miterlimit:10;}
+	.st15{fill:none;stroke:#4383C4;stroke-width:0.7363;stroke-miterlimit:10;}
+	.st16{fill:none;stroke:#929497;stroke-width:4;stroke-miterlimit:10;}
+	.st17{fill:#929497;}
+	.st18{fill:none;stroke:#000000;stroke-miterlimit:10;}
+	.st19{stroke:#000000;stroke-miterlimit:10;}
+	.st20{fill:#43495A;}
+	.st21{fill:none;stroke:#000000;stroke-dasharray:3,3;}
+	.st22{fill:none;stroke:#78C488;stroke-miterlimit:10;}
+	.st23{fill:#F6873E;}
+	.st24{fill:#FFFFFF;}
+	.st25{font-family:'Helvetica';}
+	.st26{font-size:11px;}
+	.st27{font-family:'MyriadPro-Regular';}
+	.st28{font-size:18px;}
+	.st29{fill:none;stroke:#231F20;stroke-linejoin:round;}
+	.st30{fill:#78C488;}
+</style>
+<g id="Layer_3">
+	<g>
+		<text transform="matrix(1 0 0 1 124.1581 65.3843)"><tspan x="0" y="0" class="st0 st1 st2">kMC</tspan><tspan x="143.8" y="0" class="st3 st4 st2">py</tspan></text>
+		<text transform="matrix(1 0 0 1 123.9174 104.2538)"><tspan x="0" y="0" class="st0 st1 st5">Kinetic Monte Carlo Simulation</tspan><tspan x="164" y="0" class="st6 st1 st5"> with </tspan><tspan x="192.1" y="0" class="st7 st4 st5">Python</tspan></text>
+		<line class="st8" x1="124.9" y1="85.8" x2="351.8" y2="85.8"/>
+		<g>
+			<g>
+				<polygon class="st9" points="62.8,35.3 36.4,35.3 23.2,58.2 36.4,81.1 62.8,81.1 76.1,58.2 				"/>
+				<g>
+					<circle class="st10" cx="23.3" cy="58.2" r="2.4"/>
+					<circle class="st11" cx="23.3" cy="58.2" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st10" cx="36.2" cy="35.3" r="2.4"/>
+					<circle class="st11" cx="36.2" cy="35.3" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st10" cx="62.8" cy="35.3" r="2.4"/>
+					<circle class="st11" cx="62.8" cy="35.3" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st10" cx="75.5" cy="58.2" r="2.4"/>
+					<circle class="st11" cx="75.5" cy="58.2" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st10" cx="62.8" cy="80.9" r="2.4"/>
+					<circle class="st11" cx="62.8" cy="80.9" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st10" cx="36.2" cy="81.1" r="2.4"/>
+					<circle class="st11" cx="36.2" cy="81.1" r="2.8"/>
+				</g>
+			</g>
+			<g>
+				<polygon class="st12" points="83,23.7 56.6,23.7 43.3,46.6 56.6,69.5 83,69.5 96.2,46.6 				"/>
+				<g>
+					<circle class="st13" cx="43.5" cy="46.6" r="2.4"/>
+					<circle class="st11" cx="43.5" cy="46.6" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st13" cx="56.4" cy="23.7" r="2.4"/>
+					<circle class="st11" cx="56.4" cy="23.7" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st13" cx="82.9" cy="23.7" r="2.4"/>
+					<circle class="st11" cx="82.9" cy="23.7" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st13" cx="95.7" cy="46.6" r="2.4"/>
+					<circle class="st11" cx="95.7" cy="46.6" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st13" cx="82.9" cy="69.3" r="2.4"/>
+					<circle class="st11" cx="82.9" cy="69.3" r="2.8"/>
+				</g>
+				<g>
+					<circle class="st13" cx="56.4" cy="69.5" r="2.4"/>
+					<circle class="st11" cx="56.4" cy="69.5" r="2.8"/>
+				</g>
+			</g>
+			<g>
+				<g>
+					<path class="st14" d="M36.4,28.5c2.6-4.1,7.2-6.8,12.4-6.8c0.4,0,0.8,0,1.2,0"/>
+					<g>
+						<polygon class="st6" points="37.5,28.4 35.2,30.8 36,27.6 						"/>
+					</g>
+					<g>
+						<polygon class="st6" points="49.3,22.5 52.6,22.2 49.6,20.9 						"/>
+					</g>
+				</g>
+			</g>
+			<path class="st15" d="M57.8,49.1"/>
+			<g>
+				<g>
+					<path class="st14" d="M82.2,75.3C79.6,79.3,75,82,69.8,82c-0.4,0-0.8,0-1.2,0"/>
+					<g>
+						<polygon class="st6" points="81.1,75.3 83.4,73 82.6,76.2 						"/>
+					</g>
+					<g>
+						<polygon class="st6" points="69.3,81.2 66,81.6 69,82.9 						"/>
+					</g>
+				</g>
+			</g>
+		</g>
+		<path class="st16" d="M98.6,91.4H20.4c-5.3,0-9.6-4.3-9.6-9.6V22.3c0-5.3,4.3-9.6,9.6-9.6h78.3c5.3,0,9.6,4.3,9.6,9.6v59.4
+			C108.2,87.1,103.9,91.4,98.6,91.4z"/>
+		<rect x="44.6" y="95.9" class="st17" width="29.8" height="9.4"/>
+		<rect x="29.1" y="100.6" class="st17" width="60.8" height="8.8"/>
+	</g>
+</g>
+<g id="Layer_1">
+	<path pointer-events="stroke" class="st18" d="M334,330.1v54.6"/>
+	<path pointer-events="all" class="st19" d="M334,390l-3.5-7l3.5,1.8l3.5-1.8L334,390z"/>
+	<path pointer-events="stroke" class="st18" d="M334,220.1v43.6"/>
+	<path pointer-events="all" class="st19" d="M334,269l-3.5-7l3.5,1.8l3.5-1.8L334,269z"/>
+	<path pointer-events="stroke" class="st18" d="M334,451.1v21.6"/>
+	<path pointer-events="all" class="st19" d="M334,478l-3.5-7l3.5,1.8l3.5-1.8L334,478z"/>
+	<path pointer-events="all" class="st20" d="M287.8,391.1h92.4c7.6,0,13.8,6.2,13.8,13.8v32.4c0,7.6-6.2,13.8-13.8,13.8h-92.4
+		c-7.6,0-13.8-6.2-13.8-13.8v-32.4C274,397.3,280.2,391.1,287.8,391.1z"/>
+	<path pointer-events="stroke" class="st18" d="M174,300.1h93.6"/>
+	<path pointer-events="all" class="st19" d="M272.9,300.1l-7,3.5l1.8-3.5l-1.8-3.5L272.9,300.1z"/>
+	<path pointer-events="stroke" class="st18" d="M152,421.1h115.6"/>
+	<path pointer-events="all" class="st19" d="M272.9,421.1l-7,3.5l1.8-3.5l-1.8-3.5L272.9,421.1z"/>
+	<path pointer-events="all" class="st18" d="M424,155.1h-5c-3.3,0-5,3.3-5,10v15c0,6.7-1.7,10-5,10h-2.5c-1.7,0-0.8,0,2.5,0h2.5
+		c1.7,0,2.5,3.3,2.5,10v15c0,6.7,1.7,10,5,10h5"/>
+	<path pointer-events="all" class="st18" d="M424,396.1h-5c-3.3,0-5,3.3-5,10v7.5c0,5-1.7,7.5-5,7.5h-2.5c-1.7,0-0.8,0,2.5,0h2.5
+		c1.7,0,2.5,3.3,2.5,10v7.5c0,5,1.7,7.5,5,7.5h5"/>
+	<path pointer-events="all" class="st21" d="M31.2,373.6h121.5c7.9,0,14.2,6.4,14.2,14.2v66.5c0,7.9-6.4,14.2-14.2,14.2H31.2
+		c-7.9,0-14.2-6.4-14.2-14.2v-66.5C17,380,23.4,373.6,31.2,373.6z"/>
+	<path pointer-events="all" class="st20" d="M287.8,270.1h92.4c7.6,0,13.8,6.2,13.8,13.8v32.4c0,7.6-6.2,13.8-13.8,13.8h-92.4
+		c-7.6,0-13.8-6.2-13.8-13.8v-32.4C274,276.3,280.2,270.1,287.8,270.1z"/>
+	<path pointer-events="all" class="st20" d="M287.8,160.1h92.4c7.6,0,13.8,6.2,13.8,13.8v32.4c0,7.6-6.2,13.8-13.8,13.8h-92.4
+		c-7.6,0-13.8-6.2-13.8-13.8v-32.4C274,166.3,280.2,160.1,287.8,160.1z"/>
+	<path pointer-events="all" class="st20" d="M67.4,270.1h92.4c7.6,0,13.8,6.2,13.8,13.8v32.4c0,7.6-6.2,13.8-13.8,13.8H67.4
+		c-7.6,0-13.8-6.2-13.8-13.8v-32.4C53.6,276.3,59.8,270.1,67.4,270.1z"/>
+	<path pointer-events="all" class="st20" d="M45.8,391.1h92.4c7.6,0,13.8,6.2,13.8,13.8v32.4c0,7.6-6.2,13.8-13.8,13.8H45.8
+		c-7.6,0-13.8-6.2-13.8-13.8v-32.4C32,397.3,38.2,391.1,45.8,391.1z"/>
+	<path pointer-events="all" class="st20" d="M287.8,479h92.4c7.6,0,13.8,6.2,13.8,13.8v32.4c0,7.6-6.2,13.8-13.8,13.8h-92.4
+		c-7.6,0-13.8-6.2-13.8-13.8v-32.4C274,485.2,280.2,479,287.8,479z"/>
+	<path class="st22" d="M533.4,172.6H444c-6.6,0-12-5.4-12-12v-0.8c0-6.6,5.4-12,12-12h89.4c6.6,0,12,5.4,12,12v0.8
+		C545.4,167.2,540,172.6,533.4,172.6z"/>
+	<path class="st22" d="M533.4,200.8H444c-6.6,0-12-5.4-12-12v-0.8c0-6.6,5.4-12,12-12h89.4c6.6,0,12,5.4,12,12v0.8
+		C545.4,195.4,540,200.8,533.4,200.8z"/>
+	<path class="st22" d="M533.4,230.7H444c-6.6,0-12-5.4-12-12v-0.8c0-6.6,5.4-12,12-12h89.4c6.6,0,12,5.4,12,12v0.8
+		C545.4,225.3,540,230.7,533.4,230.7z"/>
+	<path class="st22" d="M533.4,312H444c-6.6,0-12-5.4-12-12v-0.8c0-6.6,5.4-12,12-12h89.4c6.6,0,12,5.4,12,12v0.8
+		C545.4,306.6,540,312,533.4,312z"/>
+	<path class="st22" d="M533.4,448.4H444c-6.6,0-12-5.4-12-12v-0.8c0-6.6,5.4-12,12-12h89.4c6.6,0,12,5.4,12,12v0.8
+		C545.4,443,540,448.4,533.4,448.4z"/>
+	<path class="st22" d="M533.4,418.2H444c-6.6,0-12-5.4-12-12v-0.8c0-6.6,5.4-12,12-12h89.4c6.6,0,12,5.4,12,12v0.8
+		C545.4,412.8,540,418.2,533.4,418.2z"/>
+	<path class="st23" d="M254.8,295.3h-59c-6.1,0-11-5-11-11v0c0-6.1,5-11,11-11h59c6.1,0,11,5,11,11v0
+		C265.9,290.4,260.9,295.3,254.8,295.3z"/>
+	<path class="st23" d="M417.2,254.6h-69c-6.1,0-11-5-11-11v0c0-6.1,5-11,11-11h69c6.1,0,11,5,11,11v0
+		C428.2,249.6,423.2,254.6,417.2,254.6z"/>
+	<path class="st23" d="M412.9,369.5h-59c-6.1,0-11-5-11-11v0c0-6.1,5-11,11-11h59c6.1,0,11,5,11,11v0
+		C423.9,364.5,419,369.5,412.9,369.5z"/>
+	<path class="st23" d="M254.8,415.4h-71.3c-6.1,0-11-5-11-11v0c0-6.1,5-11,11-11h71.3c6.1,0,11,5,11,11v0
+		C265.9,410.4,260.9,415.4,254.8,415.4z"/>
+</g>
+<g id="Layer_2">
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 299.6425 303.1103)" class="st24 st25 st5">Model Fitting</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 282.2987 193.1103)" class="st24 st25 st5">Model Construction</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 284.6327 424.1103)" class="st24 st25 st5">Kinetic Monte Carlo</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 278.6249 512.1102)" class="st24 st25 st5">Results and Analysis</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 58.3192 303.1103)" class="st24 st25 st5">DFT-NEB Calculation</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 36.2948 424.1103)" class="st24 st25 st26">Canonical Monte Carlo</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 175.9852 409.1103)" class="st24 st25 st5">Initial Structures</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 191.995 288.1103)" class="st24 st25 st5">NEB Barriers</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 464.2714 163.1103)" class="st20 st25 st5">model.py</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 465.9354 191.1103)" class="st20 st25 st5">event.py</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 437.2421 223.1103)" class="st20 st25 st5">event_generator.py</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 466.2723 303.1103)" class="st20 st25 st5">fitting.py</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 469.6151 409.1103)" class="st20 st25 st5">kmc.py</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 462.6044 439.1103)" class="st20 st25 st5">tracker.py</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 19.9637 361.1103)" class="st23 st25 st5">Thermodynamic Properties</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 341.1576 248.1103)" class="st24 st25 st5">Basis (Clusters)</text>
+	</g>
+	<g transform="translate(-0.5 -0.5)">
+		<text transform="matrix(1 0 0 1 350.4828 363.1103)" class="st24 st25 st5">Fitted Model</text>
+	</g>
+	<text transform="matrix(1 0 0 1 168.1442 141.6555)" class="st23 st27 st28">FLOW CHART</text>
+	<g>
+		<g>
+			<path class="st29" d="M272.9,137.1c17.3,0,34.5,0,51.8,0c6.6,0,12,5.4,12,12v2.9"/>
+			<g>
+				<path class="st6" d="M336.7,150.2l3.6-2.2l0.1,0.1L338,154c-0.5,2-0.9,4.1-1.4,6.1c-0.5-2-0.9-4.1-1.4-6.1l-2.3-5.9l0.1-0.1
+					L336.7,150.2z"/>
+			</g>
+		</g>
+	</g>
+	<text transform="matrix(1 0 0 1 465.8553 141.6557)" class="st30 st27 st28">CODE</text>
+</g>
+</svg>
