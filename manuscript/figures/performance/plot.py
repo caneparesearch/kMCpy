@@ -50,22 +50,18 @@ def plot_non_equ_average():
 
     defineplot()
 
-    fig, axes = plt.subplots(1, 1, figsize=(3, 3), sharex=True)
+    fig, axes = plt.subplots(1, 2, figsize=(6, 3), sharex=True)
 
+    # axes[0].set_yscale('log')
+    #axes[0].set_ylim((-12, -4))
+    #axes[0].set_xlim((0, 3))
+    axes[0].xaxis.set_minor_locator(AutoMinorLocator(2))
 
-    axes.set_ylabel(r'Na$^+$ diffusivity, log$_{10}$($D$) (cm$^2$/s)')
-    # axes.set_yscale('log')
-    #axes.set_ylim((-12, -4))
-    #axes.set_xlim((0, 3))
-    axes.xaxis.set_minor_locator(AutoMinorLocator(2))
-
-    axes.yaxis.set_minor_locator(AutoMinorLocator(2))
-    axes.tick_params(which='both', direction='in', top=True, right=True)
-    axes.xaxis.set_minor_locator(AutoMinorLocator(2))
-    axes.set_xlabel(
-        r'$x$ in Na$_{{\rm 1}+x}$Zr$_{\rm 2}$Si$_{x}$P$_{{\rm 3}-x}$O$_{\rm 12}$')
-    axes.xaxis.set_label_position('top') 
-    axes.xaxis.set_tick_params(labeltop='on')
+    axes[0].yaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[0].tick_params(which='both', direction='in', top=True, right=True)
+    axes[0].xaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[0].xaxis.set_label_position('top') 
+    axes[0].xaxis.set_tick_params(labeltop='on')
     
 
     
@@ -82,7 +78,7 @@ def plot_non_equ_average():
     line_style = 'dashed'
 
 
-    #axes.plot(df.x, np.log10(df.D_J), marker=markers[i], color=mec[i],mfc=mfc[i],mec=mec[i], label=str(T)+' K', ms=marker_size, lw=line_width, ls=line_style,mew=mew)
+    #axes[0].plot(df.x, np.log10(df.D_J), marker=markers[i], color=mec[i],mfc=mfc[i],mec=mec[i], label=str(T)+' K', ms=marker_size, lw=line_width, ls=line_style,mew=mew)
     run_time_numba=[]
     with open("supercell_scalability_log.txt") as f:
         line=f.readline()
@@ -141,24 +137,46 @@ def plot_non_equ_average():
     b1=round(b1,4)
     b2=round(b2,4)
     b3=round(b3,4)
-    axes.scatter(total_cells,run_time_numba,c="tab:red")
-    axes.scatter(total_cells,run_time_no_numba,c="tab:blue")
-    axes.plot(xnew,smooth_numba,label="w/ numba",color="tab:red")
-    axes.plot(xnew,smooth_no_numba,label="w/o numba",color="tab:blue")
-    axes.legend(loc="upper left")
+    axes[0].scatter(total_cells,run_time_numba,c="tab:red")
+    axes[0].scatter(total_cells,run_time_no_numba,c="tab:blue")
+    axes[0].plot(xnew,smooth_numba,label="w/ numba",color="tab:red")
+    axes[0].plot(xnew,smooth_no_numba,label="w/o numba",color="tab:blue")
+    axes[0].legend(loc="upper left")
     xticks=list(total_cells.copy())
     xticks.pop(1)
     xticks.pop(1)
-    axes.set_xticks(xticks, xticks)
-    axes.set_title("Comparison")
+    axes[0].set_xticks(xticks, xticks)
+    axes[0].set_title("Comparison")
 
-    axes.set_xlabel("Cell Size")
-    axes.set_ylabel("Run Time per KMC pass(sec)")
+    axes[0].set_xlabel("Cell Size")
+    axes[0].set_ylabel("Run Time per KMC pass(sec)")
 
 
-    axes.legend(loc='best',ncol=1)
-    l = axes.legend()
+    axes[0].legend(loc='best',ncol=1)
+    l = axes[0].legend()
     l.get_frame().set_linewidth(0.75)
+
+
+    axes[1].scatter(total_cells,np.array(run_time_numba)/np.array(total_cells),c="tab:red")
+    axes[1].set_yscale('log')
+    axes[1].scatter(total_cells,np.array(run_time_no_numba)/np.array(total_cells),c="tab:blue")
+    axes[1].plot(total_cells,np.array(run_time_numba)/np.array(total_cells),label="w/ numba",color="tab:red")
+    axes[1].plot(total_cells,np.array(run_time_no_numba)/np.array(total_cells),label="w/o numba",color="tab:blue")
+    axes[1].legend(loc="upper left")
+    xticks=list(total_cells.copy())
+    xticks.pop(1)
+    xticks.pop(1)
+    axes[1].set_xticks(xticks, xticks)
+    axes[1].set_title("Comparison")
+
+    axes[1].set_xlabel("Cell Size")
+    axes[1].set_ylabel("Run Time per KMC step(sec)")
+
+
+    axes[1].legend(loc='best',ncol=1)
+    l = axes[0].legend()
+    l.get_frame().set_linewidth(0.75)
+
 
 
     fig.tight_layout(pad=1.2)
