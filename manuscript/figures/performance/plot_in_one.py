@@ -184,8 +184,10 @@ def plot_non_equ_average():
     axes03=axes .twiny()
     
     axes03.set_xticks(np.linspace(0,12000,7,dtype=np.int64),np.linspace(0,12000,7,dtype=np.int64))
-    axes03.set_xlabel("number of events")
+    axes03.set_xlabel("Number of events")
+    axes03.set_xscale("log")
 
+    # with和without用虚线实线区别,per step和per pass用color
 
     #axes02.legend(loc='best',ncol=1)
 

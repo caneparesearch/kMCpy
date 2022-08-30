@@ -186,6 +186,5 @@ mc_results_json.h5
 test/v3_nasicon_bulk/gather_mc_data/mc_results_cif.h5
 test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
 dev/scalability/input/*
-qstatqstat
 nohup.out
 !scalability.pdf
