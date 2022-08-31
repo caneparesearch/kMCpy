@@ -188,3 +188,4 @@ test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
 dev/scalability/input/*
 nohup.out
 !scalability.pdf
+!manuscript/figures/performance/cutoff_time.log
