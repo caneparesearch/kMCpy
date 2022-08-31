@@ -2,7 +2,7 @@ import time
 class Test_version3():
     def __init__(self,cutoff1=4.0) -> None:
         self.cutoff=cutoff1
-        self.supercell=[3,3,3]
+        self.supercell=[8,8,8]
     
     def time_test(self):
         tick=time.time()
@@ -16,9 +16,28 @@ class Test_version3():
         reference_local_env_dict=self.test_generate_events()
         #self.test_kmc_main_function()
         tock=time.time()
-        print("elapsed time for ",reference_local_env_dict, tock-tick)
-        return (reference_local_env_dict, tock-tick)    
-    
+        
+        time2=self.test_kmc_main_function()
+        print("elapsed time for ",reference_local_env_dict, time2)
+        return (reference_local_env_dict, time2)    
+    def test_generate_local_cluster_exapnsion(self):
+        from pathlib import Path
+        import os
+        current_dir= Path(__file__).absolute().parent
+        os.chdir(current_dir)
+        from kmcpy.model import LocalClusterExpansion
+        mobile_ion_identifier_type="label"
+        mobile_ion_specie_1_identifier="Na1"
+        tick=time.perf_counter()
+        a=LocalClusterExpansion(api=3)
+        a.initialization3(mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,cutoff_cluster=[self.cutoff,self.cutoff,0],cutoff_region=6,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
+        self.orbits=len(a.orbits)
+        self.clusters=len(a.clusters)
+        a.to_json("./input/lce.json")
+        a.to_json("./input/lce_site.json")
+        tock=time.perf_counter()
+        print("time for lce: ",tock-tick)
+            
     def test_generate_events(self):
         from pathlib import Path
         import os
@@ -35,6 +54,38 @@ class Test_version3():
         for i in reference_local_env_dict:
             return i
         #return reference_local_env_dict[0]
+
+
+    def test_kmc_main_function(self):
+        from pathlib import Path
+        import os
+        current_dir= Path(__file__).absolute().parent
+        os.chdir(current_dir)
+        from kmcpy.io import InputSet,load_occ
+        from kmcpy.kmc import KMC
+        import numpy as np
+        api=3
+        inputset=InputSet.from_json("input/test_input_v3.json",api=api)
+
+        inputset.parameter_checker()
+        inputset.set_parameter("supercell_shape",self.supercell)
+        inputset.set_parameter("occ",load_occ(fname=inputset._parameters["mc_results"],shape=inputset._parameters["supercell_shape"],select_sites=inputset._parameters["select_sites"],api=inputset.api,verbose=True))
+
+        
+        kmc = KMC(api=api)
+
+        events_initialized = kmc.initialization(**inputset._parameters) # v in 10^13 hz
+
+
+        # # step 2 compute the site kernal (used for kmc run)
+        kmc.load_site_event_list(inputset._parameters["event_kernel"])
+
+        
+        tick=time.time()
+        # # step 3 run kmc
+        kmc_tracker=kmc.run_from_database(events=events_initialized,**inputset._parameters)
+        tock=time.time()
+
 
 if __name__ == '__main__':
     with open("cutoff_scalability.txt","w") as t:

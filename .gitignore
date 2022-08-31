@@ -186,5 +186,13 @@ mc_results_json.h5
 test/v3_nasicon_bulk/gather_mc_data/mc_results_cif.h5
 test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
 dev/scalability/input/*
-qstatqstat
-nohup.out
+nohup.out*
+!scalability.pdf
+!manuscript/figures/performance/cutoff_time.log
+input_example/event_kernal.csv
+input_example/events.json
+input_example/keci.txt
+input_example/lce_site.json
+input_example/lce.json
+!input_example/fitting_results.json
+

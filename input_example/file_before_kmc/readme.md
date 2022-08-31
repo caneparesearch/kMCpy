@@ -1,0 +1,1 @@
+This folder contains the required data for KMC to prepare input and run simulation
