@@ -27,7 +27,7 @@ def defineplot():
     plt.rcParams['legend.fancybox'] = False
     plt.rcParams['legend.loc'] = 'best'
     plt.rcParams['legend.numpoints'] = 1
-    plt.rcParams['legend.fontsize'] = '10'
+    plt.rcParams['legend.fontsize'] = '12'
     plt.rcParams['legend.framealpha'] = None
     plt.rcParams['legend.scatterpoints'] = 1
     plt.rcParams['legend.edgecolor'] = 'inherit'
@@ -51,7 +51,7 @@ def plot_non_equ_average():
 
     defineplot()
 
-    fig, axes= plt.subplots(1, 3, figsize=(10,3.5))
+    fig, axes= plt.subplots(1, 3, figsize=(9,3))
 
 
 
@@ -147,9 +147,9 @@ def plot_non_equ_average():
     b3=round(b3,4)
     axes[0].scatter(total_cells,run_time_numba,c="tab:red",marker="^")
     axes[0].scatter(total_cells,run_time_no_numba,c="tab:red",marker="v")
-    axes[0].plot(xnew,smooth_numba,label="Time per pass",color="tab:red")
+    axes[0].plot(xnew,smooth_numba,label="Time/pass",color="tab:red")
     axes[0].plot(xnew,smooth_no_numba,label=" ",color="tab:red",linestyle="dashed")
-    axes[0].plot([10,11],[-100,-100],color="tab:blue",label="Time per step")# dummy for legend
+    axes[0].plot([10,11],[-100,-100],color="tab:blue",label="Time/step")# dummy for legend
 
     axes[0].plot([10,11],[-100,-100],linestyle="dashed",color="tab:blue",label=" ")
     axes[0].xaxis.set_minor_locator(AutoMinorLocator(2))
@@ -169,7 +169,7 @@ def plot_non_equ_average():
 
 
     #axes[0].legend(loc='best',ncol=1)
-    l = axes[0].legend(loc="upper left",bbox_to_anchor=(0,0.99),labelspacing=0.001)
+    l = axes[0].legend(loc="upper left",bbox_to_anchor=(0,0.99),labelspacing=-0.3)
     l.get_frame().set_linewidth(0.75)
 
     #-------------
@@ -177,7 +177,7 @@ def plot_non_equ_average():
     axes02=axes[0].twinx()
     #axes02.scatter(total_cells,np.array(run_time_numba)/np.array(total_cells),c="tab:red")
     axes02.set_yscale('log')
-    axes02.set_ylim(0.0005,3)
+    axes02.set_ylim(0.0005,9)
     #axes02.scatter(total_cells,np.array(run_time_no_numba)/np.array(total_cells),c="tab:blue")
     axes02.plot(total_cells,np.array(run_time_numba)/np.array(total_cells),color="tab:blue")
     axes02.plot(total_cells,np.array(run_time_no_numba)/np.array(total_cells),color="tab:blue",linestyle="dashed")
@@ -272,13 +272,13 @@ def plot_non_equ_average():
     spl_cutoff=make_interp_spline(unique_clusters,fit3,k=3)
     smooth_cutoff=spl_cutoff(cutoff_xnew)
 
-    axes[2].plot(cutoff_xnew,smooth_cutoff,color="tab:red",label="Time per pass")
+    axes[2].plot(cutoff_xnew,smooth_cutoff,color="tab:red",label="Time/pass")
     axes[2].set_xlim(min(clusters),max(clusters))
     axes[2].set_ylim(1,200)
     axes[2].set_xscale("log")
     axes[2].set_yscale("log")
     axes[2].set_ylabel("Run time per KMC pass")
-    axes[2].set_xlabel("number of clusters")
+    axes[2].set_xlabel("Number of Clusters")
     #axes[2].set_title("model complexity")
     
     axes1_orbit=axes[2].twiny()
@@ -286,7 +286,7 @@ def plot_non_equ_average():
     axes1_orbit.set_xlim(min(orbits),max(orbits))
     axes1_orbit.set_xscale("log")
     axes1_orbit.set_xlabel("number of orbits")
-    l = axes[2].legend(loc="upper left",bbox_to_anchor=(0.05,0.95),labelspacing=0.001)
+    l = axes[2].legend(loc="best")
     l.get_frame().set_linewidth(0.75)
 
 
@@ -302,14 +302,14 @@ def plot_non_equ_average():
 
     popt3,_=curve_fit(eq3,basis_set_size,run_time,maxfev=5000)
     print("for basis size:", popt3)
-    axes[1].plot(basis_set_size,run_time,label="Time per pass",c="r")
+    axes[1].plot(basis_set_size,run_time,label="Time/pass",c="r")
     axes[1].set_ylim(-2,32)
     axes[1].set_yticks(np.linspace(0,30,6),np.linspace(0,30,6))
     axes[1].set_xlim(0,400)
     axes[1].xaxis.set_minor_locator(AutoMinorLocator(2))
-    axes[1].set_xlabel("number of basis sets")
+    axes[1].set_xlabel("Coupling Strength")
     axes[1].set_ylabel("run time per KMC pass")
-    l = axes[1].legend(loc="upper left",bbox_to_anchor=(0.05,0.95),labelspacing=0.001)
+    l = axes[1].legend(loc="best",)
     l.get_frame().set_linewidth(0.75)
 
 
