@@ -51,7 +51,11 @@ def plot_non_equ_average():
 
     defineplot()
 
-    fig, axes= plt.subplots(1, 2, figsize=(7,3.5))
+    fig, axes= plt.subplots(1, 3, figsize=(10,3.5))
+
+
+
+
 
     # axes[0].set_yscale('log')
     #axes[0].set_ylim((-12, -4))
@@ -148,7 +152,7 @@ def plot_non_equ_average():
     axes[0].plot([10,11],[-100,-100],color="tab:blue",label="Time per step")# dummy for legend
 
     axes[0].plot([10,11],[-100,-100],linestyle="dashed",color="tab:blue",label=" ")
-    
+    axes[0].xaxis.set_minor_locator(AutoMinorLocator(2))
 
     xticks=list(total_cells.copy())
     xticks.pop(1)
@@ -156,7 +160,7 @@ def plot_non_equ_average():
     xticks.pop(2)
     #xticks.pop(2)
     #print(xticks)
-    axes[0].set_xticks(xticks, xticks)
+    #axes[0].set_xticks(xticks, xticks)
     #axes[0].set_title("Model Size")
     axes[0].set_xlabel("Cell Size")
     axes[0].set_ylabel("Run Time per KMC pass (sec)")
@@ -183,7 +187,7 @@ def plot_non_equ_average():
     xticks.pop(1)
     xticks.pop(2)
     #xticks.pop(2)
-    axes02.set_xticks(xticks, xticks)
+    #axes02.set_xticks(xticks, xticks)
     #axes02.set_title("Comparison")
 
     axes02.set_xlabel("Cell Size")
@@ -250,8 +254,8 @@ def plot_non_equ_average():
         unique_orbits.append(i)
         
         
-    axes[1].scatter(clusters,runtime_cutoff,c="tab:red",s=5)
-    #axes[1].scatter(orbits,runtime_cutoff,c="tab:blue")
+    axes[2].scatter(clusters,runtime_cutoff,c="tab:red",s=5)
+    #axes[2].scatter(orbits,runtime_cutoff,c="tab:blue")
 
     def poly3(x,a1,a2,a3):
         return a1*(x**a2)+a3
@@ -268,23 +272,54 @@ def plot_non_equ_average():
     spl_cutoff=make_interp_spline(unique_clusters,fit3,k=3)
     smooth_cutoff=spl_cutoff(cutoff_xnew)
 
-    axes[1].plot(cutoff_xnew,smooth_cutoff,color="tab:red",label="Time per pass")
-    axes[1].set_xlim(min(clusters),max(clusters))
-    axes[1].set_ylim(1,200)
-    axes[1].set_xscale("log")
-    axes[1].set_yscale("log")
-    axes[1].set_ylabel("Run time per KMC pass")
-    axes[1].set_xlabel("number of clusters")
-    #axes[1].set_title("model complexity")
+    axes[2].plot(cutoff_xnew,smooth_cutoff,color="tab:red",label="Time per pass")
+    axes[2].set_xlim(min(clusters),max(clusters))
+    axes[2].set_ylim(1,200)
+    axes[2].set_xscale("log")
+    axes[2].set_yscale("log")
+    axes[2].set_ylabel("Run time per KMC pass")
+    axes[2].set_xlabel("number of clusters")
+    #axes[2].set_title("model complexity")
     
-    axes1_orbit=axes[1].twiny()
+    axes1_orbit=axes[2].twiny()
     axes1_orbit.set_xticks(np.linspace(min(orbits),max(orbits),7,dtype=np.int64),np.linspace(min(orbits),max(orbits),7,dtype=np.int64))
     axes1_orbit.set_xlim(min(orbits),max(orbits))
     axes1_orbit.set_xscale("log")
     axes1_orbit.set_xlabel("number of orbits")
+    l = axes[2].legend(loc="upper left",bbox_to_anchor=(0.05,0.95),labelspacing=0.001)
+    l.get_frame().set_linewidth(0.75)
+
+
+    with open("basis_set_time.txt") as f:
+        basis_set_time_raw=f.readline().replace("\n","").split(",")
+
+    
+    basis_set_size=[12*i+12 for i in range(0,len(basis_set_time_raw))]
+    run_time=basis_set_time_raw
+    def eq3(x,z1,z2,z3):
+        return z2*x**z1 + z3
+
+
+    popt3,_=curve_fit(eq3,basis_set_size,run_time,maxfev=5000)
+    print("for basis size:", popt3)
+    axes[1].plot(basis_set_size,run_time,label="Time per pass",c="r")
+    axes[1].set_ylim(-2,32)
+    axes[1].set_yticks(np.linspace(0,30,6),np.linspace(0,30,6))
+    axes[1].set_xlim(0,400)
+    axes[1].xaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[1].set_xlabel("number of basis sets")
+    axes[1].set_ylabel("run time per KMC pass")
     l = axes[1].legend(loc="upper left",bbox_to_anchor=(0.05,0.95),labelspacing=0.001)
     l.get_frame().set_linewidth(0.75)
 
+
+
+    axes[0].text(-0.1, 1.1, "a", transform=axes[0].transAxes, 
+            size=20, weight='bold')
+    axes[2].text(-0.1, 1.1, "c", transform=axes[2].transAxes, 
+            size=20, weight='bold')
+    axes[1].text(-0.1, 1.1, "b", transform=axes[1].transAxes, 
+            size=20, weight='bold')
 
     #fig.suptitle('Runtime on different cell size', fontsize=16)
 

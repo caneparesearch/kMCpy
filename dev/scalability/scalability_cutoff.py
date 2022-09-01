@@ -19,7 +19,7 @@ class Test_version3():
         
         time2=self.test_kmc_main_function()
         print("elapsed time for ",reference_local_env_dict, time2)
-        return (reference_local_env_dict, time2)    
+        return (self.cutoff, time2)    
     def test_generate_local_cluster_exapnsion(self):
         from pathlib import Path
         import os
@@ -30,7 +30,7 @@ class Test_version3():
         mobile_ion_specie_1_identifier="Na1"
         tick=time.perf_counter()
         a=LocalClusterExpansion(api=3)
-        a.initialization3(mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,cutoff_cluster=[self.cutoff,self.cutoff,0],cutoff_region=6,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
+        a.initialization3(mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,cutoff_cluster=[6,6,0],cutoff_region=4,template_cif_fname='./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',convert_to_primitive_cell=True)
         self.orbits=len(a.orbits)
         self.clusters=len(a.clusters)
         a.to_json("./input/lce.json")
@@ -47,10 +47,37 @@ class Test_version3():
         mobile_ion_specie_1_identifier="Na1"
         mobile_ion_specie_2_identifier="Na2"
         prim_cif_name="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
-        local_env_cutoff_dict={('Na+','Na+'):self.cutoff,('Na+','Si4+'):self.cutoff}
+        local_env_cutoff_dict={('Na+','Na+'):4,('Na+','Si4+'):4}
         from kmcpy.event_generator import generate_events3
 
         reference_local_env_dict=generate_events3(prim_cif_name=prim_cif_name,local_env_cutoff_dict=local_env_cutoff_dict,mobile_ion_identifier_type=mobile_ion_identifier_type,mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier=mobile_ion_specie_2_identifier,species_to_be_removed=["O2-","O","Zr4+","Zr"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=False,convert_to_primitive_cell=True,export_local_env_structure=True,supercell_shape=self.supercell,event_fname="./input/events.json",event_kernal_fname='./input/event_kernal.csv',verbosity="INFO")
+        
+        site_event_list = []
+        
+        
+        extended_dummy=[]
+        for i in range(0,int(self.cutoff)):
+            for j in range(0,12):
+                extended_dummy.append(12*i+j)
+        
+        with open('./input/event_kernal.csv') as f:
+            data = f.readlines()
+        for x in data:
+            if len(x.strip()) == 0:
+                site_event_list.append([])
+            else:
+                print([int(y) for y in x.strip().split()])
+                print(extended_dummy)
+                print([int(y) for y in x.strip().split()]+(extended_dummy))
+                site_event_list.append([int(y) for y in x.strip().split()]+extended_dummy)
+        with open('./input/event_kernal.csv', 'w') as f:
+  
+            for row in site_event_list:
+                for item in row:
+                    f.write('%5d ' % item)
+                f.write('\n')
+            
+        
         for i in reference_local_env_dict:
             return i
         #return reference_local_env_dict[0]
@@ -85,55 +112,30 @@ class Test_version3():
         # # step 3 run kmc
         kmc_tracker=kmc.run_from_database(events=events_initialized,**inputset._parameters)
         tock=time.time()
+        return (tock-tick)/3
 
 
 if __name__ == '__main__':
     with open("cutoff_scalability.txt","w") as t:
         content=""
-        data=[]
-        for i in range(4,15):
+        
+        basis_set=[]
+        run_time=[]
+        
+        for i in range(0,30):
             a=Test_version3(cutoff1=i)
             b=a.time_test()
-            data.append(b)
-            content+=str(b)
+            basis_set=i*12+12
+            run_time.append(b[1])
+            content+=f"{12*i+12},{b[1]}"
         t.write(content)
 
-del data[0] #first run time is outlier
-        
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-var=[]
-run_time=[]
 
-for j in range(0,len(data)):
-    var.append(str(data[j][0]))
-    run_time.append(data[j][1])
-
-all=[]
-
-for w in data:
-    for x in w[0]:
-        all.append(x[1])
-
-pairs=list(zip(all,all[1:]+all[:1]))
-
-d=1
-t=len(pairs)/2
-while t>0:
-    del pairs[d]
-    d+=1
-    t-=1
-
-#delete a repeated data point
-del pairs[0]
-del run_time[0]
-del var[0]
-
-prods=[]
-for p in range(0,len(pairs)):
-    prod=pairs[p][0]*pairs[p][1]
-    prods.append(prod)
 
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
@@ -147,26 +149,16 @@ def eq2(x,k1,k2):
 def eq3(x,z1,z2,z3):
     return z2*z1**x + z3
 
-popt1,_=curve_fit(eq1,prods,run_time,maxfev=2000)
-c1=popt1
-fit1=eq1(prods,c1)
-r2_1=r2_score(run_time,fit1)
 
-popt2,_=curve_fit(eq2,prods,run_time,maxfev=5000)
-k1,k2=popt2
-fit2=eq2(prods,k1,k2)
-r2_2=r2_score(run_time,fit2)
-
-popt3,_=curve_fit(eq3,prods,run_time,maxfev=5000)
+popt3,_=curve_fit(eq3,basis_set,run_time,maxfev=5000)
 z1,z2,z3=popt3
-fit3=eq3(prods,z1,z2,z3)
+fit3=eq3(basis_set,z1,z2,z3)
 r2_3=r2_score(run_time,fit3)
 
-plt.scatter(var,run_time)
-plt.plot(fit1,label=r2_1,color="red")
-plt.plot(fit2,label=r2_2,color="blue")
+plt.scatter(basis_set,run_time)
+
 plt.plot(fit3,label=r2_3,color="green")
 plt.legend(loc="upper left")
-plt.xlabel("var")
+plt.xlabel("basis")
 plt.ylabel("run_time")
 plt.show()
