@@ -66,7 +66,7 @@ for result in results:
         print(result)
         x = 3-3*float(result.strip().split('_')[1])
         structure_id = int(result.strip().split('_')[2])
-        D_J,D_tracer,f,conductivity = np.loadtxt(result+'/diffusion_'+str(n_pass)+'.txt')
+        D_J,D_tracer,f,conductivity = np.loadtxt(result+'/migration_'+str(n_pass)+'.txt')
         # displacement = np.loadtxt(result+'/displacement.txt')
         # hop_counter = np.loadtxt(result+'/hop_count.txt')
         # time = search_string(result+'/kmc_stdout.txt','Time',2)
