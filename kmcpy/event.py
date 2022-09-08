@@ -1,5 +1,5 @@
 """
-Event is a database storing site and cluster info for each diffusion event
+Event is a database storing site and cluster info for each migration event
 
 Author: Zeyu Deng
 Email: dengzeyu@gmail.com
@@ -87,7 +87,7 @@ class Event:
         self.esite = np.inner(self.corr_site,keci_site)+empty_cluster_site
 
     # @profile
-    def set_probability(self,occ_global,v,T): # calc_probability() will evaluate diffusion probability for this event, should be updated everytime when change occupation
+    def set_probability(self,occ_global,v,T): # calc_probability() will evaluate migration probability for this event, should be updated everytime when change occupation
         k = 8.617333262145*10**(-2) # unit in meV/K
         direction = (occ_global[self.mobile_ion_specie_2_index] - occ_global[self.mobile_ion_specie_1_index])/2 # 1 if na1 -> na2, -1 if na2 -> na1
         self.barrier = self.ekra+direction*self.esite/2 # ekra 

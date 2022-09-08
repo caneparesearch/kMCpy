@@ -47,7 +47,7 @@ class Tracker:
             
             mobile_ion_specie (str, optional): mobile ion specie identifier to search from the structure. Defaults to "Na".
             
-            dimension (int, optional): dimension of diffusion, for NaSICON it is 3D diffusion so dimension=3, for LiCoO2 it is 2D diffusion so dimension=2. Defaults to 3.
+            dimension (int, optional): dimension of migration, for NaSICON it is 3D migration so dimension=3, for LiCoO2 it is 2D migration so dimension=2. Defaults to 3.
             
             elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.
             

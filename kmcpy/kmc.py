@@ -268,7 +268,7 @@ class KMC:
             verbose (bool, optional): verbose output. Defaults to False.
             mobile_ion_specie (str, optional): mobile ion specie to track. Defaults to 'Na'.
             q (float, optional): charge of mobile ion specie. Defaults to 1.0.
-            dimension (int, optional): dimension of diffusion. For LiCoO2 it is 2 (2D diffusion). for NaSICON it is 3. Defaults to 3.
+            dimension (int, optional): dimension of migration. For LiCoO2 it is 2 (2D migration). for NaSICON it is 3. Defaults to 3.
             structure_idx (int, optional): structure index . Defaults to 1.
             elem_hop_distance (float, optional): the hopping distance for the mobile ion specie, for NasiCON, this is the distance between Na1 and nearest Na2 site, for LiCoO2, this is the distance between 2 Li site. Defaults to 3.47782.
 
