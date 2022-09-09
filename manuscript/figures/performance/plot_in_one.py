@@ -3,7 +3,7 @@ from tkinter.ttk import Style
 import numpy as np
 import pandas as pd
 import matplotlib.ticker as mtick
-from matplotlib.ticker import AutoMinorLocator, LogLocator
+from matplotlib.ticker import AutoMinorLocator, LogLocator, AutoLocator
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
@@ -15,19 +15,29 @@ from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,
                                                   mark_inset)
 
 def defineplot():
-    
     # Infinite plotting stuff from down. Might not require cleaning.
+    plt.rcParams['text.latex.preamble'] = [
+        # i need upright \micro symbols, but you need...
+        r'\usepackage{siunitx}',
+        # ...this to force siunitx to actually use your fonts
+        r'\usepackage[T1]{fontenc}',
+        r'\sisetup{detect-all}',
+        r'\usepackage{helvet}',  # set the normal font here
+        # load up the sansmath so that math -> helvet##
+        r'\usepackage[eulergreek,EULERGREEK]{sansmath}',
+        r'\sansmath',  # <- tricky! -- gotta actually tell tex to use!
+    ]
 
-    #plt.rcParams['mathtext.fallback_to_cm'] = 'True'
+    # plt.rcParams['mathtext.fallback_to_cm'] = 'True'
     #plt.rc('font', family='sans-serif')
     #plt.rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
-    plt.rc('text', usetex=True)
+    # plt.rc('text', usetex=True)
     plt.rcParams['lines.antialiased'] = True
-
+    plt.rcParams['pdf.fonttype'] = 42
     plt.rcParams['legend.fancybox'] = False
     plt.rcParams['legend.loc'] = 'best'
     plt.rcParams['legend.numpoints'] = 1
-    plt.rcParams['legend.fontsize'] = '12'
+    plt.rcParams['legend.fontsize'] = '10'
     plt.rcParams['legend.framealpha'] = None
     plt.rcParams['legend.scatterpoints'] = 1
     plt.rcParams['legend.edgecolor'] = 'inherit'
@@ -51,11 +61,7 @@ def plot_non_equ_average():
 
     defineplot()
 
-    fig, axes= plt.subplots(1, 3, figsize=(9,3))
-
-
-
-
+    fig, axes= plt.subplots(1, 3, figsize=(9,2.5))
 
     # axes[0].set_yscale('log')
     #axes[0].set_ylim((-12, -4))
@@ -149,9 +155,10 @@ def plot_non_equ_average():
     axes[0].scatter(total_cells,run_time_no_numba,c="tab:red",marker="v")
     axes[0].plot(xnew,smooth_numba,label="Time/pass",color="tab:red")
     axes[0].plot(xnew,smooth_no_numba,label=" ",color="tab:red",linestyle="dashed")
-    axes[0].plot([10,11],[-100,-100],color="tab:blue",label="Time/step")# dummy for legend
+    
+    # axes[0].plot([10,11],[-100,-100],color="tab:blue",label="Time/step")# dummy for legend
 
-    axes[0].plot([10,11],[-100,-100],linestyle="dashed",color="tab:blue",label=" ")
+    # axes[0].plot([10,11],[-100,-100],linestyle="dashed",color="tab:blue",label=" ")
     axes[0].xaxis.set_minor_locator(AutoMinorLocator(2))
 
     xticks=list(total_cells.copy())
@@ -162,36 +169,36 @@ def plot_non_equ_average():
     #print(xticks)
     #axes[0].set_xticks(xticks, xticks)
     #axes[0].set_title("Model Size")
-    axes[0].set_xlabel("Cell Size")
-    axes[0].set_ylabel("Run Time per KMC pass (sec)")
-    axes[0].set_ylim(-5,190)
+    axes[0].set_xlabel("Cell size")
+    axes[0].set_ylabel("Run time per kMC pass (s)")
+    axes[0].set_ylim(0,200)
     axes[0].set_xlim(0,1000)
 
 
     #axes[0].legend(loc='best',ncol=1)
-    l = axes[0].legend(loc="upper left",bbox_to_anchor=(0,0.99),labelspacing=-0.3)
-    l.get_frame().set_linewidth(0.75)
+    # l = axes[0].legend(loc="upper left",bbox_to_anchor=(0,0.99),labelspacing=-0.3)
+    # l.get_frame().set_linewidth(0.75)
 
     #-------------
     # per step time
     axes02=axes[0].twinx()
     #axes02.scatter(total_cells,np.array(run_time_numba)/np.array(total_cells),c="tab:red")
     axes02.set_yscale('log')
-    axes02.set_ylim(0.0005,9)
+    axes02.set_ylim(1e-3,1e-0)
     #axes02.scatter(total_cells,np.array(run_time_no_numba)/np.array(total_cells),c="tab:blue")
     axes02.plot(total_cells,np.array(run_time_numba)/np.array(total_cells),color="tab:blue")
     axes02.plot(total_cells,np.array(run_time_no_numba)/np.array(total_cells),color="tab:blue",linestyle="dashed")
     #axes02.legend(loc="upper left")
-    xticks=list(total_cells.copy())
-    xticks.pop(1)
-    xticks.pop(1)
-    xticks.pop(2)
-    #xticks.pop(2)
+    # xticks=list(total_cells.copy())
+    # xticks.pop(1)
+    # xticks.pop(1)
+    # xticks.pop(2)
+    # #xticks.pop(2)
     #axes02.set_xticks(xticks, xticks)
     #axes02.set_title("Comparison")
 
-    axes02.set_xlabel("Cell Size")
-    axes02.set_ylabel("Run Time per KMC step (sec)")
+    axes02.set_xlabel("Cell size")
+    axes02.set_ylabel("Run time per kMC step (s)")
 
 
     # twiny does not match the original x data! 
@@ -204,9 +211,6 @@ def plot_non_equ_average():
     #axes03.set_xscale("log")
     """
     
-    
-    # with和without用虚线实线区别,per step和per pass用color
-
     #------------------------------------------------------------------
     # plot the per pass time with cluster and orbit
 
@@ -254,8 +258,7 @@ def plot_non_equ_average():
         unique_orbits.append(i)
         
         
-    axes[2].scatter(clusters,runtime_cutoff,c="tab:red",s=5)
-    #axes[2].scatter(orbits,runtime_cutoff,c="tab:blue")
+    # axes[2].scatter(orbits,runtime_cutoff,c="tab:blue")
 
     def poly3(x,a1,a2,a3):
         return a1*(x**a2)+a3
@@ -272,22 +275,26 @@ def plot_non_equ_average():
     spl_cutoff=make_interp_spline(unique_clusters,fit3,k=3)
     smooth_cutoff=spl_cutoff(cutoff_xnew)
 
-    axes[2].plot(cutoff_xnew,smooth_cutoff,color="tab:red",label="Time/pass")
-    axes[2].set_xlim(min(clusters),max(clusters))
-    axes[2].set_ylim(1,200)
-    axes[2].set_xscale("log")
-    axes[2].set_yscale("log")
-    axes[2].set_ylabel("Run time per KMC pass")
-    axes[2].set_xlabel("Number of Clusters")
+    axes[2].plot(cutoff_xnew/1000,smooth_cutoff,color="tab:red",label="Time/pass")
+    axes[2].scatter(np.array(clusters)/1000,runtime_cutoff,c="tab:red",s=5)
+
+    axes[2].set_xlim(0,25)
+    axes[2].set_xticks(np.array([0,5000,10000,15000,20000,25000])/1000)
+    axes[2].set_ylim(0,70)
+    # axes[2].set_xscale("log")
+    # axes[2].set_yscale("log")
+    axes[2].set_ylabel("Run Time per kMC pass (s)")
+    axes[2].set_xlabel("Number of clusters")
     #axes[2].set_title("model complexity")
     
-    axes1_orbit=axes[2].twiny()
-    axes1_orbit.set_xticks(np.linspace(min(orbits),max(orbits),7,dtype=np.int64),np.linspace(min(orbits),max(orbits),7,dtype=np.int64))
-    axes1_orbit.set_xlim(min(orbits),max(orbits))
-    axes1_orbit.set_xscale("log")
-    axes1_orbit.set_xlabel("number of orbits")
-    l = axes[2].legend(loc="best")
-    l.get_frame().set_linewidth(0.75)
+    # axes1_orbit=axes[2].twiny()
+
+    # axes1_orbit.set_xticks(np.linspace(min(orbits),max(orbits),7,dtype=np.int64),np.linspace(min(orbits),max(orbits),7,dtype=np.int64))
+    # axes1_orbit.set_xlim(min(orbits),max(orbits))
+    # # axes1_orbit.set_xscale("log")
+    # axes1_orbit.set_xlabel("Number of Orbits")
+    # # l = axes[2].legend(loc="best")
+    # l.get_frame().set_linewidth(0.75)
 
 
     with open("basis_set_time.txt") as f:
@@ -302,28 +309,40 @@ def plot_non_equ_average():
 
     popt3,_=curve_fit(eq3,basis_set_size,run_time,maxfev=5000)
     print("for basis size:", popt3)
-    axes[1].plot(basis_set_size,run_time,label="Time/pass",c="r")
-    axes[1].set_ylim(-2,32)
+    axes[1].plot(basis_set_size,run_time,'.-',mec='red',c='red',label="Time/pass")
+    axes[1].set_ylim(0,30)
     axes[1].set_yticks(np.linspace(0,30,6),np.linspace(0,30,6))
     axes[1].set_xlim(0,400)
     axes[1].xaxis.set_minor_locator(AutoMinorLocator(2))
-    axes[1].set_xlabel("Coupling Strength")
-    axes[1].set_ylabel("run time per KMC pass")
-    l = axes[1].legend(loc="best",)
-    l.get_frame().set_linewidth(0.75)
+    axes[1].set_xlabel("Coupling strength between events")
+    axes[1].set_ylabel("Run time per kMC pass (s)")
+    # l = axes[1].legend(loc="best",)
+    # l.get_frame().set_linewidth(0.75)
 
 
 
-    axes[0].text(-0.1, 1.1, "a", transform=axes[0].transAxes, 
-            size=20, weight='bold')
-    axes[2].text(-0.1, 1.1, "c", transform=axes[2].transAxes, 
-            size=20, weight='bold')
-    axes[1].text(-0.1, 1.1, "b", transform=axes[1].transAxes, 
-            size=20, weight='bold')
+    # axes[0].text(-0.1, 1.1, "a", transform=axes[0].transAxes, 
+    #         size=20, weight='bold')
+    # axes[2].text(-0.1, 1.1, "c", transform=axes[2].transAxes, 
+    #         size=20, weight='bold')
+    # axes[1].text(-0.1, 1.1, "b", transform=axes[1].transAxes, 
+    #         size=20, weight='bold')
 
     #fig.suptitle('Runtime on different cell size', fontsize=16)
+    axes[0].xaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[1].xaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[2].xaxis.set_minor_locator(AutoMinorLocator(2))
 
-    fig.tight_layout(pad=1.2)
+    axes[0].tick_params(which='both', direction='in', top=True, right=False)
+    axes[1].tick_params(which='both', direction='in', top=True, right=True)
+    axes[2].tick_params(which='both', direction='in', top=True, right=True)
+
+    axes[0].yaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[1].yaxis.set_minor_locator(AutoMinorLocator(2))
+    axes[2].yaxis.set_minor_locator(AutoMinorLocator(2))
+
+    axes[2].yaxis.set_major_locator(AutoLocator())
+    fig.tight_layout()
     fig.savefig('scalability.pdf')
 
 
