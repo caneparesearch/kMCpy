@@ -118,8 +118,9 @@ def plot_non_equ_average():
     total_cells=[]
     for i in range(1,lim+1):
         total_cells.append(i**3)
-    total_cells=np.array(total_cells)
-    print("total cells:",total_cells)
+    total_cells=np.array(total_cells)*42# change from total cells to total atoms
+    
+    print("total atoms:",total_cells)
     def poly1(x,a1,a2,a3):
         return a1*(x**a2)+a3
 
@@ -169,10 +170,10 @@ def plot_non_equ_average():
     #print(xticks)
     #axes[0].set_xticks(xticks, xticks)
     #axes[0].set_title("Model Size")
-    axes[0].set_xlabel("Cell size")
+    axes[0].set_xlabel("Total number of atoms")
     axes[0].set_ylabel("Run time per kMC pass (s)")
-    axes[0].set_ylim(0,200)
-    axes[0].set_xlim(0,1000)
+    #axes[0].set_ylim(0,200)
+    #axes[0].set_xlim(0,1000)
 
 
     #axes[0].legend(loc='best',ncol=1)
@@ -186,8 +187,8 @@ def plot_non_equ_average():
     axes02.set_yscale('log')
     axes02.set_ylim(1e-3,1e-0)
     #axes02.scatter(total_cells,np.array(run_time_no_numba)/np.array(total_cells),c="tab:blue")
-    axes02.plot(total_cells,np.array(run_time_numba)/np.array(total_cells),color="tab:blue")
-    axes02.plot(total_cells,np.array(run_time_no_numba)/np.array(total_cells),color="tab:blue",linestyle="dashed")
+    axes02.plot(total_cells,np.array(run_time_numba)/np.array(total_cells)*42,color="tab:blue")
+    axes02.plot(total_cells,np.array(run_time_no_numba)/np.array(total_cells)*42,color="tab:blue",linestyle="dashed")# change from total cells to total atoms, *=42
     #axes02.legend(loc="upper left")
     # xticks=list(total_cells.copy())
     # xticks.pop(1)
