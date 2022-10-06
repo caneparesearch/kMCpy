@@ -42,7 +42,7 @@
             "local_index": 0
         }
     },
-    "migration_unit_structure": {
+    "MigrationUnit_structure": {
         "@module": "pymatgen.core.structure",
         "@class": "Molecule",
         "charge": 0,

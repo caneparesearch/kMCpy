@@ -71,11 +71,11 @@ class LocalClusterExpansion:
         
     
         # fallback to the initial get cluster structure 
-        self.migration_unit_structure = self.get_cluster_structure1(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis,exclude_species=exclude_site_with_identifier)
+        self.MigrationUnit_structure = self.get_cluster_structure1(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis,exclude_species=exclude_site_with_identifier)
         
         
         # List all possible point, pair and triplet clusters
-        atom_index_list = np.arange(0,len(self.migration_unit_structure))
+        atom_index_list = np.arange(0,len(self.MigrationUnit_structure))
         
         cluster_indexes = list(combinations(atom_index_list,1))+list(combinations(atom_index_list,2))+list(combinations(atom_index_list,3))+list(combinations(atom_index_list,4))
         
@@ -139,7 +139,7 @@ class LocalClusterExpansion:
         other_structure.remove_oxidation_states()
         other_structure.remove_species(['Zr4+','O2-','O','Zr'])
         other_structure_mol = self.get_cluster_structure(other_structure,self.center_Na1)
-        for this_site in self.migration_unit_structure:
+        for this_site in self.MigrationUnit_structure:
             if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
                 occu = -1
             else:
@@ -153,7 +153,7 @@ class LocalClusterExpansion:
         other_structure.remove_oxidation_states()
         other_structure.remove_species(species_to_be_removed)
         other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
-        for this_site in self.migration_unit_structure:
+        for this_site in self.MigrationUnit_structure:
             if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
                 occu = -1
             else:
@@ -192,7 +192,7 @@ class LocalClusterExpansion:
         print('\nGenerating possible clusters within this migration unit...')
         print('Cutoffs: pair =',cutoff[1],'Angst, triplet =',cutoff[2],'Angst, quadruplet =',cutoff[3],'Angst')
         for site_indices in indexes:
-            sites = [self.migration_unit_structure[s] for s in site_indices]
+            sites = [self.MigrationUnit_structure[s] for s in site_indices]
             cluster = Cluster(site_indices,sites)
             if cluster.max_length < cutoff[len(cluster.site_indices)-1]:
                 clusters.append(cluster)
@@ -254,7 +254,7 @@ class LocalClusterExpansion:
             d = {"@module":self.__class__.__module__,
             "@class": self.__class__.__name__,
             "center_Na1":self.center_Na1.as_dict(),
-            "migration_unit_structure":self.migration_unit_structure.as_dict(),
+            "MigrationUnit_structure":self.MigrationUnit_structure.as_dict(),
             "clusters":[],
             "orbits":[],
             "sublattice_indices":self.sublattice_indices}
@@ -263,7 +263,7 @@ class LocalClusterExpansion:
             d = {"@module":self.__class__.__module__,
             "@class": self.__class__.__name__,
             "center_site":self.center_site.as_dict(),
-            "migration_unit_structure":self.migration_unit_structure.as_dict(),
+            "MigrationUnit_structure":self.MigrationUnit_structure.as_dict(),
             "clusters":[],
             "orbits":[],
             "sublattice_indices":self.sublattice_indices}
