@@ -9,7 +9,7 @@ Monte Carlo technique.
 .. toctree::
    :maxdepth: 1
 
+   function_test/introduction.rst
    install
    modules/api
-   function_test/introduction.rst
    about
