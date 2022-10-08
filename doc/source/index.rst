@@ -10,7 +10,6 @@ Monte Carlo technique.
    :maxdepth: 1
 
    install
-   test/validation_test.rst
    modules/api
    function_test/introduction.rst
    about
