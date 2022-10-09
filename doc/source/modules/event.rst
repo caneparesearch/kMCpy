@@ -1,7 +1,0 @@
-event
-=========================
-
-.. automodule:: kmcpy.event
-    :members:
-    :inherited-members:
-                  
