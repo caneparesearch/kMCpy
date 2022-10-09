@@ -1,8 +1,8 @@
 import os
 
-api_doc_path="doc/source/modules/"
+api_docs_path="docs/source/modules/"
 
-def write_rst_for_sphinx(filename="pymatgen_cif.py",api_doc_path="doc/source/modules/",module="kmcpy.external",package="pymatgen_cif"):
+def write_rst_for_sphinx(filename="pymatgen_cif.py",api_doc_path="docs/source/modules/",module="kmcpy.external",package="pymatgen_cif"):
     with open(api_doc_path+filename.replace(".py",".rst"),"w+") as rst:
         rst.write("""package
 =========================
@@ -28,10 +28,10 @@ for root, dirs, files in os.walk("./kmcpy", topdown=False):
             package=name.replace(".py","")
             module_name=root.replace("./","").replace("/",".")
             
-            write_rst_for_sphinx(filename=name,api_doc_path=api_doc_path,module=module_name,package=package)
+            write_rst_for_sphinx(filename=name,api_doc_path=api_docs_path,module=module_name,package=package)
             api_list.append(package)
 
-with open(api_doc_path+"api.rst","w+") as api_file:
+with open(api_docs_path+"api.rst","w+") as api_file:
     filestring="""API Reference Documentation
 ===========================
 
@@ -44,5 +44,5 @@ with open(api_doc_path+"api.rst","w+") as api_file:
         filestring+="    "+api+".rst\n"
     api_file.write(filestring)
     
-os.chdir("doc")
+os.chdir("docs")
 os.system("make html")
