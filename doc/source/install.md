@@ -20,6 +20,6 @@
 `conda install python=3.8`
 3. For developer, use editable mode (developer mode) of pip
 `pip install -r requirement.txt -e .`
-4. For maintainer of ducument, install the dependency for generating the documentation
+4. For maintainer of document, install the dependency for generating the documentation
 `brew install pandoc`
 `pip install -r doc/doc_requirements.txt`
