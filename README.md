@@ -1,9 +1,29 @@
-# Kinetic Monte Carlo Simulation using Python (kmcPy)
+![image](docs/source/_static/kmcpy_logo.png)
+
+# kMCpy: A python package to simulate transport properties using Kinetic Monte Carlo
+
+
+
 - Author: Zeyu Deng
 - Email: dengzeyu@gmail.com
 
-# Prerequisite Packages:
-python numpy scipy pandas numba tables pymatgen
+
+
+
+kMCpy is an open source python based package intended to study the migration of atoms using the kinetic
+Monte Carlo technique. kMCpy provides an all python, systematic way to compute kinetic properties, which can be readily used for investigation, development, and prediction of new functional materials. 
+
+This package includes a local cluster expansion model toolkit, a rejection-free kinetic Monte Carlo (rf-kMC) solver, and several python classes to extract ion transport properties such as diffusivities and conductivities. 
+The local cluster expansion model toolkit can be used to fit a model from barrier calculated from first-principles or any other empirical methods. Following the training process
+the local cluster expansion model can compute migration barriers in crystalline materials within the transition state theory.
+
+Some of the advantages of using this package are:
+
+1. kMCpy is fully based on python and is modular which makes it developer centric thus facilitating quick addition of new features.
+
+2. It is cross-platform and supports most operating systems such as Windows, macOS, and Linux.
+
+3. Intensive kMC routines has been optimized into machine code in the fly using Numba (https://numba.pydata.org/), which results in manifold increase in performance. 
 
 
 # Installation Guide:
@@ -51,7 +71,7 @@ pip install -r requirement.txt .
 conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
 conda activate kmcpy
 pip install -r requirement_gui.txt -e .
-cd doc
+cd docs
 pip install -r doc_requirements.txt
 cd ..
 python dev_deploy.py
