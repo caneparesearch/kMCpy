@@ -1,0 +1,788 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{mccammon_dynamics_1977}
+J.~A. McCammon, B.~R. Gelin, M.~Karplus,
+  \href{http://www.nature.com/articles/267585a0}{Dynamics of folded proteins},
+  Nature 267~(5612) (1977) 585--590.
+\newblock \href {https://doi.org/10.1038/267585a0}
+  {\path{doi:10.1038/267585a0}}.
+\newline\urlprefix\url{http://www.nature.com/articles/267585a0}
+
+\bibitem{karplus_molecular_2005}
+M.~Karplus, J.~Kuriyan,
+  \href{https://pnas.org/doi/full/10.1073/pnas.0408930102}{Molecular dynamics
+  and protein function}, Proceedings of the National Academy of Sciences
+  102~(19) (2005) 6679--6685.
+\newblock \href {https://doi.org/10.1073/pnas.0408930102}
+  {\path{doi:10.1073/pnas.0408930102}}.
+\newline\urlprefix\url{https://pnas.org/doi/full/10.1073/pnas.0408930102}
+
+\bibitem{klepeis_long-timescale_2009}
+J.~L. Klepeis, K.~Lindorff-Larsen, R.~O. Dror, D.~E. Shaw,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0959440X09000372}{Long-timescale
+  molecular dynamics simulations of protein structure and function}, Current
+  Opinion in Structural Biology 19~(2) (2009) 120--127.
+\newblock \href {https://doi.org/10.1016/j.sbi.2009.03.004}
+  {\path{doi:10.1016/j.sbi.2009.03.004}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0959440X09000372}
+
+\bibitem{ong_electrochemical_2011}
+S.~P. Ong, O.~Andreussi, Y.~Wu, N.~Marzari, G.~Ceder,
+  \href{https://pubs.acs.org/doi/10.1021/cm200679y}{Electrochemical {Windows}
+  of {Room}-{Temperature} {Ionic} {Liquids} from {Molecular} {Dynamics} and
+  {Density} {Functional} {Theory} {Calculations}}, Chemistry of Materials
+  23~(11) (2011) 2979--2986.
+\newblock \href {https://doi.org/10.1021/cm200679y}
+  {\path{doi:10.1021/cm200679y}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/cm200679y}
+
+\bibitem{mo_insights_2014}
+Y.~Mo, S.~P. Ong, G.~Ceder,
+  \href{https://pubs.acs.org/doi/10.1021/cm501563f}{Insights into {Diffusion}
+  {Mechanisms} in {P2} {Layered} {Oxide} {Materials} by {First}-{Principles}
+  {Calculations}}, Chemistry of Materials 26~(18) (2014) 5208--5214.
+\newblock \href {https://doi.org/10.1021/cm501563f}
+  {\path{doi:10.1021/cm501563f}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/cm501563f}
+
+\bibitem{wang_design_2015}
+Y.~Wang, W.~D. Richards, S.~P. Ong, L.~J. Miara, J.~C. Kim, Y.~Mo, G.~Ceder,
+  \href{https://www.nature.com/articles/nmat4369}{Design principles for
+  solid-state lithium superionic conductors}, Nature Materials 14~(10) (2015)
+  1026--1031.
+\newblock \href {https://doi.org/10.1038/nmat4369}
+  {\path{doi:10.1038/nmat4369}}.
+\newline\urlprefix\url{https://www.nature.com/articles/nmat4369}
+
+\bibitem{herschbach_molecular_1987}
+D.~R. Herschbach,
+  \href{https://onlinelibrary.wiley.com/doi/10.1002/anie.198712211}{Molecular
+  {Dynamics} of {Elementary} {Chemical} {Reactions}({Nobel} {Lecture})},
+  Angewandte Chemie International Edition in English 26~(12) (1987) 1221--1243.
+\newblock \href {https://doi.org/10.1002/anie.198712211}
+  {\path{doi:10.1002/anie.198712211}}.
+\newline\urlprefix\url{https://onlinelibrary.wiley.com/doi/10.1002/anie.198712211}
+
+\bibitem{craig_chemical_2005}
+I.~R. Craig, D.~E. Manolopoulos,
+  \href{http://aip.scitation.org/doi/10.1063/1.1850093}{Chemical reaction rates
+  from ring polymer molecular dynamics}, The Journal of Chemical Physics
+  122~(8) (2005) 084106.
+\newblock \href {https://doi.org/10.1063/1.1850093}
+  {\path{doi:10.1063/1.1850093}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.1850093}
+
+\bibitem{lutsko_stress_1988}
+J.~F. Lutsko, \href{http://aip.scitation.org/doi/10.1063/1.341877}{Stress and
+  elastic constants in anisotropic solids: {Molecular} dynamics techniques},
+  Journal of Applied Physics 64~(3) (1988) 1152--1154.
+\newblock \href {https://doi.org/10.1063/1.341877}
+  {\path{doi:10.1063/1.341877}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.341877}
+
+\bibitem{abraham_molecular_1997}
+F.~F. Abraham, D.~Brodbeck, W.~E. Rudge, X.~Xu,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0022509696001032}{A
+  molecular dynamics investigation of rapid fracture mechanics}, Journal of the
+  Mechanics and Physics of Solids 45~(9) (1997) 1595--1619.
+\newblock \href {https://doi.org/10.1016/S0022-5096(96)00103-2}
+  {\path{doi:10.1016/S0022-5096(96)00103-2}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0022509696001032}
+
+\bibitem{yang_multiscale_2006}
+C.~Yang, U.~Tartaglino, B.~N. Persson,
+  \href{https://link.springer.com/10.1140/epje/e2006-00004-9}{A multiscale
+  molecular dynamics approach to contact mechanics}, The European Physical
+  Journal E 19~(1) (2006) 47--58.
+\newblock \href {https://doi.org/10.1140/epje/e2006-00004-9}
+  {\path{doi:10.1140/epje/e2006-00004-9}}.
+\newline\urlprefix\url{https://link.springer.com/10.1140/epje/e2006-00004-9}
+
+\bibitem{rafii-tabar_molecular_2006}
+H.~Rafii-Tabar, H.~Shodja, M.~Darabi, A.~Dahi,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0167663605001043}{Molecular
+  dynamics simulation of crack propagation in fcc materials containing clusters
+  of impurities}, Mechanics of Materials 38~(3) (2006) 243--252.
+\newblock \href {https://doi.org/10.1016/j.mechmat.2005.06.006}
+  {\path{doi:10.1016/j.mechmat.2005.06.006}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0167663605001043}
+
+\bibitem{frenkel_understanding_2002}
+D.~Frenkel, B.~Smit, Understanding molecular simulation: from algorithms to
+  applications, 2nd Edition, no.~1 in Computational science series, Academic
+  Press, San Diego, 2002.
+
+\bibitem{balluffi_kinetics_2005}
+R.~W. Balluffi, S.~M. Allen, W.~C. Carter, R.~A. Kemper, Kinetics of materials,
+  J. Wiley \& Sons, Hoboken, N.J, 2005.
+
+\bibitem{hansson_molecular_2002}
+T.~Hansson, C.~Oostenbrink, W.~van Gunsteren,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0959440X02003081}{Molecular
+  dynamics simulations}, Current Opinion in Structural Biology 12~(2) (2002)
+  190--196.
+\newblock \href {https://doi.org/10.1016/S0959-440X(02)00308-1}
+  {\path{doi:10.1016/S0959-440X(02)00308-1}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0959440X02003081}
+
+\bibitem{thompson_lammps_2022}
+A.~P. Thompson, H.~M. Aktulga, R.~Berger, D.~S. Bolintineanu, W.~M. Brown,
+  P.~S. Crozier, P.~J. in~'t Veld, A.~Kohlmeyer, S.~G. Moore, T.~D. Nguyen,
+  R.~Shan, M.~J. Stevens, J.~Tranchida, C.~Trott, S.~J. Plimpton,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0010465521002836}{{LAMMPS}
+  - a flexible simulation tool for particle-based materials modeling at the
+  atomic, meso, and continuum scales}, Computer Physics Communications 271
+  (2022) 108171.
+\newblock \href {https://doi.org/10.1016/j.cpc.2021.108171}
+  {\path{doi:10.1016/j.cpc.2021.108171}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0010465521002836}
+
+\bibitem{te_velde_chemistry_2001}
+G.~te~Velde, F.~M. Bickelhaupt, E.~J. Baerends, C.~Fonseca~Guerra, S.~J.~A. van
+  Gisbergen, J.~G. Snijders, T.~Ziegler,
+  \href{https://onlinelibrary.wiley.com/doi/10.1002/jcc.1056}{Chemistry with
+  {ADF}}, Journal of Computational Chemistry 22~(9) (2001) 931--967.
+\newblock \href {https://doi.org/10.1002/jcc.1056}
+  {\path{doi:10.1002/jcc.1056}}.
+\newline\urlprefix\url{https://onlinelibrary.wiley.com/doi/10.1002/jcc.1056}
+
+\bibitem{phillips_scalable_2020}
+J.~C. Phillips, D.~J. Hardy, J.~D.~C. Maia, J.~E. Stone, J.~V. Ribeiro, R.~C.
+  Bernardi, R.~Buch, G.~Fiorin, J.~Hénin, W.~Jiang, R.~McGreevy, M.~C.~R.
+  Melo, B.~K. Radak, R.~D. Skeel, A.~Singharoy, Y.~Wang, B.~Roux,
+  A.~Aksimentiev, Z.~Luthey-Schulten, L.~V. Kalé, K.~Schulten, C.~Chipot,
+  E.~Tajkhorshid,
+  \href{http://aip.scitation.org/doi/10.1063/5.0014475}{Scalable molecular
+  dynamics on {CPU} and {GPU} architectures with {NAMD}}, The Journal of
+  Chemical Physics 153~(4) (2020) 044130.
+\newblock \href {https://doi.org/10.1063/5.0014475}
+  {\path{doi:10.1063/5.0014475}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/5.0014475}
+
+\bibitem{apra_nwchem_2020}
+E.~Apr{\`{a}}, E.~J. Bylaska, W.~A. de~Jong, N.~Govind, K.~Kowalski, T.~P.
+  Straatsma, M.~Valiev, H.~J.~J. van Dam, Y.~Alexeev, J.~Anchell, V.~Anisimov,
+  F.~W. Aquino, R.~Atta-Fynn, J.~Autschbach, N.~P. Bauman, J.~C. Becca, D.~E.
+  Bernholdt, K.~Bhaskaran-Nair, S.~Bogatko, P.~Borowski, J.~Boschen, J.~Brabec,
+  A.~Bruner, E.~Cauat, Y.~Chen, G.~N. Chuev, C.~J. Cramer, J.~Daily, M.~J.~O.
+  Deegan, T.~H. Dunning, M.~Dupuis, K.~G. Dyall, G.~I. Fann, S.~A. Fischer,
+  A.~Fonari, H.~Frachtl, L.~Gagliardi, J.~Garza, N.~Gawande, S.~Ghosh,
+  K.~Glaesemann, A.~W. GÃ¶tz, J.~Hammond, V.~Helms, E.~D. Hermes, K.~Hirao,
+  S.~Hirata, M.~Jacquelin, L.~Jensen, B.~G. Johnson, H.~J{\'{o}}nsson, R.~A.
+  Kendall, M.~Klemm, R.~Kobayashi, V.~Konkov, S.~Krishnamoorthy, M.~Krishnan,
+  Z.~Lin, R.~D. Lins, R.~J. Littlefield, A.~J. Logsdail, K.~Lopata, W.~Ma,
+  A.~V. Marenich, J.~M. del Campo, D.~Mejia-Rodriguez, J.~E. Moore, J.~M.
+  Mullin, T.~Nakajima, D.~R. Nascimento, J.~A. Nichols, P.~J. Nichols,
+  J.~Nieplocha, A.~O. de-la Roza, B.~Palmer, A.~Panyala, T.~Pirojsirikul,
+  B.~Peng, R.~Peverati, J.~Pittner, L.~Pollack, R.~M. Richard, P.~Sadayappan,
+  G.~C. Schatz, W.~A. Shelton, D.~W. Silverstein, D.~M.~A. Smith, T.~A. Soares,
+  D.~Song, M.~Swart, H.~L. Taylor, G.~S. Thomas, V.~Tipparaju, D.~G. Truhlar,
+  K.~Tsemekhman, T.~V. Voorhis, {\'{A}}.~V{\'{a}}zquez-Mayagoitia, P.~Verma,
+  O.~Villa, A.~Vishnu, K.~D. Vogiatzis, D.~Wang, J.~H. Weare, M.~J. Williamson,
+  T.~L. Windus, K.~Woli{\'{n}}ski, A.~T. Wong, Q.~Wu, C.~Yang, Q.~Yu,
+  M.~Zacharias, Z.~Zhang, Y.~Zhao, R.~J. Harrison,
+  \href{http://aip.scitation.org/doi/10.1063/5.0004997}{{NWChem}: {Past},
+  present, and future}, The Journal of Chemical Physics 152~(18) (2020) 184102.
+\newblock \href {https://doi.org/10.1063/5.0004997}
+  {\path{doi:10.1063/5.0004997}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/5.0004997}
+
+\bibitem{salomon-ferrer_overview_2013}
+R.~Salomon-Ferrer, D.~A. Case, R.~C. Walker,
+  \href{https://onlinelibrary.wiley.com/doi/10.1002/wcms.1121}{An overview of
+  the {Amber} biomolecular simulation package: {Amber} biomolecular simulation
+  package}, Wiley Interdisciplinary Reviews: Computational Molecular Science
+  3~(2) (2013) 198--210.
+\newblock \href {https://doi.org/10.1002/wcms.1121}
+  {\path{doi:10.1002/wcms.1121}}.
+\newline\urlprefix\url{https://onlinelibrary.wiley.com/doi/10.1002/wcms.1121}
+
+\bibitem{kuhne_cp2k_2020}
+T.~D. Kühne, M.~Iannuzzi, M.~Del~Ben, V.~V. Rybkin, P.~Seewald, F.~Stein,
+  T.~Laino, R.~Z. Khaliullin, O.~Schütt, F.~Schiffmann, D.~Golze, J.~Wilhelm,
+  S.~Chulkov, M.~H. Bani-Hashemian, V.~Weber, U.~Borštnik, M.~Taillefumier,
+  A.~S. Jakobovits, A.~Lazzaro, H.~Pabst, T.~Müller, R.~Schade, M.~Guidon,
+  S.~Andermatt, N.~Holmberg, G.~K. Schenter, A.~Hehn, A.~Bussy, F.~Belleflamme,
+  G.~Tabacchi, A.~Glöß, M.~Lass, I.~Bethune, C.~J. Mundy, C.~Plessl,
+  M.~Watkins, J.~VandeVondele, M.~Krack, J.~Hutter,
+  \href{http://aip.scitation.org/doi/10.1063/5.0007045}{{CP2K}: {An} electronic
+  structure and molecular dynamics software package - {Quickstep}: {Efficient}
+  and accurate electronic structure calculations}, The Journal of Chemical
+  Physics 152~(19) (2020) 194103.
+\newblock \href {https://doi.org/10.1063/5.0007045}
+  {\path{doi:10.1063/5.0007045}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/5.0007045}
+
+\bibitem{bortz_new_1975}
+A.~Bortz, M.~Kalos, J.~Lebowitz,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/0021999175900601}{A new
+  algorithm for {Monte} {Carlo} simulation of {Ising} spin systems}, Journal of
+  Computational Physics 17~(1) (1975) 10--18.
+\newblock \href {https://doi.org/10.1016/0021-9991(75)90060-1}
+  {\path{doi:10.1016/0021-9991(75)90060-1}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/0021999175900601}
+
+\bibitem{gillespie_general_1976}
+D.~T. Gillespie,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/0021999176900413}{A
+  general method for numerically simulating the stochastic time evolution of
+  coupled chemical reactions}, Journal of Computational Physics 22~(4) (1976)
+  403--434.
+\newblock \href {https://doi.org/10.1016/0021-9991(76)90041-3}
+  {\path{doi:10.1016/0021-9991(76)90041-3}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/0021999176900413}
+
+\bibitem{gillespie_exact_1977}
+D.~T. Gillespie, \href{https://pubs.acs.org/doi/10.1021/j100540a008}{Exact
+  stochastic simulation of coupled chemical reactions}, The Journal of Physical
+  Chemistry 81~(25) (1977) 2340--2361.
+\newblock \href {https://doi.org/10.1021/j100540a008}
+  {\path{doi:10.1021/j100540a008}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/j100540a008}
+
+\bibitem{van_der_ven_first-principles_2001}
+A.~Van~der Ven, G.~Ceder, M.~Asta, P.~D. Tepesch,
+  \href{https://link.aps.org/doi/10.1103/PhysRevB.64.184307}{First-principles
+  theory of ionic diffusion with nondilute carriers}, Physical Review B 64~(18)
+  (2001) 184307.
+\newblock \href {https://doi.org/10.1103/PhysRevB.64.184307}
+  {\path{doi:10.1103/PhysRevB.64.184307}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevB.64.184307}
+
+\bibitem{van_der_ven_rechargeable_2020}
+A.~Van Der~Ven, Z.~Deng, S.~Banerjee, S.~P. Ong,
+  \href{https://pubs.acs.org/doi/abs/10.1021/acs.chemrev.9b00601}{Rechargeable
+  {Alkali}-{Ion} {Battery} {Materials}: {Theory} and {Computation}}, Chemical
+  Reviews 120~(14) (2020) 6977--7019.
+\newblock \href {https://doi.org/10.1021/acs.chemrev.9b00601}
+  {\path{doi:10.1021/acs.chemrev.9b00601}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/abs/10.1021/acs.chemrev.9b00601}
+
+\bibitem{xiao_kinetic_2018}
+P.~Xiao, G.~Henkelman,
+  \href{https://pubs.acs.org/doi/10.1021/acsnano.7b08278}{Kinetic {Monte}
+  {Carlo} {Study} of {Li} {Intercalation} in {LiFePO} $_{\textrm{4}}$}, ACS
+  Nano 12~(1) (2018) 844--851.
+\newblock \href {https://doi.org/10.1021/acsnano.7b08278}
+  {\path{doi:10.1021/acsnano.7b08278}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/acsnano.7b08278}
+
+\bibitem{deng_fundamental_2022}
+Z.~Deng, T.~P. Mishra, E.~Mahayoni, Q.~Ma, A.~J.~K. Tieu, O.~Guillon, J.-N.
+  Chotard, V.~Seznec, A.~K. Cheetham, C.~Masquelier, G.~S. Gautam, P.~Canepa,
+  \href{https://www.nature.com/articles/s41467-022-32190-7}{Fundamental
+  investigations on the sodium-ion transport properties of mixed polyanion
+  solid-state battery electrolytes}, Nature Communications 13~(1) (2022) 4470.
+\newblock \href {https://doi.org/10.1038/s41467-022-32190-7}
+  {\path{doi:10.1038/s41467-022-32190-7}}.
+\newline\urlprefix\url{https://www.nature.com/articles/s41467-022-32190-7}
+
+\bibitem{pornprasertsuk_kinetic_2009}
+R.~Pornprasertsuk, T.~Holme, F.~B. Prinz,
+  \href{https://iopscience.iop.org/article/10.1149/1.3232209}{Kinetic {Monte}
+  {Carlo} {Simulations} of {Solid} {Oxide} {Fuel} {Cell}}, Journal of The
+  Electrochemical Society 156~(12) (2009) B1406.
+\newblock \href {https://doi.org/10.1149/1.3232209}
+  {\path{doi:10.1149/1.3232209}}.
+\newline\urlprefix\url{https://iopscience.iop.org/article/10.1149/1.3232209}
+
+\bibitem{modak_kinetic_2005}
+A.~Modak, M.~Lusk,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0167273805002614}{Kinetic
+  {Monte} {Carlo} simulation of a solid-oxide fuel cell: {I}. {Open}-circuit
+  voltage and double layer structure}, Solid State Ionics 176~(29-30) (2005)
+  2181--2191.
+\newblock \href {https://doi.org/10.1016/j.ssi.2005.06.007}
+  {\path{doi:10.1016/j.ssi.2005.06.007}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0167273805002614}
+
+\bibitem{Andersen2019}
+M.~Andersen, C.~Panosetti, K.~Reuter, A practical guide to surface kinetic
+  {Monte} {Carlo} simulations, Frontiers in Chemistry 7~(APR) (2019) 1--24,
+  arXiv: 1904.02561.
+\newblock \href {https://doi.org/10.3389/fchem.2019.00202}
+  {\path{doi:10.3389/fchem.2019.00202}}.
+
+\bibitem{pineda_kinetic_2022}
+M.~Pineda, M.~Stamatakis,
+  \href{https://aip.scitation.org/doi/10.1063/5.0083251}{Kinetic {Monte}
+  {Carlo} simulations for heterogeneous catalysis: {Fundamentals}, current
+  status, and challenges}, The Journal of Chemical Physics 156~(12) (2022)
+  120902.
+\newblock \href {https://doi.org/10.1063/5.0083251}
+  {\path{doi:10.1063/5.0083251}}.
+\newline\urlprefix\url{https://aip.scitation.org/doi/10.1063/5.0083251}
+
+\bibitem{huang_mechanism_2017}
+C.-H. Huang, L.~Gharaee, Y.~Zhao, P.~Erhart, J.~Marian,
+  \href{https://link.aps.org/doi/10.1103/PhysRevB.96.094108}{Mechanism of
+  nucleation and incipient growth of {Re} clusters in irradiated {W}-{Re}
+  alloys from kinetic {Monte} {Carlo} simulations}, Physical Review B 96~(9)
+  (2017) 094108.
+\newblock \href {https://doi.org/10.1103/PhysRevB.96.094108}
+  {\path{doi:10.1103/PhysRevB.96.094108}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevB.96.094108}
+
+\bibitem{evteev_shrinking_2008}
+A.~Evteev, E.~Levchenko, I.~Belova, G.~Murch,
+  \href{http://www.tandfonline.com/doi/abs/10.1080/14786430802213413}{Shrinking
+  kinetics by vacancy diffusion of hollow binary alloy nanospheres driven by
+  the {Gibbs}–{Thomson} effect}, Philosophical Magazine 88~(10) (2008)
+  1525--1541.
+\newblock \href {https://doi.org/10.1080/14786430802213413}
+  {\path{doi:10.1080/14786430802213413}}.
+\newline\urlprefix\url{http://www.tandfonline.com/doi/abs/10.1080/14786430802213413}
+
+\bibitem{li_predicting_2021}
+C.~Li, T.~Nilson, L.~Cao, T.~Mueller,
+  \href{https://link.aps.org/doi/10.1103/PhysRevMaterials.5.013803}{Predicting
+  activation energies for vacancy-mediated diffusion in alloys using a
+  transition-state cluster expansion}, Physical Review Materials 5~(1) (2021)
+  013803.
+\newblock \href {https://doi.org/10.1103/PhysRevMaterials.5.013803}
+  {\path{doi:10.1103/PhysRevMaterials.5.013803}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevMaterials.5.013803}
+
+\bibitem{han_development_2007}
+X.~Han, R.~McAfee, J.~C. Yang,
+  \href{https://www.emerald.com/insight/content/doi/10.1163/157361107781360068/full/html}{Development
+  of a {Versatile} {Kinetic} {Monte} {Carlo} {Code} to {Simulate} {Physical}
+  {Processes} in {Thin} {Film} {Nucleation} and {Growth}}, Multidiscipline
+  Modeling in Materials and Structures 3~(1) (2007) 43--54.
+\newblock \href {https://doi.org/10.1163/157361107781360068}
+  {\path{doi:10.1163/157361107781360068}}.
+\newline\urlprefix\url{https://www.emerald.com/insight/content/doi/10.1163/157361107781360068/full/html}
+
+\bibitem{apostolopoulou_kinetic_2017}
+M.~Apostolopoulou, R.~Day, R.~Hull, M.~Stamatakis, A.~Striolo,
+  \href{http://aip.scitation.org/doi/10.1063/1.4985885}{A kinetic {Monte}
+  {Carlo} approach to study fluid transport in pore networks}, The Journal of
+  Chemical Physics 147~(13) (2017) 134703.
+\newblock \href {https://doi.org/10.1063/1.4985885}
+  {\path{doi:10.1063/1.4985885}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.4985885}
+
+\bibitem{van_der_ven_nondilute_2008}
+A.~Van~der Ven, J.~C. Thomas, Q.~Xu, B.~Swoboda, D.~Morgan,
+  \href{https://link.aps.org/doi/10.1103/PhysRevB.78.104306}{Nondilute
+  diffusion from first principles: {Li} diffusion in {Li} x {TiS} 2}, Physical
+  Review B 78~(10) (2008) 104306.
+\newblock \href {https://doi.org/10.1103/PhysRevB.78.104306}
+  {\path{doi:10.1103/PhysRevB.78.104306}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevB.78.104306}
+
+\bibitem{bhattacharya_phase_2010}
+J.~Bhattacharya, A.~Van~der Ven,
+  \href{https://link.aps.org/doi/10.1103/PhysRevB.81.104304}{Phase stability
+  and nondilute {Li} diffusion in spinel {Li} 1 + x {Ti} 2 {O} 4}, Physical
+  Review B 81~(10) (2010) 104304.
+\newblock \href {https://doi.org/10.1103/PhysRevB.81.104304}
+  {\path{doi:10.1103/PhysRevB.81.104304}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevB.81.104304}
+
+\bibitem{gao_design_2022}
+Y.~Gao, T.~P. Mishra, S.-H. Bo, G.~Sai~Gautam, P.~Canepa,
+  \href{https://www.annualreviews.org/doi/10.1146/annurev-matsci-081420-041617}{Design
+  and {Characterization} of {Host} {Frameworks} for {Facile} {Magnesium}
+  {Transport}}, Annual Review of Materials Research 52~(1) (2022) 129--158.
+\newblock \href {https://doi.org/10.1146/annurev-matsci-081420-041617}
+  {\path{doi:10.1146/annurev-matsci-081420-041617}}.
+\newline\urlprefix\url{https://www.annualreviews.org/doi/10.1146/annurev-matsci-081420-041617}
+
+\bibitem{hastings_monte_1970}
+W.~K. Hastings,
+  \href{https://academic.oup.com/biomet/article/57/1/97/284580}{Monte {Carlo}
+  sampling methods using {Markov} chains and their applications}, Biometrika
+  57~(1) (1970) 97--109.
+\newblock \href {https://doi.org/10.1093/biomet/57.1.97}
+  {\path{doi:10.1093/biomet/57.1.97}}.
+\newline\urlprefix\url{https://academic.oup.com/biomet/article/57/1/97/284580}
+
+\bibitem{magna_lattice_1999}
+A.~Magna, S.~Coffa, L.~Colombo,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0168583X98007988}{A
+  lattice kinetic {Monte} {Carlo} code for the description of vacancy diffusion
+  and self-organization in {Si}}, Nuclear Instruments and Methods in Physics
+  Research Section B: Beam Interactions with Materials and Atoms 148~(1-4)
+  (1999) 262--267.
+\newblock \href {https://doi.org/10.1016/S0168-583X(98)00798-8}
+  {\path{doi:10.1016/S0168-583X(98)00798-8}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0168583X98007988}
+
+\bibitem{dooling_generic_2001}
+D.~J. Dooling, L.~J. Broadbelt,
+  \href{https://pubs.acs.org/doi/10.1021/ie000310q}{Generic {Monte} {Carlo}
+  {Tool} for {Kinetic} {Modeling}}, Industrial \& Engineering Chemistry
+  Research 40~(2) (2001) 522--529.
+\newblock \href {https://doi.org/10.1021/ie000310q}
+  {\path{doi:10.1021/ie000310q}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/ie000310q}
+
+\bibitem{boerrigter_monty_2004}
+S.~X.~M. Boerrigter, G.~P.~H. Josten, J.~van~de Streek, F.~F.~A. Hollander,
+  J.~Los, H.~M. Cuppen, P.~Bennema, H.~Meekes,
+  \href{https://pubs.acs.org/doi/10.1021/jp049804h}{{MONTY}: {Monte} {Carlo}
+  {Crystal} {Growth} on {Any} {Crystal} {Structure} in {Any} {Crystallographic}
+  {Orientation}; {Application} to {Fats}}, The Journal of Physical Chemistry A
+  108~(27) (2004) 5894--5902.
+\newblock \href {https://doi.org/10.1021/jp049804h}
+  {\path{doi:10.1021/jp049804h}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/jp049804h}
+
+\bibitem{leetmaa_kmclib_2014}
+M.~Leetmaa, N.~V. Skorodumova,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0010465514001519}{{KMCLib}:
+  {A} general framework for lattice kinetic {Monte} {Carlo} ({KMC})
+  simulations}, Computer Physics Communications 185~(9) (2014) 2340--2349.
+\newblock \href {https://doi.org/10.1016/j.cpc.2014.04.017}
+  {\path{doi:10.1016/j.cpc.2014.04.017}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0010465514001519}
+
+\bibitem{Hoffmann2014a}
+M.~J. Hoffmann, S.~Matera, K.~Reuter,
+  \href{http://dx.doi.org/10.1016/j.cpc.2014.04.003}{Kmos: {A} lattice kinetic
+  {Monte} {Carlo} framework}, Computer Physics Communications 185~(7) (2014)
+  2138--2150, arXiv: 1401.5278 Publisher: Elsevier B.V.
+\newblock \href {https://doi.org/10.1016/j.cpc.2014.04.003}
+  {\path{doi:10.1016/j.cpc.2014.04.003}}.
+\newline\urlprefix\url{http://dx.doi.org/10.1016/j.cpc.2014.04.003}
+
+\bibitem{ramsey_james_j_kmcthinfilm_2015}
+J.~J. Ramsey, {KMCThinFilm}: {A} {C}++ {Framework} for the {Rapid}
+  {Development} of {Lattice} {Kinetic} {Monte} {Carlo} ({kMC}) {Simulations} of
+  {Thin} {Film} {Growth}, Tech. rep., US Army Research Laboratory (2015).
+
+\bibitem{mitchell_global_2016}
+I.~Mitchell, S.~Irle, A.~J. Page,
+  \href{http://aip.scitation.org/doi/10.1063/1.4954660}{A global reaction route
+  mapping-based kinetic {Monte} {Carlo} algorithm}, The Journal of Chemical
+  Physics 145~(2) (2016) 024105.
+\newblock \href {https://doi.org/10.1063/1.4954660}
+  {\path{doi:10.1063/1.4954660}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.4954660}
+
+\bibitem{danielson_sqertss_2017}
+T.~Danielson, J.~E. Sutton, C.~Hin, A.~Savara,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/S0010465517301583}{{SQERTSS}:
+  {Dynamic} rank based throttling of transition probabilities in kinetic
+  {Monte} {Carlo} simulations}, Computer Physics Communications 219 (2017)
+  149--163.
+\newblock \href {https://doi.org/10.1016/j.cpc.2017.05.016}
+  {\path{doi:10.1016/j.cpc.2017.05.016}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/S0010465517301583}
+
+\bibitem{jorgensen_montecoffee_2018}
+M.~Jørgensen, H.~Grönbeck,
+  \href{http://aip.scitation.org/doi/10.1063/1.5046635}{{MonteCoffee}: {A}
+  programmable kinetic {Monte} {Carlo} framework}, The Journal of Chemical
+  Physics 149~(11) (2018) 114101.
+\newblock \href {https://doi.org/10.1063/1.5046635}
+  {\path{doi:10.1063/1.5046635}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.5046635}
+
+\bibitem{li_crystal-kmc_2018}
+J.~Li, P.~Wei, S.~Yang, J.~Wu, P.~Liu, X.~He,
+  \href{https://ieeexplore.ieee.org/document/8421558/}{Crystal-{KMC}: parallel
+  software for lattice dynamics monte carlo simulation of metal materials},
+  Tsinghua Science and Technology 23~(4) (2018) 501--510.
+\newblock \href {https://doi.org/10.26599/TST.2018.9010107}
+  {\path{doi:10.26599/TST.2018.9010107}}.
+\newline\urlprefix\url{https://ieeexplore.ieee.org/document/8421558/}
+
+\bibitem{li_openkmc_2019}
+K.~Li, H.~Shang, Y.~Zhang, S.~Li, B.~Wu, D.~Wang, L.~Zhang, F.~Li, D.~Chen,
+  Z.~Wei, \href{https://dl.acm.org/doi/10.1145/3295500.3356165}{{OpenKMC}: a
+  {KMC} design for hundred-billion-atom simulation using millions of cores on
+  {Sunway} {Taihulight}}, in: Proceedings of the {International} {Conference}
+  for {High} {Performance} {Computing}, {Networking}, {Storage} and {Analysis},
+  ACM, Denver Colorado, 2019, pp. 1--16.
+\newblock \href {https://doi.org/10.1145/3295500.3356165}
+  {\path{doi:10.1145/3295500.3356165}}.
+\newline\urlprefix\url{https://dl.acm.org/doi/10.1145/3295500.3356165}
+
+\bibitem{martin_kimera_2020}
+P.~Martin, J.~J. Gaitero, J.~S. Dolado, H.~Manzano,
+  \href{https://www.mdpi.com/2075-163X/10/9/825}{{KIMERA}: {A} {Kinetic}
+  {Montecarlo} {Code} for {Mineral} {Dissolution}}, Minerals 10~(9) (2020) 825.
+\newblock \href {https://doi.org/10.3390/min10090825}
+  {\path{doi:10.3390/min10090825}}.
+\newline\urlprefix\url{https://www.mdpi.com/2075-163X/10/9/825}
+
+\bibitem{schulze_kinetic_2002}
+T.~P. Schulze,
+  \href{https://link.aps.org/doi/10.1103/PhysRevE.65.036704}{Kinetic {Monte}
+  {Carlo} simulations with minimal searching}, Physical Review E 65~(3) (2002)
+  036704.
+\newblock \href {https://doi.org/10.1103/PhysRevE.65.036704}
+  {\path{doi:10.1103/PhysRevE.65.036704}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevE.65.036704}
+
+\bibitem{bernacki_multiple_2004}
+K.~Bernacki, B.~Hetényi, B.~J. Berne,
+  \href{http://scitation.aip.org/content/aip/journal/jcp/121/1/10.1063/1.1755195}{Multiple
+  “time step” {Monte} {Carlo} simulations: {Application} to charged systems
+  with {Ewald} summation}, The Journal of Chemical Physics 121~(1) (2004) 44.
+\newblock \href {https://doi.org/10.1063/1.1755195}
+  {\path{doi:10.1063/1.1755195}}.
+\newline\urlprefix\url{http://scitation.aip.org/content/aip/journal/jcp/121/1/10.1063/1.1755195}
+
+\bibitem{shi_parallel_2007}
+F.~Shi, Y.~Shim, J.~G. Amar,
+  \href{https://link.aps.org/doi/10.1103/PhysRevE.76.031607}{Parallel kinetic
+  {Monte} {Carlo} simulations of two-dimensional island coarsening}, Physical
+  Review E 76~(3) (2007) 031607.
+\newblock \href {https://doi.org/10.1103/PhysRevE.76.031607}
+  {\path{doi:10.1103/PhysRevE.76.031607}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevE.76.031607}
+
+\bibitem{xu_adaptive_2008}
+L.~Xu, G.~Henkelman,
+  \href{http://aip.scitation.org/doi/10.1063/1.2976010}{Adaptive kinetic
+  {Monte} {Carlo} for first-principles accelerated dynamics}, The Journal of
+  Chemical Physics 129~(11) (2008) 114104.
+\newblock \href {https://doi.org/10.1063/1.2976010}
+  {\path{doi:10.1063/1.2976010}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.2976010}
+
+\bibitem{slepoy_constant-time_2008}
+A.~Slepoy, A.~P. Thompson, S.~J. Plimpton,
+  \href{http://aip.scitation.org/doi/10.1063/1.2919546}{A constant-time kinetic
+  {Monte} {Carlo} algorithm for simulation of large biochemical reaction
+  networks}, The Journal of Chemical Physics 128~(20) (2008) 205101.
+\newblock \href {https://doi.org/10.1063/1.2919546}
+  {\path{doi:10.1063/1.2919546}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.2919546}
+
+\bibitem{chatterjee_accurate_2010}
+A.~Chatterjee, A.~F. Voter,
+  \href{http://aip.scitation.org/doi/10.1063/1.3409606}{Accurate acceleration
+  of kinetic {Monte} {Carlo} simulations through the modification of rate
+  constants}, The Journal of Chemical Physics 132~(19) (2010) 194101.
+\newblock \href {https://doi.org/10.1063/1.3409606}
+  {\path{doi:10.1063/1.3409606}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.3409606}
+
+\bibitem{nielsen_parallel_2013}
+J.~Nielsen, M.~d’Avezac, J.~Hetherington, M.~Stamatakis,
+  \href{http://aip.scitation.org/doi/10.1063/1.4840395}{Parallel kinetic
+  {Monte} {Carlo} simulation framework incorporating accurate models of
+  adsorbate lateral interactions}, The Journal of Chemical Physics 139~(22)
+  (2013) 224706.
+\newblock \href {https://doi.org/10.1063/1.4840395}
+  {\path{doi:10.1063/1.4840395}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.4840395}
+
+\bibitem{xu_simulating_2011}
+H.~Xu, Y.~N. Osetsky, R.~E. Stoller,
+  \href{https://link.aps.org/doi/10.1103/PhysRevB.84.132103}{Simulating complex
+  atomistic processes: {On}-the-fly kinetic {Monte} {Carlo} scheme with
+  selective active volumes}, Physical Review B 84~(13) (2011) 132103.
+\newblock \href {https://doi.org/10.1103/PhysRevB.84.132103}
+  {\path{doi:10.1103/PhysRevB.84.132103}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevB.84.132103}
+
+\bibitem{konwar_off-lattice_2011}
+D.~Konwar, V.~J. Bhute, A.~Chatterjee,
+  \href{http://aip.scitation.org/doi/10.1063/1.3657834}{An off-lattice,
+  self-learning kinetic {Monte} {Carlo} method using local environments}, The
+  Journal of Chemical Physics 135~(17) (2011) 174103.
+\newblock \href {https://doi.org/10.1063/1.3657834}
+  {\path{doi:10.1063/1.3657834}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.3657834}
+
+\bibitem{stamatakis_graph-theoretical_2011}
+M.~Stamatakis, D.~G. Vlachos,
+  \href{http://aip.scitation.org/doi/10.1063/1.3596751}{A graph-theoretical
+  kinetic {Monte} {Carlo} framework for on-lattice chemical kinetics}, The
+  Journal of Chemical Physics 134~(21) (2011) 214115.
+\newblock \href {https://doi.org/10.1063/1.3596751}
+  {\path{doi:10.1063/1.3596751}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.3596751}
+
+\bibitem{guo_--fly_2015}
+X.~Guo, D.~Minakata, J.~Crittenden,
+  \href{https://pubs.acs.org/doi/10.1021/acs.est.5b02034}{On-the-{Fly}
+  {Kinetic} {Monte} {Carlo} {Simulation} of {Aqueous} {Phase} {Advanced}
+  {Oxidation} {Processes}}, Environmental Science \& Technology 49~(15) (2015)
+  9230--9236.
+\newblock \href {https://doi.org/10.1021/acs.est.5b02034}
+  {\path{doi:10.1021/acs.est.5b02034}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/acs.est.5b02034}
+
+\bibitem{yang_learning_2017}
+Q.~Yang, C.~A. Sing-Long, E.~J. Reed,
+  \href{http://xlink.rsc.org/?DOI=C7SC01052D}{Learning reduced kinetic {Monte}
+  {Carlo} models of complex chemistry from molecular dynamics}, Chemical
+  Science 8~(8) (2017) 5781--5796.
+\newblock \href {https://doi.org/10.1039/C7SC01052D}
+  {\path{doi:10.1039/C7SC01052D}}.
+\newline\urlprefix\url{http://xlink.rsc.org/?DOI=C7SC01052D}
+
+\bibitem{chatterjee_multiscale_2006}
+A.~Chatterjee, D.~G. Vlachos,
+  \href{http://aip.scitation.org/doi/10.1063/1.2166380}{Multiscale spatial
+  {Monte} {Carlo} simulations: {Multigriding}, computational singular
+  perturbation, and hierarchical stochastic closures}, The Journal of Chemical
+  Physics 124~(6) (2006) 064110.
+\newblock \href {https://doi.org/10.1063/1.2166380}
+  {\path{doi:10.1063/1.2166380}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.2166380}
+
+\bibitem{collins_coarse-grained_2008}
+S.~D. Collins, A.~Chatterjee, D.~G. Vlachos,
+  \href{http://aip.scitation.org/doi/10.1063/1.3005225}{Coarse-grained kinetic
+  {Monte} {Carlo} models: {Complex} lattices, multicomponent systems, and
+  homogenization at the stochastic level}, The Journal of Chemical Physics
+  129~(18) (2008) 184101.
+\newblock \href {https://doi.org/10.1063/1.3005225}
+  {\path{doi:10.1063/1.3005225}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.3005225}
+
+\bibitem{deng_towards_2022}
+Z.~Deng, V.~Kumar, F.~T. Bölle, F.~Caro, A.~A. Franco, I.~E. Castelli,
+  P.~Canepa, Z.~W. Seh, \href{http://xlink.rsc.org/?DOI=D1EE02324A}{Towards
+  autonomous high-throughput multiscale modelling of battery interfaces},
+  Energy \& Environmental Science 15~(2) (2022) 579--594.
+\newblock \href {https://doi.org/10.1039/D1EE02324A}
+  {\path{doi:10.1039/D1EE02324A}}.
+\newline\urlprefix\url{http://xlink.rsc.org/?DOI=D1EE02324A}
+
+\bibitem{perez_python_2011}
+F.~Pérez, B.~E. Granger, J.~D. Hunter, Python: {An} {Ecosystem} for
+  {Scientific} {Computing}, Computing in Science \& Engineering 13~(2) (2011)
+  13--21, conference Name: Computing in Science \& Engineering.
+\newblock \href {https://doi.org/10.1109/MCSE.2010.119}
+  {\path{doi:10.1109/MCSE.2010.119}}.
+
+\bibitem{noauthor_top_2022}
+\href{https://spectrum.ieee.org/top-programming-languages-2022}{Top
+  {Programming} {Languages} 2022}, section: Computing (Aug. 2022).
+\newline\urlprefix\url{https://spectrum.ieee.org/top-programming-languages-2022}
+
+\bibitem{lam_numba_2015}
+S.~K. Lam, A.~Pitrou, S.~Seibert,
+  \href{http://dl.acm.org/citation.cfm?doid=2833157.2833162}{Numba: a
+  {LLVM}-based {Python} {JIT} compiler}, in: Proceedings of the {Second}
+  {Workshop} on the {LLVM} {Compiler} {Infrastructure} in {HPC} - {LLVM} '15,
+  ACM Press, Austin, Texas, 2015, pp. 1--6.
+\newblock \href {https://doi.org/10.1145/2833157.2833162}
+  {\path{doi:10.1145/2833157.2833162}}.
+\newline\urlprefix\url{http://dl.acm.org/citation.cfm?doid=2833157.2833162}
+
+\bibitem{fick_v_1855}
+A.~Fick,
+  \href{https://www.tandfonline.com/doi/full/10.1080/14786445508641925}{V.\ on
+  liquid diffusion}, Lond. Edinb. Dublin Philos. Mag. J. Sci. 10~(63) (1855)
+  30--39.
+\newblock \href {https://doi.org/10.1080/14786445508641925}
+  {\path{doi:10.1080/14786445508641925}}.
+\newline\urlprefix\url{https://www.tandfonline.com/doi/full/10.1080/14786445508641925}
+
+\bibitem{fick_ueber_1855}
+A.~Fick,
+  \href{https://onlinelibrary.wiley.com/doi/10.1002/andp.18551700105}{Ueber
+  {Diffusion}}, Annalen der Physik und Chemie 170~(1) (1855) 59--86.
+\newblock \href {https://doi.org/10.1002/andp.18551700105}
+  {\path{doi:10.1002/andp.18551700105}}.
+\newline\urlprefix\url{https://onlinelibrary.wiley.com/doi/10.1002/andp.18551700105}
+
+\bibitem{murch_haven_1982}
+G.~Murch,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/0167273882900509}{The
+  haven ratio in fast ionic conductors}, Solid State Ionics 7~(3) (1982)
+  177--198.
+\newblock \href {https://doi.org/10.1016/0167-2738(82)90050-9}
+  {\path{doi:10.1016/0167-2738(82)90050-9}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/0167273882900509}
+
+\bibitem{jonsson_nudged_1998}
+H.~Jónsson, G.~Mills, K.~W. Jacobsen,
+  \href{http://www.worldscientific.com/doi/abs/10.1142/9789812839664_0016}{Nudged
+  elastic band method for finding minimum energy paths of transitions}, in:
+  Classical and {Quantum} {Dynamics} in {Condensed} {Phase} {Simulations},
+  WORLD SCIENTIFIC, LERICI, Villa Marigola, 1998, pp. 385--404.
+\newblock \href {https://doi.org/10.1142/9789812839664_0016}
+  {\path{doi:10.1142/9789812839664_0016}}.
+\newline\urlprefix\url{http://www.worldscientific.com/doi/abs/10.1142/9789812839664_0016}
+
+\bibitem{henkelman_climbing_2000}
+G.~Henkelman, B.~P. Uberuaga, H.~Jónsson,
+  \href{http://aip.scitation.org/doi/10.1063/1.1329672}{A climbing image nudged
+  elastic band method for finding saddle points and minimum energy paths}, The
+  Journal of Chemical Physics 113~(22) (2000) 9901--9904.
+\newblock \href {https://doi.org/10.1063/1.1329672}
+  {\path{doi:10.1063/1.1329672}}.
+\newline\urlprefix\url{http://aip.scitation.org/doi/10.1063/1.1329672}
+
+\bibitem{van_der_ven_first-principles_2018}
+A.~Van~der Ven, J.~Thomas, B.~Puchala, A.~Natarajan,
+  \href{https://www.annualreviews.org/doi/10.1146/annurev-matsci-070317-124443}{First-{Principles}
+  {Statistical} {Mechanics} of {Multicomponent} {Crystals}}, Annual Review of
+  Materials Research 48~(1) (2018) 27--55.
+\newblock \href {https://doi.org/10.1146/annurev-matsci-070317-124443}
+  {\path{doi:10.1146/annurev-matsci-070317-124443}}.
+\newline\urlprefix\url{https://www.annualreviews.org/doi/10.1146/annurev-matsci-070317-124443}
+
+\bibitem{xiao_understanding_2019}
+P.~Xiao, T.~Shi, W.~Huang, G.~Ceder,
+  \href{https://pubs.acs.org/doi/10.1021/acsenergylett.9b00122}{Understanding
+  {Surface} {Densified} {Phases} in {Ni}-{Rich} {Layered} {Compounds}}, ACS
+  Energy Letters 4~(4) (2019) 811--818.
+\newblock \href {https://doi.org/10.1021/acsenergylett.9b00122}
+  {\path{doi:10.1021/acsenergylett.9b00122}}.
+\newline\urlprefix\url{https://pubs.acs.org/doi/10.1021/acsenergylett.9b00122}
+
+\bibitem{vineyard_frequency_1957}
+G.~H. Vineyard,
+  \href{https://linkinghub.elsevier.com/retrieve/pii/0022369757900598}{Frequency
+  factors and isotope effects in solid state rate processes}, Journal of
+  Physics and Chemistry of Solids 3~(1-2) (1957) 121--127.
+\newblock \href {https://doi.org/10.1016/0022-3697(57)90059-8}
+  {\path{doi:10.1016/0022-3697(57)90059-8}}.
+\newline\urlprefix\url{https://linkinghub.elsevier.com/retrieve/pii/0022369757900598}
+
+\bibitem{kaxiras_adatom_1994}
+E.~Kaxiras, J.~Erlebacher,
+  \href{https://link.aps.org/doi/10.1103/PhysRevLett.72.1714}{Adatom diffusion
+  by orchestrated exchange on semiconductor surfaces}, Physical Review Letters
+  72~(11) (1994) 1714--1717.
+\newblock \href {https://doi.org/10.1103/PhysRevLett.72.1714}
+  {\path{doi:10.1103/PhysRevLett.72.1714}}.
+\newline\urlprefix\url{https://link.aps.org/doi/10.1103/PhysRevLett.72.1714}
+
+\bibitem{scikit-learn}
+F.~Pedregosa, G.~Varoquaux, A.~Gramfort, V.~Michel, B.~Thirion, O.~Grisel,
+  M.~Blondel, P.~Prettenhofer, R.~Weiss, V.~Dubourg, J.~Vanderplas, A.~Passos,
+  D.~Cournapeau, M.~Brucher, M.~Perrot, E.~Duchesnay, Scikit-learn: {Machine}
+  learning in {Python}, Journal of Machine Learning Research 12 (2011)
+  2825--2830.
+
+\bibitem{santosa_linear_1986}
+F.~Santosa, W.~W. Symes,
+  \href{http://epubs.siam.org/doi/10.1137/0907087}{Linear {Inversion} of
+  {Band}-{Limited} {Reflection} {Seismograms}}, SIAM Journal on Scientific and
+  Statistical Computing 7~(4) (1986) 1307--1330.
+\newblock \href {https://doi.org/10.1137/0907087} {\path{doi:10.1137/0907087}}.
+\newline\urlprefix\url{http://epubs.siam.org/doi/10.1137/0907087}
+
+\bibitem{thomas_casm_2022}
+J.~C. Thomas, P.~Brian,
+  \href{https://github.com/prisms-center/CASMcode}{{CASM}: {A} {Clusters}
+  {Approach} to {Statistical} {Mechanics}} (Sep. 2022).
+\newline\urlprefix\url{https://github.com/prisms-center/CASMcode}
+
+\bibitem{kiel_gooey_2022}
+C.~Kiel, \href{https://github.com/chriskiehl/Gooey}{Gooey} (2022).
+\newline\urlprefix\url{https://github.com/chriskiehl/Gooey}
+
+\bibitem{noauthor_kmcpy_2022}
+\href{https://kmcpy.readthedocs.io/en/latest/}{{kMCpy} {Documentation}} (Aug.
+  2022).
+\newline\urlprefix\url{https://kmcpy.readthedocs.io/en/latest/}
+
+\end{thebibliography}
