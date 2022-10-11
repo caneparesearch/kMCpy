@@ -1,6 +1,6 @@
 # Installation
 
-## note for windows user
+## Note for Microsoft Windows users
 
 if experiencing error information like this when installing kmpcy:
 
@@ -29,7 +29,7 @@ pip install -r requirement_gui.txt .
 ```
 
 
-## with no GUI enabled (for command line environment running on server)
+## With no GUI enabled (with access to command line environment)
 
 ```
 conda create -n kmcpy python=3.8 hdf5 -c conda-forge
@@ -37,7 +37,7 @@ conda activate kmcpy
 pip install -r requirement.txt .
 ```
 
-## for developers and building docs
+## For developers and building documentation
 
 ```
 conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
