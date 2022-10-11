@@ -26,13 +26,6 @@ Some of the advantages of using this package are:
 This code has been recently used to explore `the transport properties of Na-ion in NaSICON solid electrolyte <https://www.nature.com/articles/s41467-022-32190-7>`_.
 Some of the relevant aspects of the code from the mentioned paper are shown below. 
 
-.. figure:: _static/cluster_expansion.png
-   :width: 500 px
-   :alt: kMCpy
-   :align: center
-   
-   Structural models of :math:`Na_{1+x}Zr_2Si_xP_{3-x}O_{12}` (a-d) and Na-ion migration barriers (e). In (a-d), the Na(1) sites are indicated by silver spheres, the Na(2) by orange spheres, the (Si/P)O4 groups by red tetrahedra, Si/P atoms by red spheres, and :math:`ZrO_6` units by blue octahedra. b and c depict the local environment of Na(1), with each Na(1) surrounded by six neighboring Na(2) atoms (orange spheres) and six Si/P (red spheres) atoms. For simplicity, O and Zr atoms are not shown in (b-d). Each silver hexagonal prism in (b) or (c) represents the first coordination shell of a Na(1) site. Panel (d) is the migration unit used to study Na-ion migration in NASICON, and Na must hop across several different migration units to ensure Na diffusion. Red triangles in (d) indicate the bottlenecks caused by :math:`SiO_4/PO_4` tetrahedra (oxygen atoms are not shown). (e) shows the averaged kinetically resolved activation (KRA) barriers for Na(2)<->Na(1) hops, with varying Na(2) site occupation and Si/P content per migration unit.
-
 The rf-kMC as a part of this code was used to model the Na-ion conductivity in the :math:`Na_{1+x}Zr_2Si_xP_{3-x}O_{12}` which led to the discovery of maximum conductivity of the solid electrolyte is achieved for Na=3.4.
 
 .. figure:: _static/computed_conductivity.png
