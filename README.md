@@ -8,8 +8,6 @@
 - Email: dengzeyu@gmail.com
 
 
-
-
 kMCpy is an open source python based package intended to study the migration of atoms using the kinetic Monte Carlo technique. kMCpy provides an all python, systematic way to compute kinetic properties, which can be readily used for investigation, development, and prediction of new functional materials. 
 
 This package includes a local cluster expansion model toolkit, a rejection-free kinetic Monte Carlo (rf-kMC) solver, and several python classes to extract ion transport properties such as diffusivities and conductivities. 
@@ -24,10 +22,12 @@ Some of the advantages of using this package are:
 
 3. Intensive kMC routines has been optimized into machine code in the fly using Numba (https://numba.pydata.org/), which results in manifold increase in performance. 
 
+The documentation of kMCpy is accessible at this link (https://kmcpy.readthedocs.io). 
+
 
 # Installation Guide:
 
-## note for windows user
+## Note for Microsoft Windows users
 
 if experiencing error information like this when installing kmpcy:
 
@@ -56,7 +56,7 @@ pip install -r requirement_gui.txt .
 ```
 
 
-## with no GUI enabled (for command line environment running on server)
+## With no GUI enabled (to access the command line environment)
 
 ```
 conda create -n kmcpy python=3.8 hdf5 -c conda-forge
@@ -64,7 +64,7 @@ conda activate kmcpy
 pip install -r requirement.txt .
 ```
 
-## for developers and building docs
+## For developers and building the documentation
 
 ```
 conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
