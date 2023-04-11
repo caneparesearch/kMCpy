@@ -61,8 +61,8 @@ class LocalClusterExpansion:
 
         self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
         
-        
-        
+        self.species_to_be_removed = species_to_be_removed
+        self.cutoff_region = cutoff_region
         template_structure.remove_sites([mobile_ion_specie_1_indices])
         
 
@@ -138,7 +138,7 @@ class LocalClusterExpansion:
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
         other_structure.remove_species(['Zr4+','O2-','O','Zr'])
-        other_structure_mol = self.get_cluster_structure(other_structure,self.center_Na1)
+        other_structure_mol = self.get_cluster_structure1(other_structure,self.center_Na1)
         for this_site in self.MigrationUnit_structure:
             if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
                 occu = -1
@@ -147,13 +147,15 @@ class LocalClusterExpansion:
             occupation.append(occu)
         return occupation
 
-    def get_occupation_neb_cif2(self,other_cif_name,species_to_be_removed=['Zr4+','O2-','O','Zr']): # input is a cif structure
+    def get_occupation_neb_cif2(self,other_cif_name,center_site): # input is a cif structure
         occupation = []
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
-        other_structure.remove_species(species_to_be_removed)
-        other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
+        other_structure.remove_species(self.species_to_be_removed)
+        other_structure_mol = self.get_cluster_structure1(structure = other_structure,cutoff = self.cutoff_region, center_site = center_site ,is_write_basis = False,exclude_species=[])
         for this_site in self.MigrationUnit_structure:
+            print(this_site)
+            print(other_structure_mol)
             if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
                 occu = -1
             else:
@@ -162,11 +164,12 @@ class LocalClusterExpansion:
         return occupation
 
     
-    def get_correlation_matrix_neb_cif(self,other_cif_names):
+    def get_correlation_matrix_neb_cif(self,other_cif_names,center_site):
         correlation_matrix = []
         occupation_matrix = []
         for other_cif_name in sorted(glob.glob(other_cif_names)):
-            occupation = self.get_occupation_neb_cif(other_cif_name)
+            print(other_cif_name)
+            occupation = self.get_occupation_neb_cif2(other_cif_name,center_site)
             correlation = [(orbit.multiplicity)*orbit.get_cluster_function(occupation) for orbit in self.orbits]
             occupation_matrix.append(occupation)
             correlation_matrix.append(correlation)
