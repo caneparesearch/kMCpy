@@ -23,10 +23,12 @@ class LocalClusterExpansion:
         pass
     
     def initialization(self,**kwargs):
+        if self.api == 'NaSbWS':
+            return self.initialization_NaSbWS(**kwargs)
+        else:
+            return self.initialization3(**kwargs)
 
-        return self.initialization3(**kwargs)
-
-    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],**kwargs):
+    def initialization_NaSbWS(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],**kwargs):
         print(is_write_basis)
  
         """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
@@ -63,6 +65,69 @@ class LocalClusterExpansion:
         
         self.species_to_be_removed = species_to_be_removed
         self.cutoff_region = cutoff_region
+        template_structure.remove_sites([mobile_ion_specie_1_indices])
+        
+
+        
+        print('Searching local env around',self.center_site ,'...')
+        
+    
+        # fallback to the initial get cluster structure 
+        self.MigrationUnit_structure = self.get_cluster_structure1(structure = template_structure,cutoff = cutoff_region, center_site = self.center_site ,is_write_basis = is_write_basis,exclude_species=exclude_site_with_identifier)
+        
+        
+        # List all possible point, pair and triplet clusters
+        atom_index_list = np.arange(0,len(self.MigrationUnit_structure))
+        
+        cluster_indexes = list(combinations(atom_index_list,1))+list(combinations(atom_index_list,2))+list(combinations(atom_index_list,3))+list(combinations(atom_index_list,4))
+        
+        print(len(cluster_indexes),'clusters will be generated ...')
+        
+        self.clusters = self.clusters_constructor(cluster_indexes,[10]+cutoff_cluster)
+        
+        self.orbits = self.orbits_constructor(self.clusters)
+        
+        self.sublattice_indices = [[cluster.site_indices for cluster in orbit.clusters] for orbit in self.orbits] # sublattice_indices[orbit,cluster,site]
+        print('Type','Index','max_length','min_length','Point Group','Multiplicity',sep='\t')
+        for orbit in self.orbits:
+            orbit.show_representative_cluster()
+
+
+    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],**kwargs):
+        print(is_write_basis)
+ 
+        """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
+        
+        Strictly use the cif file because I only modified the structure.from_cif
+
+        use structure matcher
+
+        Args:
+            mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1": refers to structure_operation.find_atom_indices
+            cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
+            cutoff_region (float, optional): cutoff for finding migration unit. Defaults to 4.
+            template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
+            is_write_basis (bool, optional): .?. Defaults to False.
+            species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
+        
+        If the next-step KMC is not based on the same lce object generated in this step, then be careful with 2 things:
+        1) the Ekra generated in this step can be transferred to the KMC, within which the orbitals are arranged in the same way as here;
+        2) the sublattice_indices are exactly corresponding to the input structure used in the KMC step, which might in need of re-cunstruction of a lce object using the same KMC-input structure.
+            
+        """
+
+        from kmcpy.event_generator import find_atom_indices
+        
+        template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
+        template_structure.remove_oxidation_states()
+        template_structure.remove_species(species_to_be_removed)
+        
+        mobile_ion_specie_1_indices=find_atom_indices(template_structure,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
+        
+        mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one        
+
+        self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
+        
         template_structure.remove_sites([mobile_ion_specie_1_indices])
         
 
@@ -129,11 +194,13 @@ class LocalClusterExpansion:
         
         elif self.api==2:
             return self.get_occupation_neb_cif2(**kwargs)
+        elif self.api=='NaSbWS':
+            return self.get_occupation_neb_cif_NaSbWS(**kwargs)
         else:
             
             raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
 
-    def get_occupation_neb_cif1(self,other_cif_name): # input is a cif structure
+    def get_occupation_neb_cif_NaSbWS(self,other_cif_name): # input is a cif structure
         occupation = []
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
@@ -147,15 +214,27 @@ class LocalClusterExpansion:
             occupation.append(occu)
         return occupation
 
-    def get_occupation_neb_cif2(self,other_cif_name,center_site): # input is a cif structure
+    def get_occupation_neb_cif1(self,other_cif_name): # input is a cif structure
         occupation = []
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
-        other_structure.remove_species(self.species_to_be_removed)
-        other_structure_mol = self.get_cluster_structure1(structure = other_structure,cutoff = self.cutoff_region, center_site = center_site ,is_write_basis = False,exclude_species=[])
+        other_structure.remove_species(['Zr4+','O2-','O','Zr'])
+        other_structure_mol = self.get_cluster_structure(other_structure,self.center_Na1)
         for this_site in self.MigrationUnit_structure:
-            print(this_site)
-            print(other_structure_mol)
+            if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
+                occu = -1
+            else:
+                occu = 1
+            occupation.append(occu)
+        return occupation
+        
+    def get_occupation_neb_cif2(self,other_cif_name,species_to_be_removed=['Zr4+','O2-','O','Zr']): # input is a cif structure
+        occupation = []
+        other_structure = Structure.from_file(other_cif_name)
+        other_structure.remove_oxidation_states()
+        other_structure.remove_species(species_to_be_removed)
+        other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
+        for this_site in self.MigrationUnit_structure:
             if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
                 occu = -1
             else:
@@ -164,12 +243,29 @@ class LocalClusterExpansion:
         return occupation
 
     
-    def get_correlation_matrix_neb_cif(self,other_cif_names,center_site):
+    def get_correlation_matrix_neb_cif_NaSbWS(self,other_cif_names,center_site):
         correlation_matrix = []
         occupation_matrix = []
         for other_cif_name in sorted(glob.glob(other_cif_names)):
             print(other_cif_name)
             occupation = self.get_occupation_neb_cif2(other_cif_name,center_site)
+            correlation = [(orbit.multiplicity)*orbit.get_cluster_function(occupation) for orbit in self.orbits]
+            occupation_matrix.append(occupation)
+            correlation_matrix.append(correlation)
+            print(other_cif_name,occupation)
+        self.correlation_matrix = correlation_matrix
+
+        print(np.round(correlation_matrix,decimals=3))
+        np.savetxt(fname='occupation.txt',X=occupation_matrix,fmt='%5d')
+        np.savetxt(fname='correlation_matrix.txt',X=correlation_matrix,fmt='%.8f')
+        self.correlation_matrix = correlation_matrix
+        # print(other_cif_name,occupation,np.around(correlation,decimals=3),sep='\t')
+
+    def get_correlation_matrix_neb_cif(self,other_cif_names):
+        correlation_matrix = []
+        occupation_matrix = []
+        for other_cif_name in sorted(glob.glob(other_cif_names)):
+            occupation = self.get_occupation_neb_cif(other_cif_name)
             correlation = [(orbit.multiplicity)*orbit.get_cluster_function(occupation) for orbit in self.orbits]
             occupation_matrix.append(occupation)
             correlation_matrix.append(correlation)
