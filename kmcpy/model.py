@@ -200,17 +200,21 @@ class LocalClusterExpansion:
             
             raise NotImplementedError({"@module":self.__class__.__module__,"@class": self.__class__.__name__})
 
-    def get_occupation_neb_cif_NaSbWS(self,other_cif_name): # input is a cif structure
+    def get_occupation_neb_cif_NaSbWS(self,other_cif_name,center_site,cutoff,exclude_species): # input is a cif structure
         occupation = []
         other_structure = Structure.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
-        other_structure.remove_species(['Zr4+','O2-','O','Zr'])
-        other_structure_mol = self.get_cluster_structure1(other_structure,self.center_Na1)
+        other_structure_mol = self.get_cluster_structure1(structure=other_structure,center_site=center_site,cutoff=cutoff,exclude_species=exclude_species)
+        print('-------------------------------------------')
         for this_site in self.MigrationUnit_structure:
+            print(this_site)
+            print(other_structure_mol)
             if self.is_exists(this_site,other_structure_mol):# Chebyshev basis is used here: ±1
                 occu = -1
             else:
                 occu = 1
+            print(occu)
+            print('-------------------------------------------')
             occupation.append(occu)
         return occupation
 
@@ -243,20 +247,24 @@ class LocalClusterExpansion:
         return occupation
 
     
-    def get_correlation_matrix_neb_cif_NaSbWS(self,other_cif_names,center_site):
+    def get_correlation_matrix_neb_cif_NaSbWS(self,other_cif_names,center_site,cutoff,exclude_species):
         correlation_matrix = []
         occupation_matrix = []
-        for other_cif_name in sorted(glob.glob(other_cif_names)):
-            print(other_cif_name)
-            occupation = self.get_occupation_neb_cif2(other_cif_name,center_site)
-            correlation = [(orbit.multiplicity)*orbit.get_cluster_function(occupation) for orbit in self.orbits]
-            occupation_matrix.append(occupation)
-            correlation_matrix.append(correlation)
-            print(other_cif_name,occupation)
-        self.correlation_matrix = correlation_matrix
+        with open('occupation.txt','w') as occ_file:
+            for other_cif_name in sorted(glob.glob(other_cif_names),key=lambda x: int((x.split('/')[1]).split('_')[0])):
+                print('===========================================')
+                occupation = self.get_occupation_neb_cif_NaSbWS(other_cif_name,center_site,cutoff,exclude_species)
+                correlation = [(orbit.multiplicity)*orbit.get_cluster_function(occupation) for orbit in self.orbits]
+                occupation_matrix.append(occupation)
+                occ_file.write("\t".join([str(o) for o in occupation])+" #"+other_cif_name+'\n')
+                correlation_matrix.append(correlation)
+                print(other_cif_name,occupation)
+                print('===========================================\n')
+            self.correlation_matrix = correlation_matrix
 
         print(np.round(correlation_matrix,decimals=3))
-        np.savetxt(fname='occupation.txt',X=occupation_matrix,fmt='%5d')
+        # np.savetxt(fname='occupation.txt',X=occupation_matrix,fmt='%5d')
+        #correlation_matri
         np.savetxt(fname='correlation_matrix.txt',X=correlation_matrix,fmt='%.8f')
         self.correlation_matrix = correlation_matrix
         # print(other_cif_name,occupation,np.around(correlation,decimals=3),sep='\t')
