@@ -12,9 +12,7 @@ constructs==3.4.137
 cycler==0.11.0
 debugpy==1.6.3
 decorator==5.1.1
-easybuild-easyblocks==4.5.0
-easybuild-easyconfigs==4.5.0
-easybuild-framework==4.5.0
+
 exceptiongroup==1.0.0
 executing==1.1.1
 Flask==2.2.2
@@ -27,8 +25,7 @@ importlib-metadata==5.0.0
 importlib-resources==5.10.0
 inflection==0.5.1
 iniconfig==1.1.1
-ipykernel==6.16.1
-ipython==8.5.0
+
 itsdangerous==2.1.2
 jedi==0.18.1
 Jinja2==3.1.2
@@ -40,7 +37,7 @@ jsonschema-spec==0.1.2
 jupyter_client==7.4.3
 jupyter_core==4.11.2
 kiwisolver==1.4.4
-kmcPy==0.1.dev0
+
 lazy-object-proxy==1.8.0
 llvmlite==0.38.1
 MarkupSafe==2.1.1
@@ -49,7 +46,7 @@ matplotlib==3.5.2
 matplotlib-inline==0.1.6
 monty==2022.4.26
 mpmath==1.2.1
-nest-asyncio==1.5.6
+
 networkx==2.8.4
 numba==0.55.2
 numexpr==2.8.3
