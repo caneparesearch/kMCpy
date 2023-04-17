@@ -356,8 +356,399 @@ class neighbor_info_matcher():
   
             raise ValueError("sequence not founded!")                
   
+
+class neighbor_info_matcher_NaSbWS():
+    def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),
+                 distance_matrix=np.array([[0,1],[1,0]]),
+                 neighbor_sequence=[{}],
+                 neighbor_species_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),
+                                                        "Li+":np.array([[0,1],[1,0]])},
+                 neighbor_species_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
+        """neighbor_info matcher, the __init__ method shouln't be used. Use the from_neighbor_info() instead. This is neighbor_info matcher to match the nearest neighbor info output from local_env.cutoffdictNN.get_nn_info. This neighbor_info_matcher Class is initialized by a reference neighbor_info, a distance matrix is built as reference. Then user can call the neighbor_info_matcher.brutal_match function to sort another nn_info so that the sequence of neighbor of "another nn_info" is arranged so that the distance matrix are the same 
+
+        Args:
+            neighbor_species (tuple, optional): tuple ( tuple ( str(species), int(number_of_this_specie in neighbors)  )  ). Defaults to (('Cl-', 4),('Li+', 8)).
+            distance_matrix (np.array, optional): np.2d array as distance matrix. Defaults to np.array([[0,1],[1,0]]).
+            neighbor_sequence (list, optional): list of dictionary in the format of nn_info returning value. Defaults to [{}].
+            neighbor_species_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])}.
+            neighbor_species_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {"Cl-":[{}],"Li+":[{}]}.
+        """
+        
+        self.neighbor_species=neighbor_species
+        self.distance_matrix=distance_matrix
+        self.neighbor_species_distance_matrix_dict=neighbor_species_distance_matrix_dict
+        self.neighbor_species_sequence_dict=neighbor_species_sequence_dict
+        self.neighbor_sequence=neighbor_sequence
+    
+    @classmethod
+    def from_neighbor_sequences_and_migration_pairs(self,neighbor_sequences=[{}],migration_pairs=[{}]):
+        """generally generate the neighbor info matcher from this
+        Jerry: Changed from neighbor_info_matcher.from_neighbor_sequences() to make it works for migration_pairs
+
+        Args:
+            neighbor_sequences (list, optional): list of dictionary from cutoffdictNN.get_nn_info(). Defaults to [{}].
+
+        Returns:
+            neighbor_info_matcher: a neighbor_info_matcher object, initialized from get_nn_info output
+        """
+        
+        # -------------------------------------------------------
+        # this part of function is adapted from pymatgen.analysis.local_env
+        #Shyue Ping Ong, William Davidson Richards, Anubhav Jain, Geoffroy Hautier, Michael Kocher, Shreyas Cholia, Dan Gunter, Vincent Chevrier, Kristin A. Persson, Gerbrand Ceder. Python Materials Genomics (pymatgen) : A Robust, Open-Source Python Library for Materials Analysis. Computational Materials Science, 2013, 68, 314-319. doi:10.1016/j.commatsci.2012.10.028
+        cn_dict={}
+        
+        neighbor_species_sequence_dict={}
+        
+        for neighbor in neighbor_sequences:
+            """for example NaSICON has 12 neighbors, 6 Na and 6 Si, here for neighbor we build the coordination number dict.
+            """
+            
+            site_element = neighbor["site"].species_string
+            
+            if site_element not in cn_dict:
+                cn_dict[site_element] = 1
+            else:
+                cn_dict[site_element] += 1
+            if site_element not in neighbor_species_sequence_dict:
+                neighbor_species_sequence_dict[site_element]=[neighbor]
+            else:
+                neighbor_species_sequence_dict[site_element].append(neighbor)
+        # end of adapting.
+        # -------------------------------------------------------        
+            
+        neighbor_species_distance_matrix_dict={}
+        
+        for species in neighbor_species_sequence_dict:
+            neighbor_species_distance_matrix_dict[species]=self.build_distance_matrix_from_getnninfo_output(neighbor_species_sequence_dict[species])
+        
+        neighbor_species=tuple(sorted(cn_dict.items(),key=lambda x:x[0]))
+        
+        distance_matrix=self.build_distance_matrix_from_getnninfo_output(neighbor_sequences)
+        
+        
+        
+        return neighbor_info_matcher(neighbor_species=neighbor_species,
+                                     distance_matrix=distance_matrix,
+                                     neighbor_sequence=neighbor_sequences,
+                                     neighbor_species_distance_matrix_dict=neighbor_species_distance_matrix_dict,
+                                     neighbor_species_sequence_dict=neighbor_species_sequence_dict)
+        
+    
+    @classmethod
+    def build_distance_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
+        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+
+        nn_info looks like: 
+        [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
+        
+        or say:
+        
+        nn_info is a list, the elements of list is dictionary, the keys of dictionary are: "site":pymatgen.site, "wyckoff_sequence": ....
+        
+        Use the site.distance function to build matrix
+        
+
+        Args:
+            cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.
+
+        Returns:
+            np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
+        """
+    
+        distance_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output)))
+          
+
+        for sitedictindex1 in range(0,len(cutoffdnn_output)):
+            for sitedictindex2 in range(0,len(cutoffdnn_output)):
+                """Reason for jimage=[0,0,0]
+                
+                site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!
+
+                .
+                """
+                distance_matrix[sitedictindex1][sitedictindex2]=cutoffdnn_output[sitedictindex1]["site"].distance(cutoffdnn_output[sitedictindex2]["site"],jimage=[0,0,0])
+            
+            
+        
+        return distance_matrix
+
+    @classmethod
+    def build_angle_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
+        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+
+        nn_info looks like: 
+        [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
+        
+        or say:
+        
+        nn_info is a list, the elements of list is dictionary, the keys of dictionary are: "site":pymatgen.site, "wyckoff_sequence": ....
+        
+        Use the site.distance function to build matrix
+        
+
+        Args:
+            cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.
+
+        Returns:
+            np.3darray: 3d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.
+        """
+    
+        angle_matrix=np.zeros(shape=(len(cutoffdnn_output),len(cutoffdnn_output),len(cutoffdnn_output)))
+          
+        
+        for sitedictindex1 in range(0,len(cutoffdnn_output)):
+            for sitedictindex2 in range(0,len(cutoffdnn_output)):
+                for sitedictindex3 in range(0,len(cutoffdnn_output)):
+                    v1=cutoffdnn_output[sitedictindex2]["site"].coords-cutoffdnn_output[sitedictindex1]["site"].coords
+                    v2=cutoffdnn_output[sitedictindex3]["site"].coords-cutoffdnn_output[sitedictindex1]["site"].coords
+                    angle_matrix[sitedictindex1][sitedictindex2][sitedictindex3]=get_angle(v1,v2,"degrees")
+            
+            
+        
+        return angle_matrix
+
+    def rearrange(self,wrong_distance_matrix_of_specie=[],species='Na',atol=0.01,rtol=0.01):
+        """
+        A very fast version of rearranging the neighbors with same species
+
+        Args:
+            wrong_distance_matrix_of_specie (np.2Drray, optional): distance matrix of wrong distance matrix that is supposed to be rearranged and match with self.distance matrix. Defaults to [].
+            species (str, optional): the species to match, is the key to self.neighbor_species_distance_matrix_dict. Defaults to 'Na'.
+
+        Raises:
+            ValueError: no correct sequence found
+
+        Returns:
+            list: list of list, of which is the sequence of index of rearranged sequence
+        """
+        # distance_matrix=distance matrix of wrong neighbor sequence
+        correct_distance_matrix=self.neighbor_species_distance_matrix_dict[species]# np.2darray
+        previous_possible_sequences=[]
+        
+        for i in range(0,len(correct_distance_matrix)):
+            previous_possible_sequences.append([i])# init
+        
+        for i in range(0,len(correct_distance_matrix)-1):
+        
+            new_possible_sequences=[]
+            
+            correct_distance_matrix_in_this_round=correct_distance_matrix[0:2+i,0:2+i]
+            
+            
+            for previous_possible_sequence in previous_possible_sequences:
+                for i in range(0,len(correct_distance_matrix)):
+                    if i not in previous_possible_sequence:
+                        tmp_sequence=previous_possible_sequence.copy()
+                        #print(tmp_sequence)
+                        tmp_sequence.append(i)
+                        tmp_rebuilt_submatrix=self.rebuild_submatrix(distance_matrix=wrong_distance_matrix_of_specie,sequences=tmp_sequence)
+                        if np.allclose(tmp_rebuilt_submatrix,correct_distance_matrix_in_this_round,atol=atol,rtol=rtol):
+                            new_possible_sequences.append(tmp_sequence)
+                            
+            previous_possible_sequences=new_possible_sequences.copy()
+            
+        if len(new_possible_sequences)==0:
+            raise ValueError("new possible sequence=0.")
+
+        return new_possible_sequences
+            
+
+
+    def rebuild_submatrix(self,distance_matrix,sequences=[2,1]):
+        """rebuild the submatrix, with given seuqneces and distance matrix, rebuild the distance matrix from given sequence
+
+        Args:
+            distance_matrix (np.2Darray): distance matrix, length = sequences.len()
+            sequences (list, optional): new sequences. Defaults to [2,1].
+
+        Returns:
+            np.2darray: rebuilt matrix
+        """
+        # wrong_distance_matrix is the matrix that is different from the reference.
+        rebuilt_matrix=np.zeros(shape=(len(sequences),len(sequences)))
+        
+        for idx1 in range(len(sequences)):
+            for idx2 in range(len(sequences)):
+                rebuilt_matrix[idx1][idx2]=distance_matrix[sequences[idx1]][sequences[idx2]]
+        return rebuilt_matrix
+
+
+    def brutal_match(self,unsorted_nninfo=[{}],rtol=0.001,atol=0.001,find_nearest_if_fail=False):
+        """brutally sort the input unsorted_nninfo. Although brutal but fast enough for now
+        
+        update 220621: not fast enough for LiCoO2 with 12 neighbors,
+        
+        rewrite the finding sequence algo. Now is freaking fast again!
+
+        Args:
+            unsorted_nninfo (list, optional): the unsorted nn_info of an element. The nn_info are compared with the nn_info of class instance. Defaults to [{}].
+            
+            Tolerance: Refer to np.allclose
+            rtol (float, optional): relative tolerance of np.allclose in order to determine if the distance matrix are the same. Better not too small. Defaults to 0.01.
+            atol (float, optional): absolute tolerance
+            find_nearest_if_fail(bool, optional): This should be true only for grain boundary model! 
+
+        Raises:
+            ValueError: this will perform a check if the inputted unsorted nn_info has the same neighbor species type and amount
+            ValueError: if the unsorted_nninfo cannot be sort with reference of the distance matrix of this neighbor_info_matcher instance. Probably due to too small rtol or it's just not the same neighbor_infos
+
+        Returns:
+            sorted nninfo, as list of dictionary: in the format of cutoffdictNN.get_nn_info
+        """
+        
+        unsorted_neighbor_info=neighbor_info_matcher.from_neighbor_sequences(unsorted_nninfo)
+        
+        if self.neighbor_species!=unsorted_neighbor_info.neighbor_species:
+            raise ValueError("input neighbor_info has different environment")
+        
+        if np.allclose(unsorted_neighbor_info.distance_matrix,self.distance_matrix,rtol=rtol,atol=atol):
+            neighbor_info_logger.info("no need to rearrange this neighbor_info. The distance matrix is already the same. The differece matrix is : \n")
+            neighbor_info_logger.info(str(unsorted_neighbor_info.distance_matrix-self.distance_matrix))
+            
+            return unsorted_neighbor_info.neighbor_sequence
+        
+        
+        
+        sorted_neighbor_sequence_dict={}
+
+        for specie in unsorted_neighbor_info.neighbor_species_sequence_dict:
+            
+            rearranged_sequences_of_neighbor=self.rearrange(wrong_distance_matrix_of_specie=unsorted_neighbor_info.neighbor_species_distance_matrix_dict[specie],species=specie,atol=atol,rtol=rtol)
+            
+            sorted_neighbor_sequence_dict[specie]=[]
+            for rearranged_sequence_of_neighbor in rearranged_sequences_of_neighbor:
+                possible_local_sequence=[]
+                for new_index in rearranged_sequence_of_neighbor:
+                    possible_local_sequence.append(unsorted_neighbor_info.neighbor_species_sequence_dict[specie][new_index])
+                sorted_neighbor_sequence_dict[specie].append(possible_local_sequence)
+            
+            
+
+            """
+            print(sorted_neighbor_sequence_dict[specie])
+            raise ValueError()
+            
+            for possible_local_sequence in itertools.permutations(unsorted_neighbor_info.neighbor_species_sequence_dict[specie]):
+                
+                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_distance_matrix_dict[specie],rtol=rtol,atol=atol):
+                    
+                    sorted_neighbor_sequence_dict[specie].append(list(possible_local_sequence))
+            """
+            if len(sorted_neighbor_sequence_dict[specie])==0:
+                raise ValueError("no sorted sequence found for "+str(specie)+" please check if the rtol or atol is too small")
+            
+        #neighbor_info_logger.warning(str(sorted_neighbor_sequence_dict))
+        
+        
+        sorted_neighbor_sequence_list=[]
+        
+        for specie in sorted_neighbor_sequence_dict:
+            sorted_neighbor_sequence_list.append(sorted_neighbor_sequence_dict[specie])
+        
+        
+
+        if find_nearest_if_fail:
+            closest_smilarity_score=999999.0
+            closest_sequence=[]
+            for possible_complete_sequence in itertools.product(*sorted_neighbor_sequence_list):
+                
   
+                re_sorted_neighbors_list=[]
+                
+                for neighbor in possible_complete_sequence:
+
+                    re_sorted_neighbors_list.extend(list(neighbor))               
+            
+                this_smilarity_score=np.sum(np.abs(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)-self.distance_matrix))
+                
+                if this_smilarity_score<closest_smilarity_score:
+                    closest_smilarity_score=this_smilarity_score
+                    closest_sequence=re_sorted_neighbors_list
+                    
+            neighbor_info_logger.warning("the closest neighbor_info identified. Total difference"+str(closest_smilarity_score))
+            neighbor_info_logger.info("new sorting is found,new distance matrix is ")
+            neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)))
+            neighbor_info_logger.info("The differece matrix is : \n")
+            neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)-self.distance_matrix))                            
+            return closest_sequence
+                
+            
+      
+        else:
+        
+            for possible_complete_sequence in itertools.product(*sorted_neighbor_sequence_list):
+                
+                #neighbor_info_logger.warning(str(possible_complete_sequence))
+                
+                re_sorted_neighbors_list=[]
+                
+                for neighbor in possible_complete_sequence:
+
+                    re_sorted_neighbors_list.extend(list(neighbor))               
+            
+                if np.allclose(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list),self.distance_matrix,rtol=rtol,atol=atol):
+                    neighbor_info_logger.info("new sorting is found,new distance matrix is ")
+                    neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)))
+                    neighbor_info_logger.warning("The differece matrix is : \n")
+                    neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(re_sorted_neighbors_list)-self.distance_matrix))                
+                    
+                    return re_sorted_neighbors_list
   
+            raise ValueError("sequence not founded!")                
+  
+
+def find_atom_indices_NaSbWS(structure,
+                             mobile_ion_identifier_type="specie",
+                             atom_identifier="Li+",
+                             migration_unit_center = "X",
+                             migration_distance_range = [3,4]):
+    """a function for generating a list of site indices that satisfies the identifier
+Jerry: modified based on the find_atom_indices for Na3-xSb1-xWxS4
+    Using the center of the MigrationUnit as an identifier for the event
+    Migration happens between mobile_ion_specie_1 <-> mobile_ion_specie_2 
+    migration_distance_range (in Angstrom) is used to select the desired type of migration events, e.g. between nearest neighbor, between 2nd nearest neighbor, and etc.
+
+    Args:
+        structure (kmcpy.external.pymatgen_structure): structure object to work on
+        mobile_ion_identifier_type (str, optional): elect from: ["specie","label"]. Defaults to "specie".
+        atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
+        
+        typical input:
+        mobile_ion_identifier_type=specie, atom_identifier="Li+"
+        mobile_ion_identifier_type=label, atom_identifier="Li1"
+        mobile_ion_identifier_type=list, atom_identifier=[0,1,2,3,4,5]
+
+    Raises:
+        ValueError: mobile_ion_identifier_type argument is strange
+
+    Returns:
+        list: list of atom indices that satisfy the identifier
+    """
+    mobile_ion_specie_1_indices=[]    
+    if mobile_ion_identifier_type=="specie":
+        for i in range(0,len(structure)):
+            if atom_identifier in structure[i].species:
+                mobile_ion_specie_1_indices.append(i)
+                
+    elif mobile_ion_identifier_type=="label":
+
+        for i in range(0,len(structure)):
+            if structure[i].properties["label"]==atom_identifier:
+                mobile_ion_specie_1_indices.append(i)
+                
+    #elif mobile_ion_identifier_type=="list":
+        #mobile_ion_specie_1_indices=atom_identifier
+    
+    else:
+        raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] ')
+    
+    neighbor_info_logger.warning("please check if these are mobile_ion_specie_1:")
+    for i in mobile_ion_specie_1_indices:
+        
+        neighbor_info_logger.warning(str(structure[i]))        
+    
+    return mobile_ion_specie_1_indices
+        
 def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identifier="Li+"):
     """a function for generating a list of site indices that satisfies the identifier
 
@@ -652,7 +1043,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
     return reference_local_env_dict
     
-def generate_events_NSWS(prim_cif_name="210.cif",
+def generate_events_NaSbWS(prim_cif_name="210.cif",
                          convert_to_primitive_cell=False,
                          local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},
                          mobile_ion_identifier_type="label",
@@ -729,12 +1120,17 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     event_generator_logger.info(str(primitive_cell.composition))
     event_generator_logger.warning("building mobile_ion_specie_1 index list")
     
-
-    mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
+    # find indices of all Na+
+    mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,
+                                                  mobile_ion_identifier_type=mobile_ion_identifier_type,
+                                                  atom_identifier=mobile_ion_specie_1_identifier)  
         
     #--------
     
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
+
+    # {("Li+","Cl-"):4.0}
+    migration_pairs_finder = CutOffDictNNrange({(mobile_ion_specie_1_identifier:mobile_ion_specie_2_identifier):migration_distance_range})
     
     reference_local_env_dict={}
     """this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1
@@ -759,7 +1155,8 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     for mobile_ion_specie_1_index in mobile_ion_specie_1_indices:
         
         unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
-                    
+        unsorted_migration_pairs_sequences=sorted(sorted(migration_pairs_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
+
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
         #print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
@@ -1000,3 +1397,122 @@ def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='eve
             f.write('\n')
     return event_kernal
 
+
+class CutOffDictNNrange(NearNeighbors):
+    """
+    Jerry: Modified from CutOffDictNN in pymatgen so that it can search all pairs between a range of distances [d_min, d_max]
+
+    A basic NN class using a dictionary of fixed cut-off distances.
+    Only pairs of elements listed in the cut-off dictionary are considered
+    during construction of the neighbor lists.
+    Omit passing a dictionary for a Null/Empty NN class.
+    """
+
+    def __init__(self, cut_off_dict=None):
+        """
+        Args:
+            cut_off_dict (dict[str, float]): a dictionary
+            of cut-off distances, e.g. {('Fe','O'): [2.0,3.0]} for
+            a maximum Fe-O bond length between 2.0 and 3.0 Angstroms.
+            Bonds will only be created between pairs listed
+            in the cut-off dictionary.
+            If your structure is oxidation state decorated,
+            the cut-off distances will have to explicitly include
+            the oxidation state, e.g. {('Fe2+', 'O2-'): [2.0,3.0]}
+        """
+        self.cut_off_dict = cut_off_dict or {}
+        self.range_distances = range_distances
+        # for convenience  Jerry: added minimum and maximum
+        self._max_dist = 0.0
+        self._min_dist = 1e3
+        lookup_dict_max = defaultdict(dict)
+        for (sp1, sp2), dist in self.cut_off_dict.items():
+            lookup_dict_max[sp1][sp2] = dist
+            lookup_dict_max[sp2][sp1] = dist
+            if dist > self._max_dist:
+                self._max_dist = dist
+
+            lookup_dict_min[sp1][sp2] = dist
+            lookup_dict_min[sp2][sp1] = dist
+            if dist < self._min_dist:
+                self._min_dist = dist
+        self._lookup_dict_max = lookup_dict_max
+        self._lookup_dict_min = lookup_dict_min
+
+
+    @property
+    def structures_allowed(self):
+        """
+        Boolean property: can this NearNeighbors class be used with Structure
+        objects?
+        """
+        return True
+
+    @property
+    def molecules_allowed(self):
+        """
+        Boolean property: can this NearNeighbors class be used with Molecule
+        objects?
+        """
+        return True
+
+    @property
+    def extend_structure_molecules(self):
+        """
+        Boolean property: Do Molecules need to be converted to Structures to use
+        this NearNeighbors class? Note: this property is not defined for classes
+        for which molecules_allowed is False.
+        """
+        return True
+
+    @staticmethod
+    def from_preset(preset):
+        """
+        Initialise a CutOffDictNN according to a preset set of cut-offs.
+        Args:
+            preset (str): A preset name. The list of supported presets are:
+                - "vesta_2019": The distance cut-offs used by the VESTA
+                  visualisation program.
+        Returns:
+            A CutOffDictNN using the preset cut-off dictionary.
+        """
+        if preset == "vesta_2019":
+            cut_offs = loadfn(os.path.join(_directory, "vesta_cutoffs.yaml"))
+            return CutOffDictNNrange(cut_off_dict=cut_offs)
+
+        raise ValueError(f"Unrecognised preset: {preset}")
+
+    def get_nn_info(self, structure: Structure, n: int):
+        """
+        Get all near-neighbor sites as well as the associated image locations
+        and weights of the site with index n in structure.
+        Args:
+            structure (Structure): input structure.
+            n (int): index of site for which to determine near-neighbor
+                sites.
+        Returns:
+            siw (list of tuples (Site, array, float)): tuples, each one
+                of which represents a coordinated site, its image location,
+                and its weight.
+        """
+        site = structure[n]
+
+        neighs_dists = structure.get_neighbors(site, self._max_dist)
+
+        nn_info = []
+        for nn in neighs_dists:
+            n_site = nn
+            dist = nn.nn_distance
+            neigh_cut_off_dist_max = self._lookup_dict_max.get(site.species_string, {}).get(n_site.species_string, 0.0)
+            neigh_cut_off_dist_min = self._lookup_dict_min.get(site.species_string, {}).get(n_site.species_string, 0.0)
+            if dist < neigh_cut_off_dist_max and dist > neigh_cut_off_dist_min:
+                nn_info.append(
+                    {
+                        "site": n_site,
+                        "image": self._get_image(structure, n_site),
+                        "weight": dist,
+                        "site_index": self._get_original_site(structure, n_site),
+                    }
+                )
+
+        return nn_info
