@@ -1130,7 +1130,7 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
 
     # {("Li+","Cl-"):4.0}
-    migration_pairs_finder = CutOffDictNNrange({(mobile_ion_specie_1_identifier:mobile_ion_specie_2_identifier):migration_distance_range})
+    migration_pairs_finder = CutOffDictNNrange({(mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier):migration_distance_range})
     
     reference_local_env_dict={}
     """this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1
