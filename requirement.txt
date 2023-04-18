@@ -3,8 +3,10 @@ numpy==1.22.1
 scipy==1.6.2
 numba==0.53.1
 tables
-pymatgen==2021.3.4
+pymatgen==2021.3.5
 joblib==1.0.1
-scikit-learn==0.24.1
+scikit-learn==1.1.1
 pytest
 glob2
+tqdm
+joblib
