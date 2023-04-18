@@ -1049,7 +1049,8 @@ def generate_events_NaSbWS(prim_cif_name="210.cif",
                          mobile_ion_identifier_type="label",
                          mobile_ion_specie_1_identifier="Na1",
                          mobile_ion_specie_2_identifier="Na2",
-                         migration_unit_center = "X",
+                         migration_unit_center_identifier_type="label",
+                         migration_unit_center_identifier = "X",
                          migration_distance_range = [3,4],
                          species_to_be_removed=["O2-","O"],
                          distance_matrix_rtol=0.01,
@@ -1124,12 +1125,17 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,
                                                   mobile_ion_identifier_type=mobile_ion_identifier_type,
                                                   atom_identifier=mobile_ion_specie_1_identifier)  
-        
+    migration_unit_center_indicies=find_atom_indices(primitive_cell,
+                                                  mobile_ion_identifier_type=migration_unit_center_identifier_type,
+                                                  atom_identifier=migration_unit_center_identifier)  
     #--------
     
     local_env_finder = CutOffDictNN(local_env_cutoff_dict)
 
-    # {("Li+","Cl-"):4.0}
+    """
+    Jerry: migration_pairs_finder finds all possible hopping sites 
+    E.g., {("Na+","Na"):[3,4]} finds all possible hopping between two Na+ where their interatomic distances are between 3 and 4
+    """
     migration_pairs_finder = CutOffDictNNrange({(mobile_ion_specie_1_identifier,mobile_ion_specie_2_identifier):migration_distance_range})
     
     reference_local_env_dict={}
@@ -1152,22 +1158,29 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     
     neighbor_has_been_found=0
     
-    for mobile_ion_specie_1_index in mobile_ion_specie_1_indices:
+    # Jerry: change to loop through migration unit center
+    for migration_unit_center_index in migration_unit_center_indicies:
         
-        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
-        unsorted_migration_pairs_sequences=sorted(sorted(migration_pairs_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
+        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,migration_unit_center_index),
+                                                  key=lambda x:x["site"].coords[0]),
+                                                  key = lambda x:x["site"].specie)      
+        
+        # Jerry: add migration pairs
+        unsorted_migration_pairs_sequences=sorted(sorted(migration_pairs_finder.get_nn_info(primitive_cell,migration_unit_center_index),
+                                                         key=lambda x:x["site"].coords[0]),
+                                                         key = lambda x:x["site"].specie)      
 
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
         #print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
-        
+        # Jerry: reference_local_env_dict
         if this_nninfo.neighbor_species not in reference_local_env_dict:
             
             # then take this as the reference neighbor info sequence
             
             if export_local_env_structure:
                 
-                reference_local_env_sites=[primitive_cell[mobile_ion_specie_1_index]]
+                reference_local_env_sites=[primitive_cell[migration_unit_center_index]]
                 
                 for i in unsorted_neighbor_sequences:
                     
@@ -1181,7 +1194,7 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
             
             reference_local_env_dict[this_nninfo.neighbor_species]=this_nninfo
 
-            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index].properties['local_index']]=this_nninfo.neighbor_sequence
+            local_env_info_dict[primitive_cell[migration_unit_center_index].properties['local_index']]=this_nninfo.neighbor_sequence
             
             
             event_generator_logger.warning("a new type of local environment is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
