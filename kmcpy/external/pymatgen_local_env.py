@@ -4470,6 +4470,7 @@ class CutOffDictNNrange(NearNeighbors):
         self._max_dist = 0.0
         self._min_dist = 1e3
         lookup_dict_max = defaultdict(dict)
+        lookup_dict_min = defaultdict(dict)
         for (sp1, sp2), dist in self.cut_off_dict.items():
             lookup_dict_max[sp1][sp2] = dist
             lookup_dict_max[sp2][sp1] = dist
