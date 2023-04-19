@@ -130,18 +130,11 @@ class LocalClusterExpansion:
         else:
             mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one        
 
-<<<<<<< HEAD
-        self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
-        
-        template_structure.remove_sites([mobile_ion_specie_1_indices])
-        
-=======
             self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
             
             
             
             template_structure.remove_sites([mobile_ion_specie_1_indices])
->>>>>>> origin/main
 
             print('Searching local env around',self.center_site ,'...')
         
