@@ -1211,7 +1211,7 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
 
             sorted_neighbor_sequence=reference_local_env_dict[this_nninfo.neighbor_species].brutal_match(this_nninfo.neighbor_sequence,rtol=distance_matrix_rtol,atol=distance_matrix_atol,find_nearest_if_fail=find_nearest_if_fail)
             
-            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index].properties['local_index']]=sorted_neighbor_sequence
+            local_env_info_dict[primitive_cell[migration_unit_center_index].properties['local_index']]=sorted_neighbor_sequence
             
         neighbor_has_been_found+=1
         
