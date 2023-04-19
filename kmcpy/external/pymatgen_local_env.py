@@ -4465,7 +4465,6 @@ class CutOffDictNNrange(NearNeighbors):
             the oxidation state, e.g. {('Fe2+', 'O2-'): [2.0,3.0]}
         """
         self.cut_off_dict = cut_off_dict or {}
-        self.range_distances = range_distances
         # for convenience  Jerry: added minimum and maximum
         self._max_dist = 0.0
         self._min_dist = 1e3
