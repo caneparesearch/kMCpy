@@ -4445,7 +4445,7 @@ def metal_edge_extender(mol_graph):
 class CutOffDictNNrange(NearNeighbors):
     """
     Jerry: Modified from CutOffDictNN in pymatgen so that it can search all pairs between a range of distances [d_min, d_max]
-
+    c
     A basic NN class using a dictionary of fixed cut-off distances.
     Only pairs of elements listed in the cut-off dictionary are considered
     during construction of the neighbor lists.
@@ -4470,16 +4470,16 @@ class CutOffDictNNrange(NearNeighbors):
         self._min_dist = 1e3
         lookup_dict_max = defaultdict(dict)
         lookup_dict_min = defaultdict(dict)
-        for (sp1, sp2), dist in self.cut_off_dict.items():
-            lookup_dict_max[sp1][sp2] = dist
-            lookup_dict_max[sp2][sp1] = dist
-            if dist > self._max_dist:
-                self._max_dist = dist
+        for (sp1, sp2), (dist_min,dist_max) in self.cut_off_dict.items():
+            lookup_dict_max[sp1][sp2] = dist_max
+            lookup_dict_max[sp2][sp1] = dist_max
+            if dist_max > self._max_dist:
+                self._max_dist = dist_max
 
-            lookup_dict_min[sp1][sp2] = dist
-            lookup_dict_min[sp2][sp1] = dist
-            if dist < self._min_dist:
-                self._min_dist = dist
+            lookup_dict_min[sp1][sp2] = dist_min
+            lookup_dict_min[sp2][sp1] = dist_min
+            if dist_min < self._min_dist:
+                self._min_dist = dist_min
         self._lookup_dict_max = lookup_dict_max
         self._lookup_dict_min = lookup_dict_min
 
