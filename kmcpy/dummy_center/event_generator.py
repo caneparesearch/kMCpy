@@ -631,13 +631,15 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
             tuple_key_of_such_neighbor_site=supercell.site_index_vector(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=normalized_supercell_tuple)
             event_generator_logger.info('tuple_key_of_such_neighbor_site: '+str(tuple_key_of_such_neighbor_site))
             local_env_info.append(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])
-            event_generator_logger.info('indices_dict_from_identifier[tuple_key_of_such_neighbor_site]',str(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])+'\n')
+            # event_generator_logger.info('indices_dict_from_identifier[tuple_key_of_such_neighbor_site]',str(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])+'\n')
         event_generator_logger.info(get_divider('End: Loop sites in local env','.'))
         
         event_generator_logger.info(get_divider('Start: Generate Events','.'))
         # Jerry: start to generate Event
         # Jerry: loop through sites in local env and generate event when this site is the mobile species with addition condition
         mobile_ion_indices = []
+        #already_appended
+
         for local_env in local_env_info:
             # generate event
             """
