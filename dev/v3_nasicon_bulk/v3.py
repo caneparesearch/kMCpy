@@ -169,7 +169,6 @@ class Test_version3(unittest.TestCase):
         import numpy as np
         structure_from_json=generate_supercell("./gather_mc_data/prim.json",(8,8,8))
         df = gather_data('comp*',structure_from_json)
-        df.to_hdf('gather_mc_data/mc_results_json.h5',key='df',complevel=9,mode='w')
         df.to_json('gather_mc_data/mc_results_json.json',orient="index")
         occ1=df["occ"]
         
@@ -179,7 +178,6 @@ class Test_version3(unittest.TestCase):
         structure_from_cif.remove_oxidation_states()
         structure_from_cif=structure_from_cif.make_kmc_supercell([8,8,8])
         df2 = gather_data('comp*',structure_from_cif)
-        df2.to_hdf('gather_mc_data/mc_results_cif.h5',key='df',complevel=9,mode='w')
         df2.to_json('gather_mc_data/mc_results_cif.json',orient="index")
         occ2=df2["occ"]
         for i in range(0,len(occ1[0])):

@@ -176,15 +176,10 @@ test/v3_nasicon_bulk/fitting_results.json
 
 test/v3_nasicon_bulk/input/lce.json
 
-*mc_results_cif.h5
 fitting_results.json
 0th_reference_cluster.cif
 0th_reference_local_env.cif
-*.h5
-mc_results_cif.h5
-mc_results_json.h5
-test/v3_nasicon_bulk/gather_mc_data/mc_results_cif.h5
-test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
+
 dev/scalability/input/*
 nohup.out*
 !scalability.pdf
@@ -199,6 +194,4 @@ input_example/lce.json
 
 test/v3_nasicon_bulk/fitting_results.json
 test/v3_nasicon_bulk/keci.txt
-test/v3_nasicon_bulk/gather_mc_data/mc_results_cif.h5
-test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
 test/v3_nasicon_bulk/input/lce.json

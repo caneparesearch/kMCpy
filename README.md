@@ -31,7 +31,7 @@ Please visit the prompted website, follow the instruction to download Microsoft 
 ## With GUI enabled (Recommended for Windows, Macos, Linux personal computer)
 
 ```
-conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
+conda create -n kmcpy python wxpython -c conda-forge
 conda activate kmcpy
 pip install -r requirement_gui.txt .
 ```
@@ -40,7 +40,7 @@ pip install -r requirement_gui.txt .
 ## with no GUI enabled (for command line environment running on server)
 
 ```
-conda create -n kmcpy python=3.8 hdf5 -c conda-forge
+conda create -n kmcpy python -c conda-forge
 conda activate kmcpy
 pip install -r requirement.txt .
 ```
@@ -48,7 +48,7 @@ pip install -r requirement.txt .
 ## for developers and building docs
 
 ```
-conda create -n kmcpy python=3.8 hdf5 wxpython -c conda-forge
+conda create -n kmcpy python wxpython -c conda-forge
 conda activate kmcpy
 pip install -r requirement_gui.txt -e .
 cd doc

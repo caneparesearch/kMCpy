@@ -1,5 +1,4 @@
 scipy
-h5py
 matplotlib
 ase
 imageio

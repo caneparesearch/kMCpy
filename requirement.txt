@@ -1,8 +1,7 @@
-
 numba
 tables
 pymatgen
-joblib==1.0.1
+joblib
 scikit-learn
 pytest
 glob2
