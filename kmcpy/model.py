@@ -120,7 +120,7 @@ class LocalClusterExpansion:
         if is_write_basis:
             print('Local environemnt: ')
             print(local_env_structure)
-            local_env_structure.to('xyz','local_env.xyz')
+            local_env_structure.to(fmt='xyz',filename='local_env.xyz')
             print('The point group of local environment is: ',PointGroupAnalyzer(local_env_structure).sch_symbol)
         return local_env_structure
 
@@ -366,7 +366,7 @@ class Cluster:
     def to_xyz(self,fname):
         local_structure_no_oxidation = self.structure.copy()
         local_structure_no_oxidation.remove_oxidation_states()
-        local_structure_no_oxidation.to('xyz',fname)
+        local_structure_no_oxidation.to(filename=fname,fmt='xyz')
     
     def __str__(self):
         print('==============================================================')

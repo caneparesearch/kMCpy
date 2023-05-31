@@ -537,7 +537,7 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
                     reference_local_env_sites.append(i["site"])
                     reference_local_env_structure=Structure.from_sites(sites=reference_local_env_sites)
                     
-                reference_local_env_structure.to("cif",str(reference_local_env_type)+"th_reference_local_env.cif") 
+                reference_local_env_structure.to(fmt="cif",filename=str(reference_local_env_type)+"th_reference_local_env.cif") 
                 reference_local_env_type+=1
                 
                 event_generator_logger.info(str(reference_local_env_type)+"th type of reference local_env structure cif file is created. please check")

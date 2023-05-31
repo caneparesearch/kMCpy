@@ -1,12 +1,9 @@
-pandas==1.2.4
-numpy==1.22.1
-scipy==1.6.2
-numba==0.53.1
+
+numba
 tables
-pymatgen==2021.3.5
+pymatgen
 joblib==1.0.1
-scikit-learn==1.1.1
+scikit-learn
 pytest
 glob2
-tqdm
 joblib
