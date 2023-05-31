@@ -1,5 +1,4 @@
 numba
-tables
 pymatgen
 joblib
 scikit-learn
