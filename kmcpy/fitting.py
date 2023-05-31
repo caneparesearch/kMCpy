@@ -92,7 +92,7 @@ class Fitting:
 
         alpha = alpha
         estimator = Lasso(alpha=alpha, max_iter=max_iter,
-                          normalize=True, fit_intercept=True)
+                           fit_intercept=True)
         estimator.fit(correlation_matrix, e_kra, sample_weight=weight)
         keci = estimator.coef_
         empty_cluster = estimator.intercept_

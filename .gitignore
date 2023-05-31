@@ -196,3 +196,6 @@ input_example/lce_site.json
 input_example/lce.json
 !input_example/fitting_results.json
 
+test/*/*.json
+test/*/*.txt
+*.h5
