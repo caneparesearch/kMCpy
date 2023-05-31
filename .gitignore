@@ -196,6 +196,9 @@ input_example/lce_site.json
 input_example/lce.json
 !input_example/fitting_results.json
 
-test/*/*.json
-test/*/*.txt
-*.h5
+
+test/v3_nasicon_bulk/fitting_results.json
+test/v3_nasicon_bulk/keci.txt
+test/v3_nasicon_bulk/gather_mc_data/mc_results_cif.h5
+test/v3_nasicon_bulk/gather_mc_data/mc_results_json.h5
+test/v3_nasicon_bulk/input/lce.json

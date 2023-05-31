@@ -134,7 +134,7 @@ class Fitting:
         except:
             print(fit_results_fname,'is not found, create a new file...')
             print(weight_copy)
-            df = pd.DataFrame(data =np.array([[time_stamp,time,keci,empty_cluster,weight_copy,alpha,rmse,loocv]]),
+            df = pd.DataFrame(data =[[time_stamp,time,keci,empty_cluster,weight_copy,alpha,rmse,loocv]],
             columns=['time_stamp','time','keci','empty_cluster','weight','alpha','rmse','loocv'])
             df.to_json(fit_results_fname,orient='index',indent=4)
             print('Updated latest results: ')
