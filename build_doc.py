@@ -1,8 +1,8 @@
 import os
 
-api_doc_path="doc/source/modules/"
+api_doc_path="docs/source/modules/"
 
-def write_rst_for_sphinx(filename="pymatgen_cif.py",api_doc_path="doc/source/modules/",module="kmcpy.external",package="pymatgen_cif"):
+def write_rst_for_sphinx(filename="pymatgen_cif.py",api_doc_path="docs/source/modules/",module="kmcpy.external",package="pymatgen_cif"):
     with open(api_doc_path+filename.replace(".py",".rst"),"w+") as rst:
         rst.write("""package
 =========================
@@ -44,5 +44,5 @@ with open(api_doc_path+"api.rst","w+") as api_file:
         filestring+="    "+api+".rst\n"
     api_file.write(filestring)
     
-os.chdir("doc")
+os.chdir("docs")
 os.system("make html")

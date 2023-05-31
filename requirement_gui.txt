@@ -4,5 +4,4 @@ joblib
 scikit-learn
 pytest
 glob2
-joblib
 gooey

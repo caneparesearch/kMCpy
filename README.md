@@ -1,16 +1,15 @@
-# Kinetic Monte Carlo Simulation using Python (kmcPy)
+# Kinetic Monte Carlo Simulation using Python (kMCpy)
 - Author: Zeyu Deng
 - Email: dengzeyu@gmail.com
 
 # Prerequisite Packages:
-python numpy scipy pandas numba tables pymatgen
-
+- kMCpy: python, pymatgen, numba, scikit-learn, joblib, glob2, pytest
 
 # Installation Guide:
 
-## note for windows user
+## Note for Windows user
 
-if experiencing error information like this when installing kmpcy:
+If experiencing error information like this when installing kMCpy:
 
 ```
 error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
@@ -45,16 +44,22 @@ conda activate kmcpy
 pip install -r requirement.txt .
 ```
 
-## for developers and building docs
+## For developers 
 
 ```
-conda create -n kmcpy python wxpython -c conda-forge
+conda create -n kmcpy python -c conda-forge
 conda activate kmcpy
 pip install -r requirement_gui.txt -e .
-cd doc
-pip install -r doc_requirements.txt
-cd ..
-python dev_deploy.py
+```
+
+## For building documentation
+- `pandoc` needs to be installed for documentation generation
+- Should first install the `kmcpy` environment as above
+```
+conda activate kmcpy
+conda install pandoc -c conda-forge
+pip install -r doc/doc_requirements.txt
+python build_doc.py
 ```
 
 # Running kMCpy:
