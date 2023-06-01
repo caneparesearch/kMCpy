@@ -2,7 +2,7 @@
 
 from turtle import distance
 from sympy import primitive
-from kmcpy.dummy_center.event import Event
+from kmcpy.event import Event
 import numpy as np
 from numba.typed import List
 import numba as nb
@@ -14,9 +14,6 @@ from pymatgen.util.coord import get_angle
 def print_divider():
     print("\n\n-------------------------------------------\n\n")
 
-# Jerry: divider is used to seperate a log file into sections
-def get_divider(title,string):
-    return "\n"+string*20+title+string*20+"\n"
 
 def generate_events(api=3,**kwargs):
 
@@ -28,7 +25,7 @@ def generate_events(api=3,**kwargs):
 neighbor_info_logger=logging.getLogger("neighbor information:")
 neighbor_info_logger.setLevel("INFO")
 neighbor_info_logger.addHandler(logging.StreamHandler())
-neighbor_info_logger.addHandler(logging.FileHandler("neighbor_info_debug.log"))
+neighbor_info_logger.addHandler(logging.FileHandler("debug.log"))
 
 class neighbor_info_matcher():
     def __init__(self,neighbor_species=(('Cl-', 4),('Li+', 8)),distance_matrix=np.array([[0,1],[1,0]]),neighbor_sequence=[{}],neighbor_species_distance_matrix_dict={"Cl-":np.array([[0,1],[1,0]]),"Li+":np.array([[0,1],[1,0]])},neighbor_species_sequence_dict={"Cl-":[{}],"Li+":[{}]}):
@@ -99,7 +96,7 @@ class neighbor_info_matcher():
     
     @classmethod
     def build_distance_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
-        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+        """build a distance matrix from the output of CutOffDictNNKMCpy.get_nn_info
 
         nn_info looks like: 
         [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
@@ -137,7 +134,7 @@ class neighbor_info_matcher():
 
     @classmethod
     def build_angle_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
-        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+        """build a distance matrix from the output of CutOffDictNNKMCpy.get_nn_info
 
         nn_info looks like: 
         [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
@@ -215,6 +212,8 @@ class neighbor_info_matcher():
 
         return new_possible_sequences
             
+
+
     def rebuild_submatrix(self,distance_matrix,sequences=[2,1]):
         """rebuild the submatrix, with given seuqneces and distance matrix, rebuild the distance matrix from given sequence
 
@@ -268,6 +267,8 @@ class neighbor_info_matcher():
             
             return unsorted_neighbor_info.neighbor_sequence
         
+        
+        
         sorted_neighbor_sequence_dict={}
 
         for specie in unsorted_neighbor_info.neighbor_species_sequence_dict:
@@ -281,6 +282,8 @@ class neighbor_info_matcher():
                     possible_local_sequence.append(unsorted_neighbor_info.neighbor_species_sequence_dict[specie][new_index])
                 sorted_neighbor_sequence_dict[specie].append(possible_local_sequence)
             
+            
+
             """
             print(sorted_neighbor_sequence_dict[specie])
             raise ValueError()
@@ -295,6 +298,7 @@ class neighbor_info_matcher():
                 raise ValueError("no sorted sequence found for "+str(specie)+" please check if the rtol or atol is too small")
             
         #neighbor_info_logger.warning(str(sorted_neighbor_sequence_dict))
+        
         
         sorted_neighbor_sequence_list=[]
         
@@ -328,6 +332,8 @@ class neighbor_info_matcher():
             neighbor_info_logger.info(str(self.build_distance_matrix_from_getnninfo_output(closest_sequence)-self.distance_matrix))                            
             return closest_sequence
                 
+            
+      
         else:
         
             for possible_complete_sequence in itertools.product(*sorted_neighbor_sequence_list):
@@ -350,7 +356,8 @@ class neighbor_info_matcher():
   
             raise ValueError("sequence not founded!")                
   
-
+  
+  
 def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identifier="Li+"):
     """a function for generating a list of site indices that satisfies the identifier
 
@@ -395,30 +402,11 @@ def find_atom_indices(structure,mobile_ion_identifier_type="specie",atom_identif
     
     return mobile_ion_specie_1_indices
         
-def generate_events3(prim_cif_name="210.cif",
-                         convert_to_primitive_cell=False,
-                         local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},
-                         mobile_ion_identifier_type="label",
-                         mobile_ion_specie_1_identifier="Na1",
-                         mobile_ion_specie_2_identifier="Na2",
-                         migration_unit_center_identifier_type="label",
-                         migration_unit_center_identifier = "X",
-                         migration_distance_range = [3,4],
-                         species_to_be_removed=["O2-","O"],
-                         distance_matrix_rtol=0.01,
-                         distance_matrix_atol=0.01,
-                         find_nearest_if_fail=True,
-                         export_local_env_structure=True,
-                         supercell_shape=[2,1,1],
-                         event_fname="events.json",
-                         event_kernal_fname='event_kernal.csv',
-                         verbosity="WARNING",**kwargs):
+def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,local_env_cutoff_dict={("Li+","Cl-"):4.0,("Li+","Li+"):3.0},mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",mobile_ion_specie_2_identifier="Na2",species_to_be_removed=["O2-","O"],distance_matrix_rtol=0.01,distance_matrix_atol=0.01,find_nearest_if_fail=True,export_local_env_structure=True,supercell_shape=[2,1,1],event_fname="events.json",event_kernal_fname='event_kernal.csv',verbosity="WARNING",**kwargs):
     """
-Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
-    Using the center of the MigrationUnit as an identifier for the event
-    Migration happens between mobile_ion_specie_1 <-> mobile_ion_specie_2 
-    migration_distance_range (in Angstrom) is used to select the desired type of migration events, e.g. between nearest neighbor, between 2nd nearest neighbor, and etc.
-    
+    220603 XIE WEIHANG    
+    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile_ion_specie_1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 
+
     Args:
         prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. This cif file should include all possible site i.e., no vacancy. For example when dealing with NaSICON The input cif file must be a fully occupied composition, which includes all possible Na sites N4ZSP; the varied Na-Vacancy should only be tuned by occupation list.
         convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
@@ -448,54 +436,44 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     # --------------
     import json
     import logging
-    from kmcpy.external.pymatgen_structure import Structure
-    from kmcpy.external.pymatgen_local_env import CutOffDictNN
+    from kmcpy.external.structure import StructureKMCpy
+    from kmcpy.external.local_env import CutOffDictNNKMCpy
 
     from kmcpy.io import convert
     from kmcpy.event import Event
-
-    # Jerry: add this
-    from kmcpy.external.pymatgen_local_env import CutOffDictNNrange
-
     
     # build the logger
     event_generator_logger=logging.getLogger("event generator")
     event_generator_logger.setLevel(verbosity)
     event_generator_logger.addHandler(logging.StreamHandler())
-    event_generator_logger.addHandler(logging.FileHandler("event_generator_debug.log"))
+    event_generator_logger.addHandler(logging.FileHandler("debug.log"))
     event_generator_logger.warning("Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet.")
     
     
     # generate primitive cell
-    primitive_cell=Structure.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
+    primitive_cell=StructureKMCpy.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
     #primitive_cell.add_oxidation_state_by_element({"Na":1,"O":-2,"P":5,"Si":4,"V":2.5})
     primitive_cell.add_oxidation_state_by_guess()
     
     primitive_cell.remove_species(species_to_be_removed)
-    event_generator_logger.info(get_divider('Generate Primitve Cell','='))
-
+    
     event_generator_logger.warning("primitive cell composition after adding oxidation state and removing uninvolved species: ")
     event_generator_logger.info(str(primitive_cell.composition))
-    event_generator_logger.info(get_divider('Generate Primitve Cell','='))
-
-    event_generator_logger.warning("building migration_unit_center index list")
+    event_generator_logger.warning("building mobile_ion_specie_1 index list")
     
-    # find indices of all Na+
-    # mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,
-    #                                               mobile_ion_identifier_type=mobile_ion_identifier_type,
-    #                                               atom_identifier=mobile_ion_specie_1_identifier)  
-    migration_unit_center_indicies=find_atom_indices(primitive_cell,
-                                                  mobile_ion_identifier_type=migration_unit_center_identifier_type,
-                                                  atom_identifier=migration_unit_center_identifier)  
+
+    mobile_ion_specie_1_indices=find_atom_indices(primitive_cell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)  
+        
     #--------
     
-    local_env_finder = CutOffDictNN(local_env_cutoff_dict)
-
+    local_env_finder = CutOffDictNNKMCpy(local_env_cutoff_dict)
+    
     reference_local_env_dict={}
     """this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1
     
     The key is a tuple type: For NaSICON, there is only one type of local environment: 6 Na2 and 6 Si. The tuple is in the format of (('Na+', 6), ('Si4+', 6)) . The key is a neighbor_info_matcher as the reference local environment.
     """
+    
     
     
     local_env_info_dict = {}
@@ -504,52 +482,44 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     """
    
     reference_local_env_type=0
-
-    event_generator_logger.info(get_divider('Begin: Find Local Env in Primitve Cell','='))
-    event_generator_logger.info("start finding the neighboring sequence of migration_unit_center_indicies")
-    event_generator_logger.info("total number of migration_unit_center_indicies:"+str(len(migration_unit_center_indicies)))
+    
+    event_generator_logger.info("start finding the neighboring sequence of mobile_ion_specie_1s")
+    event_generator_logger.info("total number of mobile_ion_specie_1s:"+str(len(mobile_ion_specie_1_indices)))
     
     neighbor_has_been_found=0
     
-    # Jerry: through migration unit center
-    for migration_unit_center_index in migration_unit_center_indicies:
-        event_generator_logger.info(get_divider('Begin: Loop migration_unit_center','-'))
-
-        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,migration_unit_center_index),
-                                                  key=lambda x:x["site"].coords[0]),
-                                                  key = lambda x:x["site"].specie)      
-
+    for mobile_ion_specie_1_index in mobile_ion_specie_1_indices:
+        
+        unsorted_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(primitive_cell,mobile_ion_specie_1_index),key=lambda x:x["site"].coords[0]),key = lambda x:x["site"].specie)      
+                    
         this_nninfo=neighbor_info_matcher.from_neighbor_sequences(unsorted_neighbor_sequences)
         
         #print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
-        # Jerry: reference_local_env_dict: unique local environment
+        
         if this_nninfo.neighbor_species not in reference_local_env_dict:
             
             # then take this as the reference neighbor info sequence
             
-            # Jerry: this is not relavent to the project, ignored
             if export_local_env_structure:
                 
-                reference_local_env_sites=[primitive_cell[migration_unit_center_index]]
+                reference_local_env_sites=[primitive_cell[mobile_ion_specie_1_index]]
                 
                 for i in unsorted_neighbor_sequences:
                     
                     reference_local_env_sites.append(i["site"])
-                    reference_local_env_structure=Structure.from_sites(sites=reference_local_env_sites)
+                    reference_local_env_structure=StructureKMCpy.from_sites(sites=reference_local_env_sites)
                     
                 reference_local_env_structure.to(fmt="cif",filename=str(reference_local_env_type)+"th_reference_local_env.cif") 
                 reference_local_env_type+=1
                 
                 event_generator_logger.info(str(reference_local_env_type)+"th type of reference local_env structure cif file is created. please check")
             
-            # Jerry: add new unique local_env to the database
             reference_local_env_dict[this_nninfo.neighbor_species]=this_nninfo
 
-            local_env_info_dict[primitive_cell[migration_unit_center_index].properties['local_index']]=this_nninfo.neighbor_sequence
+            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index].properties['local_index']]=this_nninfo.neighbor_sequence
             
             
             event_generator_logger.warning("a new type of local environment is recognized with the species "+str(this_nninfo.neighbor_species)+" \nthe distance matrix are \n"+str(this_nninfo.distance_matrix))
-            event_generator_logger.info('The shape of the generated distance matrix is:'+str(this_nninfo.distance_matrix.shape))
 
             
         else:
@@ -559,49 +529,46 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
 
             sorted_neighbor_sequence=reference_local_env_dict[this_nninfo.neighbor_species].brutal_match(this_nninfo.neighbor_sequence,rtol=distance_matrix_rtol,atol=distance_matrix_atol,find_nearest_if_fail=find_nearest_if_fail)
             
-            local_env_info_dict[primitive_cell[migration_unit_center_index].properties['local_index']]=sorted_neighbor_sequence
+            local_env_info_dict[primitive_cell[mobile_ion_specie_1_index].properties['local_index']]=sorted_neighbor_sequence
             
         neighbor_has_been_found+=1
         
-        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(migration_unit_center_indicies))+" neighboring sequence has been found")
-        event_generator_logger.info(get_divider('End: Loop migration_unit_center','-'))
-    event_generator_logger.info(get_divider('End: Find Local Env in Primitve Cell','='))
-    # Jerry: create supercell after finding all unique local env in primtive cell
-    event_generator_logger.info(get_divider('Start: Generate Supercell','='))
+        event_generator_logger.warning(str(neighbor_has_been_found)+" out of "+str(len(mobile_ion_specie_1_indices))+" neighboring sequence has been found")
+        
+
+  
     supercell=primitive_cell.make_kmc_supercell(supercell_shape)
     event_generator_logger.warning("supercell is created")
     event_generator_logger.info(str(supercell))
-    event_generator_logger.info(get_divider('End: Generate Supercell','='))
+    
+    supercell_mobile_ion_specie_1_indices=find_atom_indices(supercell,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
 
-    # Jerry: find all migration_unit_center_indices in supercell
-    supercell_migration_unit_center_indices=find_atom_indices(supercell,mobile_ion_identifier_type=migration_unit_center_identifier_type,atom_identifier=migration_unit_center_identifier)
-
+            
     events = []
     events_dict = []
     
-    # Jerry advice: it's better to re-implement this function... this dictionary is used to get the site index in supercell by giving supercell tuple, label, and sublattice index
-    indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
-    event_generator_logger.info(get_divider('Start: Generate events in supercell','='))
-    # Jerry: loop through all migration_unit_center in supercell
-    event_generator_logger.info('supercell_migration_unit_center_indices'+str(supercell_migration_unit_center_indices))
 
-    event_generator_logger.info(get_divider('Begin: Loop migration unit in supercell','-'))
-    for supercell_migration_unit_center_index in supercell_migration_unit_center_indices:
-        # for mobile_ion_specie_1s of newly generated supercell, find the neighbors
-        event_generator_logger.info('migration_unit_center at site['+str(supercell_migration_unit_center_index)+'] in supercell: '+str(supercell[supercell_migration_unit_center_index]))
+    
+    indices_dict_from_identifier=supercell.kmc_build_dict3(skip_check=False)#a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
+    
+
+
+    
+    for supercell_mobile_ion_specie_1_index in supercell_mobile_ion_specie_1_indices:
         
-        supercell_tuple=supercell[supercell_migration_unit_center_index].properties["supercell"]
-        # Jerry: local_index_of_migration_unit_center is the sublattice index in the primitive cell
-        local_index_of_migration_unit_center=supercell[supercell_migration_unit_center_index].properties["local_index"]
+        # for mobile_ion_specie_1s of newly generated supercell, find the neighbors
+
+        supercell_tuple=supercell[supercell_mobile_ion_specie_1_index].properties["supercell"]
+        
+        local_index_of_this_mobile_ion_specie_1=supercell[supercell_mobile_ion_specie_1_index].properties["local_index"]
         
         local_env_info=[]# list of integer / indices of local environment
-        # Jerry: loop through sites in the local environment <- here we should loop mobile_specie_pairs within each migration unit?
-        event_generator_logger.info(get_divider('Begin: Loop sites in local env','.'))
-        for neighbor_site_in_primitive_cell in local_env_info_dict[local_index_of_migration_unit_center]:
-            event_generator_logger.info('\nneighbor_site_in_primitive_cell: '+str(neighbor_site_in_primitive_cell))
+        
+        
+        for neighbor_site_in_primitive_cell in local_env_info_dict[local_index_of_this_mobile_ion_specie_1]:
             """
             
-             local_env_info_dict[local_index_of_migration_unit_center]
+             local_env_info_dict[local_index_of_this_mobile_ion_specie_1]
             
             In primitive cell, the mobile_ion_specie_1 has 1 unique identifier: The "local index inside the primitive cell"
             
@@ -624,77 +591,51 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
             This loop build the local_env_info list, [supercell_neighbor_index1, supercell_neighbor_index2, .....]
             
             """
-            # Jerry: normalize_supercell_tuple returns the correct supercell image tuple of a site
+            
             normalized_supercell_tuple=normalize_supercell_tuple(site_belongs_to_supercell=supercell_tuple,image_of_site=neighbor_site_in_primitive_cell["image"],supercell_shape=supercell_shape)
-            event_generator_logger.info('normalized_supercell_tuple: '+str(normalized_supercell_tuple))
-            # Jerry: tuple_key_of_such_neighbor_site is the site index in a supercell by giving ([supercell[0],supercell[1],supercell[2],label,local_index])
+            
             tuple_key_of_such_neighbor_site=supercell.site_index_vector(local_index=neighbor_site_in_primitive_cell["local_index"],label=neighbor_site_in_primitive_cell["label"],supercell=normalized_supercell_tuple)
-            event_generator_logger.info('tuple_key_of_such_neighbor_site: '+str(tuple_key_of_such_neighbor_site))
+            
             local_env_info.append(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])
-            # event_generator_logger.info('indices_dict_from_identifier[tuple_key_of_such_neighbor_site]',str(indices_dict_from_identifier[tuple_key_of_such_neighbor_site])+'\n')
-        event_generator_logger.info(get_divider('End: Loop sites in local env','.'))
-        
-        event_generator_logger.info(get_divider('Start: Generate Events','.'))
-        # Jerry: start to generate Event
-        # Jerry: loop through sites in local env and generate event when this site is the mobile species with addition condition
-        mobile_ion_indices = []
-        #already_appended
 
         for local_env in local_env_info:
             # generate event
             """
-            generally use the migration_unit_center_identifier_type="label", to see the Na1 and Na2 of nasicon.
+            generally use the mobile_ion_identifier_type="label", to see the Na1 and Na2 of nasicon.
 
             specie is suitable for grain boundary model. Generally don't use it
 
 
             """
-            this_migration_unit_center = supercell[supercell_migration_unit_center_index]
-            dist_condition = (this_migration_unit_center.distance(supercell[local_env])<=migration_distance_range[1]) and (this_migration_unit_center.distance(supercell[local_env])>=migration_distance_range[0])
-            event_generator_logger.info('distance between migration_unit_center:'+str(supercell_migration_unit_center_index)+ ' and mobile_specie:'+str(local_env)+' : '+str(this_migration_unit_center.distance(supercell[local_env])))
-            event_generator_logger.info('dist_condition: '+str(dist_condition))
-            
-            
-            if migration_unit_center_identifier_type=="specie":
-                if migration_unit_center_identifier in supercell[local_env].species and dist_condition:
-                    mobile_ion_indices.append(local_env)
- 
+            if mobile_ion_identifier_type=="specie":
+
+                if mobile_ion_specie_2_identifier in supercell[local_env].species  :
+                    # initialize the event
+                    this_event = Event()
+                    this_event.initialization3(supercell_mobile_ion_specie_1_index,local_env,local_env_info)
+                    events.append(this_event)
+                    events_dict.append(this_event.as_dict())   
                         
-            elif migration_unit_center_identifier_type=="label":                
-                if (supercell[local_env].properties["label"] in [mobile_ion_specie_1_identifier, mobile_ion_specie_2_identifier]) and dist_condition:
+            elif mobile_ion_identifier_type=="label":
+
+                if supercell[local_env].properties["label"] == mobile_ion_specie_2_identifier:
                     # or for understanding, if any site in local environment, its label== "Na2"
                     # initialize the event
-                    mobile_ion_indices.append(local_env)
- 
+                    this_event = Event()
+                    this_event.initialization3(supercell_mobile_ion_specie_1_index,local_env,local_env_info)
+                    events.append(this_event)
+                    events_dict.append(this_event.as_dict())   
                         
-            elif migration_unit_center_identifier_type=="list":
+            elif mobile_ion_identifier_type=="list":
                 raise NotImplementedError() 
                 #"potentially implement this for grain boundary model"
-                        
+                                   
             else:
-                raise ValueError('unrecognized migration_unit_center_identifier_type. Please select from: ["specie","label"] ')
+                raise ValueError('unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] ')
             
-        event_generator_logger.info('\nmobile_ion_indices: '+str(mobile_ion_indices))
-        if len(mobile_ion_indices) > 2:
-            raise NotImplementedError("Find hopping event involving more than 2 sites, currently it's not implemented!")
-        
-        if len(mobile_ion_indices) < 2:
-            raise ValueError('No hopping between two sites has been found: len(mobile_ion_indices) < 2')
-        this_event = Event()
-        this_event.initialization3(mobile_ion_indices[0],mobile_ion_indices[1],local_env_info)
-        events.append(this_event)
-        events_dict.append(this_event.as_dict())
-        this_event.show_info()
-
-        event_generator_logger.info('\nsupercell_migration_unit_center_index: '+str(supercell_migration_unit_center_index))
-        event_generator_logger.info('local_env: '+str(local_env))
-        event_generator_logger.info('local_env_info: '+str(local_env_info)+'\n')
-        event_generator_logger.info(get_divider('End: Generate Events','.'))
-        
-        event_generator_logger.info(get_divider('End: Loop migration unit in supercell','-'))
-    event_generator_logger.info(get_divider('End: Generate events in supercell','='))
     if len(events)==0:
         raise ValueError("There is no event generated. This is probably caused by wrong input parameters.")
+    
     print('Saving:',event_fname)
     with open(event_fname,'w') as fhandle:
         jsonStr = json.dumps(events_dict,indent=4,default=convert)
@@ -711,7 +652,7 @@ Jerry: modified based on the generate_events3 for Na3-xSb1-xWxS4
     
     return reference_local_env_dict
     
-
+    
 def normalize_supercell_tuple(site_belongs_to_supercell=[5,1,7],image_of_site=(0,-1,1),supercell_shape=[5,6,7],additional_input=False,verbose=False):
     """finding the equivalent position in periodic supercell considering the periodic boundary condition. i.e., normalize the supercell tuple to make sure that each component of supercell is greater than zero
     
@@ -790,5 +731,3 @@ def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='eve
                 f.write('%5d ' % item)
             f.write('\n')
     return event_kernal
-
-

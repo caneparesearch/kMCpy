@@ -4,9 +4,12 @@
 
 # Prerequisite Packages:
 - kMCpy: python, pymatgen, numba, scikit-learn, joblib, glob2, pytest
+<<<<<<< HEAD
 
 # Installation Guide:
 
+=======
+>>>>>>> parent of facfa96 (merged from main)
 ## Note for Windows user
 
 If experiencing error information like this when installing kMCpy:
@@ -27,6 +30,11 @@ ERROR: Could not build wheels for pymatgen, which is required to install pyproje
 
 Please visit the prompted website, follow the instruction to download Microsoft C++ build tools, install the "desktop development with C++" component and retry installing kMCpy. 
 
+<<<<<<< HEAD
+=======
+# Installation Guide:
+
+>>>>>>> parent of facfa96 (merged from main)
 ## With GUI enabled (Recommended for Windows, Macos, Linux personal computer)
 
 ```

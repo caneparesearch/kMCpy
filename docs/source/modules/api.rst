@@ -8,10 +8,13 @@ API Reference Documentation
     event_generator.rst
     event.rst
 <<<<<<< HEAD
+<<<<<<< HEAD
     model.rst
     event_generator.rst
     event.rst
     model_nasbws.rst
+=======
+>>>>>>> parent of facfa96 (merged from main)
     io.rst
     kmc.rst
 =======
