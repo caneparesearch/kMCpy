@@ -731,4 +731,3 @@ def generate_event_kernal(len_structure,events_site_list,event_kernal_fname='eve
                 f.write('%5d ' % item)
             f.write('\n')
     return event_kernal
-
