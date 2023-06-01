@@ -151,7 +151,7 @@ class LocalClusterExpansion:
 
     def get_occupation_neb_cif2(self,other_cif_name,species_to_be_removed=['Zr4+','O2-','O','Zr']): # input is a cif structure
         occupation = []
-        other_structure = Structure.from_file(other_cif_name)
+        other_structure = StructureKMCpy.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
         other_structure.remove_species(species_to_be_removed)
         other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
