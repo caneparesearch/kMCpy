@@ -10,10 +10,10 @@ error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft 
 
  note: This error originates from a subprocess, and is likely not a problem with pip.
   ERROR: Failed building wheel for pymatgen
-  Building wheel for kmcPy (setup.py) ... done
-  Created wheel for kmcPy: filename=kmcPy-0.1.dev0-py3-none-any.whl size=124937 sha256=1282afef8589ee100a8d4fa1b53748d2d69a2e041d8c8662cfa8374a23222d60
+  Building wheel for kMCpy (setup.py) ... done
+  Created wheel for kMCpy: filename=kMCpy-0.1.dev0-py3-none-any.whl size=124937 sha256=1282afef8589ee100a8d4fa1b53748d2d69a2e041d8c8662cfa8374a23222d60
   Stored in directory: c:\users\wdagutilityaccount\appdata\local\pip\cache\wheels\a6\a2\a6\4675cd18beeaea66ca25508dcaef9c1b59689e7794a770d602
-Successfully built kmcPy
+Successfully built kMCpy
 Failed to build pymatgen
 ERROR: Could not build wheels for pymatgen, which is required to install pyproject.toml-based projects
 ```
