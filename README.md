@@ -4,9 +4,6 @@
 
 # Prerequisite Packages:
 - kMCpy: python, pymatgen, numba, scikit-learn, joblib, glob2, pytest
-
-# Installation Guide:
-
 ## Note for Windows user
 
 If experiencing error information like this when installing kMCpy:
@@ -26,6 +23,8 @@ ERROR: Could not build wheels for pymatgen, which is required to install pyproje
 ```
 
 Please visit the prompted website, follow the instruction to download Microsoft C++ build tools, install the "desktop development with C++" component and retry installing kMCpy. 
+
+# Installation Guide:
 
 ## With GUI enabled (Recommended for Windows, Macos, Linux personal computer)
 
