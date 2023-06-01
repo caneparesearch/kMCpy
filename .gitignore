@@ -196,3 +196,4 @@ input_example/lce_site.json
 input_example/lce.json
 !input_example/fitting_results.json
 
+test/v3_Na3SbS4_bulk/0th_reference_local_env.cif

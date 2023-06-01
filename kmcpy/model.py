@@ -6,7 +6,7 @@ This is related to the Table S3 in KMC support information pdf.
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
 from pymatgen.core.structure import Molecule
-from kmcpy.external.pymatgen_structure import Structure
+from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import glob
@@ -48,7 +48,7 @@ class LocalClusterExpansion:
         """
 
 
-        template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
+        template_structure = StructureKMCpy.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
         template_structure.remove_oxidation_states()
         template_structure.remove_species(species_to_be_removed)
         
@@ -137,7 +137,7 @@ class LocalClusterExpansion:
 
     def get_occupation_neb_cif1(self,other_cif_name): # input is a cif structure
         occupation = []
-        other_structure = Structure.from_file(other_cif_name)
+        other_structure = StructureKMCpy.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
         other_structure.remove_species(['Zr4+','O2-','O','Zr'])
         other_structure_mol = self.get_cluster_structure(other_structure,self.center_Na1)

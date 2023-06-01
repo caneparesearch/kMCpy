@@ -7,9 +7,8 @@ Email: dengzeyu@gmail.com
 
 import random
 import numpy as np
-from pymatgen.core import Structure,Lattice
 from numba.typed import List
-from kmcpy.external.pymatgen_structure import Structure
+from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import pandas as pd
 from copy import copy
@@ -93,7 +92,7 @@ class KMC:
 
 
         print('Initializing kMC calculations with pirm.cif at',prim_fname,'...')
-        self.structure=Structure.from_cif(prim_fname,primitive=convert_to_primitive_cell)
+        self.structure=StructureKMCpy.from_cif(prim_fname,primitive=convert_to_primitive_cell)
         supercell_shape_matrix = np.diag(supercell_shape)
         print('Supercell Shape:\n',supercell_shape_matrix)
 

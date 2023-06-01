@@ -96,7 +96,7 @@ class neighbor_info_matcher():
     
     @classmethod
     def build_distance_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
-        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+        """build a distance matrix from the output of CutOffDictNNKMCpy.get_nn_info
 
         nn_info looks like: 
         [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
@@ -134,7 +134,7 @@ class neighbor_info_matcher():
 
     @classmethod
     def build_angle_matrix_from_getnninfo_output(self,cutoffdnn_output=[{}]):
-        """build a distance matrix from the output of CutOffDictNN.get_nn_info
+        """build a distance matrix from the output of CutOffDictNNKMCpy.get_nn_info
 
         nn_info looks like: 
         [{'site': PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], 'image': (-1, -1, 0), 'weight': 3.7390091507903174, 'site_index': 39, 'wyckoff_sequence': 15, 'local_index': 123, 'label': 'Si1'}, {'site': PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], 'image': (-1, -1, 0), 'weight': 3.4778161424304046, 'site_index': 23, 'wyckoff_sequence': 17, 'local_index': 35, 'label': 'Na2'}, {'site': ...]
@@ -436,8 +436,8 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     # --------------
     import json
     import logging
-    from kmcpy.external.pymatgen_structure import Structure
-    from kmcpy.external.pymatgen_local_env import CutOffDictNN
+    from kmcpy.external.structure import StructureKMCpy
+    from kmcpy.external.local_env import CutOffDictNNKMCpy
 
     from kmcpy.io import convert
     from kmcpy.event import Event
@@ -451,7 +451,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
     
     
     # generate primitive cell
-    primitive_cell=Structure.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
+    primitive_cell=StructureKMCpy.from_cif(prim_cif_name,primitive=convert_to_primitive_cell)
     #primitive_cell.add_oxidation_state_by_element({"Na":1,"O":-2,"P":5,"Si":4,"V":2.5})
     primitive_cell.add_oxidation_state_by_guess()
     
@@ -466,7 +466,7 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
         
     #--------
     
-    local_env_finder = CutOffDictNN(local_env_cutoff_dict)
+    local_env_finder = CutOffDictNNKMCpy(local_env_cutoff_dict)
     
     reference_local_env_dict={}
     """this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1
@@ -507,9 +507,9 @@ def generate_events3(prim_cif_name="210.cif",convert_to_primitive_cell=False,loc
                 for i in unsorted_neighbor_sequences:
                     
                     reference_local_env_sites.append(i["site"])
-                    reference_local_env_structure=Structure.from_sites(sites=reference_local_env_sites)
+                    reference_local_env_structure=StructureKMCpy.from_sites(sites=reference_local_env_sites)
                     
-                reference_local_env_structure.to("cif",str(reference_local_env_type)+"th_reference_local_env.cif") 
+                reference_local_env_structure.to(fmt="cif",filename=str(reference_local_env_type)+"th_reference_local_env.cif") 
                 reference_local_env_type+=1
                 
                 event_generator_logger.info(str(reference_local_env_type)+"th type of reference local_env structure cif file is created. please check")
