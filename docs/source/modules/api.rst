@@ -6,6 +6,10 @@ API Reference Documentation
     :caption: Contents:
 
     event.rst
+    model.rst
+    event_generator.rst
+    event.rst
+    model_nasbws.rst
     io.rst
     kmc.rst
     model.rst
