@@ -9,16 +9,16 @@ class Test_version3(unittest.TestCase):
         import os
         current_dir= Path(__file__).absolute().parent
         os.chdir(current_dir) 
-        from kmcpy.event_generator import generate_events3,neighbor_info_matcher
+        from kmcpy.event_generator import neighbor_info_matcher
         import numpy as np
 
-        from kmcpy.external.pymatgen_structure import Structure
-        from kmcpy.external.pymatgen_local_env import CutOffDictNN
+        from kmcpy.external.structure import StructureKMCpy
+        from kmcpy.external.local_env import CutOffDictNNKMCpy
 
-        nasicon=Structure.from_cif("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",primitive=True)
+        nasicon=StructureKMCpy.from_cif("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",primitive=True)
 
         center_Na1=[0,1]
-        local_env_finder = CutOffDictNN({('Na+','Na+'):4,('Na+','Si4+'):4})
+        local_env_finder = CutOffDictNNKMCpy({('Na+','Na+'):4,('Na+','Si4+'):4})
 
 
         reference_neighbor_sequences=sorted(sorted(local_env_finder.get_nn_info(nasicon,center_Na1[0]),key=lambda x:x["wyckoff_sequence"]),key = lambda x:x["label"])     
@@ -167,21 +167,19 @@ class Test_version3(unittest.TestCase):
         current_dir= Path(__file__).absolute().parent
         os.chdir(current_dir)        
         from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
-        from kmcpy.external.pymatgen_structure import Structure
+        from kmcpy.external.structure import StructureKMCpy
         import numpy as np
         structure_from_json=generate_supercell("./gather_mc_data/prim.json",(8,8,8))
         df = gather_data('comp*',structure_from_json)
-        df.to_hdf('gather_mc_data/mc_results_json.h5',key='df',complevel=9,mode='w')
         df.to_json('gather_mc_data/mc_results_json.json',orient="index")
         occ1=df["occ"]
         
         
-        structure_from_cif=Structure.from_cif("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",primitive=True)
+        structure_from_cif=StructureKMCpy.from_cif("EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",primitive=True)
         structure_from_cif.remove_species(['Zr','O',"Zr4+","O2-"])
         structure_from_cif.remove_oxidation_states()
         structure_from_cif=structure_from_cif.make_kmc_supercell([8,8,8])
         df2 = gather_data('comp*',structure_from_cif)
-        df2.to_hdf('gather_mc_data/mc_results_cif.h5',key='df',complevel=9,mode='w')
         df2.to_json('gather_mc_data/mc_results_cif.json',orient="index")
         occ2=df2["occ"]
         for i in range(0,len(occ1[0])):

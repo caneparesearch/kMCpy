@@ -92,7 +92,7 @@ class Fitting:
 
         alpha = alpha
         estimator = Lasso(alpha=alpha, max_iter=max_iter,
-                          normalize=True, fit_intercept=True)
+                           fit_intercept=True)
         estimator.fit(correlation_matrix, e_kra, sample_weight=weight)
         keci = estimator.coef_
         empty_cluster = estimator.intercept_
@@ -126,14 +126,15 @@ class Fitting:
             print('Try loading ',fit_results_fname,' ...')
             df = pd.read_json(fit_results_fname,orient='index')
             new_data = pd.DataFrame([[time_stamp,time,keci,empty_cluster,weight_copy,alpha,rmse,loocv]],columns=df.columns)
-            df2 = df.append(new_data,ignore_index=True)
+            df2=pd.concat([df,new_data])
+            #df2 = df.append(new_data,ignore_index=True)
             print('Updated latest results: ')
             df2.to_json(fit_results_fname,orient='index',indent=4)
             print(df2.iloc[-1])
         except:
             print(fit_results_fname,'is not found, create a new file...')
             print(weight_copy)
-            df = pd.DataFrame(data =np.array([[time_stamp,time,keci,empty_cluster,weight_copy,alpha,rmse,loocv]]),
+            df = pd.DataFrame(data =[[time_stamp,time,keci,empty_cluster,weight_copy,alpha,rmse,loocv]],
             columns=['time_stamp','time','keci','empty_cluster','weight','alpha','rmse','loocv'])
             df.to_json(fit_results_fname,orient='index',indent=4)
             print('Updated latest results: ')

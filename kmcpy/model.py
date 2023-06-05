@@ -6,12 +6,12 @@ This is related to the Table S3 in KMC support information pdf.
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
 from pymatgen.core.structure import Molecule
-from kmcpy.external.pymatgen_structure import Structure
+from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import glob
 from kmcpy.io import convert
-
+from kmcpy.event_generator import find_atom_indices, neighbor_info_matcher
 class LocalClusterExpansion:
     """
     LocalClusterExpansion will be initialized with a template structure where all the sites are occupied
@@ -26,9 +26,7 @@ class LocalClusterExpansion:
 
         return self.initialization3(**kwargs)
 
-    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[6,6,6],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],**kwargs):
-        print(is_write_basis)
- 
+    def initialization3(self,mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1",cutoff_cluster=[8,6,0],cutoff_region=4,template_cif_fname='EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif',is_write_basis=False,species_to_be_removed=['Zr4+','O2-','O','Zr'],convert_to_primitive_cell=False,exclude_site_with_identifier=[],is_grain_boundary_model=False,**kwargs):
         """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
         
         Strictly use the cif file because I only modified the structure.from_cif
@@ -49,25 +47,29 @@ class LocalClusterExpansion:
             
         """
 
-        from kmcpy.event_generator import find_atom_indices
-        
-        template_structure = Structure.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
+
+        template_structure = StructureKMCpy.from_cif(template_cif_fname,primitive=convert_to_primitive_cell)
         template_structure.remove_oxidation_states()
         template_structure.remove_species(species_to_be_removed)
         
         mobile_ion_specie_1_indices=find_atom_indices(template_structure,mobile_ion_identifier_type=mobile_ion_identifier_type,atom_identifier=mobile_ion_specie_1_identifier)
         
-        mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one        
+        if is_grain_boundary_model:
+            mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]
+            
+            
+            
+            pass
+        else:
+            mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one        
 
-        self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
-        
-        
-        
-        template_structure.remove_sites([mobile_ion_specie_1_indices])
-        
+            self.center_site = template_structure[mobile_ion_specie_1_indices] #self.center_site: pymatgen.site
+            
+            
+            
+            template_structure.remove_sites([mobile_ion_specie_1_indices])
 
-        
-        print('Searching local env around',self.center_site ,'...')
+            print('Searching local env around',self.center_site ,'...')
         
     
         # fallback to the initial get cluster structure 
@@ -118,7 +120,7 @@ class LocalClusterExpansion:
         if is_write_basis:
             print('Local environemnt: ')
             print(local_env_structure)
-            local_env_structure.to('xyz','local_env.xyz')
+            local_env_structure.to(fmt='xyz',filename='local_env.xyz')
             print('The point group of local environment is: ',PointGroupAnalyzer(local_env_structure).sch_symbol)
         return local_env_structure
 
@@ -135,7 +137,7 @@ class LocalClusterExpansion:
 
     def get_occupation_neb_cif1(self,other_cif_name): # input is a cif structure
         occupation = []
-        other_structure = Structure.from_file(other_cif_name)
+        other_structure = StructureKMCpy.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
         other_structure.remove_species(['Zr4+','O2-','O','Zr'])
         other_structure_mol = self.get_cluster_structure(other_structure,self.center_Na1)
@@ -149,7 +151,7 @@ class LocalClusterExpansion:
 
     def get_occupation_neb_cif2(self,other_cif_name,species_to_be_removed=['Zr4+','O2-','O','Zr']): # input is a cif structure
         occupation = []
-        other_structure = Structure.from_file(other_cif_name)
+        other_structure = StructureKMCpy.from_file(other_cif_name)
         other_structure.remove_oxidation_states()
         other_structure.remove_species(species_to_be_removed)
         other_structure_mol = self.get_cluster_structure(other_structure,self.center_site)
@@ -364,7 +366,7 @@ class Cluster:
     def to_xyz(self,fname):
         local_structure_no_oxidation = self.structure.copy()
         local_structure_no_oxidation.remove_oxidation_states()
-        local_structure_no_oxidation.to('xyz',fname)
+        local_structure_no_oxidation.to(filename=fname,fmt='xyz')
     
     def __str__(self):
         print('==============================================================')
