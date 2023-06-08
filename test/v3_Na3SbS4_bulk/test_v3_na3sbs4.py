@@ -29,7 +29,6 @@ class Test_version3_Na3SbS4(unittest.TestCase):
         current_dir= Path(__file__).absolute().parent
         os.chdir(current_dir)
         from kmcpy.model import LocalClusterExpansion
-        from kmcpy.external.pymatgen_structure import Structure
         mobile_ion_identifier_type="label"
         mobile_ion_specie_1_identifier="Na1"
         a=LocalClusterExpansion(api=3)

@@ -6,9 +6,9 @@ API Reference Documentation
     :caption: Contents:
 
     event.rst
-    event_generator.rst
-    fitting.rst
     io.rst
     kmc.rst
     model.rst
+    fitting.rst
     tracker.rst
+    event_generator.rst
