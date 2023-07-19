@@ -8,13 +8,25 @@ import json
 from kmcpy.io import convert
 
 class Fitting:
+    """Main class for model fitting
     """
-    main function of fitting the NEB result to the kinetic monte carlo input
-    """
-    def __init__(self):
+    def __init__(self)->None:
         pass
 
-    def add_data(self,time_stamp,time,keci,empty_cluster,weight,alpha,rmse,loocv):
+    def add_data(self,time_stamp,time,keci,empty_cluster,weight,alpha,rmse,loocv)->None:
+        """
+        Add data to the Fitting object
+
+        Args:
+            time_stamp (float): Time stamp string of the fitting
+            time (string): Human redable date time of the fitting
+            weight ([float]): Weights of each NEB data point
+            alpha (float): Alpha value for Lasso regression
+            keci ([float]): Kinetic effective cluster interactions
+            empty_cluster (float): Empty cluster
+            rmse (float): Root mean square error
+            loocv (float): Leave-one-out cross validation error
+        """
         self.time_stamp = time_stamp
         self.time = time
         self.weight = weight
@@ -52,28 +64,34 @@ class Fitting:
         obj.__dict__ = objDict
         return obj
 
-    """
-    Fitting
-
-    E_KRA[m x 1] =  diagonal(Weight)[m x m] * Corr[m x n] * ECI[n x 1] + V_0[m x 1]
-
-    E_KRA is a m x 1 vector
-    ECI is a n x 1 vector
-    Corr is a m x n matrix
-    V_0 is a m x 1 vector
-    Weight is a n x n diagonal matrix
-    m is the number of E_KRA
-    n is the number of clusers
-
-    Lasso estimator is used
-
-    correlation_matrix is stored in correlation_matrix.txt
-    e_kra is stored in e_kra.txt
-    """
-
     def fit(self,alpha,max_iter=1000000,ekra_fname='e_kra.txt',keci_fname='keci.txt',
     weight_fname='weight.txt',corr_fname='correlation_matrix.txt',
-    fit_results_fname='fitting_results.json'):
+    fit_results_fname='fitting_results.json')->tuple:
+        """Main fitting function
+
+        Args:
+            alpha (float): Alpha value for Lasso regression
+            max_iter (int, optional): Maximum number of iterations. Defaults to 1000000.
+            ekra_fname (str, optional): File name for E_KRA storage. Defaults to 'e_kra.txt'.
+            keci_fname (str, optional): File name for KECI storage. Defaults to 'keci.txt'.
+            weight_fname (str, optional): File name for weight storage. Defaults to 'weight.txt'.
+            corr_fname (str, optional): File name for correlation matrix storage. Defaults to 'correlation_matrix.txt'.
+            fit_results_fname (str, optional): File name for fitting results storage. Defaults to 'fitting_results.json'.
+
+        Returns: 
+            y_pred (numpy.ndarray(float)),y_true (numpy.ndarray(float)): Predicted E_KRA; DFT Computed E_KRA
+        """
+        
+        """
+        E_KRA[m x 1] =  diagonal(Weight)[m x m] * Corr[m x n] * ECI[n x 1] + V_0[m x 1]
+        E_KRA is a m x 1 vector
+        ECI is a n x 1 vector
+        Corr is a m x n matrix
+        V_0 is a m x 1 vector
+        Weight is a n x n diagonal matrix
+        m is the number of E_KRA
+        n is the number of clusers
+        """
         from sklearn.linear_model import Lasso
         from sklearn.model_selection import cross_val_score
         from sklearn.model_selection import LeaveOneOut
