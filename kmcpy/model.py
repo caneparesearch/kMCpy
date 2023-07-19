@@ -345,6 +345,8 @@ class Cluster:
             return False
         elif self.type == 'point' and other.type == 'point':
             return self.structure.species == other.structure.species
+        elif self.structure.composition != other.structure.composition:
+            return  
         else:
             return np.linalg.norm(self.bond_distances-other.bond_distances) < 1e-3
 
