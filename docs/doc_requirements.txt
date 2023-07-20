@@ -7,3 +7,10 @@ tqdm
 psutil
 Jinja2
 myst_parser
+numba
+pymatgen
+joblib
+scikit-learn
+pytest
+glob2
+numpy
