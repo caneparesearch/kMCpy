@@ -3,14 +3,11 @@
 - Author: Zeyu Deng
 - Email: dengzeyu@gmail.com
 
-kMCpy is an open source python based package intended to study the migration of atoms using the kinetic
-Monte Carlo technique. kMCpy provides an all python, systematic way to compute kinetic properties, which can be readily used for investigation, development, and prediction of new functional materials. 
+kMCpy is an open source python based package intended to study the migration of atoms using the kinetic Monte Carlo technique. kMCpy provides an all python, systematic way to compute kinetic properties, which can be readily used for investigation, development, and prediction of new functional materials. 
 
 This package includes a local cluster expansion model toolkit, a rejection-free kinetic Monte Carlo (rf-kMC) solver, and several python classes to extract ion transport properties such as diffusivities and conductivities. 
 
-The local cluster expansion model toolkit can be used to fit a model from barrier calculated from first-principles or any other empirical methods. Following the training process
-
-The local cluster expansion model can compute migration barriers in crystalline materials within the transition state theory.
+The local cluster expansion model toolkit can be used to fit a model from barrier calculated from first-principles or any other empirical methods. Following the training process the local cluster expansion model can compute migration barriers in crystalline materials within the transition state theory.
 
 Some of the advantages of using this package are:
 
