@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kmcpy.event_generator &mdash; kMCpy 0.1dev documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            kMCpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/api.html">API Reference Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html#how-to-cite">How to cite</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">kMCpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kmcpy.event_generator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for kmcpy.event_generator</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="kn">from</span> <span class="nn">turtle</span> <span class="kn">import</span> <span class="n">distance</span>
+<span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">primitive</span>
+<span class="kn">from</span> <span class="nn">kmcpy.event</span> <span class="kn">import</span> <span class="n">Event</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba.typed</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">import</span> <span class="nn">numba</span> <span class="k">as</span> <span class="nn">nb</span>
+<span class="kn">from</span> <span class="nn">kmcpy.io</span> <span class="kn">import</span> <span class="n">convert</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pymatgen.util.coord</span> <span class="kn">import</span> <span class="n">get_angle</span>
+
+<span class="k">def</span> <span class="nf">print_divider</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">-------------------------------------------</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">generate_events</span><span class="p">(</span><span class="n">api</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="k">return</span> <span class="n">generate_events3</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+
+
+<span class="n">neighbor_info_logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;neighbor information:&quot;</span><span class="p">)</span>
+<span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="s2">&quot;INFO&quot;</span><span class="p">)</span>
+<span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">())</span>
+<span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="s2">&quot;debug.log&quot;</span><span class="p">))</span>
+
+<span class="k">class</span> <span class="nc">neighbor_info_matcher</span><span class="p">():</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">neighbor_species</span><span class="o">=</span><span class="p">((</span><span class="s1">&#39;Cl-&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">),(</span><span class="s1">&#39;Li+&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)),</span><span class="n">distance_matrix</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]]),</span><span class="n">neighbor_sequence</span><span class="o">=</span><span class="p">[{}],</span><span class="n">neighbor_species_distance_matrix_dict</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Cl-&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]]),</span><span class="s2">&quot;Li+&quot;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]])},</span><span class="n">neighbor_species_sequence_dict</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Cl-&quot;</span><span class="p">:[{}],</span><span class="s2">&quot;Li+&quot;</span><span class="p">:[{}]}):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;neighbor_info matcher, the __init__ method shouln&#39;t be used. Use the from_neighbor_info() instead. This is neighbor_info matcher to match the nearest neighbor info output from local_env.cutoffdictNN.get_nn_info. This neighbor_info_matcher Class is initialized by a reference neighbor_info, a distance matrix is built as reference. Then user can call the neighbor_info_matcher.brutal_match function to sort another nn_info so that the sequence of neighbor of &quot;another nn_info&quot; is arranged so that the distance matrix are the same </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            neighbor_species (tuple, optional): tuple ( tuple ( str(species), int(number_of_this_specie in neighbors)  )  ). Defaults to ((&#39;Cl-&#39;, 4),(&#39;Li+&#39;, 8)).</span>
+<span class="sd">            distance_matrix (np.array, optional): np.2d array as distance matrix. Defaults to np.array([[0,1],[1,0]]).</span>
+<span class="sd">            neighbor_sequence (list, optional): list of dictionary in the format of nn_info returning value. Defaults to [{}].</span>
+<span class="sd">            neighbor_species_distance_matrix_dict (dict, optional): this is a dictionary with key=species and value=distance_matrix(2D numpy array) which record the distance matrix of respective element. . Defaults to {&quot;Cl-&quot;:np.array([[0,1],[1,0]]),&quot;Li+&quot;:np.array([[0,1],[1,0]])}.</span>
+<span class="sd">            neighbor_species_sequence_dict (dict, optional): dictionary with key=species and value=list of dictionary which is just group the reference neighbor sequence by different elements. Defaults to {&quot;Cl-&quot;:[{}],&quot;Li+&quot;:[{}]}.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_species</span><span class="o">=</span><span class="n">neighbor_species</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="o">=</span><span class="n">distance_matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_species_distance_matrix_dict</span><span class="o">=</span><span class="n">neighbor_species_distance_matrix_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_species_sequence_dict</span><span class="o">=</span><span class="n">neighbor_species_sequence_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_sequence</span><span class="o">=</span><span class="n">neighbor_sequence</span>
+    
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_neighbor_sequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">neighbor_sequences</span><span class="o">=</span><span class="p">[{}]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;generally generate the neighbor info matcher from this</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            neighbor_sequences (list, optional): list of dictionary from cutoffdictNN.get_nn_info(). Defaults to [{}].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            neighbor_info_matcher: a neighbor_info_matcher object, initialized from get_nn_info output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># -------------------------------------------------------</span>
+        <span class="c1"># this part of function is adapted from pymatgen.analysis.local_env</span>
+        <span class="c1">#Shyue Ping Ong, William Davidson Richards, Anubhav Jain, Geoffroy Hautier, Michael Kocher, Shreyas Cholia, Dan Gunter, Vincent Chevrier, Kristin A. Persson, Gerbrand Ceder. Python Materials Genomics (pymatgen) : A Robust, Open-Source Python Library for Materials Analysis. Computational Materials Science, 2013, 68, 314-319. doi:10.1016/j.commatsci.2012.10.028</span>
+        <span class="n">cn_dict</span><span class="o">=</span><span class="p">{}</span>
+        
+        <span class="n">neighbor_species_sequence_dict</span><span class="o">=</span><span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbor_sequences</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;for example NaSICON has 12 neighbors, 6 Na and 6 Si, here for neighbor we build the coordination number dict.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            
+            <span class="n">site_element</span> <span class="o">=</span> <span class="n">neighbor</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">species_string</span>
+            
+            <span class="k">if</span> <span class="n">site_element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cn_dict</span><span class="p">:</span>
+                <span class="n">cn_dict</span><span class="p">[</span><span class="n">site_element</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cn_dict</span><span class="p">[</span><span class="n">site_element</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">site_element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">neighbor_species_sequence_dict</span><span class="p">:</span>
+                <span class="n">neighbor_species_sequence_dict</span><span class="p">[</span><span class="n">site_element</span><span class="p">]</span><span class="o">=</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">neighbor_species_sequence_dict</span><span class="p">[</span><span class="n">site_element</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>
+        <span class="c1"># end of adapting.</span>
+        <span class="c1"># -------------------------------------------------------        </span>
+            
+        <span class="n">neighbor_species_distance_matrix_dict</span><span class="o">=</span><span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">species</span> <span class="ow">in</span> <span class="n">neighbor_species_sequence_dict</span><span class="p">:</span>
+            <span class="n">neighbor_species_distance_matrix_dict</span><span class="p">[</span><span class="n">species</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">neighbor_species_sequence_dict</span><span class="p">[</span><span class="n">species</span><span class="p">])</span>
+        
+        <span class="n">neighbor_species</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">cn_dict</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        
+        <span class="n">distance_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">neighbor_sequences</span><span class="p">)</span>
+                 
+        <span class="k">return</span> <span class="n">neighbor_info_matcher</span><span class="p">(</span><span class="n">neighbor_species</span><span class="o">=</span><span class="n">neighbor_species</span><span class="p">,</span><span class="n">distance_matrix</span><span class="o">=</span><span class="n">distance_matrix</span><span class="p">,</span><span class="n">neighbor_sequence</span><span class="o">=</span><span class="n">neighbor_sequences</span><span class="p">,</span><span class="n">neighbor_species_distance_matrix_dict</span><span class="o">=</span><span class="n">neighbor_species_distance_matrix_dict</span><span class="p">,</span><span class="n">neighbor_species_sequence_dict</span><span class="o">=</span><span class="n">neighbor_species_sequence_dict</span><span class="p">)</span>
+        
+    
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cutoffdnn_output</span><span class="o">=</span><span class="p">[{}]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;build a distance matrix from the output of CutOffDictNNKMCpy.get_nn_info</span>
+
+<span class="sd">        nn_info looks like: </span>
+<span class="sd">        [{&#39;site&#39;: PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], &#39;image&#39;: (-1, -1, 0), &#39;weight&#39;: 3.7390091507903174, &#39;site_index&#39;: 39, &#39;wyckoff_sequence&#39;: 15, &#39;local_index&#39;: 123, &#39;label&#39;: &#39;Si1&#39;}, {&#39;site&#39;: PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], &#39;image&#39;: (-1, -1, 0), &#39;weight&#39;: 3.4778161424304046, &#39;site_index&#39;: 23, &#39;wyckoff_sequence&#39;: 17, &#39;local_index&#39;: 35, &#39;label&#39;: &#39;Na2&#39;}, {&#39;site&#39;: ...]</span>
+<span class="sd">        </span>
+<span class="sd">        or say:</span>
+<span class="sd">        </span>
+<span class="sd">        nn_info is a list, the elements of list is dictionary, the keys of dictionary are: &quot;site&quot;:pymatgen.site, &quot;wyckoff_sequence&quot;: ....</span>
+<span class="sd">        </span>
+<span class="sd">        Use the site.distance function to build matrix</span>
+<span class="sd">        </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.2darray: 2d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">distance_matrix</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)))</span>
+          
+
+        <span class="k">for</span> <span class="n">sitedictindex1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">sitedictindex2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)):</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;Reason for jimage=[0,0,0]</span>
+<span class="sd">                </span>
+<span class="sd">                site.distance is calculated by frac_coord1-frac_coord0 and get the cartesian distance. Note that for the two sites in neighbors,  the frac_coord itself already contains the information of jimage. For exaple:Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], &#39;image&#39;: (-1, -1, 0),  see that the frac_coord of this Si4+ is not normalized to (0,1)!</span>
+
+<span class="sd">                .</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">distance_matrix</span><span class="p">[</span><span class="n">sitedictindex1</span><span class="p">][</span><span class="n">sitedictindex2</span><span class="p">]</span><span class="o">=</span><span class="n">cutoffdnn_output</span><span class="p">[</span><span class="n">sitedictindex1</span><span class="p">][</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">[</span><span class="n">sitedictindex2</span><span class="p">][</span><span class="s2">&quot;site&quot;</span><span class="p">],</span><span class="n">jimage</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+            
+            
+        
+        <span class="k">return</span> <span class="n">distance_matrix</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_angle_matrix_from_getnninfo_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cutoffdnn_output</span><span class="o">=</span><span class="p">[{}]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;build a distance matrix from the output of CutOffDictNNKMCpy.get_nn_info</span>
+
+<span class="sd">        nn_info looks like: </span>
+<span class="sd">        [{&#39;site&#39;: PeriodicSite: Si4+ (-3.2361, -0.3015, 9.2421) [-0.3712, -0.0379, 0.4167], &#39;image&#39;: (-1, -1, 0), &#39;weight&#39;: 3.7390091507903174, &#39;site_index&#39;: 39, &#39;wyckoff_sequence&#39;: 15, &#39;local_index&#39;: 123, &#39;label&#39;: &#39;Si1&#39;}, {&#39;site&#39;: PeriodicSite: Na+ (-1.2831, -2.6519, 9.2421) [-0.3063, -0.3333, 0.4167], &#39;image&#39;: (-1, -1, 0), &#39;weight&#39;: 3.4778161424304046, &#39;site_index&#39;: 23, &#39;wyckoff_sequence&#39;: 17, &#39;local_index&#39;: 35, &#39;label&#39;: &#39;Na2&#39;}, {&#39;site&#39;: ...]</span>
+<span class="sd">        </span>
+<span class="sd">        or say:</span>
+<span class="sd">        </span>
+<span class="sd">        nn_info is a list, the elements of list is dictionary, the keys of dictionary are: &quot;site&quot;:pymatgen.site, &quot;wyckoff_sequence&quot;: ....</span>
+<span class="sd">        </span>
+<span class="sd">        Use the site.distance function to build matrix</span>
+<span class="sd">        </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            cutoffdnn_output (nn_info, optional): nninfo. Defaults to neighbor_sequences.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.3darray: 3d distance matrix, in format of numpy.array. The Column and the Rows are following the input sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">angle_matrix</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)))</span>
+          
+        
+        <span class="k">for</span> <span class="n">sitedictindex1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">sitedictindex2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">sitedictindex3</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">cutoffdnn_output</span><span class="p">)):</span>
+                    <span class="n">v1</span><span class="o">=</span><span class="n">cutoffdnn_output</span><span class="p">[</span><span class="n">sitedictindex2</span><span class="p">][</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="o">-</span><span class="n">cutoffdnn_output</span><span class="p">[</span><span class="n">sitedictindex1</span><span class="p">][</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span>
+                    <span class="n">v2</span><span class="o">=</span><span class="n">cutoffdnn_output</span><span class="p">[</span><span class="n">sitedictindex3</span><span class="p">][</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="o">-</span><span class="n">cutoffdnn_output</span><span class="p">[</span><span class="n">sitedictindex1</span><span class="p">][</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span>
+                    <span class="n">angle_matrix</span><span class="p">[</span><span class="n">sitedictindex1</span><span class="p">][</span><span class="n">sitedictindex2</span><span class="p">][</span><span class="n">sitedictindex3</span><span class="p">]</span><span class="o">=</span><span class="n">get_angle</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">,</span><span class="s2">&quot;degrees&quot;</span><span class="p">)</span>
+            
+            
+        
+        <span class="k">return</span> <span class="n">angle_matrix</span>
+
+    <span class="k">def</span> <span class="nf">rearrange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">wrong_distance_matrix_of_specie</span><span class="o">=</span><span class="p">[],</span><span class="n">species</span><span class="o">=</span><span class="s1">&#39;Na&#39;</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span><span class="n">rtol</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A very fast version of rearranging the neighbors with same species</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            wrong_distance_matrix_of_specie (np.2Drray, optional): distance matrix of wrong distance matrix that is supposed to be rearranged and match with self.distance matrix. Defaults to [].</span>
+<span class="sd">            species (str, optional): the species to match, is the key to self.neighbor_species_distance_matrix_dict. Defaults to &#39;Na&#39;.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: no correct sequence found</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: list of list, of which is the sequence of index of rearranged sequence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># distance_matrix=distance matrix of wrong neighbor sequence</span>
+        <span class="n">correct_distance_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">neighbor_species_distance_matrix_dict</span><span class="p">[</span><span class="n">species</span><span class="p">]</span><span class="c1"># np.2darray</span>
+        <span class="n">previous_possible_sequences</span><span class="o">=</span><span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">correct_distance_matrix</span><span class="p">)):</span>
+            <span class="n">previous_possible_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">])</span><span class="c1"># init</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">correct_distance_matrix</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">correct_distance_matrix</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        
+            <span class="n">new_possible_sequences</span><span class="o">=</span><span class="p">[]</span>
+            
+            <span class="n">correct_distance_matrix_in_this_round</span><span class="o">=</span><span class="n">correct_distance_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="o">+</span><span class="n">i</span><span class="p">]</span>
+            
+            
+            <span class="k">for</span> <span class="n">previous_possible_sequence</span> <span class="ow">in</span> <span class="n">previous_possible_sequences</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">correct_distance_matrix</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">previous_possible_sequence</span><span class="p">:</span>
+                        <span class="n">tmp_sequence</span><span class="o">=</span><span class="n">previous_possible_sequence</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                        <span class="c1">#print(tmp_sequence)</span>
+                        <span class="n">tmp_sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                        <span class="n">tmp_rebuilt_submatrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rebuild_submatrix</span><span class="p">(</span><span class="n">distance_matrix</span><span class="o">=</span><span class="n">wrong_distance_matrix_of_specie</span><span class="p">,</span><span class="n">sequences</span><span class="o">=</span><span class="n">tmp_sequence</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">tmp_rebuilt_submatrix</span><span class="p">,</span><span class="n">correct_distance_matrix_in_this_round</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span><span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">):</span>
+                            <span class="n">new_possible_sequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_sequence</span><span class="p">)</span>
+                            
+            <span class="n">previous_possible_sequences</span><span class="o">=</span><span class="n">new_possible_sequences</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_possible_sequences</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;new possible sequence=0.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new_possible_sequences</span>
+            
+
+
+    <span class="k">def</span> <span class="nf">rebuild_submatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">distance_matrix</span><span class="p">,</span><span class="n">sequences</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;rebuild the submatrix, with given seuqneces and distance matrix, rebuild the distance matrix from given sequence</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            distance_matrix (np.2Darray): distance matrix, length = sequences.len()</span>
+<span class="sd">            sequences (list, optional): new sequences. Defaults to [2,1].</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.2darray: rebuilt matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># wrong_distance_matrix is the matrix that is different from the reference.</span>
+        <span class="n">rebuilt_matrix</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)))</span>
+        
+        <span class="k">for</span> <span class="n">idx1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">idx2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)):</span>
+                <span class="n">rebuilt_matrix</span><span class="p">[</span><span class="n">idx1</span><span class="p">][</span><span class="n">idx2</span><span class="p">]</span><span class="o">=</span><span class="n">distance_matrix</span><span class="p">[</span><span class="n">sequences</span><span class="p">[</span><span class="n">idx1</span><span class="p">]][</span><span class="n">sequences</span><span class="p">[</span><span class="n">idx2</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">rebuilt_matrix</span>
+
+
+    <span class="k">def</span> <span class="nf">brutal_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">unsorted_nninfo</span><span class="o">=</span><span class="p">[{}],</span><span class="n">rtol</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span><span class="n">find_nearest_if_fail</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;brutally sort the input unsorted_nninfo. Although brutal but fast enough for now</span>
+<span class="sd">        </span>
+<span class="sd">        update 220621: not fast enough for LiCoO2 with 12 neighbors,</span>
+<span class="sd">        </span>
+<span class="sd">        rewrite the finding sequence algo. Now is freaking fast again!</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            unsorted_nninfo (list, optional): the unsorted nn_info of an element. The nn_info are compared with the nn_info of class instance. Defaults to [{}].</span>
+<span class="sd">            </span>
+<span class="sd">            Tolerance: Refer to np.allclose</span>
+<span class="sd">            rtol (float, optional): relative tolerance of np.allclose in order to determine if the distance matrix are the same. Better not too small. Defaults to 0.01.</span>
+<span class="sd">            atol (float, optional): absolute tolerance</span>
+<span class="sd">            find_nearest_if_fail(bool, optional): This should be true only for grain boundary model! </span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: this will perform a check if the inputted unsorted nn_info has the same neighbor species type and amount</span>
+<span class="sd">            ValueError: if the unsorted_nninfo cannot be sort with reference of the distance matrix of this neighbor_info_matcher instance. Probably due to too small rtol or it&#39;s just not the same neighbor_infos</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            sorted nninfo, as list of dictionary: in the format of cutoffdictNN.get_nn_info</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">unsorted_neighbor_info</span><span class="o">=</span><span class="n">neighbor_info_matcher</span><span class="o">.</span><span class="n">from_neighbor_sequences</span><span class="p">(</span><span class="n">unsorted_nninfo</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_species</span><span class="o">!=</span><span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">neighbor_species</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;input neighbor_info has different environment&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">,</span><span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">):</span>
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no need to rearrange this neighbor_info. The distance matrix is already the same. The differece matrix is : </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">distance_matrix</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">))</span>
+            
+            <span class="k">return</span> <span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">neighbor_sequence</span>
+        
+        
+        
+        <span class="n">sorted_neighbor_sequence_dict</span><span class="o">=</span><span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">specie</span> <span class="ow">in</span> <span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">neighbor_species_sequence_dict</span><span class="p">:</span>
+            
+            <span class="n">rearranged_sequences_of_neighbor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rearrange</span><span class="p">(</span><span class="n">wrong_distance_matrix_of_specie</span><span class="o">=</span><span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">neighbor_species_distance_matrix_dict</span><span class="p">[</span><span class="n">specie</span><span class="p">],</span><span class="n">species</span><span class="o">=</span><span class="n">specie</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span><span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">)</span>
+            
+            <span class="n">sorted_neighbor_sequence_dict</span><span class="p">[</span><span class="n">specie</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+            <span class="k">for</span> <span class="n">rearranged_sequence_of_neighbor</span> <span class="ow">in</span> <span class="n">rearranged_sequences_of_neighbor</span><span class="p">:</span>
+                <span class="n">possible_local_sequence</span><span class="o">=</span><span class="p">[]</span>
+                <span class="k">for</span> <span class="n">new_index</span> <span class="ow">in</span> <span class="n">rearranged_sequence_of_neighbor</span><span class="p">:</span>
+                    <span class="n">possible_local_sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unsorted_neighbor_info</span><span class="o">.</span><span class="n">neighbor_species_sequence_dict</span><span class="p">[</span><span class="n">specie</span><span class="p">][</span><span class="n">new_index</span><span class="p">])</span>
+                <span class="n">sorted_neighbor_sequence_dict</span><span class="p">[</span><span class="n">specie</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">possible_local_sequence</span><span class="p">)</span>
+<span class="w">            </span>
+<span class="w">            </span>
+
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            print(sorted_neighbor_sequence_dict[specie])</span>
+<span class="sd">            raise ValueError()</span>
+<span class="sd">            </span>
+<span class="sd">            for possible_local_sequence in itertools.permutations(unsorted_neighbor_info.neighbor_species_sequence_dict[specie]):</span>
+<span class="sd">                </span>
+<span class="sd">                if np.allclose(self.build_distance_matrix_from_getnninfo_output(possible_local_sequence),self.neighbor_species_distance_matrix_dict[specie],rtol=rtol,atol=atol):</span>
+<span class="sd">                    </span>
+<span class="sd">                    sorted_neighbor_sequence_dict[specie].append(list(possible_local_sequence))</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sorted_neighbor_sequence_dict</span><span class="p">[</span><span class="n">specie</span><span class="p">])</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;no sorted sequence found for &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">specie</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; please check if the rtol or atol is too small&quot;</span><span class="p">)</span>
+            
+        <span class="c1">#neighbor_info_logger.warning(str(sorted_neighbor_sequence_dict))</span>
+        
+        
+        <span class="n">sorted_neighbor_sequence_list</span><span class="o">=</span><span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">specie</span> <span class="ow">in</span> <span class="n">sorted_neighbor_sequence_dict</span><span class="p">:</span>
+            <span class="n">sorted_neighbor_sequence_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sorted_neighbor_sequence_dict</span><span class="p">[</span><span class="n">specie</span><span class="p">])</span>
+        
+        
+
+        <span class="k">if</span> <span class="n">find_nearest_if_fail</span><span class="p">:</span>
+            <span class="n">closest_smilarity_score</span><span class="o">=</span><span class="mf">999999.0</span>
+            <span class="n">closest_sequence</span><span class="o">=</span><span class="p">[]</span>
+            <span class="k">for</span> <span class="n">possible_complete_sequence</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">sorted_neighbor_sequence_list</span><span class="p">):</span>
+                
+  
+                <span class="n">re_sorted_neighbors_list</span><span class="o">=</span><span class="p">[]</span>
+                
+                <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">possible_complete_sequence</span><span class="p">:</span>
+
+                    <span class="n">re_sorted_neighbors_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">neighbor</span><span class="p">))</span>               
+            
+                <span class="n">this_smilarity_score</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">re_sorted_neighbors_list</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">))</span>
+                
+                <span class="k">if</span> <span class="n">this_smilarity_score</span><span class="o">&lt;</span><span class="n">closest_smilarity_score</span><span class="p">:</span>
+                    <span class="n">closest_smilarity_score</span><span class="o">=</span><span class="n">this_smilarity_score</span>
+                    <span class="n">closest_sequence</span><span class="o">=</span><span class="n">re_sorted_neighbors_list</span>
+                    
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;the closest neighbor_info identified. Total difference&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">closest_smilarity_score</span><span class="p">))</span>
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;new sorting is found,new distance matrix is &quot;</span><span class="p">)</span>
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">closest_sequence</span><span class="p">)))</span>
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The differece matrix is : </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">closest_sequence</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">))</span>                            
+            <span class="k">return</span> <span class="n">closest_sequence</span>
+                
+            
+      
+        <span class="k">else</span><span class="p">:</span>
+        
+            <span class="k">for</span> <span class="n">possible_complete_sequence</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">sorted_neighbor_sequence_list</span><span class="p">):</span>
+                
+                <span class="c1">#neighbor_info_logger.warning(str(possible_complete_sequence))</span>
+                
+                <span class="n">re_sorted_neighbors_list</span><span class="o">=</span><span class="p">[]</span>
+                
+                <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">possible_complete_sequence</span><span class="p">:</span>
+
+                    <span class="n">re_sorted_neighbors_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">neighbor</span><span class="p">))</span>               
+            
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">re_sorted_neighbors_list</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">,</span><span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">):</span>
+                    <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;new sorting is found,new distance matrix is &quot;</span><span class="p">)</span>
+                    <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">re_sorted_neighbors_list</span><span class="p">)))</span>
+                    <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;The differece matrix is : </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build_distance_matrix_from_getnninfo_output</span><span class="p">(</span><span class="n">re_sorted_neighbors_list</span><span class="p">)</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">))</span>                
+                    
+                    <span class="k">return</span> <span class="n">re_sorted_neighbors_list</span>
+  
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;sequence not founded!&quot;</span><span class="p">)</span>                
+  
+  
+  
+<div class="viewcode-block" id="find_atom_indices"><a class="viewcode-back" href="../../modules/event_generator.html#kmcpy.event_generator.find_atom_indices">[docs]</a><span class="k">def</span> <span class="nf">find_atom_indices</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span><span class="n">mobile_ion_identifier_type</span><span class="o">=</span><span class="s2">&quot;specie&quot;</span><span class="p">,</span><span class="n">atom_identifier</span><span class="o">=</span><span class="s2">&quot;Li+&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;a function for generating a list of site indices that satisfies the identifier</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        structure (kmcpy.external.pymatgen_structure): structure object to work on</span>
+<span class="sd">        mobile_ion_identifier_type (str, optional): elect from: [&quot;specie&quot;,&quot;label&quot;]. Defaults to &quot;specie&quot;.</span>
+<span class="sd">        atom_identifier (str, optional): identifier of atom. Defaults to &quot;Li+&quot;.</span>
+<span class="sd">        </span>
+<span class="sd">        typical input:</span>
+<span class="sd">        mobile_ion_identifier_type=specie, atom_identifier=&quot;Li+&quot;</span>
+<span class="sd">        mobile_ion_identifier_type=label, atom_identifier=&quot;Li1&quot;</span>
+<span class="sd">        mobile_ion_identifier_type=list, atom_identifier=[0,1,2,3,4,5]</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: mobile_ion_identifier_type argument is strange</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: list of atom indices that satisfy the identifier</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mobile_ion_specie_1_indices</span><span class="o">=</span><span class="p">[]</span>    
+    <span class="k">if</span> <span class="n">mobile_ion_identifier_type</span><span class="o">==</span><span class="s2">&quot;specie&quot;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">structure</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">atom_identifier</span> <span class="ow">in</span> <span class="n">structure</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">species</span><span class="p">:</span>
+                <span class="n">mobile_ion_specie_1_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                
+    <span class="k">elif</span> <span class="n">mobile_ion_identifier_type</span><span class="o">==</span><span class="s2">&quot;label&quot;</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">structure</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">structure</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span><span class="o">==</span><span class="n">atom_identifier</span><span class="p">:</span>
+                <span class="n">mobile_ion_specie_1_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                
+    <span class="c1">#elif mobile_ion_identifier_type==&quot;list&quot;:</span>
+        <span class="c1">#mobile_ion_specie_1_indices=atom_identifier</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;unrecognized mobile_ion_identifier_type. Please select from: [&quot;specie&quot;,&quot;label&quot;] &#39;</span><span class="p">)</span>
+    
+    <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;please check if these are mobile_ion_specie_1:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mobile_ion_specie_1_indices</span><span class="p">:</span>
+        
+        <span class="n">neighbor_info_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">structure</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>        
+    
+    <span class="k">return</span> <span class="n">mobile_ion_specie_1_indices</span></div>
+        
+<div class="viewcode-block" id="generate_events3"><a class="viewcode-back" href="../../modules/event_generator.html#kmcpy.event_generator.generate_events3">[docs]</a><span class="k">def</span> <span class="nf">generate_events3</span><span class="p">(</span><span class="n">prim_cif_name</span><span class="o">=</span><span class="s2">&quot;210.cif&quot;</span><span class="p">,</span><span class="n">convert_to_primitive_cell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">local_env_cutoff_dict</span><span class="o">=</span><span class="p">{(</span><span class="s2">&quot;Li+&quot;</span><span class="p">,</span><span class="s2">&quot;Cl-&quot;</span><span class="p">):</span><span class="mf">4.0</span><span class="p">,(</span><span class="s2">&quot;Li+&quot;</span><span class="p">,</span><span class="s2">&quot;Li+&quot;</span><span class="p">):</span><span class="mf">3.0</span><span class="p">},</span><span class="n">mobile_ion_identifier_type</span><span class="o">=</span><span class="s2">&quot;label&quot;</span><span class="p">,</span><span class="n">mobile_ion_specie_1_identifier</span><span class="o">=</span><span class="s2">&quot;Na1&quot;</span><span class="p">,</span><span class="n">mobile_ion_specie_2_identifier</span><span class="o">=</span><span class="s2">&quot;Na2&quot;</span><span class="p">,</span><span class="n">species_to_be_removed</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;O2-&quot;</span><span class="p">,</span><span class="s2">&quot;O&quot;</span><span class="p">],</span><span class="n">distance_matrix_rtol</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span><span class="n">distance_matrix_atol</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span><span class="n">find_nearest_if_fail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">export_local_env_structure</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">supercell_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">event_fname</span><span class="o">=</span><span class="s2">&quot;events.json&quot;</span><span class="p">,</span><span class="n">event_kernal_fname</span><span class="o">=</span><span class="s1">&#39;event_kernal.csv&#39;</span><span class="p">,</span><span class="n">verbosity</span><span class="o">=</span><span class="s2">&quot;WARNING&quot;</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    220603 XIE WEIHANG    </span>
+<span class="sd">    3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile_ion_specie_1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2 </span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        prim_cif_name (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. This cif file should include all possible site i.e., no vacancy. For example when dealing with NaSICON The input cif file must be a fully occupied composition, which includes all possible Na sites N4ZSP; the varied Na-Vacancy should only be tuned by occupation list.</span>
+<span class="sd">        convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.</span>
+<span class="sd">        local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {(&quot;Li+&quot;,&quot;Cl-&quot;):4.0,(&quot;Li+&quot;,&quot;Li+&quot;):3.0}.</span>
+<span class="sd">        mobile_ion_identifier_type (str, optional): atom identifier type, choose from [&quot;specie&quot;, &quot;label&quot;].. Defaults to &quot;specie&quot;.</span>
+<span class="sd">        mobile_ion_specie_1_identifier (str, optional): identifier for mobile_ion_specie_1. Defaults to &quot;Li+&quot;.</span>
+<span class="sd">        mobile_ion_specie_2_identifier (str, optional): identifier for the atom that mobile_ion_specie_1 will diffuse to . Defaults to &quot;Li+&quot;.</span>
+<span class="sd">        species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to [&quot;O2-&quot;,&quot;O&quot;].</span>
+<span class="sd">        distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.</span>
+<span class="sd">        distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.</span>
+<span class="sd">        find_nearest_if_fail (bool, optional): if fail to sort the neighbor with given rtolerance and atolerance, find the best sorting that have most similar distance matrix? This should be False for bull model because if fail to find the sorting ,there must be something wrong. For grain boundary , better set this to True because they have various coordination type. Defaults to True.</span>
+<span class="sd">        export_local_env_structure (bool, optional): whether to export the local environment structure to cif file. If set to true, for each representatibe local environment structure, a cif file will be generated for further investigation. This is for debug purpose. Once confirming that the code is doing correct thing, it&#39;s better to turn off this feature. Defaults to True.</span>
+<span class="sd">        supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].</span>
+<span class="sd">        event_fname (str, optional): file name for the events json file. Defaults to &quot;events.json&quot;.</span>
+<span class="sd">        event_kernal_fname (str, optional): file name for event kernal. Defaults to &#39;event_kernal.csv&#39;.</span>
+<span class="sd">        verbosity (str, optional): verbosity that passed to logging.logger. Select from [&quot;INFO&quot;,&quot;warning&quot;], higher level not yet implemented. Defaults to &quot;INFO&quot;.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        NotImplementedError: the atom identifier type=list is not yet implemented</span>
+<span class="sd">        ValueError: unrecognized atom identifier type </span>
+<span class="sd">        ValueError: if no events are generated, there might be something wrong with cif file? or atom identifier?</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        nothing: nothing is returned</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># --------------</span>
+    <span class="kn">import</span> <span class="nn">json</span>
+    <span class="kn">import</span> <span class="nn">logging</span>
+    <span class="kn">from</span> <span class="nn">kmcpy.external.structure</span> <span class="kn">import</span> <span class="n">StructureKMCpy</span>
+    <span class="kn">from</span> <span class="nn">kmcpy.external.local_env</span> <span class="kn">import</span> <span class="n">CutOffDictNNKMCpy</span>
+
+    <span class="kn">from</span> <span class="nn">kmcpy.io</span> <span class="kn">import</span> <span class="n">convert</span>
+    <span class="kn">from</span> <span class="nn">kmcpy.event</span> <span class="kn">import</span> <span class="n">Event</span>
+    
+    <span class="c1"># build the logger</span>
+    <span class="n">event_generator_logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;event generator&quot;</span><span class="p">)</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">verbosity</span><span class="p">)</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">())</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="s2">&quot;debug.log&quot;</span><span class="p">))</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet.&quot;</span><span class="p">)</span>
+    
+    
+    <span class="c1"># generate primitive cell</span>
+    <span class="n">primitive_cell</span><span class="o">=</span><span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_cif</span><span class="p">(</span><span class="n">prim_cif_name</span><span class="p">,</span><span class="n">primitive</span><span class="o">=</span><span class="n">convert_to_primitive_cell</span><span class="p">)</span>
+    <span class="c1">#primitive_cell.add_oxidation_state_by_element({&quot;Na&quot;:1,&quot;O&quot;:-2,&quot;P&quot;:5,&quot;Si&quot;:4,&quot;V&quot;:2.5})</span>
+    <span class="n">primitive_cell</span><span class="o">.</span><span class="n">add_oxidation_state_by_guess</span><span class="p">()</span>
+    
+    <span class="n">primitive_cell</span><span class="o">.</span><span class="n">remove_species</span><span class="p">(</span><span class="n">species_to_be_removed</span><span class="p">)</span>
+    
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;primitive cell composition after adding oxidation state and removing uninvolved species: &quot;</span><span class="p">)</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">primitive_cell</span><span class="o">.</span><span class="n">composition</span><span class="p">))</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;building mobile_ion_specie_1 index list&quot;</span><span class="p">)</span>
+    
+
+    <span class="n">mobile_ion_specie_1_indices</span><span class="o">=</span><span class="n">find_atom_indices</span><span class="p">(</span><span class="n">primitive_cell</span><span class="p">,</span><span class="n">mobile_ion_identifier_type</span><span class="o">=</span><span class="n">mobile_ion_identifier_type</span><span class="p">,</span><span class="n">atom_identifier</span><span class="o">=</span><span class="n">mobile_ion_specie_1_identifier</span><span class="p">)</span>  
+        
+    <span class="c1">#--------</span>
+    
+    <span class="n">local_env_finder</span> <span class="o">=</span> <span class="n">CutOffDictNNKMCpy</span><span class="p">(</span><span class="n">local_env_cutoff_dict</span><span class="p">)</span>
+    
+    <span class="n">reference_local_env_dict</span><span class="o">=</span><span class="p">{}</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1</span>
+<span class="sd">    </span>
+<span class="sd">    The key is a tuple type: For NaSICON, there is only one type of local environment: 6 Na2 and 6 Si. The tuple is in the format of ((&#39;Na+&#39;, 6), (&#39;Si4+&#39;, 6)) . The key is a neighbor_info_matcher as the reference local environment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    
+    
+    <span class="n">local_env_info_dict</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;add summary to be done</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+   
+    <span class="n">reference_local_env_type</span><span class="o">=</span><span class="mi">0</span>
+    
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;start finding the neighboring sequence of mobile_ion_specie_1s&quot;</span><span class="p">)</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;total number of mobile_ion_specie_1s:&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mobile_ion_specie_1_indices</span><span class="p">)))</span>
+    
+    <span class="n">neighbor_has_been_found</span><span class="o">=</span><span class="mi">0</span>
+    
+    <span class="k">for</span> <span class="n">mobile_ion_specie_1_index</span> <span class="ow">in</span> <span class="n">mobile_ion_specie_1_indices</span><span class="p">:</span>
+        
+        <span class="n">unsorted_neighbor_sequences</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">local_env_finder</span><span class="o">.</span><span class="n">get_nn_info</span><span class="p">(</span><span class="n">primitive_cell</span><span class="p">,</span><span class="n">mobile_ion_specie_1_index</span><span class="p">),</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">specie</span><span class="p">)</span>      
+                    
+        <span class="n">this_nninfo</span><span class="o">=</span><span class="n">neighbor_info_matcher</span><span class="o">.</span><span class="n">from_neighbor_sequences</span><span class="p">(</span><span class="n">unsorted_neighbor_sequences</span><span class="p">)</span>
+        
+        <span class="c1">#print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))</span>
+        
+        <span class="k">if</span> <span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_species</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reference_local_env_dict</span><span class="p">:</span>
+            
+            <span class="c1"># then take this as the reference neighbor info sequence</span>
+            
+            <span class="k">if</span> <span class="n">export_local_env_structure</span><span class="p">:</span>
+                
+                <span class="n">reference_local_env_sites</span><span class="o">=</span><span class="p">[</span><span class="n">primitive_cell</span><span class="p">[</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]]</span>
+                
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">unsorted_neighbor_sequences</span><span class="p">:</span>
+                    
+                    <span class="n">reference_local_env_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">])</span>
+                    <span class="n">reference_local_env_structure</span><span class="o">=</span><span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_sites</span><span class="p">(</span><span class="n">sites</span><span class="o">=</span><span class="n">reference_local_env_sites</span><span class="p">)</span>
+                    
+                <span class="n">reference_local_env_structure</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;cif&quot;</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">reference_local_env_type</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;th_reference_local_env.cif&quot;</span><span class="p">)</span> 
+                <span class="n">reference_local_env_type</span><span class="o">+=</span><span class="mi">1</span>
+                
+                <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">reference_local_env_type</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;th type of reference local_env structure cif file is created. please check&quot;</span><span class="p">)</span>
+            
+            <span class="n">reference_local_env_dict</span><span class="p">[</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_species</span><span class="p">]</span><span class="o">=</span><span class="n">this_nninfo</span>
+
+            <span class="n">local_env_info_dict</span><span class="p">[</span><span class="n">primitive_cell</span><span class="p">[</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;local_index&#39;</span><span class="p">]]</span><span class="o">=</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_sequence</span>
+            
+            
+            <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;a new type of local environment is recognized with the species &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_species</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; </span><span class="se">\n</span><span class="s2">the distance matrix are </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">))</span>
+
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;a local environment is created with the species &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_species</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; </span><span class="se">\n</span><span class="s2">the distance matrix are </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">distance_matrix</span><span class="p">))</span>
+            
+            
+
+            <span class="n">sorted_neighbor_sequence</span><span class="o">=</span><span class="n">reference_local_env_dict</span><span class="p">[</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_species</span><span class="p">]</span><span class="o">.</span><span class="n">brutal_match</span><span class="p">(</span><span class="n">this_nninfo</span><span class="o">.</span><span class="n">neighbor_sequence</span><span class="p">,</span><span class="n">rtol</span><span class="o">=</span><span class="n">distance_matrix_rtol</span><span class="p">,</span><span class="n">atol</span><span class="o">=</span><span class="n">distance_matrix_atol</span><span class="p">,</span><span class="n">find_nearest_if_fail</span><span class="o">=</span><span class="n">find_nearest_if_fail</span><span class="p">)</span>
+            
+            <span class="n">local_env_info_dict</span><span class="p">[</span><span class="n">primitive_cell</span><span class="p">[</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s1">&#39;local_index&#39;</span><span class="p">]]</span><span class="o">=</span><span class="n">sorted_neighbor_sequence</span>
+            
+        <span class="n">neighbor_has_been_found</span><span class="o">+=</span><span class="mi">1</span>
+        
+        <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">neighbor_has_been_found</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; out of &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mobile_ion_specie_1_indices</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot; neighboring sequence has been found&quot;</span><span class="p">)</span>
+        
+
+  
+    <span class="n">supercell</span><span class="o">=</span><span class="n">primitive_cell</span><span class="o">.</span><span class="n">make_kmc_supercell</span><span class="p">(</span><span class="n">supercell_shape</span><span class="p">)</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;supercell is created&quot;</span><span class="p">)</span>
+    <span class="n">event_generator_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">supercell</span><span class="p">))</span>
+    
+    <span class="n">supercell_mobile_ion_specie_1_indices</span><span class="o">=</span><span class="n">find_atom_indices</span><span class="p">(</span><span class="n">supercell</span><span class="p">,</span><span class="n">mobile_ion_identifier_type</span><span class="o">=</span><span class="n">mobile_ion_identifier_type</span><span class="p">,</span><span class="n">atom_identifier</span><span class="o">=</span><span class="n">mobile_ion_specie_1_identifier</span><span class="p">)</span>
+
+            
+    <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">events_dict</span> <span class="o">=</span> <span class="p">[]</span>
+    
+
+    
+    <span class="n">indices_dict_from_identifier</span><span class="o">=</span><span class="n">supercell</span><span class="o">.</span><span class="n">kmc_build_dict3</span><span class="p">(</span><span class="n">skip_check</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="c1">#a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose</span>
+    
+
+
+    
+    <span class="k">for</span> <span class="n">supercell_mobile_ion_specie_1_index</span> <span class="ow">in</span> <span class="n">supercell_mobile_ion_specie_1_indices</span><span class="p">:</span>
+        
+        <span class="c1"># for mobile_ion_specie_1s of newly generated supercell, find the neighbors</span>
+
+        <span class="n">supercell_tuple</span><span class="o">=</span><span class="n">supercell</span><span class="p">[</span><span class="n">supercell_mobile_ion_specie_1_index</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;supercell&quot;</span><span class="p">]</span>
+        
+        <span class="n">local_index_of_this_mobile_ion_specie_1</span><span class="o">=</span><span class="n">supercell</span><span class="p">[</span><span class="n">supercell_mobile_ion_specie_1_index</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;local_index&quot;</span><span class="p">]</span>
+        
+        <span class="n">local_env_info</span><span class="o">=</span><span class="p">[]</span><span class="c1"># list of integer / indices of local environment</span>
+        
+        
+        <span class="k">for</span> <span class="n">neighbor_site_in_primitive_cell</span> <span class="ow">in</span> <span class="n">local_env_info_dict</span><span class="p">[</span><span class="n">local_index_of_this_mobile_ion_specie_1</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            </span>
+<span class="sd">             local_env_info_dict[local_index_of_this_mobile_ion_specie_1]</span>
+<span class="sd">            </span>
+<span class="sd">            In primitive cell, the mobile_ion_specie_1 has 1 unique identifier: The &quot;local index inside the primitive cell&quot;</span>
+<span class="sd">            </span>
+<span class="sd">            In supercell, the mobile_ion_specie_1 has an additional unique identifier: &quot;supercell_tuple&quot;</span>
+<span class="sd">            </span>
+<span class="sd">            However, as long as the &quot;local index inside the primitive cell&quot; is the same, </span>
+<span class="sd">            no matter which supercell this mobile_ion_specie_1 belongs to, </span>
+<span class="sd">            the sequence of &quot;local index&quot; of its neighbor sites are the same. </span>
+<span class="sd">            For example, In primitive cell, mobile_ion_specie_1 with index 1 has neighbor arranged in 1,3,2,4,6,5, </span>
+<span class="sd">            then for every mobile_ion_specie_1 with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5</span>
+<span class="sd">            </span>
+<span class="sd">            In the loop. I&#39;m mapping the sequence in primitive cell to supercell!</span>
+<span class="sd">            </span>
+<span class="sd">            In order to accelerate the speed</span>
+
+<span class="sd">            use the dictionary to store the index of atoms</span>
+<span class="sd">            </span>
+<span class="sd">            indices_dict_from_identifier is a dictionary by pymatgen_structure.kmc_build_dict(). Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose</span>
+<span class="sd">            </span>
+<span class="sd">            This loop build the local_env_info list, [supercell_neighbor_index1, supercell_neighbor_index2, .....]</span>
+<span class="sd">            </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            
+            <span class="n">normalized_supercell_tuple</span><span class="o">=</span><span class="n">normalize_supercell_tuple</span><span class="p">(</span><span class="n">site_belongs_to_supercell</span><span class="o">=</span><span class="n">supercell_tuple</span><span class="p">,</span><span class="n">image_of_site</span><span class="o">=</span><span class="n">neighbor_site_in_primitive_cell</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span><span class="n">supercell_shape</span><span class="o">=</span><span class="n">supercell_shape</span><span class="p">)</span>
+            
+            <span class="n">tuple_key_of_such_neighbor_site</span><span class="o">=</span><span class="n">supercell</span><span class="o">.</span><span class="n">site_index_vector</span><span class="p">(</span><span class="n">local_index</span><span class="o">=</span><span class="n">neighbor_site_in_primitive_cell</span><span class="p">[</span><span class="s2">&quot;local_index&quot;</span><span class="p">],</span><span class="n">label</span><span class="o">=</span><span class="n">neighbor_site_in_primitive_cell</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">],</span><span class="n">supercell</span><span class="o">=</span><span class="n">normalized_supercell_tuple</span><span class="p">)</span>
+            
+            <span class="n">local_env_info</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indices_dict_from_identifier</span><span class="p">[</span><span class="n">tuple_key_of_such_neighbor_site</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">local_env</span> <span class="ow">in</span> <span class="n">local_env_info</span><span class="p">:</span>
+            <span class="c1"># generate event</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            generally use the mobile_ion_identifier_type=&quot;label&quot;, to see the Na1 and Na2 of nasicon.</span>
+
+<span class="sd">            specie is suitable for grain boundary model. Generally don&#39;t use it</span>
+
+
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">mobile_ion_identifier_type</span><span class="o">==</span><span class="s2">&quot;specie&quot;</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">mobile_ion_specie_2_identifier</span> <span class="ow">in</span> <span class="n">supercell</span><span class="p">[</span><span class="n">local_env</span><span class="p">]</span><span class="o">.</span><span class="n">species</span>  <span class="p">:</span>
+                    <span class="c1"># initialize the event</span>
+                    <span class="n">this_event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
+                    <span class="n">this_event</span><span class="o">.</span><span class="n">initialization3</span><span class="p">(</span><span class="n">supercell_mobile_ion_specie_1_index</span><span class="p">,</span><span class="n">local_env</span><span class="p">,</span><span class="n">local_env_info</span><span class="p">)</span>
+                    <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_event</span><span class="p">)</span>
+                    <span class="n">events_dict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_event</span><span class="o">.</span><span class="n">as_dict</span><span class="p">())</span>   
+                        
+            <span class="k">elif</span> <span class="n">mobile_ion_identifier_type</span><span class="o">==</span><span class="s2">&quot;label&quot;</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">supercell</span><span class="p">[</span><span class="n">local_env</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">mobile_ion_specie_2_identifier</span><span class="p">:</span>
+                    <span class="c1"># or for understanding, if any site in local environment, its label== &quot;Na2&quot;</span>
+                    <span class="c1"># initialize the event</span>
+                    <span class="n">this_event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
+                    <span class="n">this_event</span><span class="o">.</span><span class="n">initialization3</span><span class="p">(</span><span class="n">supercell_mobile_ion_specie_1_index</span><span class="p">,</span><span class="n">local_env</span><span class="p">,</span><span class="n">local_env_info</span><span class="p">)</span>
+                    <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_event</span><span class="p">)</span>
+                    <span class="n">events_dict</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_event</span><span class="o">.</span><span class="n">as_dict</span><span class="p">())</span>   
+                        
+            <span class="k">elif</span> <span class="n">mobile_ion_identifier_type</span><span class="o">==</span><span class="s2">&quot;list&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span> 
+                <span class="c1">#&quot;potentially implement this for grain boundary model&quot;</span>
+                                   
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;unrecognized mobile_ion_identifier_type. Please select from: [&quot;specie&quot;,&quot;label&quot;] &#39;</span><span class="p">)</span>
+            
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is no event generated. This is probably caused by wrong input parameters.&quot;</span><span class="p">)</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving:&#39;</span><span class="p">,</span><span class="n">event_fname</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">event_fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+        <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">events_dict</span><span class="p">,</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="n">convert</span><span class="p">)</span>
+        <span class="n">fhandle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span>
+    
+    <span class="n">events_site_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+        <span class="c1"># sublattice indices: local site index for each site</span>
+        <span class="n">events_site_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">local_env_indices_list</span><span class="p">)</span>
+    
+    <span class="c1">#np.savetxt(&#39;./events_site_list.txt&#39;,np.array(events_site_list,dtype=int),fmt=&quot;%i&quot;) # dimension not equal error</span>
+    <span class="n">generate_event_kernal</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">supercell</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">events_site_list</span><span class="p">),</span><span class="n">event_kernal_fname</span><span class="o">=</span><span class="n">event_kernal_fname</span><span class="p">)</span>       
+    
+    <span class="k">return</span> <span class="n">reference_local_env_dict</span></div>
+    
+    
+<div class="viewcode-block" id="normalize_supercell_tuple"><a class="viewcode-back" href="../../modules/event_generator.html#kmcpy.event_generator.normalize_supercell_tuple">[docs]</a><span class="k">def</span> <span class="nf">normalize_supercell_tuple</span><span class="p">(</span><span class="n">site_belongs_to_supercell</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">7</span><span class="p">],</span><span class="n">image_of_site</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">supercell_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">],</span><span class="n">additional_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;finding the equivalent position in periodic supercell considering the periodic boundary condition. i.e., normalize the supercell tuple to make sure that each component of supercell is greater than zero</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    for example,</span>
+<span class="sd">    </span>
+<span class="sd">        # 5 1 7 with image 0 -1 1 -&gt; 5 0 8 -&gt; in periodic 567 supercell should change to 561, suppose supercell start with index1</span>
+<span class="sd">    </span>
+<span class="sd">    input:</span>
+<span class="sd">    site_belongs_to_supercell: site belongs to which supercell</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: supercell tuple</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;equivalent position&quot;</span><span class="p">,</span><span class="n">site_belongs_to_supercell</span><span class="p">,</span><span class="n">image_of_site</span><span class="p">)</span>
+
+    
+    <span class="n">supercell</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">site_belongs_to_supercell</span><span class="p">)</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image_of_site</span><span class="p">)</span>
+
+    <span class="n">supercell</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">supercell</span><span class="p">,</span><span class="n">supercell_shape</span><span class="p">)</span>
+    
+    <span class="n">supercell</span><span class="o">=</span><span class="n">supercell</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">additional_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">supercell</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">additional_input</span><span class="p">)</span>
+        
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">supercell</span><span class="p">)</span>    </div>
+    
+    
+<span class="nd">@nb</span><span class="o">.</span><span class="n">njit</span>
+<span class="k">def</span> <span class="nf">_generate_event_kernal</span><span class="p">(</span><span class="n">len_structure</span><span class="p">,</span><span class="n">events_site_list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;to be called by generate_event_kernal for generating the event_kernal.csv</span>
+<span class="sd">    </span>
+<span class="sd">    for  a event and find all other event that include the site of this event</span>
+<span class="sd">    </span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        len_structure (int): _description_</span>
+<span class="sd">        events_site_list (_type_): _description_</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        _type_: _description_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_sites</span>  <span class="o">=</span> <span class="n">len_structure</span>
+    <span class="n">all_site_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_sites</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">List</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">all_site_list</span><span class="p">:</span>
+        <span class="c1"># print(&#39;Looking for site:&#39;,site)</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">List</span><span class="p">()</span>
+        <span class="c1">#is_Na1=False</span>
+        <span class="n">event_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events_site_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">event</span><span class="p">:</span>
+                <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event_index</span><span class="p">)</span>
+            <span class="n">event_index</span><span class="o">+=</span><span class="mi">1</span>
+            <span class="c1">#if len(row)==0:</span>
+            <span class="c1">#    is_Na1=True</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">results</span>
+
+
+<div class="viewcode-block" id="generate_event_kernal"><a class="viewcode-back" href="../../modules/event_generator.html#kmcpy.event_generator.generate_event_kernal">[docs]</a><span class="k">def</span> <span class="nf">generate_event_kernal</span><span class="p">(</span><span class="n">len_structure</span><span class="p">,</span><span class="n">events_site_list</span><span class="p">,</span><span class="n">event_kernal_fname</span><span class="o">=</span><span class="s1">&#39;event_kernal.csv&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    event_kernal.csv: </span>
+<span class="sd">        event_kernal[i] tabulates the index of sites that have to be updated after event[i] has been executed</span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Generating event kernal ...&#39;</span><span class="p">)</span>
+    <span class="n">event_kernal</span> <span class="o">=</span> <span class="n">_generate_event_kernal</span><span class="p">(</span><span class="n">len_structure</span><span class="p">,</span><span class="n">events_site_list</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">event_kernal_fname</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving into:&#39;</span><span class="p">,</span><span class="n">event_kernal_fname</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">event_kernal</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%5d</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="n">item</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">event_kernal</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Canepa Research Lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

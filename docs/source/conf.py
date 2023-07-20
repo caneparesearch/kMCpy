@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'kmcpy'
+project = 'kMCpy'
 copyright = '2022, Canepa Research Lab'
 author = 'Zeyu Deng'
 

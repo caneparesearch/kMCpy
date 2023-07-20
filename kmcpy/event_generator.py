@@ -88,9 +88,7 @@ class neighbor_info_matcher():
         neighbor_species=tuple(sorted(cn_dict.items(),key=lambda x:x[0]))
         
         distance_matrix=self.build_distance_matrix_from_getnninfo_output(neighbor_sequences)
-        
-        
-         
+                 
         return neighbor_info_matcher(neighbor_species=neighbor_species,distance_matrix=distance_matrix,neighbor_sequence=neighbor_sequences,neighbor_species_distance_matrix_dict=neighbor_species_distance_matrix_dict,neighbor_species_sequence_dict=neighbor_species_sequence_dict)
         
     
@@ -188,6 +186,9 @@ class neighbor_info_matcher():
         for i in range(0,len(correct_distance_matrix)):
             previous_possible_sequences.append([i])# init
         
+        if len(correct_distance_matrix)==1:
+            return [[0]]
+
         for i in range(0,len(correct_distance_matrix)-1):
         
             new_possible_sequences=[]

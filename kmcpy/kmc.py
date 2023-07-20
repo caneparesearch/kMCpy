@@ -71,7 +71,7 @@ class KMC:
         the 3rd version of initialization process. 
         
         
-        Validate Args:
+        Args:
             occ (np.array, optional): this is the chebyshev occupation of sites, representing the initial state of the model. Defaults to np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]).
             prim_fname (str, optional): the primitive cell of the input structure. Defaults to './inputs/prim.cif'.
             fitting_results (str, optional): This is the fitting results matrix, related to the activation barrier E_kra. Defaults to './inputs/fitting_results.json'.
@@ -85,6 +85,7 @@ class KMC:
             immutable_sites (list, optional):the sites that do not participate in the monte carlo process. For example,. in NaSICON, the Zr and O do not participate, the Na/Vac and P/S pairs are considered. Defaults to ["Zr","O"].
             verbose (bool, optional): trying to enable the verbose output. Defaults to False.
             convert_to_primitive_cell(bool): whether or not convert input cif file to primitive cell
+            **kwargs: other parameters that are not used in this function. This is for the compatibility of different versions of initialization function.
         Returns:
             list: a list of kmc.event.Event object
         """
