@@ -24,11 +24,11 @@ Some of the advantages of using this package are:
 This code has been recently used to explore the transport properties of Na-ion in NaSICON solid electrolyte (https://www.nature.com/articles/s41467-022-32190-7).
 Some of the relevant aspects of the code from the mentioned paper are shown below. 
 
-The rf-kMC as a part of this code was used to model the Na-ion conductivity in the $\mathrm{Na_{1+x}Zr_2Si_xP_{3-x}O_{12}}$ which led to the discovery of maximum conductivity of the solid electrolyte is achieved for Na=3.4.
+The rf-kMC as a part of this code was used to model the Na-ion conductivity in the $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ which led to the discovery of maximum conductivity of the solid electrolyte is achieved for Na=3.4.
 
 ![image](docs/source/_static/computed_conductivity.png)
 
-   Calculated Na+ diffusivity (a), conductivity (b), Haven's ratio (c) and averaged correlation factor (d) of $\mathrm{Na_{1+x}Zr_2Si_xP_{3-x}O_{12}}$ at several temperatures: 373 (dark blue circles), 473 (orange squares) and 573 (red triangles) K, respectively. In panel (b), the computed ionic conductivities are compared with the experimental values of this work (Supplementary Fig. 6) at selected temperatures. Experimental values in (b) from this work are depicted with light blue (373 K), yellow (473 K), and red (573 K) crosses belonging to the same $\mathrm{Na_{1+x}Zr_2Si_xP_{3-x}O_{12}}$ compositions but of pellets with different compacities (>70 and >90%, see legend).
+   Calculated Na+ diffusivity (a), conductivity (b), Haven's ratio (c) and averaged correlation factor (d) of $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ at several temperatures: 373 (dark blue circles), 473 (orange squares) and 573 (red triangles) K, respectively. In panel (b), the computed ionic conductivities are compared with the experimental values of this work (Supplementary Fig. 6) at selected temperatures. Experimental values in (b) from this work are depicted with light blue (373 K), yellow (473 K), and red (573 K) crosses belonging to the same $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ compositions but of pellets with different compacities (>70 and >90%, see legend).
 
 
 
