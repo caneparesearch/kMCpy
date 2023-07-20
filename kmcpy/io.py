@@ -108,7 +108,7 @@ class InputSet:
         
         for example: the output of a default input set is :v= 5000000000000,equ_pass= 1,kmc_pass= 1000,supercell_shape= [2, 1, 1],fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',lce_fname='./inputs/lce.json',lce_site_fname='./inputs/lce_site.json',prim_fname='./inputs/prim.json',event_fname='./inputs/events.json',event_kernel='./inputs/event_kernal.csv',mc_results='./initial_state.json',T= 298,comp= 1,structure_idx= 1,occ= [-1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1].
         Args:
-            format (str, optional): "equation" or "dict". If format=dict, then print a python dict. format=equation: print equations that is capable for **kwargs.  Defaults to "equation".
+            format (str, optional): "equation" or "dict". If format=dict, then print a python dict. format=equation: print equations that is capable for kwargs.  Defaults to "equation".
         """
         if format=="dict":
             print(self._parameters)
