@@ -1,7 +1,7 @@
 # Kinetic Monte Carlo Simulation using Python (kMCpy)
+![image](docs/source/_static/kmcpy_logo.png)
 - Author: Zeyu Deng
 - Email: dengzeyu@gmail.com
-
 
 kMCpy is an open source python based package intended to study the migration of atoms using the kinetic
 Monte Carlo technique. kMCpy provides an all python, systematic way to compute kinetic properties, which can be readily used for investigation, development, and prediction of new functional materials. 
