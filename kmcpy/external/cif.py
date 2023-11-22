@@ -2,12 +2,14 @@
 This is inherited from pymatgen.io.cif
 '''
 from pymatgen.io.cif import CifParser
-
+from pymatgen.core.operations import MagSymmOp, SymmOp
 import warnings
+from pymatgen.util.coord import find_in_coord_list_pbc, in_coord_list_pbc
 from io import StringIO
 import re
 import numpy as np
-
+from pymatgen.electronic_structure.core import Magmom
+import math
 from pymatgen.core.composition import Composition
 from pymatgen.core.periodic_table import DummySpecies, Element, Species, get_el_sp
 from pymatgen.symmetry.analyzer import SpacegroupOperations
@@ -204,9 +206,9 @@ class CifParserKMCpy(CifParser):
 
 
                 if self.feature_flags["magcif"]:
-                    coords, magmoms = self._unique_coords(tmp_coords, magmoms_in=tmp_magmom, lattice=lattice)
+                    coords, magmoms, _ = self._unique_coords(tmp_coords, magmoms_in=tmp_magmom, lattice=lattice)
                 else:
-                    coords, magmoms = self._unique_coords(tmp_coords)
+                    coords, magmoms, _ = self._unique_coords(tmp_coords)
                     
                 # add wyckoff sequence here
                 for wyckoff_sequence in range(0,len(coords)):
@@ -340,6 +342,55 @@ class CifParserKMCpy(CifParser):
         if len(structures) == 0:
             raise ValueError("Invalid cif file with no structures!")
         return structures
+
+    def _unique_coords(
+        self,
+        coords,
+        magmoms = None,
+        lattice= None,
+        labels = None,
+    ):
+        """
+        Generate unique coordinates using coord and symmetry positions
+        and also their corresponding magnetic moments, if supplied.
+        """
+        coords_out: list[np.ndarray] = []
+        labels_out = []
+        labels = labels or {}
+
+        if magmoms:
+            magmoms_out = []
+            if len(magmoms) != len(coords):
+                raise ValueError
+            for tmp_coord, tmp_magmom in zip(coords, magmoms):
+                for op in self.symmetry_operations:
+                    coord = op.operate(tmp_coord)
+                    coord = np.array([i - math.floor(i) for i in coord])
+                    if isinstance(op, MagSymmOp):
+                        # Up to this point, magmoms have been defined relative
+                        # to crystal axis. Now convert to Cartesian and into
+                        # a Magmom object.
+                        magmom = Magmom.from_moment_relative_to_crystal_axes(
+                            op.operate_magmom(tmp_magmom), lattice=lattice
+                        )
+                    else:
+                        magmom = Magmom(tmp_magmom)
+                    if not in_coord_list_pbc(coords_out, coord, atol=self._site_tolerance):
+                        coords_out.append(coord)
+                        magmoms_out.append(magmom)
+                        labels_out.append(labels.get(tmp_coord))
+            return coords_out, magmoms_out, labels_out
+
+        for tmp_coord in coords:
+            for op in self.symmetry_operations:
+                coord = op.operate(tmp_coord)
+                coord = np.array([i - math.floor(i) for i in coord])
+                if not in_coord_list_pbc(coords_out, coord, atol=self._site_tolerance):
+                    coords_out.append(coord)
+                    labels_out.append(labels.get(tmp_coord))
+
+        dummy_magmoms = [Magmom(0)] * len(coords_out)
+        return coords_out, dummy_magmoms, labels_out
 
     @staticmethod
     def str2float(text):
