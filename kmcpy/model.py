@@ -116,7 +116,7 @@ class LocalClusterExpansion:
                 local_env_list_sorted_involved.append(site)
                     
         local_env_structure = Molecule.from_sites(local_env_list_sorted_involved)
-        local_env_structure.translate_sites(np.arange(0,len(local_env_structure),1),-1*center_site.coords)
+        local_env_structure.translate_sites(np.arange(0,len(local_env_structure),1).tolist(),-1*center_site.coords)
         if is_write_basis:
             print('Local environemnt: ')
             print(local_env_structure)
