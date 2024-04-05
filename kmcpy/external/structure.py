@@ -13,7 +13,7 @@ from monty.io import zopen
 class StructureKMCpy(Structure):
     @classmethod
     def from_cif(cls,filename,primitive=False,sort=False,merge_tol=0.0) -> "StructureKMCpy":
-        """this is a modified version of Istructure/Structure.from_file which only take cif input. What change here is that, I will add a tuple, (atom_Label,wyckoff_sequence) in format (str,int) as site_properties. This is for the KMCPY usage. This from_cif will call a seperated cifparser function, which is get_labeled_structure
+        """this is a modified version of Istructure/Structure.from_file which only take cif input. What change here is that, I will add a tuple, (atom_Label,) in format (str,int) as site_properties. This is for the KMCPY usage. This from_cif will call a seperated cifparser function, which is get_labeled_structure
 
         Args:
             filename (str): filename path
@@ -42,6 +42,7 @@ class StructureKMCpy(Structure):
         charge: float | None = None,
         validate_proximity: bool = False,
         to_unit_cell: bool = False,
+        properties=None,
     ) -> "StructureKMCpy":
         """
         Convenience constructor to make a StructureKMCpy from a list of sites.
@@ -61,7 +62,7 @@ class StructureKMCpy(Structure):
         if len(sites) < 1:
             raise ValueError(f"You need at least one site to construct a {cls}")
         prop_keys: list[str] = []
-        props = {}
+        props = properties or {}
         lattice = sites[0].lattice
         for i, site in enumerate(sites):
             if site.lattice != lattice:
@@ -82,6 +83,7 @@ class StructureKMCpy(Structure):
             site_properties=props,
             validate_proximity=validate_proximity,
             to_unit_cell=to_unit_cell,
+            
         )
 
 
