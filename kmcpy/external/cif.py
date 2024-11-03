@@ -59,7 +59,7 @@ class CifParserKMCpy(CifParser):
             self.symmetry_operations = self.get_symops(data)
             magmoms = {}
 
-        oxi_states = self.parse_oxi_states(data)
+        oxi_states = CifParser.parse_oxi_states(data)
 
         coord_to_species = {}
         coord_to_magmoms = {}
