@@ -162,6 +162,27 @@ class Event:
         event.__dict__ = event_dict
         return event
 
+class EventTableModel(Event): 
+    '''for Simon: This class is used to compute barriers by given a local environment.
+    The local environment is defined by the TableBarrierModel class in kmcpy.model, 
+    and the barriers are computed by set_ekra()
+    '''
+    def __init__(self):
+        pass
+
+    # @profile
+    def set_ekra(self,occ_global): 
+        '''you should define how to compute ekra by giving a global occupation here, 
+        occ_global is the occupation vector of your simulation supercell'''
+        pass
+
+    # @profile
+    def set_probability(self,occ_global, v, T):  # you should define how to compute probability here
+        pass
+
+    def update_event(self, occ_global, v, T): # you should define how to update this hopping event here
+        self.set_ekra()  # calculate ekra and probability
+        self.set_probability(occ_global, v, T)
 
 @nb.njit
 def _set_corr(corr, occ_latt, sublattice_indices):

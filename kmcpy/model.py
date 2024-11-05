@@ -535,3 +535,29 @@ class Cluster:
         else:
             d["bond_distances"] = self.bond_distances.tolist()
         return d
+
+class TableBarrierModel: 
+    '''for Simon: this object defines a model to store barriers in a table
+    You need to find a way to define your local environment
+    '''
+    def __init__(self):
+        pass
+
+    # for Simon: you need to change all the functions below
+    def initialization(self, **kwargs):
+        pass
+
+    def as_dict(self):
+        pass
+
+    def from_dict(self, d):
+        pass
+
+    def to_json(self, fname):
+        pass
+
+    def from_json(self, fname):
+        pass
+
+    def __str__(self):
+        pass

@@ -15,7 +15,8 @@ from copy import copy
 import json
 from kmcpy.model import LocalClusterExpansion
 from kmcpy.tracker import Tracker
-from kmcpy.event import Event
+# from kmcpy.event import Event
+from kmcpy.event import EventTableModel # for Simon's version
 from kmcpy.io import convert
 
 
@@ -175,19 +176,21 @@ class KMC:
         print("Initializing correlation matrix and E_kra for all events ...")
         events = []
         for event_dict in events_dict:
-            event = Event.from_dict(event_dict)
-            event.set_sublattice_indices(sublattice_indices, sublattice_indices_site)
-            event.initialize_corr()
-            event.update_event(
-                self.occ_global,
-                v,
-                T,
-                self.keci,
-                self.empty_cluster,
-                self.keci_site,
-                self.empty_cluster_site,
-            )
-            events_site_list.append(event.local_env_indices_list)
+            event = EventTableModel.from_dict(event_dict) # for Simon's version
+            # for Simon: please change following according to EventTableModel
+            
+            # event.set_sublattice_indices(sublattice_indices, sublattice_indices_site)
+            # event.initialize_corr()
+            # event.update_event(
+            #     self.occ_global,
+            #     v,
+            #     T,
+            #     self.keci,
+            #     self.empty_cluster,
+            #     self.keci_site,
+            #     self.empty_cluster_site,
+            # )
+            # events_site_list.append(event.local_env_indices_list)
             events.append(event)
 
         print("Initializing hopping probabilities ...")
