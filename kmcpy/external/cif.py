@@ -18,7 +18,6 @@ from pymatgen.symmetry.structure import SymmetrizedStructure
 from pymatgen.util.coord import find_in_coord_list_pbc
 from kmcpy.external.structure import StructureKMCpy
 
-
 class CifParserKMCpy(CifParser):
 
     @staticmethod
@@ -35,7 +34,7 @@ class CifParserKMCpy(CifParser):
         """
         stream = StringIO(cif_string)
         return CifParserKMCpy(stream, **kwargs)
-
+    
     def _get_labeled_structure(self, data, primitive, symmetrized):
         """modified version from _get_structure, which can add the atom label to the site
 
@@ -64,7 +63,7 @@ class CifParserKMCpy(CifParser):
             self.symmetry_operations = self.get_symops(data)
             magmoms = {}
 
-        oxi_states = self.parse_oxi_states(data)
+        oxi_states = self._parse_oxi_states(data)
 
         coord_to_species = {}
         coord_to_magmoms = {}
