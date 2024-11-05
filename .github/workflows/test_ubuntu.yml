@@ -1,7 +1,10 @@
 
 name: test on ubuntu
 
-on: [push]
+on: 
+  push:
+    branches:
+      - master
 
 jobs:
   build-linux:
