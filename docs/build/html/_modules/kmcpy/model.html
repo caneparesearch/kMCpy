@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kmcpy.model &mdash; kMCpy 0.1dev documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            kMCpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/api.html">API Reference Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html#how-to-cite">How to cite</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">kMCpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kmcpy.model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for kmcpy.model</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions to build the model. The LocalClusterExpansion reads a cif (for example, a NaSICON cif) and generate typically, the orbital in KMC. Typical output is lce.json</span>
+
+<span class="sd">This is related to the Table S3 in KMC support information pdf.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
+<span class="kn">from</span> <span class="nn">pymatgen.symmetry.analyzer</span> <span class="kn">import</span> <span class="n">PointGroupAnalyzer</span>
+<span class="kn">from</span> <span class="nn">pymatgen.core.structure</span> <span class="kn">import</span> <span class="n">Molecule</span>
+<span class="kn">from</span> <span class="nn">kmcpy.external.structure</span> <span class="kn">import</span> <span class="n">StructureKMCpy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">from</span> <span class="nn">kmcpy.io</span> <span class="kn">import</span> <span class="n">convert</span>
+<span class="kn">from</span> <span class="nn">kmcpy.event_generator</span> <span class="kn">import</span> <span class="n">find_atom_indices</span><span class="p">,</span> <span class="n">neighbor_info_matcher</span>
+<div class="viewcode-block" id="LocalClusterExpansion"><a class="viewcode-back" href="../../modules/model.html#kmcpy.model.LocalClusterExpansion">[docs]</a><span class="k">class</span> <span class="nc">LocalClusterExpansion</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LocalClusterExpansion will be initialized with a template structure where all the sites are occupied</span>
+<span class="sd">    cutoff_cluster is the cutoff for pairs and triplet</span>
+<span class="sd">    cutoff_region is the cutoff for generating local cluster region</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">api</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">=</span><span class="n">api</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="nf">initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialization3</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LocalClusterExpansion.initialization3"><a class="viewcode-back" href="../../modules/model.html#kmcpy.model.LocalClusterExpansion.initialization3">[docs]</a>    <span class="k">def</span> <span class="nf">initialization3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mobile_ion_identifier_type</span><span class="o">=</span><span class="s2">&quot;label&quot;</span><span class="p">,</span><span class="n">mobile_ion_specie_1_identifier</span><span class="o">=</span><span class="s2">&quot;Na1&quot;</span><span class="p">,</span><span class="n">cutoff_cluster</span><span class="o">=</span><span class="p">[</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">cutoff_region</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">template_cif_fname</span><span class="o">=</span><span class="s1">&#39;EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif&#39;</span><span class="p">,</span><span class="n">is_write_basis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">species_to_be_removed</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Zr4+&#39;</span><span class="p">,</span><span class="s1">&#39;O2-&#39;</span><span class="p">,</span><span class="s1">&#39;O&#39;</span><span class="p">,</span><span class="s1">&#39;Zr&#39;</span><span class="p">],</span><span class="n">convert_to_primitive_cell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">exclude_site_with_identifier</span><span class="o">=</span><span class="p">[],</span><span class="n">is_grain_boundary_model</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords</span>
+<span class="sd">        </span>
+<span class="sd">        Strictly use the cif file because I only modified the structure.from_cif</span>
+
+<span class="sd">        use structure matcher</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mobile_ion_identifier_type=&quot;label&quot;,mobile_ion_specie_1_identifier=&quot;Na1&quot;: refers to structure_operation.find_atom_indices</span>
+<span class="sd">            cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].</span>
+<span class="sd">            cutoff_region (float, optional): cutoff for finding migration unit. Defaults to 4.</span>
+<span class="sd">            template_cif_fname (str, optional): generate cluster from which cif?. Defaults to &#39;EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif&#39;.</span>
+<span class="sd">            is_write_basis (bool, optional): .?. Defaults to False.</span>
+<span class="sd">            species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to [&#39;Zr4+&#39;,&#39;O2-&#39;,&#39;O&#39;,&#39;Zr&#39;].</span>
+<span class="sd">        </span>
+<span class="sd">        If the next-step KMC is not based on the same lce object generated in this step, then be careful with 2 things:</span>
+<span class="sd">        1) the Ekra generated in this step can be transferred to the KMC, within which the orbitals are arranged in the same way as here;</span>
+<span class="sd">        2) the sublattice_indices are exactly corresponding to the input structure used in the KMC step, which might in need of re-cunstruction of a lce object using the same KMC-input structure.</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="n">template_structure</span> <span class="o">=</span> <span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_cif</span><span class="p">(</span><span class="n">template_cif_fname</span><span class="p">,</span><span class="n">primitive</span><span class="o">=</span><span class="n">convert_to_primitive_cell</span><span class="p">)</span>
+        <span class="n">template_structure</span><span class="o">.</span><span class="n">remove_oxidation_states</span><span class="p">()</span>
+        <span class="n">template_structure</span><span class="o">.</span><span class="n">remove_species</span><span class="p">(</span><span class="n">species_to_be_removed</span><span class="p">)</span>
+        
+        <span class="n">mobile_ion_specie_1_indices</span><span class="o">=</span><span class="n">find_atom_indices</span><span class="p">(</span><span class="n">template_structure</span><span class="p">,</span><span class="n">mobile_ion_identifier_type</span><span class="o">=</span><span class="n">mobile_ion_identifier_type</span><span class="p">,</span><span class="n">atom_identifier</span><span class="o">=</span><span class="n">mobile_ion_specie_1_identifier</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">is_grain_boundary_model</span><span class="p">:</span>
+            <span class="n">mobile_ion_specie_1_indices</span><span class="o">=</span><span class="n">mobile_ion_specie_1_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            
+            
+            
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mobile_ion_specie_1_indices</span><span class="o">=</span><span class="n">mobile_ion_specie_1_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="c1"># just use the first one        </span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">center_site</span> <span class="o">=</span> <span class="n">template_structure</span><span class="p">[</span><span class="n">mobile_ion_specie_1_indices</span><span class="p">]</span> <span class="c1">#self.center_site: pymatgen.site</span>
+            
+            
+            
+            <span class="n">template_structure</span><span class="o">.</span><span class="n">remove_sites</span><span class="p">([</span><span class="n">mobile_ion_specie_1_indices</span><span class="p">])</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Searching local env around&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">center_site</span> <span class="p">,</span><span class="s1">&#39;...&#39;</span><span class="p">)</span>
+        
+    
+        <span class="c1"># fallback to the initial get cluster structure </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_structure1</span><span class="p">(</span><span class="n">structure</span> <span class="o">=</span> <span class="n">template_structure</span><span class="p">,</span><span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff_region</span><span class="p">,</span> <span class="n">center_site</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_site</span> <span class="p">,</span><span class="n">is_write_basis</span> <span class="o">=</span> <span class="n">is_write_basis</span><span class="p">,</span><span class="n">exclude_species</span><span class="o">=</span><span class="n">exclude_site_with_identifier</span><span class="p">)</span>
+        
+        
+        <span class="c1"># List all possible point, pair and triplet clusters</span>
+        <span class="n">atom_index_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span><span class="p">))</span>
+        
+        <span class="n">cluster_indexes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">atom_index_list</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">+</span><span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">atom_index_list</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">+</span><span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">atom_index_list</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span><span class="o">+</span><span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">atom_index_list</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster_indexes</span><span class="p">),</span><span class="s1">&#39;clusters will be generated ...&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters_constructor</span><span class="p">(</span><span class="n">cluster_indexes</span><span class="p">,[</span><span class="mi">10</span><span class="p">]</span><span class="o">+</span><span class="n">cutoff_cluster</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">orbits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbits_constructor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices</span> <span class="o">=</span> <span class="p">[[</span><span class="n">cluster</span><span class="o">.</span><span class="n">site_indices</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">orbit</span><span class="o">.</span><span class="n">clusters</span><span class="p">]</span> <span class="k">for</span> <span class="n">orbit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbits</span><span class="p">]</span> <span class="c1"># sublattice_indices[orbit,cluster,site]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Type&#39;</span><span class="p">,</span><span class="s1">&#39;Index&#39;</span><span class="p">,</span><span class="s1">&#39;max_length&#39;</span><span class="p">,</span><span class="s1">&#39;min_length&#39;</span><span class="p">,</span><span class="s1">&#39;Point Group&#39;</span><span class="p">,</span><span class="s1">&#39;Multiplicity&#39;</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">orbit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbits</span><span class="p">:</span>
+            <span class="n">orbit</span><span class="o">.</span><span class="n">show_representative_cluster</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span> <span class="nf">get_cluster_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_structure1</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_structure2</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">({</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span><span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">get_cluster_structure1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structure</span><span class="p">,</span><span class="n">center_site</span><span class="p">,</span><span class="n">cutoff</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span><span class="n">is_write_basis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">exclude_species</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Li&quot;</span><span class="p">]):</span> <span class="c1"># return a molecule structure centeret center_site</span>
+        <span class="n">local_env_structure</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_sites_in_sphere</span><span class="p">(</span><span class="n">center_site</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span><span class="n">cutoff</span><span class="p">)]</span>
+        <span class="n">local_env_list_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">local_env_structure</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="o">.</span><span class="n">specie</span><span class="p">)</span>
+        <span class="n">local_env_list_sorted_involved</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">local_env_list_sorted</span><span class="p">:</span>
+            <span class="n">excluded</span><span class="o">=</span><span class="kc">False</span>
+            <span class="k">for</span> <span class="n">exclude_specie</span> <span class="ow">in</span> <span class="n">exclude_species</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">exclude_specie</span> <span class="ow">in</span> <span class="n">site</span><span class="o">.</span><span class="n">species</span><span class="p">:</span>
+                    <span class="n">excluded</span><span class="o">=</span><span class="kc">True</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">excluded</span><span class="p">:</span>
+                <span class="n">local_env_list_sorted_involved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">site</span><span class="p">)</span>
+                    
+        <span class="n">local_env_structure</span> <span class="o">=</span> <span class="n">Molecule</span><span class="o">.</span><span class="n">from_sites</span><span class="p">(</span><span class="n">local_env_list_sorted_involved</span><span class="p">)</span>
+        <span class="n">local_env_structure</span><span class="o">.</span><span class="n">translate_sites</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">local_env_structure</span><span class="p">),</span><span class="mi">1</span><span class="p">),</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">center_site</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_write_basis</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Local environemnt: &#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">local_env_structure</span><span class="p">)</span>
+            <span class="n">local_env_structure</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;xyz&#39;</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;local_env.xyz&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;The point group of local environment is: &#39;</span><span class="p">,</span><span class="n">PointGroupAnalyzer</span><span class="p">(</span><span class="n">local_env_structure</span><span class="p">)</span><span class="o">.</span><span class="n">sch_symbol</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">local_env_structure</span>
+
+
+    <span class="k">def</span> <span class="nf">get_occupation_neb_cif</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_occupation_neb_cif1</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_occupation_neb_cif2</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">({</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span><span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">get_occupation_neb_cif1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">other_cif_name</span><span class="p">):</span> <span class="c1"># input is a cif structure</span>
+        <span class="n">occupation</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">other_structure</span> <span class="o">=</span> <span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">other_cif_name</span><span class="p">)</span>
+        <span class="n">other_structure</span><span class="o">.</span><span class="n">remove_oxidation_states</span><span class="p">()</span>
+        <span class="n">other_structure</span><span class="o">.</span><span class="n">remove_species</span><span class="p">([</span><span class="s1">&#39;Zr4+&#39;</span><span class="p">,</span><span class="s1">&#39;O2-&#39;</span><span class="p">,</span><span class="s1">&#39;O&#39;</span><span class="p">,</span><span class="s1">&#39;Zr&#39;</span><span class="p">])</span>
+        <span class="n">other_structure_mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_structure</span><span class="p">(</span><span class="n">other_structure</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">center_Na1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">this_site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists</span><span class="p">(</span><span class="n">this_site</span><span class="p">,</span><span class="n">other_structure_mol</span><span class="p">):</span><span class="c1"># Chebyshev basis is used here: ±1</span>
+                <span class="n">occu</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">occu</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">occupation</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">occu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">occupation</span>
+
+    <span class="k">def</span> <span class="nf">get_occupation_neb_cif2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">other_cif_name</span><span class="p">,</span><span class="n">species_to_be_removed</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Zr4+&#39;</span><span class="p">,</span><span class="s1">&#39;O2-&#39;</span><span class="p">,</span><span class="s1">&#39;O&#39;</span><span class="p">,</span><span class="s1">&#39;Zr&#39;</span><span class="p">]):</span> <span class="c1"># input is a cif structure</span>
+        <span class="n">occupation</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">other_structure</span> <span class="o">=</span> <span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">other_cif_name</span><span class="p">)</span>
+        <span class="n">other_structure</span><span class="o">.</span><span class="n">remove_oxidation_states</span><span class="p">()</span>
+        <span class="n">other_structure</span><span class="o">.</span><span class="n">remove_species</span><span class="p">(</span><span class="n">species_to_be_removed</span><span class="p">)</span>
+        <span class="n">other_structure_mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_structure</span><span class="p">(</span><span class="n">other_structure</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">center_site</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">this_site</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_exists</span><span class="p">(</span><span class="n">this_site</span><span class="p">,</span><span class="n">other_structure_mol</span><span class="p">):</span><span class="c1"># Chebyshev basis is used here: ±1</span>
+                <span class="n">occu</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">occu</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">occupation</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">occu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">occupation</span>
+
+    
+    <span class="k">def</span> <span class="nf">get_correlation_matrix_neb_cif</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">other_cif_names</span><span class="p">):</span>
+        <span class="n">correlation_matrix</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">occupation_matrix</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">other_cif_name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">other_cif_names</span><span class="p">)):</span>
+            <span class="n">occupation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_occupation_neb_cif</span><span class="p">(</span><span class="n">other_cif_name</span><span class="p">)</span>
+            <span class="n">correlation</span> <span class="o">=</span> <span class="p">[(</span><span class="n">orbit</span><span class="o">.</span><span class="n">multiplicity</span><span class="p">)</span><span class="o">*</span><span class="n">orbit</span><span class="o">.</span><span class="n">get_cluster_function</span><span class="p">(</span><span class="n">occupation</span><span class="p">)</span> <span class="k">for</span> <span class="n">orbit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbits</span><span class="p">]</span>
+            <span class="n">occupation_matrix</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">occupation</span><span class="p">)</span>
+            <span class="n">correlation_matrix</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">correlation</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">other_cif_name</span><span class="p">,</span><span class="n">occupation</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correlation_matrix</span> <span class="o">=</span> <span class="n">correlation_matrix</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">correlation_matrix</span><span class="p">,</span><span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="s1">&#39;occupation.txt&#39;</span><span class="p">,</span><span class="n">X</span><span class="o">=</span><span class="n">occupation_matrix</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%5d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="s1">&#39;correlation_matrix.txt&#39;</span><span class="p">,</span><span class="n">X</span><span class="o">=</span><span class="n">correlation_matrix</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%.8f</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correlation_matrix</span> <span class="o">=</span> <span class="n">correlation_matrix</span>
+        <span class="c1"># print(other_cif_name,occupation,np.around(correlation,decimals=3),sep=&#39;\t&#39;)</span>
+        
+    <span class="k">def</span> <span class="nf">is_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">this_site</span><span class="p">,</span><span class="n">other_structure</span><span class="p">):</span>
+        <span class="c1"># 2 things to compare: 1. cartesian coords 2. species at each site</span>
+        <span class="n">is_exists</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">s_other</span> <span class="ow">in</span> <span class="n">other_structure</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">this_site</span><span class="o">.</span><span class="n">coords</span> <span class="o">-</span> <span class="n">s_other</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-3</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">this_site</span><span class="o">.</span><span class="n">species</span> <span class="o">==</span> <span class="n">s_other</span><span class="o">.</span><span class="n">species</span><span class="p">):</span>
+                <span class="n">is_exists</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">is_exists</span>
+
+    <span class="k">def</span> <span class="nf">clusters_constructor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">indexes</span><span class="p">,</span><span class="n">cutoff</span><span class="p">):</span> <span class="c1"># return a list of Cluster</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Generating possible clusters within this migration unit...&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cutoffs: pair =&#39;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="s1">&#39;Angst, triplet =&#39;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="s1">&#39;Angst, quadruplet =&#39;</span><span class="p">,</span><span class="n">cutoff</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="s1">&#39;Angst&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">site_indices</span> <span class="ow">in</span> <span class="n">indexes</span><span class="p">:</span>
+            <span class="n">sites</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">site_indices</span><span class="p">]</span>
+            <span class="n">cluster</span> <span class="o">=</span> <span class="n">Cluster</span><span class="p">(</span><span class="n">site_indices</span><span class="p">,</span><span class="n">sites</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cluster</span><span class="o">.</span><span class="n">max_length</span> <span class="o">&lt;</span> <span class="n">cutoff</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">site_indices</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">clusters</span>
+
+<div class="viewcode-block" id="LocalClusterExpansion.orbits_constructor"><a class="viewcode-back" href="../../modules/model.html#kmcpy.model.LocalClusterExpansion.orbits_constructor">[docs]</a>    <span class="k">def</span> <span class="nf">orbits_constructor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">clusters</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return a list of Orbit</span>
+
+<span class="sd">        For each orbit, loop over clusters</span>
+<span class="sd">            for each cluster, check if this cluster exists in this orbit</span>
+<span class="sd">                if not, attach the cluster to orbit</span>
+<span class="sd">                else, </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">orbit_clusters</span><span class="o">=</span> <span class="p">[]</span>
+        <span class="n">grouped_clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">orbit_clusters</span><span class="p">:</span>
+                <span class="n">orbit_clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">grouped_clusters</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">grouped_clusters</span><span class="p">[</span><span class="n">orbit_clusters</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">orbits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">grouped_clusters</span><span class="p">:</span>
+            <span class="n">orbit</span> <span class="o">=</span> <span class="n">Orbit</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">cl</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">orbit</span><span class="o">.</span><span class="n">attach_cluster</span><span class="p">(</span><span class="n">cl</span><span class="p">)</span>
+            <span class="n">orbits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">orbit</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">orbits</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">GLOBAL INFORMATION&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of orbits =&#39;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orbits</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of clusters =&quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">write_representative_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">os</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Writing representative structures to xyz files to&#39;</span><span class="p">,</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;...&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Making path:&#39;</span><span class="p">,</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">orbit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orbits</span><span class="p">):</span>
+            <span class="n">orbit</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_xyz</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s1">&#39;/orbit_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.xyz&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LocalClusterExpansion.to_json"><a class="viewcode-back" href="../../modules/model.html#kmcpy.model.LocalClusterExpansion.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;example output as exmaples/lce.json</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname (_type_): _description_</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
+            <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="n">convert</span><span class="p">)</span> <span class="c1"># to get rid of errors of int64</span>
+            <span class="n">fhandle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+            <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;center_Na1&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">center_Na1</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+            <span class="s2">&quot;MigrationUnit_structure&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+            <span class="s2">&quot;clusters&quot;</span><span class="p">:[],</span>
+            <span class="s2">&quot;orbits&quot;</span><span class="p">:[],</span>
+            <span class="s2">&quot;sublattice_indices&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices</span><span class="p">}</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">2</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+            <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;center_site&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">center_site</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+            <span class="s2">&quot;MigrationUnit_structure&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">MigrationUnit_structure</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+            <span class="s2">&quot;clusters&quot;</span><span class="p">:[],</span>
+            <span class="s2">&quot;orbits&quot;</span><span class="p">:[],</span>
+            <span class="s2">&quot;sublattice_indices&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">({</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span><span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">})</span>
+        <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;clusters&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">as_dict</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">orbit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbits</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;orbits&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">orbit</span><span class="o">.</span><span class="n">as_dict</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">d</span>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+            <span class="n">objDict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fhandle</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">LocalClusterExpansion</span><span class="p">()</span>
+        <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">objDict</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+
+
+
+<span class="k">class</span> <span class="nc">Orbit</span><span class="p">:</span><span class="c1"># orbit is a collection of symmetry equivalent clusters</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multiplicity</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">attach_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cluster</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multiplicity</span><span class="o">+=</span><span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">get_cluster_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">occupancy</span><span class="p">):</span> <span class="c1"># Phi[orbit] = 1/multiplicity * sum(prod(cluster))</span>
+        <span class="n">cluster_function</span>  <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">multiplicity</span><span class="p">)</span><span class="o">*</span><span class="nb">sum</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">get_cluster_function</span><span class="p">(</span><span class="n">occupancy</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">cluster_function</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">cluster</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cluster[&quot;</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="s2">&quot;]: </span><span class="si">{0:5s}</span><span class="se">\t</span><span class="si">{1:10s}</span><span class="se">\t</span><span class="si">{2:8.3f}</span><span class="se">\t</span><span class="si">{3:8.3f}</span><span class="se">\t</span><span class="si">{4:5s}</span><span class="se">\t</span><span class="si">{5:5d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">type</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">site_indices</span><span class="p">),</span><span class="n">cluster</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span><span class="n">cluster</span><span class="o">.</span><span class="n">min_length</span><span class="p">,</span><span class="n">cluster</span><span class="o">.</span><span class="n">sym</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">multiplicity</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No cluster in this orbit!&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">to_xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_xyz</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">show_representative_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:5s}</span><span class="se">\t</span><span class="si">{1:10s}</span><span class="se">\t</span><span class="si">{2:8.3f}</span><span class="se">\t</span><span class="si">{3:8.3f}</span><span class="se">\t</span><span class="si">{4:5s}</span><span class="se">\t</span><span class="si">{5:5d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">site_indices</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">min_length</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sym</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">multiplicity</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+        <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="s2">&quot;clusters&quot;</span><span class="p">:[],</span>
+        <span class="s2">&quot;multiplicity&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">multiplicity</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;clusters&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">as_dict</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+<span class="k">class</span> <span class="nc">Cluster</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">site_indices</span><span class="p">,</span><span class="n">sites</span><span class="p">):</span>
+        <span class="n">cluster_type</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span><span class="s1">&#39;point&#39;</span><span class="p">,</span><span class="mi">2</span><span class="p">:</span><span class="s1">&#39;pair&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">:</span><span class="s1">&#39;triplet&#39;</span><span class="p">,</span><span class="mi">4</span><span class="p">:</span><span class="s1">&#39;quadruplet&#39;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">site_indices</span> <span class="o">=</span> <span class="n">site_indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">cluster_type</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">site_indices</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">Molecule</span><span class="o">.</span><span class="n">from_sites</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym</span> <span class="o">=</span> <span class="n">PointGroupAnalyzer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">)</span><span class="o">.</span><span class="n">sch_symbol</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;point&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_length</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bond_distances</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">min_length</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">bond_distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bond_distances</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">other</span><span class="p">):</span> <span class="c1"># to compare 2 clusters and check if they&#39;re the same by comparing atomic distances</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;point&#39;</span> <span class="ow">and</span> <span class="n">other</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;point&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">species</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">species</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">composition</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">composition</span><span class="p">:</span>
+            <span class="k">return</span>  
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bond_distances</span><span class="o">-</span><span class="n">other</span><span class="o">.</span><span class="n">bond_distances</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-3</span>
+
+    <span class="k">def</span> <span class="nf">get_site</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">diff_unit_structure</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_bond_distances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">indices_combination</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">combinations</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">)),</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">bond_distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_distance</span><span class="p">(</span><span class="o">*</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">indices_combination</span><span class="p">])</span>
+        <span class="n">bond_distances</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">max_length</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bond_distances</span><span class="p">)</span>
+        <span class="n">min_length</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">bond_distances</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">min_length</span> <span class="p">,</span> <span class="n">bond_distances</span>
+    
+    <span class="k">def</span> <span class="nf">get_cluster_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">occupation</span><span class="p">):</span>
+        <span class="n">cluster_function</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="n">occupation</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">site_indices</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">cluster_function</span>
+    
+    <span class="k">def</span> <span class="nf">to_xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="n">local_structure_no_oxidation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">local_structure_no_oxidation</span><span class="o">.</span><span class="n">remove_oxidation_states</span><span class="p">()</span>
+        <span class="n">local_structure_no_oxidation</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">fname</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;==============================================================&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;This cluster is a&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span><span class="s1">&#39;, constructed by site&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">site_indices</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;max length = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> Angst ,min_length = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">min_length</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> Angst&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Point Group: &#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">sym</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cluster function = &#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_function_string</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;==============================================================</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+        <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="s2">&quot;site_indices&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">site_indices</span><span class="p">,</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+        <span class="s2">&quot;structure&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+        <span class="s2">&quot;sym&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">sym</span><span class="p">,</span>
+        <span class="s2">&quot;max_length&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span>
+        <span class="s2">&quot;min_length&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">min_length</span><span class="p">}</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bond_distances</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;bond_distances&#39;</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bond_distances</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;bond_distances&#39;</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bond_distances</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Canepa Research Lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

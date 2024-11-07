@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kmcpy.event &mdash; kMCpy 0.1dev documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            kMCpy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/api.html">API Reference Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html#how-to-cite">How to cite</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">kMCpy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kmcpy.event</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for kmcpy.event</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Event is a database storing site and cluster info for each migration event</span>
+
+<span class="sd">Author: Zeyu Deng</span>
+<span class="sd">Email: dengzeyu@gmail.com</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numba</span> <span class="k">as</span> <span class="nn">nb</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">kmcpy.io</span> <span class="kn">import</span> <span class="n">convert</span>
+
+<div class="viewcode-block" id="Event"><a class="viewcode-back" href="../../modules/event.html#kmcpy.event.Event">[docs]</a><span class="k">class</span> <span class="nc">Event</span><span class="p">:</span> 
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    mobile_ion_specie_1_index</span>
+<span class="sd">    mobile_ion_specie_2_index</span>
+<span class="sd">    local_env_indices_list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+   
+<div class="viewcode-block" id="Event.initialization3"><a class="viewcode-back" href="../../modules/event.html#kmcpy.event.Event.initialization3">[docs]</a>    <span class="k">def</span> <span class="nf">initialization3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mobile_ion_specie_1_index</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">mobile_ion_specie_2_index</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span><span class="n">local_env_indices_list</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;3rd version of initialization. The input local_env_indices_list is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mobile_ion_specie_1_index (int, optional): the global index (index in supercell) of the center atom. Defaults to 12.</span>
+<span class="sd">            mobile_ion_specie_2_index (int, optional): the global index of the atom that the center atom is about to diffuse to. Defaults to 15.</span>
+<span class="sd">            local_env_indices_list (list, optional): list of integers, which is a list of indices of the neighboring sites in supercell, and is already sorted. Defaults to [1,2,3,4,5].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span> <span class="o">=</span> <span class="n">mobile_ion_specie_1_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span> <span class="o">=</span> <span class="n">mobile_ion_specie_2_index</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_env_indices_list</span> <span class="o">=</span> <span class="n">local_env_indices_list</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_env_indices_list_site</span> <span class="o">=</span> <span class="n">local_env_indices_list</span></div>
+        
+    <span class="k">def</span> <span class="nf">set_sublattice_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sublattice_indices</span><span class="p">,</span><span class="n">sublattice_indices_site</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices</span> <span class="o">=</span> <span class="n">sublattice_indices</span><span class="c1"># this stores the site indices from local_cluster_expansion object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices_site</span> <span class="o">=</span> <span class="n">sublattice_indices_site</span> <span class="c1"># this stores the site indices from local_cluster_expansion object</span>
+
+    <span class="k">def</span> <span class="nf">show_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Event: mobile_ion(1)mobile_ion(1)[&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">,</span><span class="s1">&#39;]&lt;--&gt; mobile_ion(2)[&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">,</span><span class="s1">&#39;]&#39;</span><span class="p">)</span>
+        <span class="c1"># print(&#39;Global sites indices are (excluding O and Zr):&#39;,self.local_env_indices_list)</span>
+        <span class="c1"># print(&#39;Local template structure:&#39;)</span>
+        <span class="c1"># print(self.sorted_local_structure)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;occ_sublat</span><span class="se">\t</span><span class="s1">E_KRA</span><span class="se">\t</span><span class="s1">Probability&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_sublat</span><span class="p">,</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ekra</span><span class="p">,</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">probability</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="nf">clear_property</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">analyze_local_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">local_env_info</span><span class="p">):</span>
+        <span class="c1"># </span>
+        <span class="n">indices_sites_group</span> <span class="o">=</span> <span class="p">[(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;site_index&#39;</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;site&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">local_env_info</span><span class="p">]</span>
+        
+        <span class="c1"># this line is to sort the neighbors. First sort by x coordinate, and then sort by specie (Na, then Si/P)</span>
+        <span class="c1"># the sorted list, store the sequence of hash.</span>
+        <span class="c1"># for other materials, need to find another method to sort.</span>
+        <span class="c1"># this sort only works for the NaSICON!</span>
+        <span class="n">indices_sites_group_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">indices_sites_group</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">specie</span><span class="p">)</span>
+        
+        
+        <span class="n">local_env_indices_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">indices_sites_group_sorted</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">local_env_indices_list</span>
+    
+    <span class="c1"># @profile</span>
+    <span class="k">def</span> <span class="nf">set_occ</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">occ_global</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occ_sublat</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">occ_global</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">local_env_indices_list</span><span class="p">])</span> <span class="c1"># occ is an 1D numpy array</span>
+    
+    <span class="c1"># @profile</span>
+    <span class="k">def</span> <span class="nf">initialize_corr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corr_site</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices_site</span><span class="p">))</span>
+
+    <span class="c1"># @profile</span>
+    <span class="k">def</span> <span class="nf">set_corr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_set_corr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corr</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_sublat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices</span><span class="p">)</span>
+        <span class="n">_set_corr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corr_site</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_sublat</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">sublattice_indices_site</span><span class="p">)</span>
+        
+    <span class="c1"># @profile</span>
+    <span class="k">def</span> <span class="nf">set_ekra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">keci</span><span class="p">,</span><span class="n">empty_cluster</span><span class="p">,</span><span class="n">keci_site</span><span class="p">,</span><span class="n">empty_cluster_site</span><span class="p">):</span><span class="c1"># input is the keci and empty_cluster; ekra = corr*keci + empty_cluster</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ekra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corr</span><span class="p">,</span><span class="n">keci</span><span class="p">)</span><span class="o">+</span><span class="n">empty_cluster</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">esite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corr_site</span><span class="p">,</span><span class="n">keci_site</span><span class="p">)</span><span class="o">+</span><span class="n">empty_cluster_site</span>
+
+    <span class="c1"># @profile</span>
+    <span class="k">def</span> <span class="nf">set_probability</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">occ_global</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">T</span><span class="p">):</span> <span class="c1"># calc_probability() will evaluate migration probability for this event, should be updated everytime when change occupation</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="mf">8.617333262145</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># unit in meV/K</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="p">(</span><span class="n">occ_global</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">]</span> <span class="o">-</span> <span class="n">occ_global</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span> <span class="c1"># 1 if na1 -&gt; na2, -1 if na2 -&gt; na1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">barrier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ekra</span><span class="o">+</span><span class="n">direction</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">esite</span><span class="o">/</span><span class="mi">2</span> <span class="c1"># ekra </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probability</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">barrier</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">k</span><span class="o">*</span><span class="n">T</span><span class="p">))</span>
+
+    <span class="c1"># @profile</span>
+    <span class="k">def</span> <span class="nf">update_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">occ_global</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">keci</span><span class="p">,</span><span class="n">empty_cluster</span><span class="p">,</span><span class="n">keci_site</span><span class="p">,</span><span class="n">empty_cluster_site</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_occ</span><span class="p">(</span><span class="n">occ_global</span><span class="p">)</span> <span class="c1"># change occupation and correlation for this unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_corr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_ekra</span><span class="p">(</span><span class="n">keci</span><span class="p">,</span><span class="n">empty_cluster</span><span class="p">,</span><span class="n">keci_site</span><span class="p">,</span><span class="n">empty_cluster_site</span><span class="p">)</span>    <span class="c1">#calculate ekra and probability</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_probability</span><span class="p">(</span><span class="n">occ_global</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;mobile_ion_specie_1_index&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">,</span>
+        <span class="s2">&quot;mobile_ion_specie_2_index&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">,</span>
+        <span class="s2">&quot;local_env_indices_list&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">local_env_indices_list</span><span class="p">,</span>
+        <span class="s2">&quot;local_env_indices_list&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">local_env_indices_list</span><span class="p">,</span>
+        <span class="s2">&quot;local_env_indices_list_site&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">local_env_indices_list_site</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
+            <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="n">convert</span><span class="p">)</span> <span class="c1"># to get rid of errors of int64</span>
+            <span class="n">fhandle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span>
+    
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+            <span class="n">objDict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fhandle</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
+        <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">objDict</span>
+        <span class="k">return</span> <span class="n">obj</span>
+    
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">event_dict</span><span class="p">):</span> <span class="c1"># convert dict into event object</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
+        <span class="n">event</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">event_dict</span>
+        <span class="k">return</span> <span class="n">event</span></div>
+
+<span class="nd">@nb</span><span class="o">.</span><span class="n">njit</span>
+<span class="k">def</span> <span class="nf">_set_corr</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span><span class="n">occ_latt</span><span class="p">,</span><span class="n">sublattice_indices</span><span class="p">):</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">sublat_ind_orbit</span> <span class="ow">in</span> <span class="n">sublattice_indices</span><span class="p">:</span>
+        <span class="n">corr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">for</span> <span class="n">sublat_ind_cluster</span> <span class="ow">in</span> <span class="n">sublat_ind_orbit</span><span class="p">:</span>
+            <span class="n">corr_cluster</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">occ_site</span> <span class="ow">in</span> <span class="n">sublat_ind_cluster</span><span class="p">:</span>
+                <span class="n">corr_cluster</span><span class="o">*=</span><span class="n">occ_latt</span><span class="p">[</span><span class="n">occ_site</span><span class="p">]</span>
+            <span class="n">corr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+=</span> <span class="n">corr_cluster</span>
+        <span class="n">i</span><span class="o">+=</span><span class="mi">1</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Canepa Research Lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
