@@ -350,7 +350,7 @@ class LocalClusterExpansion:
             d = {
                 "@module": self.__class__.__module__,
                 "@class": self.__class__.__name__,
-                "center_Na1": self.center_Na1.as_dict(),
+                "center_site": self.center_site.as_dict(),
                 "MigrationUnit_structure": self.MigrationUnit_structure.as_dict(),
                 "clusters": [],
                 "orbits": [],
