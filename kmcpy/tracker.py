@@ -18,15 +18,10 @@ class Tracker:
     Tracker has a data structure of tracker[na_si_idx]
     """
 
-    def __init__(self, api=1):
-        self.api = api
+    def __init__(self):
         pass
 
-    def initialization(self, *args, **kwargs):
-
-        return self.initialization3(*args, **kwargs)
-
-    def initialization3(
+    def initialization(
         self,
         occ_initial=[1, -1, -1, 1],
         structure=None,

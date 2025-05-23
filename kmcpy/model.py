@@ -38,13 +38,14 @@ class LocalClusterExpansion:
         species_to_be_removed=["Zr4+", "O2-", "O", "Zr"],
         convert_to_primitive_cell=False,
         exclude_site_with_identifier=[],
-        # is_grain_boundary_model=False,
         **kwargs,
     ):
         """
-        Strictly use the cif file because I only modified the structure.from_cif
+        Initialization of the LocalClusterExpansion object.
 
-        use structure matcher
+        There are 2 ways to define the local environment (migration unit):
+        1) use the center of the mobile ion as the center of the local environment (default, center_frac_coord = [])
+        2) use a dummy site as the center of the local environment (set center_frac_coord)
 
         Args:
             center_frac_coord (list, optional): fractional coordinates of the center of the lcoal environment. Defaults to [].
@@ -73,18 +74,11 @@ class LocalClusterExpansion:
             atom_identifier=mobile_ion_specie_1_identifier,
         )
 
-        # if is_grain_boundary_model:
-        #     mobile_ion_specie_1_indices = mobile_ion_specie_1_indices[0]
-
-        #     pass
-        # else:
-        #     mobile_ion_specie_1_indices = mobile_ion_specie_1_indices[
-        #         0
-        #     ]  # just use the first one
-
+        mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one 
+        
         if center_frac_coord:
             print(f"Centering the local environment at {center_frac_coord} ...")
-            mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one 
+            
             dummy_lattice = template_structure.lattice
             self.center_site = PeriodicSite(species=DummySpecies('X'),
                               coords=center_frac_coord,

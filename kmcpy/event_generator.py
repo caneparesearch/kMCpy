@@ -15,12 +15,6 @@ from pymatgen.util.coord import get_angle
 def print_divider():
     print("\n\n-------------------------------------------\n\n")
 
-
-def generate_events(api=3, **kwargs):
-
-    return generate_events3(**kwargs)
-
-
 neighbor_info_logger = logging.getLogger("neighbor information:")
 neighbor_info_logger.setLevel("INFO")
 neighbor_info_logger.addHandler(logging.StreamHandler())
@@ -510,7 +504,7 @@ def find_atom_indices(
     return mobile_ion_specie_1_indices
 
 
-def generate_events3(
+def generate_events(
     prim_cif_name="210.cif",
     convert_to_primitive_cell=False,
     local_env_cutoff_dict={("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0},
