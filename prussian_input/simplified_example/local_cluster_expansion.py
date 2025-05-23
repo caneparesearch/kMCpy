@@ -11,8 +11,9 @@ cutoff_region = 5.1 #5.1
 # cutoff_cluster = [3.5,3.5,3.5] # default
 cutoff_cluster = [3.6, 3.6, 3.6]
 cutoff_cluster = [4,4,4]
-lce=LocalClusterExpansion(api=2) # api?
-lce.initialization3(
+lce=LocalClusterExpansion() # api?
+lce.initialization(
+    center_frac_coord=[0.875, 0.25, 0.125],
     mobile_ion_identifier_type=mobile_ion_identifier_type,
     mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
     cutoff_cluster=cutoff_cluster,
