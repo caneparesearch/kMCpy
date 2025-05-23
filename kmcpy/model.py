@@ -12,8 +12,9 @@ import numpy as np
 import json
 import glob
 from kmcpy.io import convert
-from kmcpy.event_generator import find_atom_indices, neighbor_info_matcher
-
+from kmcpy.event_generator import find_atom_indices
+from pymatgen.core.periodic_table import DummySpecies
+from pymatgen.core.sites import PeriodicSite
 
 class LocalClusterExpansion:
     """
@@ -22,16 +23,12 @@ class LocalClusterExpansion:
     cutoff_region is the cutoff for generating local cluster region
     """
 
-    def __init__(self, api=1):
-        self.api = api
+    def __init__(self):
         pass
 
-    def initialization(self, **kwargs):
-
-        return self.initialization3(**kwargs)
-
-    def initialization3(
+    def initialization(
         self,
+        center_frac_coord = [],
         mobile_ion_identifier_type="label",
         mobile_ion_specie_1_identifier="Na1",
         cutoff_cluster=[8, 6, 0],
@@ -41,16 +38,16 @@ class LocalClusterExpansion:
         species_to_be_removed=["Zr4+", "O2-", "O", "Zr"],
         convert_to_primitive_cell=False,
         exclude_site_with_identifier=[],
-        is_grain_boundary_model=False,
+        # is_grain_boundary_model=False,
         **kwargs,
     ):
-        """3rd version of initialization: Note that change the self.centerNa1 to self.center_site.coords
-
+        """
         Strictly use the cif file because I only modified the structure.from_cif
 
         use structure matcher
 
         Args:
+            center_frac_coord (list, optional): fractional coordinates of the center of the lcoal environment. Defaults to [].
             mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1": refers to structure_operation.find_atom_indices
             cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
             cutoff_region (float, optional): cutoff for finding migration unit. Defaults to 4.
@@ -76,22 +73,31 @@ class LocalClusterExpansion:
             atom_identifier=mobile_ion_specie_1_identifier,
         )
 
-        if is_grain_boundary_model:
-            mobile_ion_specie_1_indices = mobile_ion_specie_1_indices[0]
+        # if is_grain_boundary_model:
+        #     mobile_ion_specie_1_indices = mobile_ion_specie_1_indices[0]
 
-            pass
+        #     pass
+        # else:
+        #     mobile_ion_specie_1_indices = mobile_ion_specie_1_indices[
+        #         0
+        #     ]  # just use the first one
+
+        if center_frac_coord:
+            print(f"Centering the local environment at {center_frac_coord} ...")
+            dummy_lattice = template_structure.lattice
+            self.center_site = PeriodicSite(species=DummySpecies('X'),
+                              coords=center_frac_coord,
+                              coords_are_cartesian=False,
+                              lattice = dummy_lattice)
         else:
-            mobile_ion_specie_1_indices = mobile_ion_specie_1_indices[
-                0
-            ]  # just use the first one
-
+            print(f"Centering the local environment at {mobile_ion_specie_1_indices} ...")
             self.center_site = template_structure[
                 mobile_ion_specie_1_indices
             ]  # self.center_site: pymatgen.site
 
-            template_structure.remove_sites([mobile_ion_specie_1_indices])
+        template_structure.remove_sites([mobile_ion_specie_1_indices])
 
-            print("Searching local env around", self.center_site, "...")
+        print("Searching local env around", self.center_site, "...")
 
         # fallback to the initial get cluster structure
         self.MigrationUnit_structure = self.get_cluster_structure1(
@@ -136,22 +142,7 @@ class LocalClusterExpansion:
         for orbit in self.orbits:
             orbit.show_representative_cluster()
 
-    def get_cluster_structure(self, **kwargs):
-        if self.api == 1:
-            return self.get_cluster_structure1(**kwargs)
-
-        elif self.api == 2:
-            return self.get_cluster_structure2(**kwargs)
-        else:
-
-            raise NotImplementedError(
-                {
-                    "@module": self.__class__.__module__,
-                    "@class": self.__class__.__name__,
-                }
-            )
-
-    def get_cluster_structure1(
+    def get_cluster_structure(
         self,
         structure,
         center_site,
@@ -189,40 +180,7 @@ class LocalClusterExpansion:
             )
         return local_env_structure
 
-    def get_occupation_neb_cif(self, **kwargs):
-        if self.api == 1:
-            return self.get_occupation_neb_cif1(**kwargs)
-
-        elif self.api == 2:
-            return self.get_occupation_neb_cif2(**kwargs)
-        else:
-
-            raise NotImplementedError(
-                {
-                    "@module": self.__class__.__module__,
-                    "@class": self.__class__.__name__,
-                }
-            )
-
-    def get_occupation_neb_cif1(self, other_cif_name):  # input is a cif structure
-        occupation = []
-        other_structure = StructureKMCpy.from_file(other_cif_name)
-        other_structure.remove_oxidation_states()
-        other_structure.remove_species(["Zr4+", "O2-", "O", "Zr"])
-        other_structure_mol = self.get_cluster_structure(
-            other_structure, self.center_Na1
-        )
-        for this_site in self.MigrationUnit_structure:
-            if self.is_exists(
-                this_site, other_structure_mol
-            ):  # Chebyshev basis is used here: ±1
-                occu = -1
-            else:
-                occu = 1
-            occupation.append(occu)
-        return occupation
-
-    def get_occupation_neb_cif2(
+    def get_occupation_neb_cif(
         self, other_cif_name, species_to_be_removed=["Zr4+", "O2-", "O", "Zr"]
     ):  # input is a cif structure
         occupation = []
@@ -346,19 +304,8 @@ class LocalClusterExpansion:
             fhandle.write(jsonStr)
 
     def as_dict(self):
-        if self.api == 1:
-            d = {
-                "@module": self.__class__.__module__,
-                "@class": self.__class__.__name__,
-                "center_Na1": self.center_Na1.as_dict(),
-                "MigrationUnit_structure": self.MigrationUnit_structure.as_dict(),
-                "clusters": [],
-                "orbits": [],
-                "sublattice_indices": self.sublattice_indices,
-            }
-
-        elif self.api == 2 or self.api == 3:
-            d = {
+        
+        d = {
                 "@module": self.__class__.__module__,
                 "@class": self.__class__.__name__,
                 "center_site": self.center_site.as_dict(),
@@ -367,14 +314,7 @@ class LocalClusterExpansion:
                 "orbits": [],
                 "sublattice_indices": self.sublattice_indices,
             }
-        else:
-
-            raise NotImplementedError(
-                {
-                    "@module": self.__class__.__module__,
-                    "@class": self.__class__.__name__,
-                }
-            )
+     
         for cluster in self.clusters:
             d["clusters"].append(cluster.as_dict())
         for orbit in self.orbits:
