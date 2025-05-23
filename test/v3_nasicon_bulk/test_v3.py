@@ -89,9 +89,9 @@ class Test_version3(unittest.TestCase):
         mobile_ion_specie_2_identifier = "Na2"
         prim_cif_name = "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
         local_env_cutoff_dict = {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
-        from kmcpy.event_generator import generate_events3
+        from kmcpy.event_generator import generate_events
 
-        generate_events3(
+        generate_events(
             prim_cif_name=prim_cif_name,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -109,7 +109,7 @@ class Test_version3(unittest.TestCase):
             verbosity="INFO",
         )
 
-        reference_local_env_dict = generate_events3(
+        reference_local_env_dict = generate_events(
             prim_cif_name=prim_cif_name,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -144,8 +144,8 @@ class Test_version3(unittest.TestCase):
 
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_1_identifier = "Na1"
-        a = LocalClusterExpansion(api=3)
-        a.initialization3(
+        a = LocalClusterExpansion()
+        a.initialization(
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
             cutoff_cluster=[6, 6, 0],
@@ -191,8 +191,7 @@ class Test_version3(unittest.TestCase):
         from kmcpy.kmc import KMC
         import numpy as np
 
-        api = 3
-        inputset = InputSet.from_json("input/test_input_v3.json", api=api)
+        inputset = InputSet.from_json("input/test_input_v3.json")
 
         print(inputset._parameters.keys())
         print(inputset._parameters["mc_results"])
@@ -204,11 +203,10 @@ class Test_version3(unittest.TestCase):
                 fname=inputset._parameters["mc_results"],
                 shape=inputset._parameters["supercell_shape"],
                 select_sites=inputset._parameters["select_sites"],
-                api=inputset.api,
                 verbose=True,
             ),
         )
-        kmc = KMC(api=api)
+        kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
 
         # # step 2 compute the site kernal (used for kmc run)
@@ -251,8 +249,7 @@ class Test_version3(unittest.TestCase):
         from kmcpy.kmc import KMC
         import numpy as np
 
-        api = 3
-        inputset = InputSet.from_json("input/test_input_v3.json", api=3)
+        inputset = InputSet.from_json("input/test_input_v3.json")
 
         print(inputset._parameters.keys())
         print(inputset._parameters["mc_results"])
@@ -264,12 +261,11 @@ class Test_version3(unittest.TestCase):
                 fname=inputset._parameters["mc_results"],
                 shape=inputset._parameters["supercell_shape"],
                 select_sites=inputset._parameters["select_sites"],
-                api=inputset.api,
                 verbose=True,
             ),
         )
-        inputset.set_parameter("use_numpy_random_kernel", False)
-        kmc = KMC(api=api)
+        inputset.set_parameter("random_seed", np.random.randint(0, 1000000))
+        kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
 
         # # step 2 compute the site kernal (used for kmc run)

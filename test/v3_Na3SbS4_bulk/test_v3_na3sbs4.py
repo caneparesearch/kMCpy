@@ -15,9 +15,9 @@ class Test_version3_Na3SbS4(unittest.TestCase):
         mobile_ion_specie_2_identifier = "Na1"
         prim_cif_name = "Na3SbS4_cubic.cif"
         local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
-        from kmcpy.event_generator import generate_events3
+        from kmcpy.event_generator import generate_events
 
-        reference_local_env_dict = generate_events3(
+        reference_local_env_dict = generate_events(
             prim_cif_name=prim_cif_name,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -49,8 +49,8 @@ class Test_version3_Na3SbS4(unittest.TestCase):
 
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_1_identifier = "Na1"
-        a = LocalClusterExpansion(api=3)
-        a.initialization3(
+        a = LocalClusterExpansion()
+        a.initialization(
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
             cutoff_cluster=[6, 6, 0],

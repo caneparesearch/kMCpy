@@ -198,3 +198,4 @@ input_example/lce.json
 
 test/v3_Na3SbS4_bulk/0th_reference_local_env.cif
 !docs/build
+test/v3_Na3SbS4_bulk/events.json

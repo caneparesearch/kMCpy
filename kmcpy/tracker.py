@@ -18,15 +18,10 @@ class Tracker:
     Tracker has a data structure of tracker[na_si_idx]
     """
 
-    def __init__(self, api=1):
-        self.api = api
+    def __init__(self):
         pass
 
-    def initialization(self, *args, **kwargs):
-
-        return self.initialization3(*args, **kwargs)
-
-    def initialization3(
+    def initialization(
         self,
         occ_initial=[1, -1, -1, 1],
         structure=None,
@@ -115,11 +110,8 @@ class Tracker:
         )
         self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
 
-    def update(self, *args, **kwargs):
 
-        return self.update3(*args, **kwargs)
-
-    def update3(
+    def update(
         self, event, current_occ, time_change
     ):  # this should be called after update() of KMC run
         mobile_ion_specie_1_coord = copy(
