@@ -84,6 +84,7 @@ class LocalClusterExpansion:
 
         if center_frac_coord:
             print(f"Centering the local environment at {center_frac_coord} ...")
+            mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one 
             dummy_lattice = template_structure.lattice
             self.center_site = PeriodicSite(species=DummySpecies('X'),
                               coords=center_frac_coord,
@@ -100,7 +101,7 @@ class LocalClusterExpansion:
         print("Searching local env around", self.center_site, "...")
 
         # fallback to the initial get cluster structure
-        self.MigrationUnit_structure = self.get_cluster_structure1(
+        self.MigrationUnit_structure = self.get_cluster_structure(
             structure=template_structure,
             cutoff=cutoff_region,
             center_site=self.center_site,
