@@ -264,7 +264,7 @@ class Test_version3(unittest.TestCase):
                 verbose=True,
             ),
         )
-        inputset.set_parameter("use_numpy_random_kernel", False)
+        inputset.set_parameter("random_seed", np.random.randint(0, 1000000))
         kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
 

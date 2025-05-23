@@ -110,7 +110,7 @@ class Fitting:
         from sklearn.linear_model import Lasso
         from sklearn.model_selection import cross_val_score
         from sklearn.model_selection import LeaveOneOut
-        from sklearn.metrics import mean_squared_error
+        from sklearn.metrics import root_mean_squared_error
 
         from copy import copy
         from datetime import datetime
@@ -155,7 +155,7 @@ class Fitting:
         loocv = np.sqrt(np.mean(scores))
         print("LOOCV = ", np.round(loocv, 2), "meV")
         # compute RMS error
-        rmse = mean_squared_error(y_true, y_pred, squared=False)
+        rmse = root_mean_squared_error(y_true, y_pred)
         print("RMSE = ", np.round(rmse, 2), "meV")
         np.savetxt(fname=keci_fname, X=keci, fmt="%.8f")
         time_stamp = datetime.now().timestamp()

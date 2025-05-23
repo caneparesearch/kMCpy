@@ -110,11 +110,8 @@ class Tracker:
         )
         self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
 
-    def update(self, *args, **kwargs):
 
-        return self.update3(*args, **kwargs)
-
-    def update3(
+    def update(
         self, event, current_occ, time_change
     ):  # this should be called after update() of KMC run
         mobile_ion_specie_1_coord = copy(
