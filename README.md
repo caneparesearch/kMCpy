@@ -74,7 +74,7 @@ uv sync
 ```
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
-uv pip install -r requirement.txt -e .
+uv pip install -e .
 ```
 
 ## For building documentation

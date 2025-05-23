@@ -15,3 +15,7 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["kmcpy"]
+
+[tool.pytest.ini_options]
+markers = ["order(number): mark test to run in a specific order"]
+pythonpath = ["."]
