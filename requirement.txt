@@ -1,6 +1,0 @@
-numba
-pymatgen
-joblib
-scikit-learn
-pytest
-glob2

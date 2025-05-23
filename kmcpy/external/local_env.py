@@ -1,6 +1,6 @@
-'''
+"""
 This is inherited from pymatgen.analysis.local_env
-'''
+"""
 
 from pymatgen.analysis.local_env import CutOffDictNN, NearNeighbors
 from kmcpy.external.structure import StructureKMCpy
@@ -8,6 +8,7 @@ from monty.serialization import loadfn
 import os
 
 _directory = os.path.join(os.path.dirname(__file__))
+
 
 class CutOffDictNNKMCpy(CutOffDictNN):
     def get_nn_info(self, structure, n):
@@ -30,14 +31,15 @@ class CutOffDictNNKMCpy(CutOffDictNN):
         neighs_dists = structure.get_neighbors(site, self._max_dist)
 
         nn_info = []
-        
-        
+
         if "wyckoff_sequence" in structure.site_properties:
             if "supercell" in structure.site_properties:
                 for nn in neighs_dists:
                     n_site = nn
                     dist = nn.nn_distance
-                    neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(n_site.species_string, 0.0)
+                    neigh_cut_off_dist = self._lookup_dict.get(
+                        site.species_string, {}
+                    ).get(n_site.species_string, 0.0)
 
                     if dist < neigh_cut_off_dist:
                         nn_info.append(
@@ -45,18 +47,24 @@ class CutOffDictNNKMCpy(CutOffDictNN):
                                 "site": n_site,
                                 "image": self._get_image(structure, n_site),
                                 "weight": dist,
-                                "site_index": self._get_original_site(structure, n_site),
-                                "wyckoff_sequence":n_site.properties["wyckoff_sequence"],
-                                "local_index":n_site.properties["local_index"],
-                                "label":n_site.properties["label"],
-                                "supercell":n_site.properties["supercell"]
+                                "site_index": self._get_original_site(
+                                    structure, n_site
+                                ),
+                                "wyckoff_sequence": n_site.properties[
+                                    "wyckoff_sequence"
+                                ],
+                                "local_index": n_site.properties["local_index"],
+                                "label": n_site.properties["label"],
+                                "supercell": n_site.properties["supercell"],
                             }
-                        )    
-            else:   
+                        )
+            else:
                 for nn in neighs_dists:
                     n_site = nn
                     dist = nn.nn_distance
-                    neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(n_site.species_string, 0.0)
+                    neigh_cut_off_dist = self._lookup_dict.get(
+                        site.species_string, {}
+                    ).get(n_site.species_string, 0.0)
 
                     if dist < neigh_cut_off_dist:
                         nn_info.append(
@@ -64,17 +72,23 @@ class CutOffDictNNKMCpy(CutOffDictNN):
                                 "site": n_site,
                                 "image": self._get_image(structure, n_site),
                                 "weight": dist,
-                                "site_index": self._get_original_site(structure, n_site),
-                                "wyckoff_sequence":n_site.properties["wyckoff_sequence"],
-                                "local_index":n_site.properties["local_index"],
-                                "label":n_site.properties["label"]
+                                "site_index": self._get_original_site(
+                                    structure, n_site
+                                ),
+                                "wyckoff_sequence": n_site.properties[
+                                    "wyckoff_sequence"
+                                ],
+                                "local_index": n_site.properties["local_index"],
+                                "label": n_site.properties["label"],
                             }
-                        )    
+                        )
         else:
             for nn in neighs_dists:
                 n_site = nn
                 dist = nn.nn_distance
-                neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(n_site.species_string, 0.0)
+                neigh_cut_off_dist = self._lookup_dict.get(site.species_string, {}).get(
+                    n_site.species_string, 0.0
+                )
 
                 if dist < neigh_cut_off_dist:
                     nn_info.append(
@@ -87,7 +101,8 @@ class CutOffDictNNKMCpy(CutOffDictNN):
                     )
 
         return nn_info
-    
+
+
 class CutOffDictNNrange(NearNeighbors):
     """
     Jerry: Modified from CutOffDictNN in pymatgen so that it can search all pairs between a range of distances [d_min, d_max]
@@ -111,13 +126,14 @@ class CutOffDictNNrange(NearNeighbors):
             the oxidation state, e.g. {('Fe2+', 'O2-'): [2.0,3.0]}
         """
         from collections import defaultdict
+
         self.cut_off_dict = cut_off_dict or {}
         # for convenience  Jerry: added minimum and maximum
         self._max_dist = 0.0
         self._min_dist = 1e3
         lookup_dict_max = defaultdict(dict)
         lookup_dict_min = defaultdict(dict)
-        for (sp1, sp2), (dist_min,dist_max) in self.cut_off_dict.items():
+        for (sp1, sp2), (dist_min, dist_max) in self.cut_off_dict.items():
             lookup_dict_max[sp1][sp2] = dist_max
             lookup_dict_max[sp2][sp1] = dist_max
             if dist_max > self._max_dist:
@@ -129,7 +145,6 @@ class CutOffDictNNrange(NearNeighbors):
                 self._min_dist = dist_min
         self._lookup_dict_max = lookup_dict_max
         self._lookup_dict_min = lookup_dict_min
-
 
     @property
     def structures_allowed(self):
@@ -194,8 +209,12 @@ class CutOffDictNNrange(NearNeighbors):
         for nn in neighs_dists:
             n_site = nn
             dist = nn.nn_distance
-            neigh_cut_off_dist_max = self._lookup_dict_max.get(site.species_string, {}).get(n_site.species_string, 0.0)
-            neigh_cut_off_dist_min = self._lookup_dict_min.get(site.species_string, {}).get(n_site.species_string, 0.0)
+            neigh_cut_off_dist_max = self._lookup_dict_max.get(
+                site.species_string, {}
+            ).get(n_site.species_string, 0.0)
+            neigh_cut_off_dist_min = self._lookup_dict_min.get(
+                site.species_string, {}
+            ).get(n_site.species_string, 0.0)
             if dist < neigh_cut_off_dist_max and dist > neigh_cut_off_dist_min:
                 nn_info.append(
                     {
