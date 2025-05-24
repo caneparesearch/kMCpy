@@ -1,9 +1,11 @@
 name: Sync to Public Repository
 
 on:
-  push:
-    branches:
-      - main # Or your primary branch name if different
+  workflow_dispatch:  # Manually triggered
+  
+  # push:
+  #   branches:
+  #     - main # Or your primary branch name if different
 
 jobs:
   sync:
