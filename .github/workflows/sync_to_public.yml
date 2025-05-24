@@ -25,7 +25,7 @@ jobs:
           PRIVATE_REPO_URL: "https://github.com/${{ github.repository }}.git" # Gets the current private repo URL
           # IMPORTANT: Replace caneparesearch and kMCpy with your actual public repo details
           PUBLIC_REPO_URL: "https://github.com/caneparesearch/kMCpy.git"
-          PUBLIC_BRANCH_NAME: "main" # Or the target branch name in the public repo
+          PUBLIC_BRANCH_NAME: "master" # Or the target branch name in the public repo
         run: |
           echo "Pushing from ${{ github.repository }} to ${{ env.PUBLIC_REPO_URL }}"
           git push --force "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git" "HEAD:${PUBLIC_BRANCH_NAME}"
