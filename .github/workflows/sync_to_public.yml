@@ -23,16 +23,16 @@ jobs:
         env:
           PUBLIC_REPO_PAT: ${{ secrets.PUBLIC_REPO_PAT }}
           PRIVATE_REPO_URL: "https://github.com/${{ github.repository }}.git" # Gets the current private repo URL
-          # IMPORTANT: Replace <PUBLIC_USERNAME_OR_ORG> and <PUBLIC_REPO_NAME> with your actual public repo details
-          PUBLIC_REPO_URL: "https://github.com/<PUBLIC_USERNAME_OR_ORG>/<PUBLIC_REPO_NAME>.git"
+          # IMPORTANT: Replace caneparesearch and kMCpy with your actual public repo details
+          PUBLIC_REPO_URL: "https://github.com/caneparesearch/kMCpy.git"
           PUBLIC_BRANCH_NAME: "main" # Or the target branch name in the public repo
         run: |
           echo "Pushing from ${{ github.repository }} to ${{ env.PUBLIC_REPO_URL }}"
-          git push --force "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/<PUBLIC_USERNAME_OR_ORG>/<PUBLIC_REPO_NAME>.git" "HEAD:${PUBLIC_BRANCH_NAME}"
+          git push --force "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git" "HEAD:${PUBLIC_BRANCH_NAME}"
           # Example with variables:
           # git push --force "https://x-access-token:${PUBLIC_REPO_PAT}@${PUBLIC_REPO_URL#https://}" "HEAD:${PUBLIC_BRANCH_NAME}"
           # Note: The above example for PUBLIC_REPO_URL needs adjustment if you use it directly in the git push command as it includes https://
 
           # Simpler and more direct way:
-          # git remote add public_repo "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/<PUBLIC_USERNAME_OR_ORG>/<PUBLIC_REPO_NAME>.git"
+          # git remote add public_repo "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git"
           # git push --force public_repo "HEAD:${PUBLIC_BRANCH_NAME}"
