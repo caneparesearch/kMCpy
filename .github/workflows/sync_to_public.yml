@@ -1,40 +1,35 @@
 name: Sync to Public Repository
 
 on:
-  workflow_dispatch:  # Manually triggered
-  
+  workflow_dispatch:  # Manual trigger
+  # You can also uncomment this to sync automatically
   # push:
   #   branches:
-  #     - main # Or your primary branch name if different
+  #     - main
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Private Repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
+    - name: Checkout Private Repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Set up Git
-        run: |
-          git config --global user.name "${{ github.actor }}" # Or a generic bot name
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com" # Or a bot email
+    - name: Set up Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Push to Public Repository
-        env:
-          PUBLIC_REPO_PAT: ${{ secrets.PUBLIC_REPO_PAT }}
-          PRIVATE_REPO_URL: "https://github.com/${{ github.repository }}.git" # Gets the current private repo URL
-          # IMPORTANT: Replace caneparesearch and kMCpy with your actual public repo details
-          PUBLIC_REPO_URL: "https://github.com/caneparesearch/kMCpy.git"
-          PUBLIC_BRANCH_NAME: "master" # Or the target branch name in the public repo
-        run: |
-          echo "Pushing from ${{ github.repository }} to ${{ env.PUBLIC_REPO_URL }}"
-          git push --force "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git" "HEAD:${PUBLIC_BRANCH_NAME}"
-          # Example with variables:
-          # git push --force "https://x-access-token:${PUBLIC_REPO_PAT}@${PUBLIC_REPO_URL#https://}" "HEAD:${PUBLIC_BRANCH_NAME}"
-          # Note: The above example for PUBLIC_REPO_URL needs adjustment if you use it directly in the git push command as it includes https://
+    - name: Push to Public Repository
+      env:
+        PUBLIC_REPO_PAT: ${{ secrets.PUBLIC_REPO_PAT }}
+      run: |
+        echo "Pushing to https://github.com/caneparesearch/kMCpy.git"
 
-          # Simpler and more direct way:
-          # git remote add public_repo "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git"
-          # git push --force public_repo "HEAD:${PUBLIC_BRANCH_NAME}"
+        # Add public repo as remote
+        git remote add public "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git"
+
+        # Force push current branch (main) to public repo master branch
+        git push --force public HEAD:master
