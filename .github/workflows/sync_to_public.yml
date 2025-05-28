@@ -1,0 +1,35 @@
+name: Sync to Public Repository
+
+on:
+  workflow_dispatch:  # Manual trigger
+  # You can also uncomment this to sync automatically
+  # push:
+  #   branches:
+  #     - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Private Repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+    - name: Push to Public Repository
+      env:
+        PUBLIC_REPO_PAT: ${{ secrets.PUBLIC_REPO_PAT }}
+      run: |
+        echo "Pushing to https://github.com/caneparesearch/kMCpy.git"
+
+        # Add public repo as remote
+        git remote add public "https://x-access-token:${PUBLIC_REPO_PAT}@github.com/caneparesearch/kMCpy.git"
+
+        # Force push current branch (main) to public repo master branch
+        git push --force public HEAD:master
