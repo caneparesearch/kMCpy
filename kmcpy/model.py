@@ -44,7 +44,7 @@ class LocalClusterExpansion:
         Initialization of the LocalClusterExpansion object.
 
         There are 2 ways to define the local environment (migration unit):
-        1) use the center of the mobile ion as the center of the local environment (default, center_frac_coord = [])
+        1) use the center of the mobile ion as the center of the local environment (default, center_frac_coord = []), this mobile ion is excluded from the local environment.
         2) use a dummy site as the center of the local environment (set center_frac_coord)
 
         Args:
@@ -90,7 +90,7 @@ class LocalClusterExpansion:
                 mobile_ion_specie_1_indices
             ]  # self.center_site: pymatgen.site
 
-        template_structure.remove_sites([mobile_ion_specie_1_indices])
+            template_structure.remove_sites([mobile_ion_specie_1_indices]) # remove the mobile ion from the template structure
 
         print("Searching local env around", self.center_site, "...")
 
