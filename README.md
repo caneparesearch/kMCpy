@@ -53,38 +53,37 @@ Please visit the prompted website, follow the instruction to download Microsoft 
 
 # Installation Guide:
 
-## With GUI enabled (Recommended for Windows, Macos, Linux personal computer)
-
+## With GUI enabled
+`wxpython` needs conda to be installed.
 ```
 conda create -n kmcpy python wxpython -c conda-forge
 conda activate kmcpy
 pip install -r requirement_gui.txt .
 ```
 
-
-## with no GUI enabled (for command line environment running on server)
+## with no GUI enabled (for command line environment or running through Python directly)
+It is highly recomendded to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```
-conda create -n kmcpy python -c conda-forge
-conda activate kmcpy
-pip install -r requirement.txt .
+uv venv #optional if you have already created a venv
+source .venv/bin/activate
+uv sync
 ```
 
 ## For developers 
-
 ```
-conda create -n kmcpy python -c conda-forge
-conda activate kmcpy
-pip install -r requirement_gui.txt -e .
+uv venv #optional if you have already created a venv
+source .venv/bin/activate
+uv pip install -e .
 ```
 
 ## For building documentation
 - `pandoc` needs to be installed for documentation generation
 - Should first install the `kmcpy` environment as above
 ```
-conda activate kmcpy
-conda install pandoc -c conda-forge
-pip install -r docs/doc_requirements.txt
+source .venv/bin/activate
+uv pip install pandoc
+uv pip install -r docs/doc_requirements.txt
 python build_doc.py
 ```
 

@@ -1,6 +1,7 @@
-'''
+"""
 This is inherited from pymatgen.io.cif
-'''
+"""
+
 from pymatgen.io.cif import CifParser
 from pymatgen.core.operations import MagSymmOp, SymmOp
 import warnings
@@ -16,8 +17,9 @@ from pymatgen.symmetry.analyzer import SpacegroupOperations
 from pymatgen.symmetry.structure import SymmetrizedStructure
 from pymatgen.util.coord import find_in_coord_list_pbc
 from kmcpy.external.structure import StructureKMCpy
+
 class CifParserKMCpy(CifParser):
-    
+
     @staticmethod
     def from_string(cif_string, **kwargs):
         """
@@ -32,7 +34,7 @@ class CifParserKMCpy(CifParser):
         """
         stream = StringIO(cif_string)
         return CifParserKMCpy(stream, **kwargs)
-
+    
     def _get_labeled_structure(self, data, primitive, symmetrized):
         """modified version from _get_structure, which can add the atom label to the site
 
@@ -51,7 +53,9 @@ class CifParserKMCpy(CifParser):
         # if magCIF, get magnetic symmetry moments and magmoms
         # else standard CIF, and use empty magmom dict
         if self.feature_flags["magcif_incommensurate"]:
-            raise NotImplementedError("Incommensurate structures not currently supported.")
+            raise NotImplementedError(
+                "Incommensurate structures not currently supported."
+            )
         if self.feature_flags["magcif"]:
             self.symmetry_operations = self.get_magsymops(data)
             magmoms = self.parse_magmoms(data, lattice=lattice)
@@ -59,13 +63,13 @@ class CifParserKMCpy(CifParser):
             self.symmetry_operations = self.get_symops(data)
             magmoms = {}
 
-        oxi_states = self.parse_oxi_states(data)
+        oxi_states = self._parse_oxi_states(data)
 
         coord_to_species = {}
         coord_to_magmoms = {}
-        
+
         # add the coords_to_labels to record the label (Na1,Na2,Zr,S/P, etc.)
-        coord_to_labels={}
+        coord_to_labels = {}
 
         def get_matching_coord(coord):
             keys = list(coord_to_species.keys())
@@ -130,21 +134,25 @@ class CifParserKMCpy(CifParser):
                 if not match:
                     coord_to_species[coord] = comp
                     coord_to_magmoms[coord] = magmom
-                    coord_to_labels[coord]=data["_atom_site_label"][i]
+                    coord_to_labels[coord] = data["_atom_site_label"][i]
                 else:
                     coord_to_species[match] += comp
                     # disordered magnetic not currently supported
                     coord_to_magmoms[match] = None
-                    coord_to_labels[coord]+=data["_atom_site_label"][i]
+                    coord_to_labels[coord] += data["_atom_site_label"][i]
 
         sum_occu = [
-            sum(c.values()) for c in coord_to_species.values() if not set(c.elements) == {Element("O"), Element("H")}
+            sum(c.values())
+            for c in coord_to_species.values()
+            if not set(c.elements) == {Element("O"), Element("H")}
         ]
         if any(o > 1 for o in sum_occu):
             msg = (
                 "Some occupancies ({}) sum to > 1! If they are within "
                 "the occupancy_tolerance, they will be rescaled. "
-                "The current occupancy_tolerance is set to: {}".format(sum_occu, self._occupancy_tolerance)
+                "The current occupancy_tolerance is set to: {}".format(
+                    sum_occu, self._occupancy_tolerance
+                )
             )
             warnings.warn(msg)
             self.warnings.append(msg)
@@ -156,19 +164,17 @@ class CifParserKMCpy(CifParser):
 
         equivalent_indices = []
 
-
         site_properties = {}
 
         # initialize the wyckoff_sequence here
-        site_properties["wyckoff_sequence"]=[]
-        
-        site_properties["local_index"]=[]
-        
-        site_properties["label"]=[]
-        
-        local_index=0
-        
-        
+        site_properties["wyckoff_sequence"] = []
+
+        site_properties["local_index"] = []
+
+        site_properties["label"] = []
+
+        local_index = 0
+
         # check to see if magCIF file is disordered
         if self.feature_flags["magcif"]:
             for k, v in coord_to_magmoms.items():
@@ -178,8 +184,10 @@ class CifParserKMCpy(CifParser):
                     # property, but this introduces ambiguities for end user
                     # (such as unintended use of `spin` and Species will have
                     # fictitious oxidation state).
-                    raise NotImplementedError("Disordered magnetic structures not currently supported.")
-        #print(coord_to_species)
+                    raise NotImplementedError(
+                        "Disordered magnetic structures not currently supported."
+                    )
+        # print(coord_to_species)
         if coord_to_species.items():
             """
             for idx, (comp, group) in enumerate(
@@ -187,39 +195,34 @@ class CifParserKMCpy(CifParser):
                 ):
                 print(comp,group)
             """
- 
-            for idx, (coord,comp) in enumerate(list(coord_to_species.items())):
+
+            for idx, (coord, comp) in enumerate(list(coord_to_species.items())):
                 # I delete the weird group function
                 # now just for every initial site, generate all sites
-                
-                
-                #print(idx,comp)#debug
 
+                # print(idx,comp)#debug
 
-                tmp_coords = [coord]# follow the fashion
-                
-                
+                tmp_coords = [coord]  # follow the fashion
+
                 tmp_magmom = [coord_to_magmoms[tmp_coord] for tmp_coord in tmp_coords]
-                tmp_label=[coord_to_labels[tmp_coord] for tmp_coord in tmp_coords]
-                #print(tmp_coords,tmp_magmom,tmp_label)#debug
-                
-
+                tmp_label = [coord_to_labels[tmp_coord] for tmp_coord in tmp_coords]
+                # print(tmp_coords,tmp_magmom,tmp_label)#debug
 
                 if self.feature_flags["magcif"]:
-                    coords, magmoms, _ = self._unique_coords(tmp_coords, magmoms_in=tmp_magmom, lattice=lattice)
+                    coords, magmoms, _ = self._unique_coords(
+                        tmp_coords, magmoms_in=tmp_magmom, lattice=lattice
+                    )
                 else:
                     coords, magmoms, _ = self._unique_coords(tmp_coords)
-                    
+
                 # add wyckoff sequence here
-                for wyckoff_sequence in range(0,len(coords)):
+                for wyckoff_sequence in range(0, len(coords)):
                     # tuple of wyckoff sequence, (label,sequence ) in format of  (str,int)
-                    
-                    
-                    site_properties["wyckoff_sequence"].append(wyckoff_sequence)  
+
+                    site_properties["wyckoff_sequence"].append(wyckoff_sequence)
                     site_properties["label"].append(coord_to_labels[tmp_coords[0]])
                     site_properties["local_index"].append(local_index)
                     local_index += 1
-                
 
                 if set(comp.elements) == {Element("O"), Element("H")}:
                     # O with implicit hydrogens
@@ -251,8 +254,12 @@ class CifParserKMCpy(CifParser):
                 if 1 < totaloccu <= self._occupancy_tolerance:
                     allspecies[i] = species / totaloccu
 
-        if allspecies and len(allspecies) == len(allcoords) and len(allspecies) == len(allmagmoms):
-            #site_properties = {}
+        if (
+            allspecies
+            and len(allspecies) == len(allcoords)
+            and len(allspecies) == len(allmagmoms)
+        ):
+            # site_properties = {}
             if any(allhydrogens):
                 assert len(allhydrogens) == len(allcoords)
                 site_properties["implicit_hydrogens"] = allhydrogens
@@ -263,7 +270,9 @@ class CifParserKMCpy(CifParser):
             if len(site_properties) == 0:
                 site_properties = None
 
-            struct = StructureKMCpy(lattice, allspecies, allcoords, site_properties=site_properties)
+            struct = StructureKMCpy(
+                lattice, allspecies, allcoords, site_properties=site_properties
+            )
 
             if symmetrized:
 
@@ -290,12 +299,12 @@ class CifParserKMCpy(CifParser):
 
     def get_labeled_structures(self, primitive=True, symmetrized=False):
         """
-        
+
         This is a modified version of get_structures for KMCPY, which preserve the label and the wyckoff sequence information.
-        
+
         2022.03.30
-        
-        
+
+
         Return list of structures in CIF file. primitive boolean sets whether a
         conventional cell structure or primitive cell structure is returned.
 
@@ -333,12 +342,16 @@ class CifParserKMCpy(CifParser):
                 # A user reported a problem with cif files produced by Avogadro
                 # in which the atomic coordinates are in Cartesian coords.
                 self.warnings.append(str(exc))
-                warnings.warn(f"No structure parsed for {i + 1} structure in CIF. Section of CIF file below.")
+                warnings.warn(
+                    f"No structure parsed for {i + 1} structure in CIF. Section of CIF file below."
+                )
                 warnings.warn(str(d))
                 warnings.warn(f"Error is {str(exc)}.")
 
         if self.warnings:
-            warnings.warn("Issues encountered while parsing CIF: %s" % "\n".join(self.warnings))
+            warnings.warn(
+                "Issues encountered while parsing CIF: %s" % "\n".join(self.warnings)
+            )
         if len(structures) == 0:
             raise ValueError("Invalid cif file with no structures!")
         return structures
@@ -346,9 +359,9 @@ class CifParserKMCpy(CifParser):
     def _unique_coords(
         self,
         coords,
-        magmoms = None,
-        lattice= None,
-        labels = None,
+        magmoms=None,
+        lattice=None,
+        labels=None,
     ):
         """
         Generate unique coordinates using coord and symmetry positions
@@ -375,7 +388,9 @@ class CifParserKMCpy(CifParser):
                         )
                     else:
                         magmom = Magmom(tmp_magmom)
-                    if not in_coord_list_pbc(coords_out, coord, atol=self._site_tolerance):
+                    if not in_coord_list_pbc(
+                        coords_out, coord, atol=self._site_tolerance
+                    ):
                         coords_out.append(coord)
                         magmoms_out.append(magmom)
                         labels_out.append(labels.get(tmp_coord))

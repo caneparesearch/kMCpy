@@ -14,6 +14,7 @@ cutoff_cluster = [4,4,4]
 lce=LocalClusterExpansion() # api?
 lce.initialization(
     center_frac_coord=[2.53215, 2.53215, 2.53215],
+    # center_frac_coord=[0.875, 0.25, 0.125],
     mobile_ion_identifier_type=mobile_ion_identifier_type,
     mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
     cutoff_cluster=cutoff_cluster,
