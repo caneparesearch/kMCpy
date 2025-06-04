@@ -7,13 +7,19 @@ mobile_ion_specie_1_identifier="Na"
 # cutoff_region = 6.2 # Check to match in Vesta # Seems the Na--Na distance are about 6 Å
 cif_file = "lce_input_files/full_24d.cif"
 
-cutoff_region = 5.1 #5.1
+cutoff_region = 6.1 #5.1
 # cutoff_cluster = [3.5,3.5,3.5] # default
-cutoff_cluster = [3.6, 3.6, 3.6]
-cutoff_cluster = [4,4,4]
+# cutoff_cluster = [3.6, 3.6, 3.6]
+#cutoff_cluster = [5,5,5]
+cutoff_region = 5.1 #5.1
+# cutoff_cluster = [2.55, 2.55, 2.55]
+# cutoff_cluster = [3.2, 3.2, 3.2]
+cutoff_cluster = [3.6,3.6,3.6]
+
 lce=LocalClusterExpansion() # api?
 lce.initialization(
     center_frac_coord=[2.53215, 2.53215, 2.53215],
+    # center_frac_coord=[2.25, 2.25, 2.25],
     mobile_ion_identifier_type=mobile_ion_identifier_type,
     mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
     cutoff_cluster=cutoff_cluster,

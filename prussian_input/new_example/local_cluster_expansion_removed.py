@@ -5,12 +5,16 @@ mobile_ion_identifier_type="specie" #"specie"
 mobile_ion_specie_1_identifier="Na"
 
 # cutoff_region = 6.2 # Check to match in Vesta # Seems the Na--Na distance are about 6 Å
+# cif_file = "relaxed_plus_U_Na8Fie8N24C24_structure.cif"
+#cif_file = "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
 cif_file = "lce_input_files/full_24d.cif"
 
 cutoff_region = 5.1 #5.1
 # cutoff_cluster = [3.5,3.5,3.5] # default
 cutoff_cluster = [3.6, 3.6, 3.6]
-cutoff_cluster = [4,4,4]
+#utoff_cluster = [2.55,2.55,2.55]
+# cutoff_cluster = [3, 3, 3]
+# cutoff_cluster = [2.7,2.7,2.7]
 lce=LocalClusterExpansion() # api?
 lce.initialization(
     center_frac_coord=[2.53215, 2.53215, 2.53215],
@@ -25,9 +29,11 @@ lce.initialization(
 lce.to_json("lce_output_files/lce.json")
 lce.to_json("lce_output_files/lce_site.json")
 
+print(lce.__str__())
+
 # # print(cif_file)
 # # Writing correlation-matrix txt file
-lce.get_correlation_matrix_neb_cif("lce_input_files/two_structure_input/*.cif")
+lce.get_correlation_matrix_neb_cif("lce_input_files/structures_reduced/*.cif")
 
 print("Suceeded")
 
