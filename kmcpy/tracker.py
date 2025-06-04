@@ -101,6 +101,11 @@ class Tracker:
         displacement_frac = copy(direction*(mobile_ion_specie_2_coord - mobile_ion_specie_1_coord))
         displacement_frac -= np.array([int(round(i)) for i in displacement_frac]) # for periodic condition
         displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
+
+        print(f"direction - {direction}")
+        print(mobile_ion_specie_2_occ)
+        print(mobile_ion_specie_1_occ)
+
         if direction == -1: # Na(2) -> Na(1)
             # print('Diffuse direction: Na(2) -> Na(1)')
             specie_to_diff = np.where(self.mobile_ion_specie_locations==event.mobile_ion_specie_2_index)[0][0]
