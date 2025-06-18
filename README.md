@@ -53,28 +53,30 @@ Please visit the prompted website, follow the instruction to download Microsoft 
 
 # Installation Guide:
 
-## With GUI enabled
-`wxpython` needs conda to be installed.
-```
-conda create -n kmcpy python wxpython -c conda-forge
-conda activate kmcpy
-pip install -r requirement_gui.txt .
-```
-
-## with no GUI enabled (for command line environment or running through Python directly)
+## Command line environment
 It is highly recomendded to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/).
 
-```
+```shell
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
 uv sync
+uv pip install .
 ```
 
 ## For developers 
-```
+```shell
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
+uv sync
 uv pip install -e .
+```
+
+## With GUI enabled
+`wxpython` needs conda to be installed.
+```shell
+conda create -n kmcpy python wxpython -c conda-forge
+conda activate kmcpy
+pip install -r requirement_gui.txt .
 ```
 
 ## For building documentation
