@@ -1,27 +1,27 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kmc &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="model" href="model.html" />
+    <link rel="next" title="About" href="../about.html" />
     <link rel="prev" title="io" href="io.html" /> 
 </head>
 
@@ -47,22 +47,21 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="api.html">API Reference Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="event.html">event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="event_generator.html">event_generator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="io.html">io</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">kmc</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#kmcpy.kmc.KMC"><code class="docutils literal notranslate"><span class="pre">KMC</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#kmcpy.kmc.KMC.initialization"><code class="docutils literal notranslate"><span class="pre">KMC.initialization()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#kmcpy.kmc.KMC.initialization3"><code class="docutils literal notranslate"><span class="pre">KMC.initialization3()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#kmcpy.kmc.KMC.propose"><code class="docutils literal notranslate"><span class="pre">KMC.propose()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#kmcpy.kmc.KMC.run3"><code class="docutils literal notranslate"><span class="pre">KMC.run3()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#kmcpy.kmc.KMC.run_from_database"><code class="docutils literal notranslate"><span class="pre">KMC.run_from_database()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
@@ -95,37 +94,17 @@
            <div itemprop="articleBody">
              
   <section id="module-kmcpy.kmc">
-<span id="kmc"></span><h1>kmc<a class="headerlink" href="#module-kmcpy.kmc" title="Permalink to this heading"></a></h1>
+<span id="kmc"></span><h1>kmc<a class="headerlink" href="#module-kmcpy.kmc" title="Link to this heading"></a></h1>
 <p>Function and classes for running kMC</p>
 <p>Author: Zeyu Deng
 Email: <a class="reference external" href="mailto:dengzeyu&#37;&#52;&#48;gmail&#46;com">dengzeyu<span>&#64;</span>gmail<span>&#46;</span>com</a></p>
 <dl class="py class">
 <dt class="sig sig-object py" id="kmcpy.kmc.KMC">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kmcpy.kmc.</span></span><span class="sig-name descname"><span class="pre">KMC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kmcpy.kmc.</span></span><span class="sig-name descname"><span class="pre">KMC</span></span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC" title="Link to this definition"></a></dt>
 <dd><p>main function of kinetic monte carlo</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.kmc.KMC.initialization">
-<span class="sig-name descname"><span class="pre">initialization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.initialization" title="Permalink to this definition"></a></dt>
-<dd><p>initialization function with capability on dealing with multiple versions of input</p>
-<p>This function try to grab the api keyword in kwargs. If fail, then set api=1</p>
-<p>Then it will call the initialization function of specified version, pass all kwargs to the initialization1 or initialization2… except the api kwargs (of course)</p>
-<p>Notice that the initialization functions have default value for the input! It is recommended to set the parameters explicitly. It is better to overdefining the parameters rather than underdefining parameters. Do not worry passing too much argument. For example, pass immutable_sites=[“Zr”,”O”] to initialization1, The initialization1 will receive it as kwargs, do nothing on it and forget it.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the api parameter is strange</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>list of kmc.event.Event object, generated by the different version of initialization function</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="kmcpy.kmc.KMC.initialization3">
-<span class="sig-name descname"><span class="pre">initialization3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prim_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitting_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/fitting_results.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitting_results_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/fitting_results_site.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/events.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000000000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lce_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/lce.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lce_site_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/lce_site.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">immutable_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['Zr',</span> <span class="pre">'O']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_to_primitive_cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.initialization3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.initialization3" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">initialization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1,</span> <span class="pre">-1])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prim_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitting_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/fitting_results.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitting_results_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/fitting_results_site.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/events.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000000000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lce_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/lce.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lce_site_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/lce_site.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">immutable_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['Zr',</span> <span class="pre">'O']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_to_primitive_cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.initialization" title="Link to this definition"></a></dt>
 <dd><p>XIEWEIHANG 220608</p>
 <p>the 3rd version of initialization process.</p>
 <dl class="field-list simple">
@@ -158,33 +137,28 @@ Email: <a class="reference external" href="mailto:dengzeyu&#37;&#52;&#48;gmail&#
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.kmc.KMC.propose">
-<span class="sig-name descname"><span class="pre">propose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">events</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed=123456</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_numpy_random_kernel=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api=2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng=Generator(PCG64)</span> <span class="pre">at</span> <span class="pre">0x25ADAD12A40</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.propose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.propose" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">propose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">events</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed=123456</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng=Generator(PCG64)</span> <span class="pre">at</span> <span class="pre">0x7F59051E6EA0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.propose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.propose" title="Link to this definition"></a></dt>
 <dd><p>propose a new event to be updated by update()</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>events</strong> (<em>list</em>) – list of event</p></li>
-<li><p><strong>random_seed</strong> (<em>int</em><em> or </em><em>bool</em><em>, </em><em>optional</em>) – random seed, if None, then no randomseed. This only make sense if use_numpy_random_kernel. Defaults to 114514.</p></li>
-<li><p><strong>use_numpy_random_kernel</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether to Use numpy random number generator. Defaults to True.</p></li>
-<li><p><strong>api</strong> (<em>int</em><em>, </em><em>optional</em>) – api version. Usage of numpy random kernel is introduced since api=2. Defaults to 2.</p></li>
+<li><p><strong>random_seed</strong> (<em>int</em><em> or </em><em>bool</em><em>, </em><em>optional</em>) – random seed, if None, then no randomseed. Defaults to 114514.</p></li>
 <li><p><strong>rng</strong> (<em>np.random.generator object</em><em>, </em><em>optional</em>) – a random number generator object. Defaults to np.random.default_rng(). Theoratically this function will receive a random number generator object as a input</p></li>
 </ul>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>NotImplementedError</strong> – for API=1, “propose” function will use the python internal random function. For API=2 and use_numpy_random_kernel=True,” propose” function will use the numpy generator class to generate the random numbers. Other functions are not implemented.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>what event is chosed by the random, and the time for this event to occur</p>
 </dd>
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>what event is chosed by the random, and the time for this event to occur</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>event and time_change</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>event and time_change</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="kmcpy.kmc.KMC.run3">
-<span class="sig-name descname"><span class="pre">run3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kmc_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equ_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000000000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/events.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">114514</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_numpy_random_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Na'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimension</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">structure_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_hop_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.47782</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.run3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.run3" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="kmcpy.kmc.KMC.run_from_database">
+<span class="sig-name descname"><span class="pre">run_from_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kmc_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equ_pass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000000000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./inputs/events.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">114514</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Na'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimension</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">structure_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_hop_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.47782</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/kmc.html#KMC.run_from_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.kmc.KMC.run_from_database" title="Link to this definition"></a></dt>
 <dd><p>kmc main function version 3. Previous versions are removed for readability</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -195,8 +169,7 @@ Email: <a class="reference external" href="mailto:dengzeyu&#37;&#52;&#48;gmail&#
 <li><p><strong>T</strong> (<em>int</em><em>, </em><em>optional</em>) – refer to paper, temperature. Defaults to 298.</p></li>
 <li><p><strong>events</strong> (<em>str</em><em>, </em><em>optional</em>) – path to event.json. Defaults to “./inputs/events.json”.</p></li>
 <li><p><strong>comp</strong> (<em>int</em><em>, </em><em>optional</em>) – composition, refer to paper. Defaults to 1.</p></li>
-<li><p><strong>random_seed</strong> (<em>int</em><em>, </em><em>optional</em>) – random seed. Should only be provided when test the KMC function. IF not testing as developer ,strictly set this to None. Defaults to 114514.</p></li>
-<li><p><strong>use_numpy_random_kernel</strong> (<em>bool</em><em>, </em><em>optional</em>) – whether use numpy random kernel which enable manually assign the random seed. If not testing as a developer, strictly set this to False. Defaults to True.</p></li>
+<li><p><strong>random_seed</strong> (<em>int</em><em>, </em><em>optional</em>) – random seed for KMC event propose. Defaults to 114514.</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – verbose output. Defaults to False.</p></li>
 <li><p><strong>mobile_ion_specie</strong> (<em>str</em><em>, </em><em>optional</em>) – mobile ion specie to track. Defaults to ‘Na’.</p></li>
 <li><p><strong>q</strong> (<em>float</em><em>, </em><em>optional</em>) – charge of mobile ion specie. Defaults to 1.0.</p></li>
@@ -223,7 +196,7 @@ Email: <a class="reference external" href="mailto:dengzeyu&#37;&#52;&#48;gmail&#
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="io.html" class="btn btn-neutral float-left" title="io" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="model.html" class="btn btn-neutral float-right" title="model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../about.html" class="btn btn-neutral float-right" title="About" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

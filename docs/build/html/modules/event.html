@@ -1,28 +1,28 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>event &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="event_generator" href="event_generator.html" />
-    <link rel="prev" title="API Reference Documentation" href="api.html" /> 
+    <link rel="prev" title="model" href="model.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,19 +47,19 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="api.html">API Reference Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">event</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#kmcpy.event.Event"><code class="docutils literal notranslate"><span class="pre">Event</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#kmcpy.event.Event.initialization3"><code class="docutils literal notranslate"><span class="pre">Event.initialization3()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#kmcpy.event.Event.initialization"><code class="docutils literal notranslate"><span class="pre">Event.initialization()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="event_generator.html">event_generator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="io.html">io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kmc.html">kmc</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
@@ -92,19 +92,19 @@
            <div itemprop="articleBody">
              
   <section id="module-kmcpy.event">
-<span id="event"></span><h1>event<a class="headerlink" href="#module-kmcpy.event" title="Permalink to this heading"></a></h1>
+<span id="event"></span><h1>event<a class="headerlink" href="#module-kmcpy.event" title="Link to this heading"></a></h1>
 <p>Event is a database storing site and cluster info for each migration event</p>
 <p>Author: Zeyu Deng
 Email: <a class="reference external" href="mailto:dengzeyu&#37;&#52;&#48;gmail&#46;com">dengzeyu<span>&#64;</span>gmail<span>&#46;</span>com</a></p>
 <dl class="py class">
 <dt class="sig sig-object py" id="kmcpy.event.Event">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kmcpy.event.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><a class="reference internal" href="../_modules/kmcpy/event.html#Event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event.Event" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kmcpy.event.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><a class="reference internal" href="../_modules/kmcpy/event.html#Event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event.Event" title="Link to this definition"></a></dt>
 <dd><p>mobile_ion_specie_1_index
 mobile_ion_specie_2_index
 local_env_indices_list</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="kmcpy.event.Event.initialization3">
-<span class="sig-name descname"><span class="pre">initialization3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_1_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_2_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_env_indices_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4,</span> <span class="pre">5]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event.html#Event.initialization3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event.Event.initialization3" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="kmcpy.event.Event.initialization">
+<span class="sig-name descname"><span class="pre">initialization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_1_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_2_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_env_indices_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4,</span> <span class="pre">5]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event.html#Event.initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event.Event.initialization" title="Link to this definition"></a></dt>
 <dd><p>3rd version of initialization. The input local_env_indices_list is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -125,7 +125,7 @@ local_env_indices_list</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="api.html" class="btn btn-neutral float-left" title="API Reference Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="model.html" class="btn btn-neutral float-left" title="model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="event_generator.html" class="btn btn-neutral float-right" title="event_generator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

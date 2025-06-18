@@ -7,7 +7,7 @@ import numpy as np
 from gooey import Gooey, GooeyParser
 from kmcpy.io import load_occ
 from kmcpy.kmc import KMC
-from kmcpy.event_generator import generate_events3
+from kmcpy.event_generator import generate_events
 from kmcpy.model import LocalClusterExpansion
 import kmcpy._version
 
@@ -150,11 +150,6 @@ def main():
     )
 
     # cell
-    kmc_parser.add_argument(
-        "select_sites",
-        default="0, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17",
-        type=str,
-    )
     kmc_parser.add_argument("immutable_sites", default="Zr4+,O2-,O,Zr", type=str)
     kmc_parser.add_argument("supercell_shape", default="2,1,1")
     kmc_parser.add_argument(
@@ -176,7 +171,6 @@ def main():
     # no need to change?
     kmc_parser.add_argument("--structure_idx", default=1, type=int)
     kmc_parser.add_argument("--comp", default=1, type=int)
-    kmc_parser.add_argument("--api", default=3, type=int)
     kmc_parser.add_argument("verbose", default=True, type=bool)
     kmc_parser.add_argument("equ_pass", default=1, type=int)
 
@@ -196,8 +190,8 @@ def main():
             int(args.cutoff_for_quadruplet_cluster),
         ]
         print((vars(args)))
-        a = LocalClusterExpansion(api=3)
-        a.initialization3(
+        a = LocalClusterExpansion()
+        a.initialization(
             cutoff_cluster=cutoff_cluster,
             template_cif_fname=args.prim_cif_name,
             **vars(args)
@@ -228,20 +222,17 @@ def main():
 
         print((vars(args)))
 
-        generate_events3(**vars(args))
+        generate_events(**vars(args))
 
     if args.command == "KMCSimulation":
 
         args.supercell_shape = [int(scale) for scale in args.supercell_shape.split(",")]
-        args.select_sites = [int(scale) for scale in args.select_sites.split(",")]
         args.immutable_sites = [scale for scale in args.immutable_sites.split(",")]
         os.chdir(args.work_dir)
         print(vars(args))
         occ = load_occ(
             fname=args.mc_results,
             shape=args.supercell_shape,
-            select_sites=args.select_sites,
-            api=args.api,
         )
         kmc = KMC()
         events_initialized = kmc.initialization(occ=occ, **vars(args))

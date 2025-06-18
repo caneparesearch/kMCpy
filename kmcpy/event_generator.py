@@ -793,7 +793,7 @@ def generate_events(
                 if mobile_ion_specie_2_identifier in supercell[local_env].species:
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization3(
+                    this_event.initialization(
                         supercell_mobile_ion_specie_1_index, local_env, local_env_info
                     )
                     events.append(this_event)
@@ -808,7 +808,7 @@ def generate_events(
                     # or for understanding, if any site in local environment, its label== "Na2"
                     # initialize the event
                     this_event = Event()
-                    this_event.initialization3(
+                    this_event.initialization(
                         supercell_mobile_ion_specie_1_index, local_env, local_env_info
                     )
                     events.append(this_event)

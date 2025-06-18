@@ -22,7 +22,7 @@ class Event:
     def __init__(self):
         pass
 
-    def initialization3(
+    def initialization(
         self,
         mobile_ion_specie_1_index=12,
         mobile_ion_specie_2_index=15,

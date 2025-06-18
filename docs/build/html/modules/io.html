@@ -1,28 +1,28 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>io &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="kmc" href="kmc.html" />
-    <link rel="prev" title="fitting" href="fitting.html" /> 
+    <link rel="prev" title="tracker" href="tracker.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,9 +47,11 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="api.html">API Reference Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="event.html">event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="event_generator.html">event_generator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">io</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#kmcpy.io.InputSet"><code class="docutils literal notranslate"><span class="pre">InputSet</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#kmcpy.io.InputSet.change_key_name"><code class="docutils literal notranslate"><span class="pre">InputSet.change_key_name()</span></code></a></li>
@@ -64,8 +66,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="kmc.html">kmc</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
@@ -98,18 +98,18 @@
            <div itemprop="articleBody">
              
   <section id="module-kmcpy.io">
-<span id="io"></span><h1>io<a class="headerlink" href="#module-kmcpy.io" title="Permalink to this heading"></a></h1>
+<span id="io"></span><h1>io<a class="headerlink" href="#module-kmcpy.io" title="Link to this heading"></a></h1>
 <p>IO takes dictionary like object and convert them into json writable string</p>
 <p>Author: Zeyu Deng
 Email: <a class="reference external" href="mailto:dengzeyu&#37;&#52;&#48;gmail&#46;com">dengzeyu<span>&#64;</span>gmail<span>&#46;</span>com</a></p>
 <dl class="py class">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kmcpy.io.</span></span><span class="sig-name descname"><span class="pre">InputSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kmcpy.io.</span></span><span class="sig-name descname"><span class="pre">InputSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet" title="Link to this definition"></a></dt>
 <dd><p>a flexible input set class for running KMC
 just a dictionary</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet.change_key_name">
-<span class="sig-name descname"><span class="pre">change_key_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">oldname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lce'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lce_fname'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.change_key_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.change_key_name" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">change_key_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">oldname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lce'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lce_fname'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.change_key_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.change_key_name" title="Link to this definition"></a></dt>
 <dd><p>change the key name from old name to new name for self._parameters</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -123,7 +123,7 @@ just a dictionary</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet.enumerate">
-<span class="sig-name descname"><span class="pre">enumerate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.enumerate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.enumerate" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">enumerate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.enumerate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.enumerate" title="Link to this definition"></a></dt>
 <dd><p>generate a new InputSet from the input kwargs</p>
 <dl class="simple">
 <dt>Inputs:</dt><dd><p>for example: InputSet.enumerate(T=298.15)</p>
@@ -141,7 +141,7 @@ just a dictionary</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet.from_json">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_json_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'examples/test_input.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.from_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.from_json" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_json_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'examples/test_input.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.from_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.from_json" title="Link to this definition"></a></dt>
 <dd><p>input_reader takes input (a json file with all parameters as shown in run_kmc.py in examples folder)
 return a dictionary with all input parameters
 if verbose=True, then print the parameters</p>
@@ -149,7 +149,7 @@ if verbose=True, then print the parameters</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet.parameter_checker">
-<span class="sig-name descname"><span class="pre">parameter_checker</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.parameter_checker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.parameter_checker" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">parameter_checker</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.parameter_checker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.parameter_checker" title="Link to this definition"></a></dt>
 <dd><p>a rough parameter checker to make sure that there is enough parameters to run a job</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
@@ -160,7 +160,7 @@ if verbose=True, then print the parameters</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet.report_parameter">
-<span class="sig-name descname"><span class="pre">report_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'equation'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.report_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.report_parameter" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">report_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'equation'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.report_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.report_parameter" title="Link to this definition"></a></dt>
 <dd><p>report_parameter, to print the parameters of this input set. This is only for development convenience</p>
 <p>for example: the output of a default input set is :v= 5000000000000,equ_pass= 1,kmc_pass= 1000,supercell_shape= [2, 1, 1],fitting_results=’./inputs/fitting_results.json’,fitting_results_site=’./inputs/fitting_results_site.json’,lce_fname=’./inputs/lce.json’,lce_site_fname=’./inputs/lce_site.json’,prim_fname=’./inputs/prim.json’,event_fname=’./inputs/events.json’,event_kernel=’./inputs/event_kernal.csv’,mc_results=’./initial_state.json’,T= 298,comp= 1,structure_idx= 1,occ= [-1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1].
 :type format: 
@@ -170,7 +170,7 @@ if verbose=True, then print the parameters</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="kmcpy.io.InputSet.set_parameter">
-<span class="sig-name descname"><span class="pre">set_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key_to_change</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'T'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_to_change</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">273.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.set_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.set_parameter" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">set_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key_to_change</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'T'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_to_change</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">273.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#InputSet.set_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.InputSet.set_parameter" title="Link to this definition"></a></dt>
 <dd><p>_summary_</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -186,7 +186,7 @@ if verbose=True, then print the parameters</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="kmcpy.io.load_occ">
-<span class="sig-prename descclassname"><span class="pre">kmcpy.io.</span></span><span class="sig-name descname"><span class="pre">load_occ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./initial_state.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">select_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4,</span> <span class="pre">5,</span> <span class="pre">6,</span> <span class="pre">7,</span> <span class="pre">12,</span> <span class="pre">13,</span> <span class="pre">14,</span> <span class="pre">15,</span> <span class="pre">16,</span> <span class="pre">17]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#load_occ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.load_occ" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">kmcpy.io.</span></span><span class="sig-name descname"><span class="pre">load_occ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./initial_state.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">select_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4,</span> <span class="pre">5,</span> <span class="pre">6,</span> <span class="pre">7,</span> <span class="pre">12,</span> <span class="pre">13,</span> <span class="pre">14,</span> <span class="pre">15,</span> <span class="pre">16,</span> <span class="pre">17]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/io.html#load_occ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.io.load_occ" title="Link to this definition"></a></dt>
 <dd><p>load occupation data</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -194,7 +194,6 @@ if verbose=True, then print the parameters</p>
 <li><p><strong>fname</strong> (<em>str</em><em>, </em><em>optional</em>) – initial occupation that also includes immutable site(for example, Zr, O). Defaults to “./initial_state.json”.</p></li>
 <li><p><strong>shape</strong> (<em>list</em><em>, </em><em>optional</em>) – supercell shape. Defaults to [2,1,1].</p></li>
 <li><p><strong>select_sites</strong> (<em>list</em><em>, </em><em>optional</em>) – all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12.  . Defaults to [0,1,2,3,4,5,6,7,12,13,14,15,16,17].</p></li>
-<li><p><strong>api</strong> (<em>int</em><em>, </em><em>optional</em>) – version. Defaults to 1.</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – verbose output. Defaults to False.</p></li>
 </ul>
 </dd>
@@ -216,7 +215,7 @@ if verbose=True, then print the parameters</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="fitting.html" class="btn btn-neutral float-left" title="fitting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tracker.html" class="btn btn-neutral float-left" title="tracker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="kmc.html" class="btn btn-neutral float-right" title="kmc" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
