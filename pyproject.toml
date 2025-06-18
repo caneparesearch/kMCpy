@@ -15,14 +15,22 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
+    "glob2>=0.7",
+    "joblib>=1.5.1",
+    "numba>=0.61.2",
+    "pymatgen>=2025.5.2",
+    "scikit-learn>=1.6.1",
 ]
 doc = [
-    "pandoc",
+    "docutils",
     "sphinx",
+    "sphinx_rtd_theme",
     "nbsphinx",
     "sphinx-autodoc-typehints",
-    "myst-parser>=4.0.1",
-    "sphinx-rtd-theme>=3.0.2",
+    "tqdm",
+    "psutil",
+    "Jinja2",
+    "myst_parser"
 ]
 
 [tool.setuptools]
@@ -31,3 +39,6 @@ packages = ["kmcpy"]
 [tool.pytest.ini_options]
 markers = ["order(number): mark test to run in a specific order"]
 pythonpath = ["."]
+
+[tool.uv]
+default-groups = ["dev"]

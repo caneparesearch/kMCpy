@@ -72,7 +72,7 @@ uv pip install -e .
 ```
 
 ## With GUI enabled
-`wxpython` needs conda to be installed.
+`wxpython` needs `conda` to be installed.
 ```shell
 conda create -n kmcpy python wxpython -c conda-forge
 conda activate kmcpy
@@ -80,12 +80,11 @@ pip install -r requirement_gui.txt .
 ```
 
 ## For building documentation
-- `pandoc` and `sphinx-build` need to be installed for documentation generation
-- Should first install the `kmcpy` environment as above
-```
+- Documentation is built using `pandoc` and `sphinx-build`.
+- You can access the documentation from: `./docs/html/index.html`.
+```shell
 source .venv/bin/activate
-uv pip install pandoc
-uv pip install -r docs/doc_requirements.txt
+uv sync --all-groups
 python build_doc.py
 ```
 
