@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kmcpy.kmc &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -80,72 +80,85 @@
 <span class="sd">Email: dengzeyu@gmail.com</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numba.typed</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">kmcpy.external.structure</span> <span class="kn">import</span> <span class="n">StructureKMCpy</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">kmcpy.model</span> <span class="kn">import</span> <span class="n">LocalClusterExpansion</span>
-<span class="kn">from</span> <span class="nn">kmcpy.tracker</span> <span class="kn">import</span> <span class="n">Tracker</span>
-<span class="kn">from</span> <span class="nn">kmcpy.event</span> <span class="kn">import</span> <span class="n">Event</span>
-<span class="kn">from</span> <span class="nn">kmcpy.io</span> <span class="kn">import</span> <span class="n">convert</span>
-<div class="viewcode-block" id="KMC"><a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC">[docs]</a><span class="k">class</span> <span class="nc">KMC</span><span class="p">:</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numba.typed</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kmcpy.external.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">StructureKMCpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kmcpy.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LocalClusterExpansion</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kmcpy.tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tracker</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kmcpy.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kmcpy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+
+
+<div class="viewcode-block" id="KMC">
+<a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">KMC</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    main function of kinetic monte carlo</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s2">&quot;api&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">=</span><span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
-<div class="viewcode-block" id="KMC.initialization"><a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.initialization">[docs]</a>    <span class="k">def</span> <span class="nf">initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;initialization function with capability on dealing with multiple versions of input</span>
-<span class="sd">        </span>
-<span class="sd">        This function try to grab the api keyword in kwargs. If fail, then set api=1</span>
-<span class="sd">        </span>
-<span class="sd">        Then it will call the initialization function of specified version, pass all kwargs to the initialization1 or initialization2... except the api kwargs (of course)</span>
-<span class="sd">        </span>
-<span class="sd">        Notice that the initialization functions have default value for the input! It is recommended to set the parameters explicitly. It is better to overdefining the parameters rather than underdefining parameters. Do not worry passing too much argument. For example, pass immutable_sites=[&quot;Zr&quot;,&quot;O&quot;] to initialization1, The initialization1 will receive it as kwargs, do nothing on it and forget it.</span>
-<span class="sd">        </span>
-<span class="sd">        Raises:</span>
-<span class="sd">            NotImplementedError: if the api parameter is strange</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            list: list of kmc.event.Event object, generated by the different version of initialization function</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="s2">&quot;api&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">]</span>
-
-            
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialization3</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
-
- 
-<div class="viewcode-block" id="KMC.initialization3"><a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.initialization3">[docs]</a>    <span class="k">def</span> <span class="nf">initialization3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-    <span class="n">occ</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
-    <span class="n">prim_fname</span><span class="o">=</span><span class="s1">&#39;./inputs/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif&#39;</span><span class="p">,</span>
-    <span class="n">fitting_results</span><span class="o">=</span><span class="s1">&#39;./inputs/fitting_results.json&#39;</span><span class="p">,</span>
-    <span class="n">fitting_results_site</span><span class="o">=</span><span class="s1">&#39;./inputs/fitting_results_site.json&#39;</span><span class="p">,</span>
-    <span class="n">event_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/events.json&quot;</span><span class="p">,</span>
-    <span class="n">supercell_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span>
-    <span class="n">v</span><span class="o">=</span><span class="mi">5000000000000</span><span class="p">,</span>
-    <span class="n">T</span><span class="o">=</span><span class="mi">298</span><span class="p">,</span>
-    <span class="n">lce_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/lce.json&quot;</span><span class="p">,</span>
-    <span class="n">lce_site_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/lce_site.json&quot;</span><span class="p">,</span>
-    <span class="n">immutable_sites</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Zr&quot;</span><span class="p">,</span><span class="s2">&quot;O&quot;</span><span class="p">],</span>
-    <span class="n">convert_to_primitive_cell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="KMC.initialization">
+<a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.initialization">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialization</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">occ</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">),</span>
+        <span class="n">prim_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif&quot;</span><span class="p">,</span>
+        <span class="n">fitting_results</span><span class="o">=</span><span class="s2">&quot;./inputs/fitting_results.json&quot;</span><span class="p">,</span>
+        <span class="n">fitting_results_site</span><span class="o">=</span><span class="s2">&quot;./inputs/fitting_results_site.json&quot;</span><span class="p">,</span>
+        <span class="n">event_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/events.json&quot;</span><span class="p">,</span>
+        <span class="n">supercell_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">v</span><span class="o">=</span><span class="mi">5000000000000</span><span class="p">,</span>
+        <span class="n">T</span><span class="o">=</span><span class="mi">298</span><span class="p">,</span>
+        <span class="n">lce_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/lce.json&quot;</span><span class="p">,</span>
+        <span class="n">lce_site_fname</span><span class="o">=</span><span class="s2">&quot;./inputs/lce_site.json&quot;</span><span class="p">,</span>
+        <span class="n">immutable_sites</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Zr&quot;</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">],</span>
+        <span class="n">convert_to_primitive_cell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        XIEWEIHANG 220608</span>
-<span class="sd">        </span>
-<span class="sd">        the 3rd version of initialization process. </span>
-<span class="sd">        </span>
-<span class="sd">        </span>
+
+<span class="sd">        the 3rd version of initialization process.</span>
+
+
 <span class="sd">        Args:</span>
 <span class="sd">            occ (np.array, optional): this is the chebyshev occupation of sites, representing the initial state of the model. Defaults to np.array([-1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1]).</span>
 <span class="sd">            prim_fname (str, optional): the primitive cell of the input structure. Defaults to &#39;./inputs/prim.cif&#39;.</span>
@@ -165,80 +178,103 @@
 <span class="sd">            list: a list of kmc.event.Event object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-
-
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Initializing kMC calculations with pirm.cif at&#39;</span><span class="p">,</span><span class="n">prim_fname</span><span class="p">,</span><span class="s1">&#39;...&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">=</span><span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_cif</span><span class="p">(</span><span class="n">prim_fname</span><span class="p">,</span><span class="n">primitive</span><span class="o">=</span><span class="n">convert_to_primitive_cell</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing kMC calculations with pirm.cif at&quot;</span><span class="p">,</span> <span class="n">prim_fname</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">StructureKMCpy</span><span class="o">.</span><span class="n">from_cif</span><span class="p">(</span>
+            <span class="n">prim_fname</span><span class="p">,</span> <span class="n">primitive</span><span class="o">=</span><span class="n">convert_to_primitive_cell</span>
+        <span class="p">)</span>
         <span class="n">supercell_shape_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">supercell_shape</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Supercell Shape:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span><span class="n">supercell_shape_matrix</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Supercell Shape:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">supercell_shape_matrix</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Converting to the supercell ...&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;removing the immutable sites:&quot;</span><span class="p">,</span><span class="n">immutable_sites</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Converting to the supercell ...&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;removing the immutable sites:&quot;</span><span class="p">,</span> <span class="n">immutable_sites</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">remove_species</span><span class="p">(</span><span class="n">immutable_sites</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">make_supercell</span><span class="p">(</span><span class="n">supercell_shape_matrix</span><span class="p">)</span>
-        
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading fitting results: E_kra ...&#39;</span><span class="p">)</span>
-        <span class="n">fitting_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">fitting_results</span><span class="p">,</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time_stamp&#39;</span><span class="p">],</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading fitting results: E_kra ...&quot;</span><span class="p">)</span>
+        <span class="n">fitting_results</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">fitting_results</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time_stamp&quot;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">keci</span> <span class="o">=</span> <span class="n">fitting_results</span><span class="o">.</span><span class="n">keci</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span> <span class="o">=</span> <span class="n">fitting_results</span><span class="o">.</span><span class="n">empty_cluster</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading fitting results: site energy ...&#39;</span><span class="p">)</span>
-        <span class="n">fitting_results_site</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">fitting_results_site</span><span class="p">,</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time_stamp&#39;</span><span class="p">],</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading fitting results: site energy ...&quot;</span><span class="p">)</span>
+        <span class="n">fitting_results_site</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">fitting_results_site</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time_stamp&quot;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span> <span class="o">=</span> <span class="n">fitting_results_site</span><span class="o">.</span><span class="n">keci</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span> <span class="o">=</span> <span class="n">fitting_results_site</span><span class="o">.</span><span class="n">empty_cluster</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading occupation:&#39;</span><span class="p">,</span><span class="n">occ</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading occupation:&quot;</span><span class="p">,</span> <span class="n">occ</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">occ</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading LCE models from:&#39;</span><span class="p">,</span><span class="n">lce_fname</span><span class="p">,</span><span class="s1">&#39;and&#39;</span><span class="p">,</span><span class="n">lce_site_fname</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading LCE models from:&quot;</span><span class="p">,</span> <span class="n">lce_fname</span><span class="p">,</span> <span class="s2">&quot;and&quot;</span><span class="p">,</span> <span class="n">lce_site_fname</span><span class="p">)</span>
         <span class="n">local_cluster_expansion</span> <span class="o">=</span> <span class="n">LocalClusterExpansion</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">lce_fname</span><span class="p">)</span>
         <span class="n">local_cluster_expansion_site</span> <span class="o">=</span> <span class="n">LocalClusterExpansion</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">lce_site_fname</span><span class="p">)</span>
-        
+
         <span class="c1"># sublattice_indices are the orbits in table S3 of support information</span>
         <span class="c1"># Convert them into Numba List for faster execution</span>
         <span class="n">sublattice_indices</span> <span class="o">=</span> <span class="n">_convert_list</span><span class="p">(</span><span class="n">local_cluster_expansion</span><span class="o">.</span><span class="n">sublattice_indices</span><span class="p">)</span>
-        <span class="n">sublattice_indices_site</span> <span class="o">=</span> <span class="n">_convert_list</span><span class="p">(</span><span class="n">local_cluster_expansion_site</span><span class="o">.</span><span class="n">sublattice_indices</span><span class="p">)</span>
+        <span class="n">sublattice_indices_site</span> <span class="o">=</span> <span class="n">_convert_list</span><span class="p">(</span>
+            <span class="n">local_cluster_expansion_site</span><span class="o">.</span><span class="n">sublattice_indices</span>
+        <span class="p">)</span>
         <span class="n">events_site_list</span> <span class="o">=</span> <span class="p">[]</span>
-        
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading events from:&#39;</span><span class="p">,</span><span class="n">event_fname</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">event_fname</span><span class="p">,</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading events from:&quot;</span><span class="p">,</span> <span class="n">event_fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">event_fname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
             <span class="n">events_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fhandle</span><span class="p">)</span>
-        
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Initializing correlation matrix and E_kra for all events ...&#39;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing correlation matrix and E_kra for all events ...&quot;</span><span class="p">)</span>
         <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">event_dict</span> <span class="ow">in</span> <span class="n">events_dict</span><span class="p">:</span>
             <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">event_dict</span><span class="p">)</span>
-            <span class="n">event</span><span class="o">.</span><span class="n">set_sublattice_indices</span><span class="p">(</span><span class="n">sublattice_indices</span><span class="p">,</span><span class="n">sublattice_indices_site</span><span class="p">)</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">set_sublattice_indices</span><span class="p">(</span><span class="n">sublattice_indices</span><span class="p">,</span> <span class="n">sublattice_indices_site</span><span class="p">)</span>
             <span class="n">event</span><span class="o">.</span><span class="n">initialize_corr</span><span class="p">()</span>
-            <span class="n">event</span><span class="o">.</span><span class="n">update_event</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">)</span>
+            <span class="n">event</span><span class="o">.</span><span class="n">update_event</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span>
+                <span class="n">v</span><span class="p">,</span>
+                <span class="n">T</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="n">events_site_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">local_env_indices_list</span><span class="p">)</span>
             <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-            
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Initializing hopping probabilities ...&#39;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing hopping probabilities ...&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">probability</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">)</span>
-        
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Fitted time and error (LOOCV,RMS)&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">fitting_results</span><span class="o">.</span><span class="n">time</span><span class="p">,</span><span class="n">fitting_results</span><span class="o">.</span><span class="n">loocv</span><span class="p">,</span><span class="n">fitting_results</span><span class="o">.</span><span class="n">rmse</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Fitted KECI and empty cluster E_kra&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Fitted time and error (LOOCV,RMS)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">fitting_results</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">fitting_results</span><span class="o">.</span><span class="n">loocv</span><span class="p">,</span> <span class="n">fitting_results</span><span class="o">.</span><span class="n">rmse</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Fitted KECI and empty cluster E_kra&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Fitted time and error (LOOCV,RMS) (site energy)&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">fitting_results_site</span><span class="o">.</span><span class="n">time</span><span class="p">,</span><span class="n">fitting_results_site</span><span class="o">.</span><span class="n">loocv</span><span class="p">,</span><span class="n">fitting_results_site</span><span class="o">.</span><span class="n">rmse</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Fitted KECI and empty cluster (site energy or E_end)&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Lists for each event&quot;</span><span class="p">,</span><span class="n">events_site_list</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hopping probabilities:&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cumulative sum of hopping probabilities:&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Parameters that are not used during the initialization process:&quot;</span><span class="p">,</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;API version:&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Fitted time and error (LOOCV,RMS) (site energy)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="n">fitting_results_site</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+            <span class="n">fitting_results_site</span><span class="o">.</span><span class="n">loocv</span><span class="p">,</span>
+            <span class="n">fitting_results_site</span><span class="o">.</span><span class="n">rmse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Fitted KECI and empty cluster (site energy or E_end)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Lists for each event&quot;</span><span class="p">,</span> <span class="n">events_site_list</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Hopping probabilities:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cumulative sum of hopping probabilities:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Parameters that are not used during the initialization process:&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">events</span></div>
-    
-    <span class="k">def</span> <span class="nf">load_site_event_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="o">=</span><span class="s2">&quot;../event_kernal.csv&quot;</span><span class="p">):</span><span class="c1"># workout the site_event_list -&gt; site_event_list[site_index] will return a list of event index to update if a site_index is chosen</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Working at the site_event_list ...&#39;</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_site_event_list</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="s2">&quot;../event_kernal.csv&quot;</span>
+    <span class="p">):</span>  <span class="c1"># workout the site_event_list -&gt; site_event_list[site_index] will return a list of event index to update if a site_index is chosen</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Working at the site_event_list ...&quot;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
         <span class="n">site_event_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
@@ -247,88 +283,87 @@
                 <span class="n">site_event_list</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">site_event_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">site_event_list</span> <span class="o">=</span><span class="n">site_event_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">site_event_list</span> <span class="o">=</span> <span class="n">site_event_list</span>
 
-    <span class="k">def</span> <span class="nf">show_project_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show_project_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Probabilities:&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Probabilities:&quot;</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cumultative probability list:&#39;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cumultative probability list:&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">))</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="k">pass</span>
 
-<div class="viewcode-block" id="KMC.propose"><a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.propose">[docs]</a>    <span class="k">def</span> <span class="nf">propose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">events</span><span class="p">,</span><span class="n">random_seed</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span><span class="n">use_numpy_random_kernel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">api</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(),</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> <span class="c1"># propose() will propose an event to be updated by update()</span>
+<div class="viewcode-block" id="KMC.propose">
+<a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.propose">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">propose</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">events</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span>
+        <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(),</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>  <span class="c1"># propose() will propose an event to be updated by update()</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;propose a new event to be updated by update()</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            events (list): list of event</span>
-<span class="sd">            random_seed (int or bool, optional): random seed, if None, then no randomseed. This only make sense if use_numpy_random_kernel. Defaults to 114514.</span>
-<span class="sd">            use_numpy_random_kernel (bool, optional): whether to Use numpy random number generator. Defaults to True.</span>
-<span class="sd">            api (int, optional): api version. Usage of numpy random kernel is introduced since api=2. Defaults to 2.</span>
+<span class="sd">            random_seed (int or bool, optional): random seed, if None, then no randomseed. Defaults to 114514.</span>
 <span class="sd">            rng (np.random.generator object, optional): a random number generator object. Defaults to np.random.default_rng(). Theoratically this function will receive a random number generator object as a input</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            NotImplementedError: for API=1, &quot;propose&quot; function will use the python internal random function. For API=2 and use_numpy_random_kernel=True,&quot; propose&quot; function will use the numpy generator class to generate the random numbers. Other functions are not implemented.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            event and time_change: what event is chosed by the random, and the time for this event to occur</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">use_numpy_random_kernel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">):</span>
 
-            <span class="n">random_seed</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
-            <span class="n">random_seed_2</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
-            <span class="n">proposed_event_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span><span class="n">random_seed</span><span class="p">,</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
-            <span class="n">time_change</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">random_seed_2</span><span class="p">)</span>
+        <span class="n">random_seed</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+        <span class="n">random_seed_2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+        <span class="n">proposed_event_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">random_seed</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span>
+        <span class="p">)</span>
+        <span class="n">time_change</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">random_seed_2</span><span class="p">)</span>
 
-            <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="n">proposed_event_index</span><span class="p">]</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="n">proposed_event_index</span><span class="p">]</span>
 
-            <span class="k">return</span> <span class="n">event</span><span class="p">,</span> <span class="n">time_change</span>
-        <span class="k">elif</span> <span class="n">api</span><span class="o">&gt;=</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">use_numpy_random_kernel</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">event</span><span class="p">,</span> <span class="n">time_change</span></div>
 
-            
-
-            <span class="n">random_seed</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
-            <span class="n">random_seed_2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
-            <span class="n">proposed_event_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span><span class="n">random_seed</span><span class="p">,</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
-            <span class="n">time_change</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">random_seed_2</span><span class="p">)</span>
-
-            <span class="n">event</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="n">proposed_event_index</span><span class="p">]</span>
-
-            <span class="k">return</span> <span class="n">event</span><span class="p">,</span> <span class="n">time_change</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;debug information: api&quot;</span><span class="p">,</span><span class="n">api</span><span class="p">,</span><span class="s2">&quot; </span><span class="se">\n</span><span class="s2">using numpy random number generator instead of random(bool):&quot;</span><span class="p">,</span><span class="n">use_numpy_random_kernel</span><span class="p">)</span>    </div>
-
-
-
-    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">event</span><span class="p">,</span><span class="n">events</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]</span><span class="o">*=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">]</span><span class="o">*=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">events_to_be_updated</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">site_event_list</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">])</span><span class="c1"># event_to_be_updated= list, include the indices, of the event that need to be updated. </span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">events</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">events_to_be_updated</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">site_event_list</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">]</span>
+        <span class="p">)</span>  <span class="c1"># event_to_be_updated= list, include the indices, of the event that need to be updated.</span>
         <span class="k">for</span> <span class="n">e_index</span> <span class="ow">in</span> <span class="n">events_to_be_updated</span><span class="p">:</span>
-            <span class="n">events</span><span class="p">[</span><span class="n">e_index</span><span class="p">]</span><span class="o">.</span><span class="n">update_event</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">)</span>
+            <span class="n">events</span><span class="p">[</span><span class="n">e_index</span><span class="p">]</span><span class="o">.</span><span class="n">update_event</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">[</span><span class="n">e_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="n">e_index</span><span class="p">]</span><span class="o">.</span><span class="n">probability</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prob_cum_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_list</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">run_from_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">run3</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>           
-            
-
-<div class="viewcode-block" id="KMC.run3"><a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.run3">[docs]</a>    <span class="k">def</span> <span class="nf">run3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">kmc_pass</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-    <span class="n">equ_pass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="mi">5000000000000</span><span class="p">,</span>
-    <span class="n">T</span><span class="o">=</span><span class="mi">298</span><span class="p">,</span>
-    <span class="n">events</span><span class="o">=</span><span class="s2">&quot;./inputs/events.json&quot;</span><span class="p">,</span>
-    <span class="n">comp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">random_seed</span><span class="o">=</span><span class="mi">114514</span><span class="p">,</span>
-    <span class="n">use_numpy_random_kernel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">mobile_ion_specie</span><span class="o">=</span><span class="s1">&#39;Na&#39;</span><span class="p">,</span>
-    <span class="n">q</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">structure_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">elem_hop_distance</span><span class="o">=</span><span class="mf">3.47782</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="KMC.run_from_database">
+<a class="viewcode-back" href="../../modules/kmc.html#kmcpy.kmc.KMC.run_from_database">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_from_database</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kmc_pass</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">equ_pass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">v</span><span class="o">=</span><span class="mi">5000000000000</span><span class="p">,</span>
+        <span class="n">T</span><span class="o">=</span><span class="mi">298</span><span class="p">,</span>
+        <span class="n">events</span><span class="o">=</span><span class="s2">&quot;./inputs/events.json&quot;</span><span class="p">,</span>
+        <span class="n">comp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="mi">114514</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">mobile_ion_specie</span><span class="o">=</span><span class="s2">&quot;Na&quot;</span><span class="p">,</span>
+        <span class="n">q</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">structure_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">elem_hop_distance</span><span class="o">=</span><span class="mf">3.47782</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;kmc main function version 3. Previous versions are removed for readability</span>
 
 <span class="sd">        Args:</span>
@@ -338,8 +373,7 @@
 <span class="sd">            T (int, optional): refer to paper, temperature. Defaults to 298.</span>
 <span class="sd">            events (str, optional): path to event.json. Defaults to &quot;./inputs/events.json&quot;.</span>
 <span class="sd">            comp (int, optional): composition, refer to paper. Defaults to 1.</span>
-<span class="sd">            random_seed (int, optional): random seed. Should only be provided when test the KMC function. IF not testing as developer ,strictly set this to None. Defaults to 114514.</span>
-<span class="sd">            use_numpy_random_kernel (bool, optional): whether use numpy random kernel which enable manually assign the random seed. If not testing as a developer, strictly set this to False. Defaults to True.</span>
+<span class="sd">            random_seed (int, optional): random seed for KMC event propose. Defaults to 114514.</span>
 <span class="sd">            verbose (bool, optional): verbose output. Defaults to False.</span>
 <span class="sd">            mobile_ion_specie (str, optional): mobile ion specie to track. Defaults to &#39;Na&#39;.</span>
 <span class="sd">            q (float, optional): charge of mobile ion specie. Defaults to 1.0.</span>
@@ -350,45 +384,68 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            kmcpy.tracker.Tracker: return the tracker for testing unit to assert some functions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">api</span><span class="o">=</span><span class="mi">3</span>
-        
-        <span class="k">if</span> <span class="n">use_numpy_random_kernel</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">=</span><span class="kc">False</span>
-        
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Simulation condition: v =&#39;</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="s1">&#39;T = &#39;</span><span class="p">,</span><span class="n">T</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulation condition: v =&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="s2">&quot;T = &quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">v</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">T</span>
-        <span class="n">pass_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">el</span><span class="o">.</span><span class="n">symbol</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">species</span> <span class="k">if</span> <span class="n">mobile_ion_specie</span> <span class="ow">in</span> <span class="n">el</span><span class="o">.</span><span class="n">symbol</span><span class="p">])</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;============================================================&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Start running kMC ... &#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Initial occ_global, prob_list and prob_cum_list&#39;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Starting Equilbrium ...&#39;</span><span class="p">)</span>
+        <span class="n">pass_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">el</span><span class="o">.</span><span class="n">symbol</span>
+                <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">species</span>
+                <span class="k">if</span> <span class="n">mobile_ion_specie</span> <span class="ow">in</span> <span class="n">el</span><span class="o">.</span><span class="n">symbol</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;============================================================&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start running kMC ... &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Initial occ_global, prob_list and prob_cum_list&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting Equilbrium ...&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">current_pass</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">equ_pass</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">this_kmc</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pass_length</span><span class="p">):</span>
-                <span class="n">event</span><span class="p">,</span><span class="n">time_change</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">propose</span><span class="p">(</span><span class="n">events</span><span class="p">,</span><span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span><span class="n">use_numpy_random_kernel</span><span class="o">=</span><span class="n">use_numpy_random_kernel</span><span class="p">,</span><span class="n">api</span><span class="o">=</span><span class="n">api</span><span class="p">,</span><span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">,</span><span class="n">events</span><span class="p">)</span>
+                <span class="n">event</span><span class="p">,</span> <span class="n">time_change</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">propose</span><span class="p">(</span>
+                    <span class="n">events</span><span class="p">,</span>
+                    <span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span>
+                    <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Start running kMC ...&#39;</span><span class="p">)</span>
-        <span class="n">tracker</span> <span class="o">=</span> <span class="n">Tracker</span><span class="p">(</span><span class="n">api</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Start running kMC ...&quot;</span><span class="p">)</span>
+        <span class="n">tracker</span> <span class="o">=</span> <span class="n">Tracker</span><span class="p">()</span>
 
-        <span class="n">tracker</span><span class="o">.</span><span class="n">initialization</span><span class="p">(</span><span class="n">occ_initial</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span><span class="n">structure</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span><span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span><span class="n">mobile_ion_specie</span><span class="o">=</span><span class="n">mobile_ion_specie</span><span class="p">,</span><span class="n">dimension</span><span class="o">=</span><span class="n">dimension</span><span class="p">,</span><span class="n">elem_hop_distance</span><span class="o">=</span><span class="n">elem_hop_distance</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="c1">#</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Pass</span><span class="se">\t</span><span class="s1">Time</span><span class="se">\t\t</span><span class="s1">MSD</span><span class="se">\t\t</span><span class="s1">D_J</span><span class="se">\t\t</span><span class="s1">D_tracer</span><span class="se">\t</span><span class="s1">Conductivity</span><span class="se">\t</span><span class="s1">H_R</span><span class="se">\t\t</span><span class="s1">f&#39;</span><span class="p">)</span> <span class="c1"># &lt; ------- Change this please</span>
+        <span class="n">tracker</span><span class="o">.</span><span class="n">initialization</span><span class="p">(</span>
+            <span class="n">occ_initial</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span>
+            <span class="n">structure</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">,</span>
+            <span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">v</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span>
+            <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+            <span class="n">mobile_ion_specie</span><span class="o">=</span><span class="n">mobile_ion_specie</span><span class="p">,</span>
+            <span class="n">dimension</span><span class="o">=</span><span class="n">dimension</span><span class="p">,</span>
+            <span class="n">elem_hop_distance</span><span class="o">=</span><span class="n">elem_hop_distance</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>  <span class="c1">#</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;Pass</span><span class="se">\t</span><span class="s2">Time</span><span class="se">\t\t</span><span class="s2">MSD</span><span class="se">\t\t</span><span class="s2">D_J</span><span class="se">\t\t</span><span class="s2">D_tracer</span><span class="se">\t</span><span class="s2">Conductivity</span><span class="se">\t</span><span class="s2">H_R</span><span class="se">\t\t</span><span class="s2">f&quot;</span>
+        <span class="p">)</span>  <span class="c1"># &lt; ------- Change this please</span>
         <span class="k">for</span> <span class="n">current_pass</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">kmc_pass</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">this_kmc</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pass_length</span><span class="p">):</span>
-                <span class="n">event</span><span class="p">,</span><span class="n">time_change</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">propose</span><span class="p">(</span><span class="n">events</span><span class="p">,</span><span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span><span class="n">use_numpy_random_kernel</span><span class="o">=</span><span class="n">use_numpy_random_kernel</span><span class="p">,</span><span class="n">api</span><span class="o">=</span><span class="n">api</span><span class="p">,</span><span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span> <span class="c1"># &lt; ------- Change this please</span>
-                <span class="n">tracker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span><span class="n">time_change</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">,</span><span class="n">events</span><span class="p">)</span>
+                <span class="n">event</span><span class="p">,</span> <span class="n">time_change</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">propose</span><span class="p">(</span>
+                    <span class="n">events</span><span class="p">,</span>
+                    <span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span>
+                    <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>  <span class="c1"># &lt; ------- Change this please</span>
+                <span class="n">tracker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span> <span class="n">time_change</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span>
 
-            <span class="n">previous_conduct</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span><span class="n">current_pass</span><span class="p">)</span>
-            <span class="n">tracker</span><span class="o">.</span><span class="n">show_current_info</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span><span class="n">current_pass</span><span class="p">)</span>
+            <span class="n">previous_conduct</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="n">current_pass</span><span class="p">)</span>
+            <span class="n">tracker</span><span class="o">.</span><span class="n">show_current_info</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="n">current_pass</span><span class="p">)</span>
 
-        <span class="n">tracker</span><span class="o">.</span><span class="n">write_results</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span><span class="n">structure_idx</span><span class="p">,</span><span class="n">current_pass</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">)</span>
+        <span class="n">tracker</span><span class="o">.</span><span class="n">write_results</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="n">structure_idx</span><span class="p">,</span> <span class="n">current_pass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;verbose information: kmc.KMC.run is called. API version 3&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;verbose information: kmc.KMC.run is called. &quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">tracker</span></div>
-                        
+
 
     <span class="c1"># def run(self,kmc_pass,equ_pass,v,T,events):</span>
     <span class="c1">#     print(&#39;Simulation condition: v =&#39;,v,&#39;T = &#39;,T)</span>
@@ -419,38 +476,43 @@
 
     <span class="c1">#     tracker.write_results(None,None,current_pass,self.occ_global)</span>
 
-    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
-        <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-        <span class="s2">&quot;structure&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
-        <span class="s2">&quot;keci&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span>
-        <span class="s2">&quot;empty_cluster&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">,</span>
-        <span class="s2">&quot;keci_site&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span>
-        <span class="s2">&quot;empty_cluster_site&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">,</span>
-        <span class="s2">&quot;occ_global&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">}</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;@module&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+            <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;structure&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+            <span class="s2">&quot;keci&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">keci</span><span class="p">,</span>
+            <span class="s2">&quot;empty_cluster&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster</span><span class="p">,</span>
+            <span class="s2">&quot;keci_site&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">keci_site</span><span class="p">,</span>
+            <span class="s2">&quot;empty_cluster_site&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">empty_cluster_site</span><span class="p">,</span>
+            <span class="s2">&quot;occ_global&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">occ_global</span><span class="p">,</span>
+        <span class="p">}</span>
         <span class="k">return</span> <span class="n">d</span>
-    
-    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saving:&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
             <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
-            <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="n">convert</span><span class="p">)</span> <span class="c1"># to get rid of errors of int64</span>
+            <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+                <span class="n">d</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">convert</span>
+            <span class="p">)</span>  <span class="c1"># to get rid of errors of int64</span>
             <span class="n">fhandle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span>
-    
+
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading:&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
             <span class="n">objDict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fhandle</span><span class="p">)</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">KMC</span><span class="p">()</span>
         <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">objDict</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;load complete&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">obj</span></div>
 
-<span class="k">def</span> <span class="nf">_convert_list</span><span class="p">(</span><span class="n">list_to_convert</span><span class="p">):</span>
-    <span class="n">converted_list</span> <span class="o">=</span> <span class="n">List</span><span class="p">([</span><span class="n">List</span><span class="p">(</span><span class="n">List</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">i</span> <span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">list_to_convert</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">converted_list</span>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_list</span><span class="p">(</span><span class="n">list_to_convert</span><span class="p">):</span>
+    <span class="n">converted_list</span> <span class="o">=</span> <span class="n">List</span><span class="p">([</span><span class="n">List</span><span class="p">(</span><span class="n">List</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">list_to_convert</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">converted_list</span>
 </pre></div>
 
            </div>

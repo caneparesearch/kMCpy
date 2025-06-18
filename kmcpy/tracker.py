@@ -60,7 +60,7 @@ class Tracker:
             elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.
 
         """
-        print("Initializing Tracker version3...")
+        print("Initializing Tracker ...")
         self.dimension = dimension
         self.q = q
         self.elem_hop_distance = elem_hop_distance

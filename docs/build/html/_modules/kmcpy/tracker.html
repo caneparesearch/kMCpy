@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kmcpy.tracker &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -79,88 +79,127 @@
 <span class="sd">Author: Zeyu Deng</span>
 <span class="sd">Email: dengzeyu@gmail.com</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">kmcpy.io</span> <span class="kn">import</span> <span class="n">convert</span>
 
-<div class="viewcode-block" id="Tracker"><a class="viewcode-back" href="../../modules/tracker.html#kmcpy.tracker.Tracker">[docs]</a><span class="k">class</span> <span class="nc">Tracker</span><span class="p">:</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kmcpy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+
+
+<div class="viewcode-block" id="Tracker">
+<a class="viewcode-back" href="../../modules/tracker.html#kmcpy.tracker.Tracker">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Tracker</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tracker has a data structure of tracker[na_si_idx]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">api</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">=</span><span class="n">api</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialization3</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="Tracker.initialization3"><a class="viewcode-back" href="../../modules/tracker.html#kmcpy.tracker.Tracker.initialization3">[docs]</a>    <span class="k">def</span> <span class="nf">initialization3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">occ_initial</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">structure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="mi">298</span><span class="p">,</span><span class="n">v</span><span class="o">=</span><span class="mf">5E13</span><span class="p">,</span><span class="n">q</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span><span class="n">mobile_ion_specie</span><span class="o">=</span><span class="s2">&quot;Na&quot;</span><span class="p">,</span><span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="n">elem_hop_distance</span><span class="o">=</span><span class="mf">3.4778</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Tracker.initialization">
+<a class="viewcode-back" href="../../modules/tracker.html#kmcpy.tracker.Tracker.initialization">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialization</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">occ_initial</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">structure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">T</span><span class="o">=</span><span class="mi">298</span><span class="p">,</span>
+        <span class="n">v</span><span class="o">=</span><span class="mf">5e13</span><span class="p">,</span>
+        <span class="n">q</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">mobile_ion_specie</span><span class="o">=</span><span class="s2">&quot;Na&quot;</span><span class="p">,</span>
+        <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">elem_hop_distance</span><span class="o">=</span><span class="mf">3.4778</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        </span>
+
 <span class="sd">        220609</span>
-<span class="sd">        </span>
+
 <span class="sd">        XIEWEIHANG</span>
-<span class="sd">        </span>
+
 <span class="sd">        updated initialization function</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">        </span>
+
 <span class="sd">            occ_initial (list, optional): list for the initial occupation received from io.Inputset(). Defaults to [1,-1,-1,1].</span>
-<span class="sd">            </span>
+
 <span class="sd">            structure (external.pymatgen_structure.Structure, optional): structure object for extracting the mobile ion content. Defaults to None.</span>
-<span class="sd">            </span>
+
 <span class="sd">            T (int, optional): temperature. Defaults to 298.</span>
-<span class="sd">            </span>
+
 <span class="sd">            v (float, optional): frequency constant, see the article for detail. Defaults to 5E13.</span>
-<span class="sd">            </span>
+
 <span class="sd">            q (float, optional): charge of mobile ion specie, for Na ion, it is 1.0. Defaults to 1.0.</span>
-<span class="sd">            </span>
+
 <span class="sd">            mobile_ion_specie (str, optional): mobile ion specie identifier to search from the structure. Defaults to &quot;Na&quot;.</span>
-<span class="sd">            </span>
+
 <span class="sd">            dimension (int, optional): dimension of migration, for NaSICON it is 3D migration so dimension=3, for LiCoO2 it is 2D migration so dimension=2. Defaults to 3.</span>
-<span class="sd">            </span>
+
 <span class="sd">            elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.</span>
-<span class="sd">            </span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Initializing Tracker version3...&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="o">=</span><span class="n">dimension</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="o">=</span><span class="n">q</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">elem_hop_distance</span><span class="o">=</span><span class="n">elem_hop_distance</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing Tracker ...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="n">dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elem_hop_distance</span> <span class="o">=</span> <span class="n">elem_hop_distance</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">T</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">v</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">occ_initial</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">occ_initial</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">frac_coords</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">latt</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">lattice</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">volume</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie_site</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">el</span><span class="o">.</span><span class="n">symbol</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">species</span> <span class="k">if</span> <span class="n">mobile_ion_specie</span> <span class="ow">in</span> <span class="n">el</span><span class="o">.</span><span class="n">symbol</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_initial</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie_site</span><span class="p">]</span><span class="o">==-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># na_si_site_indices[na_si_indices]</span>
-        <span class="c1">#print(&#39;Initial mobile ion locations =&#39;,self.mobile_ion_specie_locations)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie_site</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">el</span><span class="o">.</span><span class="n">symbol</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">species</span> <span class="k">if</span> <span class="n">mobile_ion_specie</span> <span class="ow">in</span> <span class="n">el</span><span class="o">.</span><span class="n">symbol</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">occ_initial</span><span class="p">[</span><span class="mi">0</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie_site</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)[</span>
+            <span class="mi">0</span>
+        <span class="p">]</span>  <span class="c1"># na_si_site_indices[na_si_indices]</span>
+        <span class="c1"># print(&#39;Initial mobile ion locations =&#39;,self.mobile_ion_specie_locations)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">)</span>
-        
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;number of mobile ion specie =&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">displacement</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">),</span><span class="mi">3</span><span class="p">))</span> <span class="c1"># displacement stores the displacement vector for each ion</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> 
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;number of mobile ion specie =&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">displacement</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># displacement stores the displacement vector for each ion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="mi">0</span>
-       <span class="c1"># self.barrier = []</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;time&#39;</span><span class="p">:[],</span><span class="s1">&#39;D_J&#39;</span><span class="p">:[],</span><span class="s1">&#39;D_tracer&#39;</span><span class="p">:[],</span><span class="s1">&#39;conductivity&#39;</span><span class="p">:[],</span><span class="s1">&#39;f&#39;</span><span class="p">:[],</span><span class="s1">&#39;H_R&#39;</span><span class="p">:[],</span><span class="s1">&#39;msd&#39;</span><span class="p">:[]}</span>
-        
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Center of mass (Na):&#39;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">]</span><span class="nd">@self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">matrix</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">]</span><span class="nd">@self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">matrix</span></div>
-        
-    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># self.barrier = []</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;D_J&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;D_tracer&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;conductivity&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;H_R&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;msd&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="p">}</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">update3</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;Center of mass (Na):&quot;</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">matrix</span><span class="p">,</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">matrix</span></div>
 
 
-    <span class="k">def</span> <span class="nf">update3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">event</span><span class="p">,</span><span class="n">current_occ</span><span class="p">,</span><span class="n">time_change</span><span class="p">):</span> <span class="c1"># this should be called after update() of KMC run</span>
-        <span class="n">mobile_ion_specie_1_coord</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">])</span>
-        <span class="n">mobile_ion_specie_2_coord</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">current_occ</span><span class="p">,</span> <span class="n">time_change</span>
+    <span class="p">):</span>  <span class="c1"># this should be called after update() of KMC run</span>
+        <span class="n">mobile_ion_specie_1_coord</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">mobile_ion_specie_2_coord</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">]</span>
+        <span class="p">)</span>
         <span class="n">mobile_ion_specie_1_occ</span> <span class="o">=</span> <span class="n">current_occ</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">]</span>
         <span class="n">mobile_ion_specie_2_occ</span> <span class="o">=</span> <span class="n">current_occ</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">]</span>
 
@@ -172,63 +211,109 @@
         <span class="c1"># print(event.probability)</span>
         <span class="c1"># print(&#39;Before update Na locations =&#39;,self.mobile_ion_specie_location)</span>
         <span class="c1"># print(&#39;Occupation before update: &#39;,current_occ)</span>
-        <span class="n">direction</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">mobile_ion_specie_2_occ</span> <span class="o">-</span> <span class="n">mobile_ion_specie_1_occ</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># na1 -&gt; na2 direction = 1; na2 -&gt; na1 direction = -1</span>
-        <span class="n">displacement_frac</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">direction</span><span class="o">*</span><span class="p">(</span><span class="n">mobile_ion_specie_2_coord</span> <span class="o">-</span> <span class="n">mobile_ion_specie_1_coord</span><span class="p">))</span>
-        <span class="n">displacement_frac</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">displacement_frac</span><span class="p">])</span> <span class="c1"># for periodic condition</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">mobile_ion_specie_2_occ</span> <span class="o">-</span> <span class="n">mobile_ion_specie_1_occ</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="p">)</span>  <span class="c1"># na1 -&gt; na2 direction = 1; na2 -&gt; na1 direction = -1</span>
+        <span class="n">displacement_frac</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span>
+            <span class="n">direction</span> <span class="o">*</span> <span class="p">(</span><span class="n">mobile_ion_specie_2_coord</span> <span class="o">-</span> <span class="n">mobile_ion_specie_1_coord</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">displacement_frac</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">displacement_frac</span><span class="p">]</span>
+        <span class="p">)</span>  <span class="c1"># for periodic condition</span>
         <span class="n">displacement_cart</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">get_cartesian_coords</span><span class="p">(</span><span class="n">displacement_frac</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># Na(2) -&gt; Na(1)</span>
+        <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># Na(2) -&gt; Na(1)</span>
             <span class="c1"># print(&#39;Diffuse direction: Na(2) -&gt; Na(1)&#39;)</span>
-            <span class="n">specie_to_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="o">==</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">[</span><span class="n">specie_to_diff</span><span class="p">]</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span>
-        <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># Na(1) -&gt; Na(2)</span>
+            <span class="n">specie_to_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span> <span class="o">==</span> <span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">[</span><span class="n">specie_to_diff</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">direction</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># Na(1) -&gt; Na(2)</span>
             <span class="c1"># print(&#39;Diffuse direction: Na(1) -&gt; Na(2)&#39;)</span>
-            <span class="n">specie_to_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="o">==</span><span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">[</span><span class="n">specie_to_diff</span><span class="p">]</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span>
+            <span class="n">specie_to_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span> <span class="o">==</span> <span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_1_index</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_locations</span><span class="p">[</span><span class="n">specie_to_diff</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">event</span><span class="o">.</span><span class="n">mobile_ion_specie_2_index</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Proposed a wrong event! Please check the code!&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Proposed a wrong event! Please check the code!&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">[</span><span class="n">specie_to_diff</span><span class="p">]</span> <span class="o">+=</span> <span class="n">copy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">displacement_cart</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span><span class="p">[</span><span class="n">specie_to_diff</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">+=</span><span class="n">time_change</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="n">time_change</span>
         <span class="c1"># self.frac_na_at_na1.append(np.count_nonzero(self.mobile_ion_specie_location &lt; self.n_mobile_ion_specie_site/4)/self.n_mobile_ion_specie)</span>
 
-    <span class="k">def</span> <span class="nf">calc_D_J</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
-        <span class="n">displacement_vector_tot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-        
-        <span class="n">D_J</span> <span class="o">=</span> <span class="n">displacement_vector_tot</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">)</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">16</span><span class="p">)</span> <span class="c1"># to cm^2/s</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_D_J</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">displacement_vector_tot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="n">D_J</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">displacement_vector_tot</span><span class="o">**</span><span class="mi">2</span>
+            <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">)</span>
+            <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">16</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># to cm^2/s</span>
 
         <span class="k">return</span> <span class="n">D_J</span>
-    
-    <span class="k">def</span> <span class="nf">calc_D_tracer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
-        <span class="n">D_tracer</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">)</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_D_tracer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">D_tracer</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+            <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">16</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">D_tracer</span>
-    
-    <span class="k">def</span> <span class="nf">calc_corr_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># a is the hopping distance in Angstrom</span>
-        <span class="n">corr_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">elem_hop_distance</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-        
-        <span class="n">corr_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">corr_factor</span><span class="p">,</span><span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_corr_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># a is the hopping distance in Angstrom</span>
+        <span class="n">corr_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">elem_hop_distance</span><span class="o">**</span><span class="mi">2</span>
+        <span class="p">)</span>
+
+        <span class="n">corr_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">corr_factor</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">corr_factor</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">calc_conductivity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">D_J</span><span class="p">,</span><span class="n">D_tracer</span><span class="p">,</span><span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="mi">300</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_conductivity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D_J</span><span class="p">,</span> <span class="n">D_tracer</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
 
-        <span class="n">k</span> <span class="o">=</span> <span class="mf">8.617333262145</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># unit in meV/K</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="mf">8.617333262145</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># unit in meV/K</span>
 
-        <span class="n">n</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="c1"># e per Angst^3 vacancy is the carrier</span>
-        <span class="n">conductivity</span> <span class="o">=</span> <span class="n">D_J</span><span class="o">*</span><span class="n">n</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">k</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">*</span><span class="mf">1.602</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="mi">11</span> <span class="c1"># to mS/cm</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span>  <span class="c1"># e per Angst^3 vacancy is the carrier</span>
+        <span class="n">conductivity</span> <span class="o">=</span> <span class="n">D_J</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.602</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">11</span>  <span class="c1"># to mS/cm</span>
 
         <span class="k">return</span> <span class="n">conductivity</span>
 
-    <span class="k">def</span> <span class="nf">show_current_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">comp</span><span class="p">,</span><span class="n">current_pass</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show_current_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comp</span><span class="p">,</span> <span class="n">current_pass</span><span class="p">):</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">current_pass</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;msd&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;D_J&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;D_tracer&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;conductivity&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;H_R&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%d</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="se">\t</span><span class="si">%.3E</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span>
+                <span class="n">current_pass</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;msd&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;D_J&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;D_tracer&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;H_R&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;f&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
         <span class="c1"># print(&#39;Center of mass (Na):&#39;,np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))</span>
         <span class="c1"># print(&#39;MSD = &#39;,np.linalg.norm(np.sum(self.displacement,axis=0))**2,&#39;time = &#39;,self.time)</span>
-        
-    <span class="k">def</span> <span class="nf">return_current_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;msd&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;D_J&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;D_tracer&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;conductivity&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;H_R&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">comp</span><span class="p">,</span><span class="n">current_pass</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">return_current_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;msd&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;D_J&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;D_tracer&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;H_R&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;f&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comp</span><span class="p">,</span> <span class="n">current_pass</span><span class="p">):</span>
         <span class="c1"># print(&#39;\nTracker Summary:&#39;)</span>
         <span class="c1"># print(&#39;comp =&#39;,comp)</span>
         <span class="c1"># print(&#39;structure_idx =&#39;,structure_idx)</span>
@@ -249,67 +334,108 @@
         <span class="n">D_J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_D_J</span><span class="p">()</span>
         <span class="n">D_tracer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_D_tracer</span><span class="p">()</span>
         <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_corr_factor</span><span class="p">()</span>
-        <span class="n">conductivity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_conductivity</span><span class="p">(</span><span class="n">D_J</span><span class="o">=</span><span class="n">D_J</span><span class="p">,</span><span class="n">D_tracer</span><span class="o">=</span><span class="n">D_tracer</span><span class="p">,</span><span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-        <span class="n">H_R</span> <span class="o">=</span> <span class="n">D_tracer</span><span class="o">/</span><span class="n">D_J</span>
-        
-        <span class="n">msd</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># MSD = sum_i(|r_i|^2)/N</span>
+        <span class="n">conductivity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_conductivity</span><span class="p">(</span>
+            <span class="n">D_J</span><span class="o">=</span><span class="n">D_J</span><span class="p">,</span> <span class="n">D_tracer</span><span class="o">=</span><span class="n">D_tracer</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span>
+        <span class="p">)</span>
+        <span class="n">H_R</span> <span class="o">=</span> <span class="n">D_tracer</span> <span class="o">/</span> <span class="n">D_J</span>
+
+        <span class="n">msd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="p">)</span>  <span class="c1"># MSD = sum_i(|r_i|^2)/N</span>
 
         <span class="c1"># print(&#39;Haven\&#39;s ratio H_R =&#39;,H_R)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;D_J&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">D_J</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;D_tracer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">D_tracer</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;H_R&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">H_R</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;conductivity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conductivity</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;msd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;D_J&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">D_J</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;D_tracer&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">D_tracer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;f&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;H_R&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">H_R</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conductivity</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;msd&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msd</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">conductivity</span>
-    
-    <span class="k">def</span> <span class="nf">write_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">comp</span><span class="p">,</span><span class="n">structure_idx</span><span class="p">,</span><span class="n">current_pass</span><span class="p">,</span><span class="n">current_occupation</span><span class="p">):</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s1">&#39;displacement_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">current_pass</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.csv.gz&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span><span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s1">&#39;hop_counter_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">current_pass</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.csv.gz&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span><span class="p">,</span><span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-    <span class="c1">#    np.savetxt(&#39;barrier_&#39;+str(comp)+&#39;_&#39;+str(structure_idx)+&#39;_&#39;+str(current_pass)+&#39;.csv.gz&#39;,self.barrier,delimiter=&#39;,&#39;)</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s1">&#39;current_occ_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">current_pass</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.csv.gz&#39;</span><span class="p">,</span><span class="n">current_occupation</span><span class="p">,</span><span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comp</span><span class="p">,</span> <span class="n">structure_idx</span><span class="p">,</span> <span class="n">current_pass</span><span class="p">,</span> <span class="n">current_occupation</span><span class="p">):</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span>
+            <span class="s2">&quot;displacement_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">current_pass</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;.csv.gz&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span>
+            <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span>
+            <span class="s2">&quot;hop_counter_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">current_pass</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;.csv.gz&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span><span class="p">,</span>
+            <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1">#    np.savetxt(&#39;barrier_&#39;+str(comp)+&#39;_&#39;+str(structure_idx)+&#39;_&#39;+str(current_pass)+&#39;.csv.gz&#39;,self.barrier,delimiter=&#39;,&#39;)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span>
+            <span class="s2">&quot;current_occ_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
+            <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">current_pass</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;.csv.gz&quot;</span><span class="p">,</span>
+            <span class="n">current_occupation</span><span class="p">,</span>
+            <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s1">&#39;results_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.csv.gz&#39;</span><span class="p">,</span><span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
-    
-    <span class="k">def</span> <span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+            <span class="s2">&quot;results_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">comp</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">structure_idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.csv.gz&quot;</span><span class="p">,</span>
+            <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;gzip&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;@module&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
-        <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-        <span class="s2">&quot;T&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
-        <span class="s2">&quot;occ_initial&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">occ_initial</span><span class="p">,</span>
-        <span class="s2">&quot;frac_coords&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">,</span>
-        <span class="s2">&quot;latt&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
-        <span class="s2">&quot;volume&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">volume</span><span class="p">,</span>
-        <span class="s2">&quot;n_mobile_ion_specie_site&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie_site</span><span class="p">,</span>
-        <span class="s2">&quot;mobile_ion_specie_location&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_location</span><span class="p">,</span>
-        <span class="s2">&quot;n_mobile_ion_specie&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">,</span>
-        <span class="s2">&quot;displacement&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span>
-        <span class="s2">&quot;hop_counter&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span><span class="p">,</span>
-        <span class="s2">&quot;time&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
-        <span class="s2">&quot;results&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
-        <span class="s2">&quot;r0&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">r0</span><span class="p">}</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;@module&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span>
+            <span class="s2">&quot;@class&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="s2">&quot;occ_initial&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">occ_initial</span><span class="p">,</span>
+            <span class="s2">&quot;frac_coords&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">frac_coords</span><span class="p">,</span>
+            <span class="s2">&quot;latt&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">latt</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span>
+            <span class="s2">&quot;volume&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span><span class="p">,</span>
+            <span class="s2">&quot;n_mobile_ion_specie_site&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie_site</span><span class="p">,</span>
+            <span class="s2">&quot;mobile_ion_specie_location&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mobile_ion_specie_location</span><span class="p">,</span>
+            <span class="s2">&quot;n_mobile_ion_specie&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mobile_ion_specie</span><span class="p">,</span>
+            <span class="s2">&quot;displacement&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">displacement</span><span class="p">,</span>
+            <span class="s2">&quot;hop_counter&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_counter</span><span class="p">,</span>
+            <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+            <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+            <span class="s2">&quot;r0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">r0</span><span class="p">,</span>
+        <span class="p">}</span>
         <span class="k">return</span> <span class="n">d</span>
 
-    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saving:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saving:&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
             <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
-            <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="n">convert</span><span class="p">)</span> <span class="c1"># to get rid of errors of int64</span>
+            <span class="n">jsonStr</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+                <span class="n">d</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">convert</span>
+            <span class="p">)</span>  <span class="c1"># to get rid of errors of int64</span>
             <span class="n">fhandle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading:&#39;</span><span class="p">,</span><span class="n">fname</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading:&quot;</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fhandle</span><span class="p">:</span>
             <span class="n">objDict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fhandle</span><span class="p">)</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">Tracker</span><span class="p">()</span>
         <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span> <span class="o">=</span> <span class="n">objDict</span>
         <span class="k">return</span> <span class="n">obj</span></div>
+
 </pre></div>
 
            </div>

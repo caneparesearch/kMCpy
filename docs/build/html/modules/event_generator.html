@@ -1,27 +1,27 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>event_generator &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="fitting" href="fitting.html" />
+    <link rel="next" title="tracker" href="tracker.html" />
     <link rel="prev" title="event" href="event.html" /> 
 </head>
 
@@ -47,19 +47,19 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="api.html">API Reference Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="event.html">event</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">event_generator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#kmcpy.event_generator.find_atom_indices"><code class="docutils literal notranslate"><span class="pre">find_atom_indices()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kmcpy.event_generator.generate_event_kernal"><code class="docutils literal notranslate"><span class="pre">generate_event_kernal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#kmcpy.event_generator.generate_events3"><code class="docutils literal notranslate"><span class="pre">generate_events3()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#kmcpy.event_generator.generate_events"><code class="docutils literal notranslate"><span class="pre">generate_events()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kmcpy.event_generator.normalize_supercell_tuple"><code class="docutils literal notranslate"><span class="pre">normalize_supercell_tuple()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="fitting.html">fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="io.html">io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="kmc.html">kmc</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model.html">model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tracker.html">tracker</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
@@ -92,10 +92,10 @@
            <div itemprop="articleBody">
              
   <section id="module-kmcpy.event_generator">
-<span id="event-generator"></span><h1>event_generator<a class="headerlink" href="#module-kmcpy.event_generator" title="Permalink to this heading"></a></h1>
+<span id="event-generator"></span><h1>event_generator<a class="headerlink" href="#module-kmcpy.event_generator" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="kmcpy.event_generator.find_atom_indices">
-<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">find_atom_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">structure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_identifier_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'specie'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_identifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Li+'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#find_atom_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.find_atom_indices" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">find_atom_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">structure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_identifier_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'specie'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_identifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Li+'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#find_atom_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.find_atom_indices" title="Link to this definition"></a></dt>
 <dd><p>a function for generating a list of site indices that satisfies the identifier</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -103,18 +103,18 @@
 <li><p><strong>structure</strong> (<em>kmcpy.external.pymatgen_structure</em>) – structure object to work on</p></li>
 <li><p><strong>mobile_ion_identifier_type</strong> (<em>str</em><em>, </em><em>optional</em>) – elect from: [“specie”,”label”]. Defaults to “specie”.</p></li>
 <li><p><strong>atom_identifier</strong> (<em>str</em><em>, </em><em>optional</em>) – identifier of atom. Defaults to “Li+”.</p></li>
-<li><p><strong>input</strong> (<em>typical</em>) – </p></li>
-<li><p><strong>mobile_ion_identifier_type=specie</strong> – </p></li>
-<li><p><strong>atom_identifier=&quot;Li+&quot;</strong> – </p></li>
-<li><p><strong>mobile_ion_identifier_type=label</strong> – </p></li>
-<li><p><strong>atom_identifier=&quot;Li1&quot;</strong> – </p></li>
-<li><p><strong>mobile_ion_identifier_type=list</strong> – </p></li>
-<li><p><strong>atom_identifier=</strong><strong>[</strong><strong>0</strong> – </p></li>
-<li><p><strong>1</strong> – </p></li>
-<li><p><strong>2</strong> – </p></li>
-<li><p><strong>3</strong> – </p></li>
-<li><p><strong>4</strong> – </p></li>
-<li><p><strong>5</strong><strong>]</strong> – </p></li>
+<li><p><strong>input</strong> (<em>typical</em>)</p></li>
+<li><p><strong>mobile_ion_identifier_type=specie</strong></p></li>
+<li><p><strong>atom_identifier=&quot;Li+&quot;</strong></p></li>
+<li><p><strong>mobile_ion_identifier_type=label</strong></p></li>
+<li><p><strong>atom_identifier=&quot;Li1&quot;</strong></p></li>
+<li><p><strong>mobile_ion_identifier_type=list</strong></p></li>
+<li><p><strong>atom_identifier=</strong><strong>[</strong><strong>0</strong></p></li>
+<li><p><strong>1</strong></p></li>
+<li><p><strong>2</strong></p></li>
+<li><p><strong>3</strong></p></li>
+<li><p><strong>4</strong></p></li>
+<li><p><strong>5</strong><strong>]</strong></p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -131,7 +131,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="kmcpy.event_generator.generate_event_kernal">
-<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">generate_event_kernal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">len_structure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events_site_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_kernal_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'event_kernal.csv'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#generate_event_kernal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.generate_event_kernal" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">generate_event_kernal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">len_structure</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events_site_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_kernal_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'event_kernal.csv'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#generate_event_kernal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.generate_event_kernal" title="Link to this definition"></a></dt>
 <dd><dl class="simple">
 <dt>event_kernal.csv:</dt><dd><p>event_kernal[i] tabulates the index of sites that have to be updated after event[i] has been executed</p>
 </dd>
@@ -139,8 +139,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="kmcpy.event_generator.generate_events3">
-<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">generate_events3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prim_cif_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'210.cif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_to_primitive_cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_env_cutoff_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{('Li+',</span> <span class="pre">'Cl-'):</span> <span class="pre">4.0,</span> <span class="pre">('Li+',</span> <span class="pre">'Li+'):</span> <span class="pre">3.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_identifier_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_1_identifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Na1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_2_identifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Na2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">species_to_be_removed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['O2-',</span> <span class="pre">'O']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_matrix_rtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_matrix_atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">find_nearest_if_fail</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_local_env_structure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'events.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_kernal_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'event_kernal.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'WARNING'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#generate_events3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.generate_events3" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="kmcpy.event_generator.generate_events">
+<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">generate_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prim_cif_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'210.cif'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_to_primitive_cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_env_cutoff_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{('Li+',</span> <span class="pre">'Cl-'):</span> <span class="pre">4.0,</span> <span class="pre">('Li+',</span> <span class="pre">'Li+'):</span> <span class="pre">3.0}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_identifier_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_1_identifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Na1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobile_ion_specie_2_identifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Na2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">species_to_be_removed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['O2-',</span> <span class="pre">'O']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_matrix_rtol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distance_matrix_atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">find_nearest_if_fail</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_local_env_structure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'events.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_kernal_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'event_kernal.csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'WARNING'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#generate_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.generate_events" title="Link to this definition"></a></dt>
 <dd><p>220603 XIE WEIHANG
 3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile_ion_specie_1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2</p>
 <dl class="field-list simple">
@@ -181,7 +181,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="kmcpy.event_generator.normalize_supercell_tuple">
-<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">normalize_supercell_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site_belongs_to_supercell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[5,</span> <span class="pre">1,</span> <span class="pre">7]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_of_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">-1,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[5,</span> <span class="pre">6,</span> <span class="pre">7]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#normalize_supercell_tuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.normalize_supercell_tuple" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">kmcpy.event_generator.</span></span><span class="sig-name descname"><span class="pre">normalize_supercell_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site_belongs_to_supercell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[5,</span> <span class="pre">1,</span> <span class="pre">7]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_of_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">-1,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[5,</span> <span class="pre">6,</span> <span class="pre">7]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kmcpy/event_generator.html#normalize_supercell_tuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kmcpy.event_generator.normalize_supercell_tuple" title="Link to this definition"></a></dt>
 <dd><p>finding the equivalent position in periodic supercell considering the periodic boundary condition. i.e., normalize the supercell tuple to make sure that each component of supercell is greater than zero</p>
 <p>for example,</p>
 <blockquote>
@@ -206,7 +206,7 @@ site_belongs_to_supercell: site belongs to which supercell</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="event.html" class="btn btn-neutral float-left" title="event" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="fitting.html" class="btn btn-neutral float-right" title="fitting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="tracker.html" class="btn btn-neutral float-right" title="tracker" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

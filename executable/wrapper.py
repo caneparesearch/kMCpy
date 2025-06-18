@@ -18,7 +18,7 @@ import argparse
 
 
 @Gooey
-def main(api=3, **kwargs):
+def main(**kwargs):
     """
     This is the wrapper for executing KMC
 
@@ -29,7 +29,7 @@ def main(api=3, **kwargs):
     # parser = argparse.ArgumentParser()
     # parser.add_argument('incar', metavar='N', type=str,help='path to the input.json')
     args = parser.parse_args()
-    inputset = InputSet.from_json(args.incar, api=api)
+    inputset = InputSet.from_json(args.incar)
     inputset.parameter_checker()
     # check if the parameter is good
 
@@ -38,7 +38,6 @@ def main(api=3, **kwargs):
         load_occ(
             inputset._parameters["mc_results"],
             inputset._parameters["supercell_shape"],
-            api=inputset.api,
         ),
     )
     # step 1 initialize global occupation and conditions

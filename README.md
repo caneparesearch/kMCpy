@@ -54,7 +54,7 @@ Please visit the prompted website, follow the instruction to download Microsoft 
 # Installation Guide:
 
 ## Command line environment
-It is highly recomendded to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/).
+It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```shell
 uv venv #optional if you have already created a venv
@@ -80,7 +80,7 @@ pip install -r requirement_gui.txt .
 ```
 
 ## For building documentation
-- `pandoc` needs to be installed for documentation generation
+- `pandoc` and `sphinx-build` need to be installed for documentation generation
 - Should first install the `kmcpy` environment as above
 ```
 source .venv/bin/activate

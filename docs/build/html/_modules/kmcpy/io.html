@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kmcpy.io &mdash; kMCpy 0.1dev documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=3df656f6"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -79,8 +79,9 @@
 <span class="sd">Author: Zeyu Deng</span>
 <span class="sd">Email: dengzeyu@gmail.com</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 
 <span class="c1"># class IO:</span>
 <span class="c1">#     def __init__(self):</span>
@@ -92,177 +93,213 @@
 <span class="c1">#             d = self.as_dict()</span>
 <span class="c1">#             jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64</span>
 <span class="c1">#             fhandle.write(jsonStr)</span>
-    
-<span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span> <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span> <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>  
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
     <span class="k">raise</span> <span class="ne">TypeError</span>
 
 
-<div class="viewcode-block" id="load_occ"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.load_occ">[docs]</a><span class="k">def</span> <span class="nf">load_occ</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="s2">&quot;./initial_state.json&quot;</span><span class="p">,</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">select_sites</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">14</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">17</span><span class="p">],</span><span class="n">api</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="load_occ">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.load_occ">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_occ</span><span class="p">(</span>
+    <span class="n">fname</span><span class="o">=</span><span class="s2">&quot;./initial_state.json&quot;</span><span class="p">,</span>
+    <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="n">select_sites</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">],</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;load occupation data</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        fname (str, optional): initial occupation that also includes immutable site(for example, Zr, O). Defaults to &quot;./initial_state.json&quot;.</span>
 <span class="sd">        shape (list, optional): supercell shape. Defaults to [2,1,1].</span>
 <span class="sd">        select_sites (list, optional): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12.  . Defaults to [0,1,2,3,4,5,6,7,12,13,14,15,16,17].</span>
-<span class="sd">        api (int, optional): version. Defaults to 1.</span>
 <span class="sd">        verbose (bool, optional): verbose output. Defaults to False.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: </span>
+<span class="sd">        ValueError:</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        chebyshev occupation: list of 1 and -1 states, the initial occupation data of sites included in KMC, for example, Na, Si, P initial states in NZSP</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">occupation</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s1">&#39;occupation&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">42</span><span class="p">,)</span><span class="o">+</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]))[</span><span class="n">select_sites</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">))</span> <span class="c1"># the global occupation array in the format of (site,x,y,z)</span>
-        <span class="n">occupation_chebyshev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">occupation</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">occupation</span><span class="p">)</span>  <span class="c1"># replace 0 with -1 for Chebyshev basis</span>
-        <span class="k">return</span> <span class="n">occupation_chebyshev</span>
-    <span class="k">if</span> <span class="n">api</span><span class="o">==</span><span class="mi">2</span> <span class="ow">or</span> <span class="n">api</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
-        
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            
-            <span class="c1"># read the occupation from json</span>
-            <span class="n">occupation_raw_data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s1">&#39;occupation&#39;</span><span class="p">])</span>
-            
-            <span class="c1"># check if the occupation is compatible with the shape.</span>
-            <span class="c1"># for example. if there is 20 occupation data and supercell is [3,1,1], it is incompatible because 20/3 is not integer</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">occupation_raw_data</span><span class="p">)</span><span class="o">%</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">!=</span><span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;change log: The dimension conversion of occupation is now flexible: in API=1, the dimension is determined in the function code. In API=2, the dimension is automatically calculated from supercell. Therefore, You need to check if the length of occupation data is compatible with the supercell shape. The length of occupation data&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">occupation_raw_data</span><span class="p">))</span><span class="o">+</span><span class="s2">&quot;is incompatible with the supercell shape,please check the &quot;</span><span class="o">+</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 
-            <span class="c1"># this is the total sites, or global occupation array[0] for api=1</span>
-            <span class="n">site_nums</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">occupation_raw_data</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
-            
-            <span class="c1"># this is the dimension of global occupation array</span>
-            <span class="n">convert_to_dimension</span><span class="o">=</span><span class="p">(</span><span class="n">site_nums</span><span class="p">,</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-            
-            <span class="n">occupation</span> <span class="o">=</span> <span class="p">(</span><span class="n">occupation_raw_data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">convert_to_dimension</span><span class="p">)[</span><span class="n">select_sites</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">))</span> <span class="c1"># the global occupation array in the format of (site,x,y,z). Now it only contain the selected sites.</span>
-            
-            <span class="n">occupation_chebyshev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">occupation</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">occupation</span><span class="p">)</span>  <span class="c1"># replace 0 with -1 for Chebyshev basis</span>
-            
-            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;verbose output is enabled, this is function io.load_acc from Api2&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;selected sites are&quot;</span><span class="p">,</span><span class="n">select_sites</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;converting the occupation raw data to dimension:&quot;</span><span class="p">,(</span><span class="n">convert_to_dimension</span><span class="p">))</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;occupation_chebyshev:&quot;</span><span class="p">,</span><span class="n">occupation_chebyshev</span><span class="p">)</span>
-            
+        <span class="c1"># read the occupation from json</span>
+        <span class="n">occupation_raw_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s2">&quot;occupation&quot;</span><span class="p">])</span>
+
+        <span class="c1"># check if the occupation is compatible with the shape.</span>
+        <span class="c1"># for example. if there is 20 occupation data and supercell is [3,1,1], it is incompatible because 20/3 is not integer</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">occupation_raw_data</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The length of occupation data </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">occupation_raw_data</span><span class="p">)</span><span class="si">}</span><span class="s2"> is incompatible with the supercell shape,please check the </span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># this is the total sites</span>
+        <span class="n">site_nums</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">occupation_raw_data</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+        <span class="c1"># this is the dimension of global occupation array</span>
+        <span class="n">convert_to_dimension</span> <span class="o">=</span> <span class="p">(</span><span class="n">site_nums</span><span class="p">,</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="n">occupation</span> <span class="o">=</span> <span class="n">occupation_raw_data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">convert_to_dimension</span><span class="p">)[</span>
+            <span class="n">select_sites</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span>
+            <span class="s2">&quot;C&quot;</span>
+        <span class="p">)</span>  <span class="c1"># the global occupation array in the format of (site,x,y,z). Now it only contain the selected sites.</span>
+
+        <span class="n">occupation_chebyshev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">occupation</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">occupation</span>
+        <span class="p">)</span>  <span class="c1"># replace 0 with -1 for Chebyshev basis</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;selected sites are&quot;</span><span class="p">,</span> <span class="n">select_sites</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;converting the occupation raw data to dimension:&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">convert_to_dimension</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;occupation_chebyshev:&quot;</span><span class="p">,</span> <span class="n">occupation_chebyshev</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">occupation_chebyshev</span></div>
-    
+
+
 
 <span class="c1"># to be developed</span>
 
-<div class="viewcode-block" id="InputSet"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet">[docs]</a><span class="k">class</span> <span class="nc">InputSet</span><span class="p">:</span>
+
+<div class="viewcode-block" id="InputSet">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InputSet</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    a flexible input set class for running KMC</span>
 <span class="sd">    just a dictionary</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">_parameters</span><span class="o">=</span><span class="p">{},</span><span class="n">api</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="o">=</span><span class="n">_parameters</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">=</span><span class="n">api</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="s2">&quot;api&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">api</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_parameters</span><span class="o">=</span><span class="p">{})</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="n">_parameters</span>
         <span class="k">pass</span>
-    
-<div class="viewcode-block" id="InputSet.from_json"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.from_json">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">input_json_path</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;examples/test_input.json&quot;</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">api</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+<div class="viewcode-block" id="InputSet.from_json">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.from_json">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_json</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_json_path</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;examples/test_input.json&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        input_reader takes input (a json file with all parameters as shown in run_kmc.py in examples folder)</span>
 <span class="sd">        return a dictionary with all input parameters</span>
 <span class="sd">        if verbose=True, then print the parameters</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_parameters</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">input_json_path</span><span class="p">))</span>
+        <span class="n">_parameters</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">input_json_path</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">report_parameter</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">InputSet</span><span class="p">(</span><span class="n">_parameters</span><span class="p">,</span><span class="n">api</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">InputSet</span><span class="p">(</span><span class="n">_parameters</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="InputSet.report_parameter"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.report_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">report_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;equation&quot;</span><span class="p">):</span>
+
+<div class="viewcode-block" id="InputSet.report_parameter">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.report_parameter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">report_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;equation&quot;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        report_parameter, to print the parameters of this input set. This is only for development convenience</span>
-<span class="sd">        </span>
+
 <span class="sd">        for example: the output of a default input set is :v= 5000000000000,equ_pass= 1,kmc_pass= 1000,supercell_shape= [2, 1, 1],fitting_results=&#39;./inputs/fitting_results.json&#39;,fitting_results_site=&#39;./inputs/fitting_results_site.json&#39;,lce_fname=&#39;./inputs/lce.json&#39;,lce_site_fname=&#39;./inputs/lce_site.json&#39;,prim_fname=&#39;./inputs/prim.json&#39;,event_fname=&#39;./inputs/events.json&#39;,event_kernel=&#39;./inputs/event_kernal.csv&#39;,mc_results=&#39;./initial_state.json&#39;,T= 298,comp= 1,structure_idx= 1,occ= [-1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1].</span>
 <span class="sd">        Args:</span>
 <span class="sd">            format (str, optional): &quot;equation&quot; or &quot;dict&quot;. If format=dict, then print a python dict. format=equation: print equations that is capable for kwargs.  Defaults to &quot;equation&quot;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">format</span><span class="o">==</span><span class="s2">&quot;dict&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;dict&quot;</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">format</span><span class="o">==</span><span class="s2">&quot;equation&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;equation&quot;</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;=&#39;&quot;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="n">end</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;=&#39;&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;=&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span><span class="n">end</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>                  
+                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;=&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">end</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span></div>
-    
-<div class="viewcode-block" id="InputSet.set_parameter"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.set_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key_to_change</span><span class="o">=</span><span class="s2">&quot;T&quot;</span><span class="p">,</span><span class="n">value_to_change</span><span class="o">=</span><span class="mf">273.15</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InputSet.set_parameter">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.set_parameter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_to_change</span><span class="o">=</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">value_to_change</span><span class="o">=</span><span class="mf">273.15</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;_summary_</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            key_to_change (str, optional): the key to change in the parameters. Defaults to &quot;T&quot;.</span>
 <span class="sd">            value_to_change (any, optional): any type that json can read. Defaults to 273.15.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">key_to_change</span><span class="p">]</span><span class="o">=</span><span class="n">value_to_change</span></div>
-    
-<div class="viewcode-block" id="InputSet.enumerate"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.enumerate">[docs]</a>    <span class="k">def</span> <span class="nf">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">key_to_change</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_to_change</span></div>
+
+
+<div class="viewcode-block" id="InputSet.enumerate">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.enumerate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;generate a new InputSet from the input kwargs</span>
 
 <span class="sd">        Inputs:</span>
 <span class="sd">            for example: InputSet.enumerate(T=298.15)</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            InputSet: a InputSet class with modified parameters</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-         
-        <span class="n">new_InputSet</span><span class="o">=</span><span class="n">InputSet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+        <span class="n">new_InputSet</span> <span class="o">=</span> <span class="n">InputSet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key_to_change</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="n">new_InputSet</span><span class="o">.</span><span class="n">set_parameter</span><span class="p">(</span><span class="n">key_to_change</span><span class="p">,</span><span class="n">kwargs</span><span class="p">[</span><span class="n">key_to_change</span><span class="p">])</span>
+            <span class="n">new_InputSet</span><span class="o">.</span><span class="n">set_parameter</span><span class="p">(</span><span class="n">key_to_change</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key_to_change</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">new_InputSet</span></div>
-    
-<div class="viewcode-block" id="InputSet.change_key_name"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.change_key_name">[docs]</a>    <span class="k">def</span> <span class="nf">change_key_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">oldname</span><span class="o">=</span><span class="s2">&quot;lce&quot;</span><span class="p">,</span><span class="n">newname</span><span class="o">=</span><span class="s2">&quot;lce_fname&quot;</span><span class="p">):</span>
+
+
+<div class="viewcode-block" id="InputSet.change_key_name">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.change_key_name">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">change_key_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oldname</span><span class="o">=</span><span class="s2">&quot;lce&quot;</span><span class="p">,</span> <span class="n">newname</span><span class="o">=</span><span class="s2">&quot;lce_fname&quot;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;change the key name from old name to new name for self._parameters</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            oldname (str): defined name in self._parameters</span>
 <span class="sd">            newname (str): new name</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">newname</span><span class="p">]</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">oldname</span><span class="p">]</span></div>
-    
-    <span class="k">def</span> <span class="nf">api_converter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-        <span class="k">pass</span>
-    
-<div class="viewcode-block" id="InputSet.parameter_checker"><a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.parameter_checker">[docs]</a>    <span class="k">def</span> <span class="nf">parameter_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">newname</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">oldname</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="InputSet.parameter_checker">
+<a class="viewcode-back" href="../../modules/io.html#kmcpy.io.InputSet.parameter_checker">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parameter_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;a rough parameter checker to make sure that there is enough parameters to run a job</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: In case that parameter is not defined in the self._parameters</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        
-        
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;equ_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;kmc_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;supercell_shape&#39;</span><span class="p">,</span> <span class="s1">&#39;fitting_results&#39;</span><span class="p">,</span> <span class="s1">&#39;fitting_results_site&#39;</span><span class="p">,</span> <span class="s1">&#39;lce_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;lce_site_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;prim_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;event_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;event_kernel&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_results&#39;</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;comp&#39;</span><span class="p">,</span> <span class="s1">&#39;structure_idx&#39;</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="s2">&quot;v&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;equ_pass&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;kmc_pass&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;supercell_shape&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;fitting_results&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;fitting_results_site&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;lce_fname&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;lce_site_fname&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;prim_fname&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;event_fname&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;event_kernel&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;mc_results&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;T&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;comp&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;dimension&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;q&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;select_sites&quot;</span><span class="p">,</span>
+            <span class="p">]:</span>
                 <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot; is not defined yet in the parameters!&quot;</span><span class="p">)</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;This program is exploding due to undefined parameter.&#39;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;equ_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;kmc_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;supercell_shape&#39;</span><span class="p">,</span> <span class="s1">&#39;fitting_results&#39;</span><span class="p">,</span> <span class="s1">&#39;fitting_results_site&#39;</span><span class="p">,</span> <span class="s1">&#39;lce_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;lce_site_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;prim_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;event_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;event_kernel&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_results&#39;</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;comp&#39;</span><span class="p">,</span> <span class="s1">&#39;structure_idx&#39;</span><span class="p">,</span><span class="s2">&quot;select_sites&quot;</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot; is not defined yet in the parameters!&quot;</span><span class="p">)</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;This program is exploding due to undefined parameter.&#39;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">api</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;equ_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;kmc_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;supercell_shape&#39;</span><span class="p">,</span> <span class="s1">&#39;fitting_results&#39;</span><span class="p">,</span> <span class="s1">&#39;fitting_results_site&#39;</span><span class="p">,</span> <span class="s1">&#39;lce_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;lce_site_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;prim_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;event_fname&#39;</span><span class="p">,</span> <span class="s1">&#39;event_kernel&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_results&#39;</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;comp&#39;</span><span class="p">,</span><span class="s1">&#39;dimension&#39;</span><span class="p">,</span><span class="s1">&#39;q&#39;</span><span class="p">,</span><span class="s2">&quot;select_sites&quot;</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="s2">&quot; is not defined yet in the parameters!&quot;</span><span class="p">)</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;This program is exploding due to undefined parameter. Please check input json file&#39;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;api version not implemented&quot;</span><span class="p">)</span></div></div>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="s2">&quot; is not defined yet in the parameters!&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;This program is exploding due to undefined parameter. Please check input json file&quot;</span>
+                    <span class="p">)</span></div>
+</div>
+
 </pre></div>
 
            </div>

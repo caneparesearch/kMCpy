@@ -28,7 +28,7 @@ class TestStringMethods(unittest.TestCase):
 
     from kmcpy.model import LocalClusterExpansion
 
-    a = LocalClusterExpansion(api=2)
+    a = LocalClusterExpansion()
     a.initialization(
         mobile_ion_specie_1_index="Na1",
         cutoff_cluster=[6, 6, 0],
@@ -43,8 +43,7 @@ class TestStringMethods(unittest.TestCase):
     from kmcpy.io import InputSet, load_occ
     from kmcpy.kmc import KMC
 
-    api = 2
-    inputset = InputSet.from_json("input/test_input_v2.json", api=2)
+    inputset = InputSet.from_json("input/test_input_v2.json")
 
     print(inputset._parameters.keys())
     print(inputset._parameters["mc_results"])
@@ -55,15 +54,13 @@ class TestStringMethods(unittest.TestCase):
         load_occ(
             fname=inputset._parameters["mc_results"],
             shape=inputset._parameters["supercell_shape"],
-            select_sites=inputset._parameters["select_sites"],
-            api=inputset.api,
             verbose=True,
         ),
     )
 
     # step 1 initialize global occupation and conditions
 
-    kmc = KMC(api=api)
+    kmc = KMC()
     events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
 
     # # step 2 compute the site kernal (used for kmc run)
