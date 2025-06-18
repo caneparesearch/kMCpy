@@ -54,7 +54,7 @@ Please visit the prompted website, follow the instruction to download Microsoft 
 # Installation Guide:
 
 ## Command line environment
-It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/).
+It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
 
 ```shell
 uv venv #optional if you have already created a venv
@@ -71,7 +71,7 @@ uv sync
 uv pip install -e .
 ```
 
-## With GUI enabled
+## Graphic user interface (GUI)
 `wxpython` needs `conda` to be installed.
 ```shell
 conda create -n kmcpy python wxpython -c conda-forge
@@ -79,7 +79,7 @@ conda activate kmcpy
 pip install -r requirement_gui.txt .
 ```
 
-## For building documentation
+## Build documentation
 - Documentation is built using `pandoc` and `sphinx-build`.
 - You can access the documentation from: `./docs/html/index.html`.
 ```shell
@@ -88,23 +88,8 @@ uv sync --all-groups
 python build_doc.py
 ```
 
-# Running kMCpy:
+# Run kMCpy
+It is recommended to run kMCpy using the API. See examples for more details. A wrapper is also provided if you want to run kMCpy through command line only. 
 
-The wrapper is in the executable/ folder
-
-if GUI enabled:
-
-try:
-
-`pythonw gui_wrapper.py` 
-
-or
-
-`python gui_wrapper`
-
-
-if GUI not enabled:
-
-`wrapper.py PATH_TO_INPUT.json`
-
-
+- If GUI enabled: try `pythonw gui_wrapper.py` or `python gui_wrapper`
+- If GUI not enabled: `wrapper.py PATH_TO_INPUT.json`
