@@ -1,4 +1,4 @@
-from kmcpy.io import InputSet, load_occ
+from kmcpy.io import InputSet
 from kmcpy.kmc import KMC
 import numpy as np
 
@@ -8,15 +8,8 @@ print(inputset._parameters.keys())
 print(inputset._parameters["mc_results"])
 inputset.parameter_checker()
 
-inputset.set_parameter(
-    "occ",
-    load_occ(
-        fname=inputset._parameters["mc_results"],
-        shape=inputset._parameters["supercell_shape"],
-        select_sites=inputset._parameters["select_sites"],
-        verbose=True,
-    ),
-)
+inputset.load_occ(verbose=True)
+
 inputset.set_parameter("use_numpy_random_kernel", True)
 kmc = KMC()
 
