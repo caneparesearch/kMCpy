@@ -40,7 +40,7 @@ class TestStringMethods(unittest.TestCase):
     a.to_json("input/lce.json")
     a.to_json("input/lce_site.json")
 
-    from kmcpy.io import InputSet, load_occ
+    from kmcpy.io import InputSet
     from kmcpy.kmc import KMC
 
     inputset = InputSet.from_json("input/test_input_v2.json")
@@ -49,14 +49,7 @@ class TestStringMethods(unittest.TestCase):
     print(inputset._parameters["mc_results"])
     inputset.parameter_checker()
 
-    inputset.set_parameter(
-        "occ",
-        load_occ(
-            fname=inputset._parameters["mc_results"],
-            shape=inputset._parameters["supercell_shape"],
-            verbose=True,
-        ),
-    )
+    inputset.load_occ(verbose=True)
 
     # step 1 initialize global occupation and conditions
 

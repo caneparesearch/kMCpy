@@ -5,12 +5,12 @@ Example program to demonstrate Gooey's presentation of subparsers
 import os
 import numpy as np
 from gooey import Gooey, GooeyParser
-from kmcpy.io import load_occ
+from kmcpy.io import _load_occ
 from kmcpy.kmc import KMC
 from kmcpy.event_generator import generate_events
 from kmcpy.model import LocalClusterExpansion
 import kmcpy._version
-
+from kmcpy.external.structure import StructureKMCpy
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))
 def main():
@@ -230,9 +230,19 @@ def main():
         args.immutable_sites = [scale for scale in args.immutable_sites.split(",")]
         os.chdir(args.work_dir)
         print(vars(args))
-        occ = load_occ(
+
+        # workout the sites to be selected
+        structure = StructureKMCpy.from_cif(args.prim_fname, primitive=False)
+
+        immutable_sites = []
+        for site in structure.sites:
+            if site.species in args.immutable_sites:
+                immutable_sites.append(site.index)
+
+        occ = _load_occ(
             fname=args.mc_results,
             shape=args.supercell_shape,
+            select_sites = immutable_sites,
         )
         kmc = KMC()
         events_initialized = kmc.initialization(occ=occ, **vars(args))
