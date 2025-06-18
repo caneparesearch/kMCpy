@@ -187,7 +187,7 @@ class Test_version3(unittest.TestCase):
 
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
-        from kmcpy.io import InputSet, load_occ
+        from kmcpy.io import InputSet
         from kmcpy.kmc import KMC
         import numpy as np
 
@@ -197,15 +197,7 @@ class Test_version3(unittest.TestCase):
         print(inputset._parameters["mc_results"])
         inputset.parameter_checker()
 
-        inputset.set_parameter(
-            "occ",
-            load_occ(
-                fname=inputset._parameters["mc_results"],
-                shape=inputset._parameters["supercell_shape"],
-                select_sites=inputset._parameters["select_sites"],
-                verbose=True,
-            ),
-        )
+        inputset.load_occ(verbose=True)
         kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
 
@@ -221,15 +213,7 @@ class Test_version3(unittest.TestCase):
             np.allclose(
                 np.array(kmc_tracker.return_current_info()),
                 np.array(
-                    (
-                        3.508959816621752e-06,
-                        101.40523388197452,
-                        1.8796478422471864e-09,
-                        4.816490697215713e-10,
-                        0.15190642462810805,
-                        0.2562443128419963,
-                        0.24387012300994337,
-                    )
+                    (1.1193006038758543e-06, 307.37444494263616, 1.4630573145769372e-08, 4.5768825621743376e-09, 1.1823906621661553, 0.312830024946617, 0.21998150220477225)
                 ),
                 rtol=0.01,
                 atol=0.01,
@@ -237,6 +221,7 @@ class Test_version3(unittest.TestCase):
         )
 
         # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct
+        # with 0-7, 32-37 selected: np.array(1.1193006038758543e-06, 307.37444494263616, 1.4630573145769372e-08, 4.5768825621743376e-09, 1.1823906621661553, 0.312830024946617, 0.21998150220477225)
 
     @pytest.mark.order(5)
     def test_kmc_main_function_randomized(self):
@@ -245,7 +230,7 @@ class Test_version3(unittest.TestCase):
 
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
-        from kmcpy.io import InputSet, load_occ
+        from kmcpy.io import InputSet
         from kmcpy.kmc import KMC
         import numpy as np
 
@@ -255,15 +240,7 @@ class Test_version3(unittest.TestCase):
         print(inputset._parameters["mc_results"])
         inputset.parameter_checker()
 
-        inputset.set_parameter(
-            "occ",
-            load_occ(
-                fname=inputset._parameters["mc_results"],
-                shape=inputset._parameters["supercell_shape"],
-                select_sites=inputset._parameters["select_sites"],
-                verbose=True,
-            ),
-        )
+        inputset.load_occ(verbose=True)
         inputset.set_parameter("random_seed", np.random.randint(0, 1000000))
         kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
@@ -281,15 +258,7 @@ class Test_version3(unittest.TestCase):
             np.allclose(
                 np.array(kmc_tracker.return_current_info()),
                 np.array(
-                    (
-                        3.508959816621752e-06,
-                        101.40523388197452,
-                        1.8796478422471864e-09,
-                        4.816490697215713e-10,
-                        0.15190642462810805,
-                        0.2562443128419963,
-                        0.24387012300994337,
-                    )
+                    (1.1193006038758543e-06, 307.37444494263616, 1.4630573145769372e-08, 4.5768825621743376e-09, 1.1823906621661553, 0.312830024946617, 0.21998150220477225)
                 ),
                 rtol=0.01,
                 atol=0.01,
@@ -297,7 +266,7 @@ class Test_version3(unittest.TestCase):
         )
 
         # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct
-
+        # with 0-7, 32-37 selected: np.array(1.1193006038758543e-06, 307.37444494263616, 1.4630573145769372e-08, 4.5768825621743376e-09, 1.1823906621661553, 0.312830024946617, 0.21998150220477225)
     def test_gather_mc_data(self):
         from pathlib import Path
         import os

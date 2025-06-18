@@ -199,3 +199,12 @@ input_example/lce.json
 test/v3_Na3SbS4_bulk/0th_reference_local_env.cif
 !docs/build
 test/v3_Na3SbS4_bulk/events.json
+example/event_kernal.csv
+example/events.json
+example/fitting_results_site.json
+example/keci.txt
+example/lce_site.json
+example/lce.json
+test/v3_Na3SbS4_bulk/events.json
+test/v3_Na3SbS4_bulk/local_env.xyz
+test/v3_nasicon_bulk/fitting_results.json

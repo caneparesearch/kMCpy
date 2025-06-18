@@ -10,7 +10,7 @@ Raises:
 """
 
 
-from kmcpy.io import InputSet, load_occ
+from kmcpy.io import InputSet
 from kmcpy.kmc import KMC
 from gooey import Gooey, GooeyParser
 
@@ -33,13 +33,7 @@ def main(**kwargs):
     inputset.parameter_checker()
     # check if the parameter is good
 
-    inputset.set_parameter(
-        "occ",
-        load_occ(
-            inputset._parameters["mc_results"],
-            inputset._parameters["supercell_shape"],
-        ),
-    )
+    inputset.load_occ(verbose=args.verbose)
     # step 1 initialize global occupation and conditions
     kmc = KMC()
     events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz

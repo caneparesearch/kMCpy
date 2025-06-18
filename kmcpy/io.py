@@ -7,6 +7,7 @@ Email: dengzeyu@gmail.com
 
 import numpy as np
 import json
+from kmcpy.external.structure import StructureKMCpy
 
 # class IO:
 #     def __init__(self):
@@ -28,20 +29,20 @@ def convert(o):
     raise TypeError
 
 
-def load_occ(
-    fname="./initial_state.json",
-    shape=[2, 1, 1],
-    select_sites=[0, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17],
+def _load_occ(
+    fname:str,
+    shape:list,
+    select_sites:list,
     verbose=False,
     **kwargs
 ):
     """load occupation data
 
     Args:
-        fname (str, optional): initial occupation that also includes immutable site(for example, Zr, O). Defaults to "./initial_state.json".
-        shape (list, optional): supercell shape. Defaults to [2,1,1].
-        select_sites (list, optional): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12.  . Defaults to [0,1,2,3,4,5,6,7,12,13,14,15,16,17].
-        verbose (bool, optional): verbose output. Defaults to False.
+        fname (str): initial occupation (json format) that also includes immutable site (for example, Zr, O in NASICON). E.g.: "./initial_state.json".
+        shape (list): supercell shape. E.g.: [2,1,1].
+        select_sites (list): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12. E.g.: [0,1,2,3,4,5,6,7,32,33,34,35,36,37].
+        verbose (bool): verbose output. Defaults to False.
 
     Raises:
         ValueError:
@@ -194,10 +195,37 @@ class InputSet:
                 "comp",
                 "dimension",
                 "q",
-                "select_sites",
             ]:
                 if i not in self._parameters:
                     print(i + " is not defined yet in the parameters!")
                     raise ValueError(
                         "This program is exploding due to undefined parameter. Please check input json file"
                     )
+
+    def load_occ(self, verbose=False):
+        """load the occupation data from the input json file
+
+        Args:
+            verbose (bool, optional): if True, print the occupation data. Defaults to False.
+
+        Returns:
+            np.ndarray: the occupation data in Chebyshev basis
+        """
+        
+        # workout the sites to be selected
+        self.structure = StructureKMCpy.from_cif(
+            self._parameters['prim_fname'], primitive=self._parameters['convert_to_primitive_cell']
+        )
+
+        immutable_sites_idx = []
+        for index,site in enumerate(self.structure.sites):
+            if site.specie.symbol not in self._parameters['immutable_sites']:
+                immutable_sites_idx.append(index)
+        print("immutable sites are", immutable_sites_idx)
+
+        self._parameters['occ'] = _load_occ(
+            self._parameters["mc_results"],
+            self._parameters["supercell_shape"],
+            select_sites=immutable_sites_idx,
+            verbose=verbose,
+        )
