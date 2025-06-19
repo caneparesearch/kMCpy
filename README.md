@@ -37,7 +37,7 @@ Check `pyproject.toml` for the required packages. The following Python packages 
 - joblib
 - glob2
 
->[!WARNING] Windows users
+> [!WARNING] Windows users  
 > Windows users need to install Microsoft C++ build tools (https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile pymatgen.
 
 ## Command line environment
