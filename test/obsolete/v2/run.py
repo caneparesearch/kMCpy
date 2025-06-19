@@ -46,9 +46,6 @@ class TestStringMethods(unittest.TestCase):
 
     print(inputset._parameters.keys())
     print(inputset._parameters["mc_results"])
-    inputset.parameter_checker()
-
-    inputset.load_occ()
 
     # step 1 initialize global occupation and conditions
 

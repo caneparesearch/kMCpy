@@ -29,7 +29,6 @@ class LocalClusterExpansion:
     """
 
     def __init__(self):
-        logger.info(kmcpy.get_logo())
         logger.info("Initializing LocalClusterExpansion ...")
         pass
 
@@ -67,7 +66,7 @@ class LocalClusterExpansion:
         2) the sublattice_indices are exactly corresponding to the input structure used in the KMC step, which might in need of re-cunstruction of a lce object using the same KMC-input structure.
 
         """
-
+        logger.info(kmcpy.get_logo())
         template_structure = StructureKMCpy.from_cif(
             template_cif_fname, primitive=convert_to_primitive_cell
         )

@@ -28,7 +28,6 @@ class KMC:
     """
 
     def __init__(self):
-        logger.info(kmcpy.get_logo())
         pass
 
     def initialization(
@@ -101,7 +100,7 @@ class KMC:
         Returns:
             list: a list of kmc.event.Event object
         """
-        
+        logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations with pirm.cif at {prim_fname} ...")
         self.structure = StructureKMCpy.from_cif(
             prim_fname, primitive=convert_to_primitive_cell

@@ -90,10 +90,6 @@ def _load_occ(
 
         return occupation_chebyshev
 
-
-# to be developed
-
-
 class InputSet:
     """
     a flexible input set class for running KMC
@@ -115,7 +111,15 @@ class InputSet:
         """
         _parameters = json.load(open(input_json_path))
         logger.debug(_parameters)
-        return cls(_parameters)
+
+        input_set = cls(_parameters)
+
+        # check parameters
+        input_set.parameter_checker()
+
+        # load occupation data
+        input_set.load_occ()
+        return input_set
 
     def get_parameters_str(self, format="equation"):
         """
@@ -201,7 +205,7 @@ class InputSet:
                 if i not in self._parameters:
                     logger.error(f"{i} is not defined yet in the parameters!")
                     raise ValueError(
-                        "This program is exploding due to undefined parameter. Please check input json file"
+                        f"Input error due to undefined parameter: {i}. Please check input json file"
                     )
 
     def load_occ(self):

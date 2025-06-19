@@ -30,10 +30,7 @@ def main(**kwargs):
     # parser.add_argument('incar', metavar='N', type=str,help='path to the input.json')
     args = parser.parse_args()
     inputset = InputSet.from_json(args.incar)
-    inputset.parameter_checker()
-    # check if the parameter is good
 
-    inputset.load_occ()
     # step 1 initialize global occupation and conditions
     kmc = KMC()
     events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
