@@ -5,10 +5,10 @@ API Reference Documentation
     :maxdepth: 2
     :caption: Contents:
 
-    fitting.rst
-    model.rst
     event.rst
     event_generator.rst
+    fitting.rst
+    kmc.rst
+    model.rst
     tracker.rst
     io.rst
-    kmc.rst

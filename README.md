@@ -27,31 +27,18 @@ The rf-kMC as a part of this code was used to model the Na-ion conductivity in t
 
    Calculated Na+ diffusivity (a), conductivity (b), Haven's ratio (c) and averaged correlation factor (d) of $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ at several temperatures: 373 (dark blue circles), 473 (orange squares) and 573 (red triangles) K, respectively. In panel (b), the computed ionic conductivities are compared with the experimental values of this work (Supplementary Fig. 6) at selected temperatures. Experimental values in (b) from this work are depicted with light blue (373 K), yellow (473 K), and red (573 K) crosses belonging to the same $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ compositions but of pellets with different compacities (>70 and >90%, see legend).
 
+# Installation
+## Prerequisite
+Check `pyproject.toml` for the required packages. The following Python packages are required to run kMCpy:
+- pymatgen: **Windows users need to install Microsoft C++ build tools (https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile pymatgen.**
+- numba: for fast computation of kMCpy routines
+- scikit-learn: for fitting local cluster expansion model
+- pytest: for unit tests
+- joblib
+- glob2
 
-
-# Prerequisite Packages:
-- kMCpy: python, pymatgen, numba, scikit-learn, joblib, glob2, pytest
-## Note for Windows user
-
-If experiencing error information like this when installing kMCpy:
-
-```
-error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": https://visualstudio.microsoft.com/visual-cpp-build-tools/
-      [end of output]
-
- note: This error originates from a subprocess, and is likely not a problem with pip.
-  ERROR: Failed building wheel for pymatgen
-  Building wheel for kMCpy (setup.py) ... done
-  Created wheel for kMCpy: filename=kMCpy-0.1.dev0-py3-none-any.whl size=124937 sha256=1282afef8589ee100a8d4fa1b53748d2d69a2e041d8c8662cfa8374a23222d60
-  Stored in directory: c:\users\wdagutilityaccount\appdata\local\pip\cache\wheels\a6\a2\a6\4675cd18beeaea66ca25508dcaef9c1b59689e7794a770d602
-Successfully built kMCpy
-Failed to build pymatgen
-ERROR: Could not build wheels for pymatgen, which is required to install pyproject.toml-based projects
-```
-
-Please visit the prompted website, follow the instruction to download Microsoft C++ build tools, install the "desktop development with C++" component and retry installing kMCpy. 
-
-# Installation Guide:
+> **⚠️ Warning for Windows users:**  
+> You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
 
 ## Command line environment
 It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
