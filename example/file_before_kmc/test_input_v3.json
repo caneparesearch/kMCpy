@@ -15,7 +15,6 @@
     "comp": 1,
     "structure_idx": 1,
     "immutable_sites": ["Zr","O","Zr4+","O2-"],
-    "verbose": true,
     "random_seed": 12345,
     "use_numpy_random_kernel":true,
     "convert_to_primitive_cell":true,

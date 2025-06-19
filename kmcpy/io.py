@@ -44,7 +44,6 @@ def _load_occ(
         fname (str): initial occupation (json format) that also includes immutable site (for example, Zr, O in NASICON). E.g.: "./initial_state.json".
         shape (list): supercell shape. E.g.: [2,1,1].
         select_sites (list): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12. E.g.: [0,1,2,3,4,5,6,7,32,33,34,35,36,37].
-        verbose (bool): verbose output. Defaults to False.
 
     Raises:
         ValueError:
@@ -108,31 +107,29 @@ class InputSet:
 
     @classmethod
     def from_json(
-        self, input_json_path=r"examples/test_input.json", verbose=False
+        cls, input_json_path=r"examples/test_input.json", 
     ):
         """
         input_reader takes input (a json file with all parameters as shown in run_kmc.py in examples folder)
         return a dictionary with all input parameters
-        if verbose=True, then print the parameters
         """
         _parameters = json.load(open(input_json_path))
-        if verbose:
-            self.report_parameter()
-        return InputSet(_parameters)
+        logger.debug(_parameters)
+        return cls(_parameters)
 
-    def report_parameter(self, format="equation"):
+    def get_parameters_str(self, format="equation"):
         """
-        report_parameter, to print the parameters of this input set. This is only for development convenience
+        return the parameters of this input set.
 
-        for example: the output of a default input set is :v= 5000000000000,equ_pass= 1,kmc_pass= 1000,supercell_shape= [2, 1, 1],fitting_results='./inputs/fitting_results.json',fitting_results_site='./inputs/fitting_results_site.json',lce_fname='./inputs/lce.json',lce_site_fname='./inputs/lce_site.json',prim_fname='./inputs/prim.json',event_fname='./inputs/events.json',event_kernel='./inputs/event_kernal.csv',mc_results='./initial_state.json',T= 298,comp= 1,structure_idx= 1,occ= [-1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1].
         Args:
-            format (str, optional): "equation" or "dict". If format=dict, then print a python dict. format=equation: print equations that is capable for kwargs.  Defaults to "equation".
+            format (str, optional): "equation" or "dict". If format=dict, then return a python dict. 
+            format=equation: return equations that is capable for kwargs. Defaults to "equation".
+        Returns:
+            str or dict: The parameter string or dictionary.
         """
         if format == "dict":
-            logger.info(self._parameters)
+            return self._parameters.__str__()
         if format == "equation":
-            for i in self._parameters:
-                logger.info(f"{i} {type(self._parameters[i])}")
             equation_strs = []
             for i in self._parameters:
                 if isinstance(self._parameters[i], str):
@@ -141,7 +138,7 @@ class InputSet:
                     equation_strs.append(f"{i}={self._parameters[i].tolist()}")
                 else:
                     equation_strs.append(f"{i}={self._parameters[i]}")
-            logger.info(",".join(equation_strs))
+            return ",".join(equation_strs)
 
     def set_parameter(self, key_to_change="T", value_to_change=273.15):
         """_summary_
@@ -207,14 +204,8 @@ class InputSet:
                         "This program is exploding due to undefined parameter. Please check input json file"
                     )
 
-    def load_occ(self, verbose=False):
+    def load_occ(self):
         """load the occupation data from the input json file
-
-        Args:
-            verbose (bool, optional): if True, print the occupation data. Defaults to False.
-
-        Returns:
-            np.ndarray: the occupation data in Chebyshev basis
         """
         
         # workout the sites to be selected

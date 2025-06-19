@@ -33,7 +33,7 @@ def main(**kwargs):
     inputset.parameter_checker()
     # check if the parameter is good
 
-    inputset.load_occ(verbose=args.verbose)
+    inputset.load_occ()
     # step 1 initialize global occupation and conditions
     kmc = KMC()
     events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz

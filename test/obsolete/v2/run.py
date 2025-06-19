@@ -4,13 +4,13 @@ import os
 
 
 class TestStringMethods(unittest.TestCase):
-    from kmcpy.event_generator import generate_events2
+    from kmcpy.event_generator import generate_events
 
     convert_to_primitive_cell = True
     current_dir = Path(__file__).absolute().parent
     os.chdir(current_dir)
     # event kernal
-    generate_events2(
+    generate_events(
         prim_cif_name="./input/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
         convert_to_primitive_cell=convert_to_primitive_cell,
         supercell_shape=[2, 1, 1],
@@ -20,7 +20,6 @@ class TestStringMethods(unittest.TestCase):
         mobile_ion_specie_1_index_label_or_indices="Na1",
         species_to_be_removed=["Zr4+", "O2-", "O", "Zr"],
         mobile_ion_specie_2_index_atom_label="Na2",
-        verbose=True,
         hacking_arg={1: [18, 20, 19, 22, 21, 23, 108, 110, 109, 112, 111, 113]},
     )
 
@@ -49,7 +48,7 @@ class TestStringMethods(unittest.TestCase):
     print(inputset._parameters["mc_results"])
     inputset.parameter_checker()
 
-    inputset.load_occ(verbose=True)
+    inputset.load_occ()
 
     # step 1 initialize global occupation and conditions
 

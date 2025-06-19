@@ -16,13 +16,6 @@ from kmcpy.external.structure import StructureKMCpy
 def main():
     settings_msg = "kmcpy version " + kmcpy._version.__version__
     parser = GooeyParser(description=settings_msg)
-    parser.add_argument(
-        "--verbose",
-        help="be verbose",
-        dest="verbose",
-        action="store_true",
-        default=False,
-    )
 
     subs = parser.add_subparsers(help="commands", dest="command")
 
@@ -171,7 +164,6 @@ def main():
     # no need to change?
     kmc_parser.add_argument("--structure_idx", default=1, type=int)
     kmc_parser.add_argument("--comp", default=1, type=int)
-    kmc_parser.add_argument("verbose", default=True, type=bool)
     kmc_parser.add_argument("equ_pass", default=1, type=int)
 
     args = parser.parse_args()
