@@ -1,6 +1,6 @@
 {
     "v" : 5000000000000,
-    "equ_pass" : 1,
+    "equ_pass" : 0,
     "kmc_pass"  : 5,
     "supercell_shape" : [1,1,1],
     "fitting_results" : "fit_output_files/E_kra/fitting_results.json",
@@ -11,7 +11,6 @@
     "event_fname" : "events_output_files/events.json",
     "event_kernel" : "events_output_files/event_kernal.csv",
     "mc_results" : "kmc_input_files/initial_state_test.json",
-    "select_sites": [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
     "T": 298,
     "comp": 1,
     "structure_idx": 1,

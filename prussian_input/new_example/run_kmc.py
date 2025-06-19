@@ -1,6 +1,5 @@
 from kmcpy.io import InputSet
 from kmcpy.kmc import KMC
-import numpy as np
 
 import logging
 
@@ -9,16 +8,17 @@ logging.basicConfig(
     level=logging.DEBUG, # Set to DEBUG to see everything
     format='%(asctime)s - %(name)-28s - %(levelname)-8s - %(message)s',
     datefmt='%Y-%m-%d %H:%M',
-    filename='debug.log',)  # Log to a file named debug.log
+    filename='run.log',
+    filemode='w',)  # Log to a file named debug.log
 
 
-inputset = InputSet.from_json("kmc_input_files/kmc_input.json")
+inputset = InputSet.from_json("kmc_input_files/kmc_input_test.json")
 
 print(inputset._parameters.keys())
 print(inputset._parameters["mc_results"])
 inputset.parameter_checker()
 
-inputset.load_occ(verbose=True)
+inputset.load_occ()
 
 inputset.set_parameter("use_numpy_random_kernel", True)
 kmc = KMC()
