@@ -9,20 +9,9 @@ import numpy as np
 import json
 from kmcpy.external.structure import StructureKMCpy
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__) 
-
-# class IO:
-#     def __init__(self):
-#         pass
-
-#     def to_json(self,fname):
-#         print('Saving:',fname)
-#         with open(fname,'w') as fhandle:
-#             d = self.as_dict()
-#             jsonStr = json.dumps(d,indent=4,default=convert) # to get rid of errors of int64
-#             fhandle.write(jsonStr)
-
 
 def convert(o):
     if isinstance(o, np.int64):
@@ -35,8 +24,7 @@ def convert(o):
 def _load_occ(
     fname: str,
     shape: list,
-    select_sites: list,
-    **kwargs
+    select_sites: list
 ):
     """load occupation data
 
@@ -90,10 +78,6 @@ def _load_occ(
 
         return occupation_chebyshev
 
-
-# to be developed
-
-
 class InputSet:
     """
     a flexible input set class for running KMC
@@ -101,7 +85,6 @@ class InputSet:
     """
 
     def __init__(self, _parameters={}) -> None:
-
         self._parameters = _parameters
         pass
 
@@ -115,40 +98,67 @@ class InputSet:
         """
         _parameters = json.load(open(input_json_path))
         logger.debug(_parameters)
-        return cls(_parameters)
 
-    def get_parameters_str(self, format="equation"):
+        input_set = cls(_parameters)
+
+        # check parameters
+        input_set.parameter_checker()
+
+        # load occupation data
+        input_set.load_occ()
+        return input_set
+
+    @classmethod
+    def from_yaml(
+        cls, input_yaml_path=r"examples/test_input.yaml",
+    ):
         """
-        return the parameters of this input set.
-
-        Args:
-            format (str, optional): "equation" or "dict". If format=dict, then return a python dict. 
-            format=equation: return equations that is capable for kwargs. Defaults to "equation".
-        Returns:
-            str or dict: The parameter string or dictionary.
+        input_reader takes input (a yaml file with all parameters as shown in run_kmc.py in examples folder)
+        return a dictionary with all input parameters
         """
-        if format == "dict":
-            return self._parameters.__str__()
-        if format == "equation":
-            equation_strs = []
-            for i in self._parameters:
-                if isinstance(self._parameters[i], str):
-                    equation_strs.append(f"{i}='{self._parameters[i]}'")
-                elif isinstance(self._parameters[i], np.ndarray):
-                    equation_strs.append(f"{i}={self._parameters[i].tolist()}")
-                else:
-                    equation_strs.append(f"{i}={self._parameters[i]}")
-            return ",".join(equation_strs)
+        import yaml
 
-    def set_parameter(self, key_to_change="T", value_to_change=273.15):
-        """_summary_
+        _parameters = yaml.safe_load(open(input_yaml_path))
+        logger.debug(_parameters)
 
-        Args:
-            key_to_change (str, optional): the key to change in the parameters. Defaults to "T".
-            value_to_change (any, optional): any type that json can read. Defaults to 273.15.
+        input_set = cls(_parameters)
+
+        # check parameters
+        input_set.parameter_checker()
+
+        # load occupation data
+        input_set.load_occ()
+        return input_set
+    
+    @classmethod
+    def from_dict(cls, input_dict):
         """
-        self._parameters[key_to_change] = value_to_change
+        input_reader takes input (a dictionary with all parameters as shown in run_kmc.py in examples folder)
+        return a dictionary with all input parameters
+        """
+        # print the input_dict for debugging
+        logger.debug(input_dict)
 
+        input_set = cls(input_dict)
+
+        # check parameters
+        input_set.parameter_checker()
+
+        # load occupation data
+        input_set.load_occ()
+        return input_set
+
+    def __str__(self):
+        return self._parameters.__str__()
+
+    def set_parameter(self, key, value):
+        """set a parameter in the input set"""
+        if key in self._parameters:
+            self._parameters[key] = value
+        else:
+            logger.error(f"{key} is not a valid parameter in the InputSet")
+            raise KeyError(f"{key} is not a valid parameter in the InputSet")
+        
     def enumerate(self, **kwargs):
         """generate a new InputSet from the input kwargs
 
@@ -186,24 +196,28 @@ class InputSet:
                 "kmc_pass",
                 "supercell_shape",
                 "fitting_results",
-                "fitting_results_site",
                 "lce_fname",
-                "lce_site_fname",
                 "prim_fname",
                 "event_fname",
                 "event_kernel",
-                "mc_results",
+                "initial_state",
                 "T",
-                "comp",
                 "dimension",
                 "q",
+                "elem_hop_distance",
             ]:
                 if i not in self._parameters:
-                    logger.error(f"{i} is not defined yet in the parameters!")
+                    logger.error(f"Position variable: {i} is not defined yet in the parameters!")
                     raise ValueError(
-                        "This program is exploding due to undefined parameter. Please check input json file"
+                        f"Input error due to undefined parameter: {i}. Please check input json file"
                     )
 
+    def __getattr__(self, name):
+        try:
+            return self._parameters[name]
+        except KeyError:
+            raise AttributeError(f"'InputSet' object has no attribute '{name}'")
+        
     def load_occ(self):
         """load the occupation data from the input json file
         """
@@ -219,8 +233,49 @@ class InputSet:
                 immutable_sites_idx.append(index)
         logger.debug(f"Immutable sites are {immutable_sites_idx}")
 
-        self._parameters['occ'] = _load_occ(
-            self._parameters["mc_results"],
+        self._parameters['initial_occ'] = _load_occ(
+            self._parameters["initial_state"],
             self._parameters["supercell_shape"],
             select_sites=immutable_sites_idx,
         )
+
+class Results:
+    """
+    Class to store and manipulate results from the Tracker.
+    """
+    def __init__(self):
+        self.data = {
+            "time": [],
+            "D_J": [],
+            "D_tracer": [],
+            "conductivity": [],
+            "f": [],
+            "H_R": [],
+            "msd": [],
+        }
+
+    def add(self, time, D_J, D_tracer, conductivity, f, H_R, msd):
+        self.data["time"].append(time)
+        self.data["D_J"].append(D_J)
+        self.data["D_tracer"].append(D_tracer)
+        self.data["conductivity"].append(conductivity)
+        self.data["f"].append(f)
+        self.data["H_R"].append(H_R)
+        self.data["msd"].append(msd)
+
+    def to_dataframe(self):
+        return pd.DataFrame(self.data)
+
+    def merge(self, other):
+        for key in self.data:
+            self.data[key].extend(other.data.get(key, []))
+
+    def clear(self):
+        for key in self.data:
+            self.data[key] = []
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value

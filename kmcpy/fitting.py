@@ -8,7 +8,6 @@ Email: dengzeyu@gmail.com
 import json
 from kmcpy.io import convert
 import logging
-import kmcpy
 
 logger = logging.getLogger(__name__) 
 
@@ -16,7 +15,6 @@ class Fitting:
     """Main class for model fitting"""
 
     def __init__(self) -> None:
-        logger.info(kmcpy.get_logo())
         pass
 
     def add_data(
