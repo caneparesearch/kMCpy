@@ -10,8 +10,9 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.io import convert
+from kmcpy.io import convert, InputSet, Results
 import logging
+from kmcpy.external.structure import StructureKMCpy
 
 logger = logging.getLogger(__name__) 
 
@@ -23,95 +24,66 @@ class Tracker:
     def __init__(self):
         pass
 
-    def initialization(
-        self,
-        occ_initial=[1, -1, -1, 1],
-        structure=None,
-        T=298,
-        v=5e13,
-        q=1.0,
-        mobile_ion_specie="Na",
-        dimension=3,
-        elem_hop_distance=3.4778,
-        **kwargs
-    ):
+    @classmethod
+    def from_inputset(cls, inputset:InputSet,
+                      structure:StructureKMCpy,
+                      occ_initial:list,
+                      ):
         """
-
-        220609
-
-        XIEWEIHANG
-
-        updated initialization function
-
+        Create a Tracker object from an InputSet object.
         Args:
-
-            occ_initial (list, optional): list for the initial occupation received from io.Inputset(). Defaults to [1,-1,-1,1].
-
-            structure (external.pymatgen_structure.Structure, optional): structure object for extracting the mobile ion content. Defaults to None.
-
-            T (int, optional): temperature. Defaults to 298.
-
-            v (float, optional): frequency constant, see the article for detail. Defaults to 5E13.
-
-            q (float, optional): charge of mobile ion specie, for Na ion, it is 1.0. Defaults to 1.0.
-
-            mobile_ion_specie (str, optional): mobile ion specie identifier to search from the structure. Defaults to "Na".
-
-            dimension (int, optional): dimension of migration, for NaSICON it is 3D migration so dimension=3, for LiCoO2 it is 2D migration so dimension=2. Defaults to 3.
-
-            elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.
-
+            inputset (InputSet): An InputSet object containing the necessary parameters for Tracker initialization.
+            structure (StructureKMCpy): A StructureKMCpy object containing the structure information.
+            occ_initial (list): Initial occupation list for the mobile ion specie.
+        Returns:
+            Tracker: An instance of the Tracker class initialized
         """
         logger.info("Initializing Tracker ...")
-        self.dimension = dimension
-        self.q = q
-        self.elem_hop_distance = elem_hop_distance
-        self.T = T
-        self.v = v
-        self.occ_initial = copy(occ_initial)
-        self.frac_coords = structure.frac_coords
-        self.latt = structure.lattice
-        self.volume = structure.volume
-        self.mobile_ion_specie = mobile_ion_specie
-        self.n_mobile_ion_specie_site = len(
-            [el.symbol for el in structure.species if mobile_ion_specie in el.symbol]
+        tracker = cls()
+
+        tracker.dimension = inputset.dimension
+        tracker.q = inputset.q
+        tracker.elem_hop_distance = inputset.elem_hop_distance
+        tracker.T = inputset.T
+        tracker.v = inputset.v
+        tracker.occ_initial = copy(occ_initial)
+        tracker.frac_coords = structure.frac_coords
+        tracker.latt = structure.lattice
+        tracker.volume = structure.volume
+        tracker.mobile_ion_specie = inputset.mobile_ion_specie
+        tracker.n_mobile_ion_specie_site = len(
+            [el.symbol for el in structure.species if inputset.mobile_ion_specie in el.symbol]
         )
-        self.mobile_ion_specie_locations = np.where(
-            self.occ_initial[0 : self.n_mobile_ion_specie_site] == -1
+        tracker.mobile_ion_specie_locations = np.where(
+            tracker.occ_initial[0 : tracker.n_mobile_ion_specie_site] == -1
         )[
             0
         ]  # na_si_site_indices[na_si_indices]
-        logger.debug('Initial mobile ion locations = %s', self.mobile_ion_specie_locations)
-        self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
+        logger.debug('Initial mobile ion locations = %s', tracker.mobile_ion_specie_locations)
+        tracker.n_mobile_ion_specie = len(tracker.mobile_ion_specie_locations)
 
-        logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
+        logger.info("number of mobile ion specie = %d", tracker.n_mobile_ion_specie)
 
-        self.displacement = np.zeros(
-            (len(self.mobile_ion_specie_locations), 3)
+        tracker.displacement = np.zeros(
+            (len(tracker.mobile_ion_specie_locations), 3)
         )  # displacement stores the displacement vector for each ion
-        self.hop_counter = np.zeros(
-            len(self.mobile_ion_specie_locations), dtype=np.int64
+        tracker.hop_counter = np.zeros(
+            len(tracker.mobile_ion_specie_locations), dtype=np.int64
         )
-        self.time = 0
-        # self.barrier = []
-        self.results = {
-            "time": [],
-            "D_J": [],
-            "D_tracer": [],
-            "conductivity": [],
-            "f": [],
-            "H_R": [],
-            "msd": [],
-        }
+        tracker.time = 0
+        # tracker.barrier = []
+        tracker.results = Results()
 
         logger.info(
             "Center of mass (Na): %s",
             np.mean(
-            self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix,
+            tracker.frac_coords[tracker.mobile_ion_specie_locations] @ tracker.latt.matrix,
             axis=0,
             ),
         )
-        self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
+        tracker.r0 = tracker.frac_coords[tracker.mobile_ion_specie_locations] @ tracker.latt.matrix
+
+        return tracker
 
 
     def update(
@@ -126,14 +98,21 @@ class Tracker:
         mobile_ion_specie_1_occ = current_occ[event.mobile_ion_specie_1_index]
         mobile_ion_specie_2_occ = current_occ[event.mobile_ion_specie_2_index]
 
-        logger.debug('---------------------Tracker info---------------------')
-        logger.debug('%s(1) at %s with idx: %s %s', self.mobile_ion_specie,mobile_ion_specie_1_coord, event.mobile_ion_specie_1_index, mobile_ion_specie_1_occ)
-        logger.debug('%s(2) at %s with idx: %s %s', self.mobile_ion_specie,mobile_ion_specie_2_coord, event.mobile_ion_specie_2_index, mobile_ion_specie_2_occ)
-        logger.debug('Time now: %s', self.time)
-        logger.debug('Hop counter: %s', self.hop_counter)
-        logger.debug('Probability: %s', event.probability)
-        logger.debug('Before update %s locations = %s', self.mobile_ion_specie,self.mobile_ion_specie_locations)
-        logger.debug('Occupation before update: %s', current_occ)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('--------------------- Tracker Update Start ---------------------')
+            logger.debug(
+            "%s(1): idx=%d, coord=%s, occ=%s",
+            self.mobile_ion_specie, event.mobile_ion_specie_1_index, np.array2string(mobile_ion_specie_1_coord, precision=4), mobile_ion_specie_1_occ
+            )
+            logger.debug(
+            "%s(2): idx=%d, coord=%s, occ=%s",
+            self.mobile_ion_specie, event.mobile_ion_specie_2_index, np.array2string(mobile_ion_specie_2_coord, precision=4), mobile_ion_specie_2_occ
+            )
+            logger.debug("Current simulation time: %.6f", self.time)
+            logger.debug("Hop counters: %s", np.array2string(self.hop_counter, precision=0, separator=', '))
+            logger.debug("Event probability: %s", getattr(event, "probability", None))
+            logger.debug("Mobile ion locations before update: %s", self.mobile_ion_specie_locations)
+            logger.debug("Occupation before update: %s", np.array2string(current_occ, precision=0, separator=', '))
         direction = int(
             (mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2
         )  # na1 -> na2 direction = 1; na2 -> na1 direction = -1
@@ -165,6 +144,7 @@ class Tracker:
         self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
         self.hop_counter[specie_to_diff] += 1
         self.time += time_change
+        logger.debug('------------------------ Tracker Update End --------------------')
         # self.frac_na_at_na1.append(np.count_nonzero(self.mobile_ion_specie_location < self.n_mobile_ion_specie_site/4)/self.n_mobile_ion_specie)
 
     def calc_D_J(self, d=3):
@@ -233,13 +213,7 @@ class Tracker:
             self.results["f"][-1],
         )
 
-    def summary(self, comp, current_pass):
-        logger.debug('\nTracker Summary:')
-        logger.debug('comp = %s', comp)
-        logger.debug('Time elapsed: %s', self.time)
-        logger.debug('Current pass: %s', current_pass)
-        logger.debug('T = %s K, v = %s', self.T, self.v)
-        logger.debug(f'{self.mobile_ion_specie} ratio ({self.mobile_ion_specie}/({self.mobile_ion_specie}+Va)) = {self.n_mobile_ion_specie/self.n_mobile_ion_specie_site}')
+    def summary(self, current_pass):
         # logger.debug('Si ratio (Si/(Si+P)) = %s', self.n_si/self.n_si_sites)
         # logger.debug('Displacement vectors r_i = %s', self.displacement)
         # logger.debug('Hopping counts n_i = %s', self.hop_counter)
@@ -260,62 +234,48 @@ class Tracker:
             np.linalg.norm(self.displacement, axis=1) ** 2
         )  # MSD = sum_i(|r_i|^2)/N
 
-        logger.debug("Haven's ratio H_R = %s", H_R)
+        summary_data = [
+            ["Time elapsed", self.time],
+            ["Current pass", current_pass],
+            ["Temperature (K)", self.T],
+            ["Attempt frequency (v)", self.v],
+            [f"{self.mobile_ion_specie} ratio ({self.mobile_ion_specie}/({self.mobile_ion_specie}+Va))", self.n_mobile_ion_specie/self.n_mobile_ion_specie_site],
+            ["Haven's ratio H_R", H_R],
+        ]
+        table_str = "\n" + pd.DataFrame(summary_data, columns=["Property", "Value"]).to_string(index=False)
+        logger.debug('Tracker Summary:%s', table_str)
 
-        self.results["D_J"].append(D_J)
-        self.results["D_tracer"].append(D_tracer)
-        self.results["f"].append(f)
-        self.results["H_R"].append(H_R)
-        self.results["conductivity"].append(conductivity)
-        self.results["time"].append(copy(self.time))
-        self.results["msd"].append(msd)
+        self.results.add(
+            copy(self.time), D_J, D_tracer, conductivity, f, H_R, msd
+        )
 
         return conductivity
 
-    def write_results(self, comp, structure_idx, current_pass, current_occupation):
+    def write_results(self,  current_pass:int, current_occupation:list, label:str = None)-> None:
+        prefix = f"{label}_{current_pass}"
         np.savetxt(
-            "displacement_"
-            + str(comp)
-            + "_"
-            + str(structure_idx)
-            + "_"
-            + str(current_pass)
-            + ".csv.gz",
+            f"displacement_{prefix}.csv.gz",
             self.displacement,
             delimiter=",",
         )
         np.savetxt(
-            "hop_counter_"
-            + str(comp)
-            + "_"
-            + str(structure_idx)
-            + "_"
-            + str(current_pass)
-            + ".csv.gz",
+            f"hop_counter_{prefix}.csv.gz",
             self.hop_counter,
             delimiter=",",
         )
-        #    np.savetxt('barrier_'+str(comp)+'_'+str(structure_idx)+'_'+str(current_pass)+'.csv.gz',self.barrier,delimiter=',')
         np.savetxt(
-            "current_occ_"
-            + str(comp)
-            + "_"
-            + str(structure_idx)
-            + "_"
-            + str(current_pass)
-            + ".csv.gz",
+            f"current_occ_{prefix}.csv.gz",
             current_occupation,
             delimiter=",",
         )
 
-        df = pd.DataFrame(self.results)
-        df.to_csv(
-            "results_" + str(comp) + "_" + str(structure_idx) + ".csv.gz",
-            compression="gzip",
-        )
+        if label:
+            results_file = f"results_{label}.csv.gz"
+        else:
+            results_file = "results.csv.gz"
+        self.results.to_dataframe().to_csv(results_file, compression="gzip", index=False)
 
-    def as_dict(self):
-
+    def as_dict(self)-> dict:
         d = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
@@ -335,7 +295,7 @@ class Tracker:
         }
         return d
 
-    def to_json(self, fname):
+    def to_json(self, fname)-> None:
         logger.info("Saving: %s", fname)
         with open(fname, "w") as fhandle:
             d = self.as_dict()
@@ -345,7 +305,7 @@ class Tracker:
             fhandle.write(jsonStr)
 
     @classmethod
-    def from_json(self, fname):
+    def from_json(self, fname)-> "Tracker":
         logger.info("Loading: %s", fname)
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)

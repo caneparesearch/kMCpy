@@ -194,18 +194,12 @@ class Test_version3(unittest.TestCase):
         inputset = InputSet.from_json("input/test_input_v3.json")
 
         print(inputset._parameters.keys())
-        print(inputset._parameters["mc_results"])
+        print(inputset._parameters["initial_state"])
 
-        kmc = KMC()
-        events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
+        kmc = KMC.from_inputset(inputset)
 
-        # # step 2 compute the site kernal (used for kmc run)
-        kmc.load_site_event_list(inputset._parameters["event_kernel"])
+        kmc_tracker = kmc.run(inputset)
 
-        # # step 3 run kmc
-        kmc_tracker = kmc.run_from_database(
-            events=events_initialized, **inputset._parameters
-        )
         print(kmc_tracker.return_current_info())
         self.assertTrue(
             np.allclose(
@@ -235,19 +229,12 @@ class Test_version3(unittest.TestCase):
         inputset = InputSet.from_json("input/test_input_v3.json")
 
         print(inputset._parameters.keys())
-        print(inputset._parameters["mc_results"])
+        print(inputset._parameters["initial_state"])
         
         inputset.set_parameter("random_seed", np.random.randint(0, 1000000))
-        kmc = KMC()
-        events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
-
-        # # step 2 compute the site kernal (used for kmc run)
-        kmc.load_site_event_list(inputset._parameters["event_kernel"])
-
-        # # step 3 run kmc
-        kmc_tracker = kmc.run_from_database(
-            events=events_initialized, **inputset._parameters
-        )
+        kmc = KMC.from_inputset(inputset)
+        
+        kmc_tracker = kmc.run(inputset)
 
         print(kmc_tracker.return_current_info())
         self.assertFalse(

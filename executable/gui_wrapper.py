@@ -11,6 +11,7 @@ from kmcpy.event_generator import generate_events
 from kmcpy.model import LocalClusterExpansion
 import kmcpy._version
 from kmcpy.external.structure import StructureKMCpy
+from kmcpy.io import InputSet
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))
 def main():
@@ -139,7 +140,7 @@ def main():
         "event_kernel", default="./input/event_kernal.csv", type=str
     )
     kmc_parser.add_argument(
-        "mc_results", default="./input/initial_state.json", type=str
+        "initial_state", default="./input/initial_state.json", type=str
     )
 
     # cell
@@ -159,7 +160,6 @@ def main():
 
     # random
     kmc_parser.add_argument("--random_seed", default=12345, type=int)
-    kmc_parser.add_argument("--use_numpy_random_kernel", action="store_true")
 
     # no need to change?
     kmc_parser.add_argument("--structure_idx", default=1, type=int)
@@ -223,25 +223,11 @@ def main():
         os.chdir(args.work_dir)
         print(vars(args))
 
-        # workout the sites to be selected
-        structure = StructureKMCpy.from_cif(args.prim_fname, primitive=False)
+        inputset = InputSet.from_dict(args.__dict__)
+        kmc = KMC.from_inputset(inputset = inputset)
 
-        immutable_sites = []
-        for site in structure.sites:
-            if site.species in args.immutable_sites:
-                immutable_sites.append(site.index)
-
-        occ = _load_occ(
-            fname=args.mc_results,
-            shape=args.supercell_shape,
-            select_sites = immutable_sites,
-        )
-        kmc = KMC()
-        events_initialized = kmc.initialization(occ=occ, **vars(args))
-        kmc.load_site_event_list(args.event_kernel)
-
-        # # step 3 run kmc
-        kmc.run_from_database(events=events_initialized, **vars(args))
+        # run kmc
+        kmc.run(inputset)
 
     if args.command == "fitLCEmodel":
         from kmcpy.fitting import Fitting

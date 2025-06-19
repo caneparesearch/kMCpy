@@ -45,18 +45,14 @@ class TestStringMethods(unittest.TestCase):
     inputset = InputSet.from_json("input/test_input_v2.json")
 
     print(inputset._parameters.keys())
-    print(inputset._parameters["mc_results"])
+    print(inputset._parameters["initial_state"])
 
-    # step 1 initialize global occupation and conditions
+    # initialize global occupation and conditions
 
-    kmc = KMC()
-    events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
+    kmc = KMC.from_inputset(inputset=inputset)
 
-    # # step 2 compute the site kernal (used for kmc run)
-    kmc.load_site_event_list(inputset._parameters["event_kernel"])
-
-    # # step 3 run kmc
-    kmc.run_from_database(events=events_initialized, **inputset._parameters)
+    # run kmc
+    kmc.run(inputset=inputset)
 
 
 if __name__ == "__main__":
