@@ -13,13 +13,15 @@
 import os
 import sys
 from io import open as io_open
+from datetime import datetime
 
 sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Project information -----------------------------------------------------
 
 project = "kMCpy"
-copyright = "2022, Canepa Research Lab"
+current_year = datetime.now().year
+copyright = f"2022-{current_year}, Canepa Research Lab"
 author = "Zeyu Deng"
 
 # The full version, including alpha/beta/rc tags

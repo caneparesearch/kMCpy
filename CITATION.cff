@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Deng"
+  given-names: "Zeyu"
+  orcid: "https://orcid.org/0000-0003-0109-9367"
+- family-names: "Xie"
+  given-names: "Weihang"
+  orcid: "https://orcid.org/0000-0002-6498-2328"
+- family-names: "Mishra"
+  given-names: "Tara P."
+  orcid: "https://orcid.org/0000-0002-3000-2555"
+- family-names: "Canepa"
+  given-names: "Pieremanuele"
+  orcid: "https://orcid.org/0000-0002-5168-9253"
+
+title: "Kinetic Monte Carlo Simulation using Python (kMCpy)"
+version: 0.1.0
+doi: 10.1016/j.commatsci.2023.112394
+date-released: 2023-08-05
+url: "https://github.com/caneparesearch/kMCpy"

@@ -8,8 +8,8 @@ Check `pyproject.toml` for the required packages. The following Python packages 
 - joblib
 - glob2
 
->[!WARNING] Windows users
-> Windows users need to install Microsoft C++ build tools (https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile pymatgen.
+> **⚠️ Warning for Windows users:**  
+> You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
 
 ## Command line environment
 It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
