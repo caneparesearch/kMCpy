@@ -15,6 +15,11 @@ from kmcpy.io import convert
 from kmcpy.event_generator import find_atom_indices
 from pymatgen.core.periodic_table import DummySpecies
 from pymatgen.core.sites import PeriodicSite
+import logging
+import kmcpy
+
+logger = logging.getLogger(__name__) 
+logging.getLogger('pymatgen').setLevel(logging.WARNING)
 
 class LocalClusterExpansion:
     """
@@ -24,6 +29,8 @@ class LocalClusterExpansion:
     """
 
     def __init__(self):
+        logger.info(kmcpy.get_logo())
+        logger.info("Initializing LocalClusterExpansion ...")
         pass
 
     def initialization(
@@ -38,7 +45,6 @@ class LocalClusterExpansion:
         species_to_be_removed=["Zr4+", "O2-", "O", "Zr"],
         convert_to_primitive_cell=False,
         exclude_site_with_identifier=[],
-        **kwargs,
     ):
         """
         Initialization of the LocalClusterExpansion object.
@@ -77,22 +83,23 @@ class LocalClusterExpansion:
         mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one 
         
         if center_frac_coord:
-            print(f"Centering the local environment at {center_frac_coord} ...")
+            logger.info(f"Centering the local environment at {center_frac_coord} ...")
             
             dummy_lattice = template_structure.lattice
             self.center_site = PeriodicSite(species=DummySpecies('X'),
                               coords=center_frac_coord,
                               coords_are_cartesian=False,
                               lattice = dummy_lattice)
+            logger.debug(f"Dummy site: {self.center_site}")
         else:
-            print(f"Centering the local environment at {mobile_ion_specie_1_indices} ...")
+            logger.info(f"Centering the local environment at {mobile_ion_specie_1_indices} ...")
             self.center_site = template_structure[
                 mobile_ion_specie_1_indices
             ]  # self.center_site: pymatgen.site
 
             template_structure.remove_sites([mobile_ion_specie_1_indices]) # remove the mobile ion from the template structure
 
-        print("Searching local env around", self.center_site, "...")
+        logger.info(f"Searching local env around {self.center_site} ...")
 
         # fallback to the initial get cluster structure
         self.MigrationUnit_structure = self.get_cluster_structure(
@@ -113,7 +120,7 @@ class LocalClusterExpansion:
             + list(combinations(atom_index_list, 4))
         )
 
-        print(len(cluster_indexes), "clusters will be generated ...")
+        logger.info(f"{len(cluster_indexes)} clusters will be generated ...")
 
         self.clusters = self.clusters_constructor(
             cluster_indexes, [10] + cutoff_cluster
@@ -125,14 +132,8 @@ class LocalClusterExpansion:
             [cluster.site_indices for cluster in orbit.clusters]
             for orbit in self.orbits
         ]  # sublattice_indices[orbit,cluster,site]
-        print(
-            "Type",
-            "Index",
-            "max_length",
-            "min_length",
-            "Point Group",
-            "Multiplicity",
-            sep="\t",
+        logger.info(
+            "Type\tIndex\tmax_length\tmin_length\tPoint Group\tMultiplicity"
         )
         for orbit in self.orbits:
             orbit.show_representative_cluster()
@@ -166,15 +167,15 @@ class LocalClusterExpansion:
             np.arange(0, len(local_env_structure), 1).tolist(), -1 * center_site.coords
         )
         if is_write_basis:
-            print("Local environemnt: ")
-            print(local_env_structure)
+            logger.info("Local environment: ")
+            logger.info(local_env_structure)
             local_env_structure.to(fmt="xyz", filename="local_env.xyz")
-            print(
-                "The point group of local environment is: ",
-                PointGroupAnalyzer(local_env_structure).sch_symbol,
+            logger.info(
+            "The point group of local environment is: %s",
+            PointGroupAnalyzer(local_env_structure).sch_symbol,
             )
         return local_env_structure
-
+    
     def get_occupation_neb_cif(
         self, other_cif_name, species_to_be_removed=["Zr4+", "O2-", "O", "Zr"]
     ):  # input is a cif structure
@@ -206,14 +207,14 @@ class LocalClusterExpansion:
             ]
             occupation_matrix.append(occupation)
             correlation_matrix.append(correlation)
-            print(other_cif_name, occupation)
+            logger.info(f"{other_cif_name}: {occupation}")
         self.correlation_matrix = correlation_matrix
 
-        print(np.round(correlation_matrix, decimals=3))
+        logger.info(np.round(correlation_matrix, decimals=3))
         np.savetxt(fname="occupation.txt", X=occupation_matrix, fmt="%5d")
         np.savetxt(fname="correlation_matrix.txt", X=correlation_matrix, fmt="%.8f")
         self.correlation_matrix = correlation_matrix
-        # print(other_cif_name,occupation,np.around(correlation,decimals=3),sep='\t')
+        logger.debug(f"{other_cif_name}\t{occupation}\t{np.around(correlation,decimals=3)}")
 
     def is_exists(self, this_site, other_structure):
         # 2 things to compare: 1. cartesian coords 2. species at each site
@@ -227,15 +228,12 @@ class LocalClusterExpansion:
 
     def clusters_constructor(self, indexes, cutoff):  # return a list of Cluster
         clusters = []
-        print("\nGenerating possible clusters within this migration unit...")
-        print(
-            "Cutoffs: pair =",
+        logger.info("\nGenerating possible clusters within this migration unit...")
+        logger.info(
+            "Cutoffs: pair = %s Angst, triplet = %s Angst, quadruplet = %s Angst",
             cutoff[1],
-            "Angst, triplet =",
             cutoff[2],
-            "Angst, quadruplet =",
             cutoff[3],
-            "Angst",
         )
         for site_indices in indexes:
             sites = [self.MigrationUnit_structure[s] for s in site_indices]
@@ -270,19 +268,18 @@ class LocalClusterExpansion:
         return orbits
 
     def __str__(self):
-        print("\nGLOBAL INFORMATION")
-        print("Number of orbits =", len(self.orbits))
-        print("Number of clusters =", len(self.clusters))
+        logger.info("\nGLOBAL INFORMATION")
+        logger.info("Number of orbits = %d", len(self.orbits))
+        logger.info("Number of clusters = %d", len(self.clusters))
 
     def write_representative_clusters(self, path="."):
         import os
-
-        print("Writing representative structures to xyz files to", path, "...")
+        logger.info("Writing representative structures to xyz files to %s ...", path)
         if not os.path.exists(path):
-            print("Making path:", path)
+            logger.info("Making path: %s", path)
             os.mkdir(path)
         for i, orbit in enumerate(self.orbits):
-            orbit.clusters[0].to_xyz(path + "/orbit_" + str(i) + ".xyz")
+            orbit.clusters[0].to_xyz(os.path.join(path, f"orbit_{i}.xyz"))
 
     def to_json(self, fname):
         """example output as exmaples/lce.json
@@ -290,7 +287,7 @@ class LocalClusterExpansion:
         Args:
             fname (_type_): _description_
         """
-        print("Saving:", fname)
+        logger.info("Saving: %s", fname)
         with open(fname, "w") as fhandle:
             d = self.as_dict()
             jsonStr = json.dumps(
@@ -319,7 +316,7 @@ class LocalClusterExpansion:
 
     @classmethod
     def from_json(self, fname):
-        print("Loading:", fname)
+        logger.info("Loading: %s", fname)
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
         obj = LocalClusterExpansion()
@@ -347,26 +344,23 @@ class Orbit:  # orbit is a collection of symmetry equivalent clusters
     def __str__(self):
         try:
             for i, cluster in enumerate(self.clusters):
-                print(
-                    "Cluster[",
+                logger.info(
+                    "Cluster[%d]: %5s\t%10s\t%8.3f\t%8.3f\t%5s\t%5d",
                     i,
-                    "]: {0:5s}\t{1:10s}\t{2:8.3f}\t{3:8.3f}\t{4:5s}\t{5:5d}".format(
-                        cluster.type,
-                        str(cluster.site_indices),
-                        cluster.max_length,
-                        cluster.min_length,
-                        cluster.sym,
-                        self.multiplicity,
-                    ),
+                    cluster.type,
+                    str(cluster.site_indices),
+                    cluster.max_length,
+                    cluster.min_length,
+                    cluster.sym,
+                    self.multiplicity,
                 )
         except TypeError:
-            print("No cluster in this orbit!")
-
+            logger.info("No cluster in this orbit!")
     def to_xyz(self, fname):
         self.clusters[0].to_xyz(fname)
 
     def show_representative_cluster(self):
-        print(
+        logger.info(
             "{0:5s}\t{1:10s}\t{2:8.3f}\t{3:8.3f}\t{4:5s}\t{5:5d}".format(
                 self.clusters[0].type,
                 str(self.clusters[0].site_indices),
@@ -387,7 +381,6 @@ class Orbit:  # orbit is a collection of symmetry equivalent clusters
         for cluster in self.clusters:
             d["clusters"].append(cluster.as_dict())
         return d
-
 
 class Cluster:
     def __init__(self, site_indices, sites):
@@ -440,19 +433,21 @@ class Cluster:
         local_structure_no_oxidation.to(filename=fname, fmt="xyz")
 
     def __str__(self):
-        print("==============================================================")
-        print(
-            "This cluster is a", self.type, ", constructed by site", self.site_indices
+        logger.info("==============================================================")
+        logger.info(
+            "This cluster is a %s, constructed by site %s", self.type, self.site_indices
         )
-        print(
-            f"max length = {self.max_length:.3f} Angst ,min_length = {self.min_length:.3f} Angst"
+        logger.info(
+            "max length = %.3f Angst ,min_length = %.3f Angst",
+            self.max_length,
+            self.min_length,
         )
-        print("Point Group: ", self.sym)
+        logger.info("Point Group: %s", self.sym)
         try:
-            print("Cluster function = ", self.cluster_function_string)
-        except:
+            logger.info("Cluster function = %s", self.cluster_function_string)
+        except AttributeError:
             pass
-        print("==============================================================\n")
+        logger.info("==============================================================\n")
 
     def as_dict(self):
         d = {

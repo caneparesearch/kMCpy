@@ -10,7 +10,10 @@ import numba as nb
 from copy import deepcopy
 import json
 from kmcpy.io import convert
+import logging
 
+logger = logging.getLogger(__name__) 
+logging.getLogger('numba').setLevel(logging.WARNING)
 
 class Event:
     """
@@ -46,21 +49,18 @@ class Event:
         self.sublattice_indices_site = sublattice_indices_site  # this stores the site indices from local_cluster_expansion object
 
     def show_info(self):
-        print(
-            "Event: mobile_ion(1)mobile_ion(1)[",
+        logger.info(
+            "Event: mobile_ion(1)[%s]<--> mobile_ion(2)[%s]",
             self.mobile_ion_specie_1_index,
-            "]<--> mobile_ion(2)[",
             self.mobile_ion_specie_2_index,
-            "]",
         )
-        # print('Global sites indices are (excluding O and Zr):',self.local_env_indices_list)
-        # print('Local template structure:')
-        # print(self.sorted_local_structure)
+        logger.debug('Global sites indices are (excluding O and Zr): %s', self.local_env_indices_list)
+        logger.debug('Local template structure: %s', getattr(self, 'sorted_local_structure', None))
 
         try:
-            print("occ_sublat\tE_KRA\tProbability")
-            print(self.occ_sublat, "\t", self.ekra, "\t", self.probability)
-        except:
+            logger.info("occ_sublat\tE_KRA\tProbability")
+            logger.info("%s\t%s\t%s", self.occ_sublat, self.ekra, self.probability)
+        except Exception:
             pass
 
     def clear_property(self):
@@ -139,7 +139,7 @@ class Event:
         return d
 
     def to_json(self, fname):
-        print("Saving:", fname)
+        logger.info("Saving: %s", fname)
         with open(fname, "w") as fhandle:
             d = self.as_dict()
             jsonStr = json.dumps(
@@ -149,13 +149,12 @@ class Event:
 
     @classmethod
     def from_json(self, fname):
-        print("Loading:", fname)
+        logger.info("Loading: %s", fname)
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
         obj = Event()
         obj.__dict__ = objDict
         return obj
-
     @classmethod
     def from_dict(self, event_dict):  # convert dict into event object
         event = Event()

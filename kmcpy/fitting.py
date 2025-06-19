@@ -7,12 +7,16 @@ Email: dengzeyu@gmail.com
 
 import json
 from kmcpy.io import convert
+import logging
+import kmcpy
 
+logger = logging.getLogger(__name__) 
 
 class Fitting:
     """Main class for model fitting"""
 
     def __init__(self) -> None:
+        logger.info(kmcpy.get_logo())
         pass
 
     def add_data(
@@ -55,7 +59,7 @@ class Fitting:
         return d
 
     def to_json(self, fname):
-        print("Saving:", fname)
+        logger.info(f"Saving: {fname}")
         with open(fname, "w") as fhandle:
             d = self.as_dict()
             jsonStr = json.dumps(
@@ -65,7 +69,8 @@ class Fitting:
 
     @classmethod
     def from_json(self, fname):
-        print("Loading:", fname)
+        logger = logging.getLogger(__name__)
+        logger.info(f"Loading: {fname}")
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
         obj = Fitting()
@@ -117,30 +122,27 @@ class Fitting:
         import numpy as np
         import pandas as pd
 
-        print("Loading E_KRA from", ekra_fname, "...")
+        logger.info(f"Loading E_KRA from {ekra_fname} ...")
         e_kra = np.loadtxt(ekra_fname)
         weight = np.loadtxt(weight_fname)
         weight_copy = copy(weight)
         correlation_matrix = np.loadtxt(corr_fname)
 
-        alpha = alpha
         estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=True)
         estimator.fit(correlation_matrix, e_kra, sample_weight=weight)
         keci = estimator.coef_
         empty_cluster = estimator.intercept_
-        print("Lasso Results:")
-        print("KECI = ")
-        print(np.round(keci, 2))
-        print("There are ", np.count_nonzero(abs(keci) > 1e-2), "Non Zero KECI")
-        print("Empty Cluster = ")
-        print(empty_cluster)
+        logger.info("Lasso Results:")
+        logger.info(f"KECI = \n{np.round(keci, 2)}")
+        logger.info(f"There are {np.count_nonzero(abs(keci) > 1e-2)} Non Zero KECI")
+        logger.info(f"Empty Cluster = {empty_cluster}")
 
         y_true = e_kra
         y_pred = estimator.predict(correlation_matrix)
-        print("index\tNEB\tLCE\tNEB-LCE")
+        logger.info("index\tNEB\tLCE\tNEB-LCE")
         index = np.linspace(1, len(y_true), num=len(y_true), dtype="int")
-        print(
-            np.round(np.array([index, y_true, y_pred, y_true - y_pred]).T, decimals=2)
+        logger.info(
+            f"\n{np.round(np.array([index, y_true, y_pred, y_true - y_pred]).T, decimals=2)}"
         )
 
         # cv = sqrt(mean(scores)) + N_nonzero_eci*penalty, penalty = 0 here
@@ -153,16 +155,16 @@ class Fitting:
             n_jobs=-1,
         )
         loocv = np.sqrt(np.mean(scores))
-        print("LOOCV = ", np.round(loocv, 2), "meV")
+        logger.info(f"LOOCV = {np.round(loocv, 2)} meV")
         # compute RMS error
         rmse = root_mean_squared_error(y_true, y_pred)
-        print("RMSE = ", np.round(rmse, 2), "meV")
+        logger.info(f"RMSE = {np.round(rmse, 2)} meV")
         np.savetxt(fname=keci_fname, X=keci, fmt="%.8f")
         time_stamp = datetime.now().timestamp()
         time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
         try:
-            print("Try loading ", fit_results_fname, " ...")
+            logger.info(f"Try loading {fit_results_fname} ...")
             df = pd.read_json(fit_results_fname, orient="index")
             new_data = pd.DataFrame(
                 [
@@ -180,13 +182,12 @@ class Fitting:
                 columns=df.columns,
             )
             df2 = pd.concat([df, new_data])
-            # df2 = df.append(new_data,ignore_index=True)
-            print("Updated latest results: ")
             df2.to_json(fit_results_fname, orient="index", indent=4)
-            print(df2.iloc[-1])
-        except:
-            print(fit_results_fname, "is not found, create a new file...")
-            print(weight_copy)
+            logger.info("Updated latest results: ")
+            logger.info(f"\n{df2.iloc[-1]}")
+        except Exception as e:
+            logger.info(f"{fit_results_fname} is not found, create a new file...")
+            logger.info(weight_copy)
             df = pd.DataFrame(
                 data=[
                     [
@@ -212,7 +213,7 @@ class Fitting:
                 ],
             )
             df.to_json(fit_results_fname, orient="index", indent=4)
-            print("Updated latest results: ")
-            print(df.iloc[-1])
+            logger.info("Updated latest results: ")
+            logger.info(f"\n{df.iloc[-1]}")
 
         return y_pred, y_true
