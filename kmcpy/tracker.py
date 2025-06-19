@@ -11,7 +11,9 @@ import pandas as pd
 from copy import copy
 import json
 from kmcpy.io import convert
+import logging
 
+logger = logging.getLogger(__name__) 
 
 class Tracker:
     """
@@ -60,7 +62,7 @@ class Tracker:
             elem_hop_distance (float, optional): hopping distance of mobile ion. IN nasicon, this is the distance in Angstrom from Na1 to its nearest Na2. Planning to automatically calculate it. Defaults to 3.4778.
 
         """
-        print("Initializing Tracker ...")
+        logger.info("Initializing Tracker ...")
         self.dimension = dimension
         self.q = q
         self.elem_hop_distance = elem_hop_distance
@@ -70,6 +72,7 @@ class Tracker:
         self.frac_coords = structure.frac_coords
         self.latt = structure.lattice
         self.volume = structure.volume
+        self.mobile_ion_specie = mobile_ion_specie
         self.n_mobile_ion_specie_site = len(
             [el.symbol for el in structure.species if mobile_ion_specie in el.symbol]
         )
@@ -78,10 +81,10 @@ class Tracker:
         )[
             0
         ]  # na_si_site_indices[na_si_indices]
-        # print('Initial mobile ion locations =',self.mobile_ion_specie_locations)
+        logger.debug('Initial mobile ion locations = %s', self.mobile_ion_specie_locations)
         self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
 
-        print("number of mobile ion specie =", self.n_mobile_ion_specie)
+        logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
 
         self.displacement = np.zeros(
             (len(self.mobile_ion_specie_locations), 3)
@@ -101,11 +104,11 @@ class Tracker:
             "msd": [],
         }
 
-        print(
-            "Center of mass (Na):",
+        logger.info(
+            "Center of mass (Na): %s",
             np.mean(
-                self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix,
-                axis=0,
+            self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix,
+            axis=0,
             ),
         )
         self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
@@ -123,14 +126,14 @@ class Tracker:
         mobile_ion_specie_1_occ = current_occ[event.mobile_ion_specie_1_index]
         mobile_ion_specie_2_occ = current_occ[event.mobile_ion_specie_2_index]
 
-        # print('---------------------Tracker info---------------------')
-        # print('Na(1) at',mobile_ion_specie_1_coord,'with idx:',event.mobile_ion_specie_1_index,mobile_ion_specie_1_occ)
-        # print('Na(2) at',mobile_ion_specie_2_coord,'with idx:',event.mobile_ion_specie_2_index,mobile_ion_specie_2_occ)
-        # print('Time now:',self.time)
-        # print('Hop counter: ',self.hop_counter)
-        # print(event.probability)
-        # print('Before update Na locations =',self.mobile_ion_specie_location)
-        # print('Occupation before update: ',current_occ)
+        logger.debug('---------------------Tracker info---------------------')
+        logger.debug('%s(1) at %s with idx: %s %s', self.mobile_ion_specie,mobile_ion_specie_1_coord, event.mobile_ion_specie_1_index, mobile_ion_specie_1_occ)
+        logger.debug('%s(2) at %s with idx: %s %s', self.mobile_ion_specie,mobile_ion_specie_2_coord, event.mobile_ion_specie_2_index, mobile_ion_specie_2_occ)
+        logger.debug('Time now: %s', self.time)
+        logger.debug('Hop counter: %s', self.hop_counter)
+        logger.debug('Probability: %s', event.probability)
+        logger.debug('Before update %s locations = %s', self.mobile_ion_specie,self.mobile_ion_specie_locations)
+        logger.debug('Occupation before update: %s', current_occ)
         direction = int(
             (mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2
         )  # na1 -> na2 direction = 1; na2 -> na1 direction = -1
@@ -141,29 +144,24 @@ class Tracker:
             [int(round(i)) for i in displacement_frac]
         )  # for periodic condition
         displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
-
-        print(f"direction - {direction}")
-        print(mobile_ion_specie_2_occ)
-        print(mobile_ion_specie_1_occ)
-
-        if direction == -1: # Na(2) -> Na(1)
-            # print('Diffuse direction: Na(2) -> Na(1)')
+        if direction == -1:  # Na(2) -> Na(1)
+            logger.debug(f'Diffuse direction: {self.mobile_ion_specie}(2) -> {self.mobile_ion_specie}(1)')
             specie_to_diff = np.where(
-                self.mobile_ion_specie_locations == event.mobile_ion_specie_2_index
+            self.mobile_ion_specie_locations == event.mobile_ion_specie_2_index
             )[0][0]
             self.mobile_ion_specie_locations[specie_to_diff] = (
-                event.mobile_ion_specie_1_index
+            event.mobile_ion_specie_1_index
             )
         elif direction == 1:  # Na(1) -> Na(2)
-            # print('Diffuse direction: Na(1) -> Na(2)')
+            logger.debug(f'Diffuse direction: {self.mobile_ion_specie}(1) -> {self.mobile_ion_specie}(2)')
             specie_to_diff = np.where(
-                self.mobile_ion_specie_locations == event.mobile_ion_specie_1_index
+            self.mobile_ion_specie_locations == event.mobile_ion_specie_1_index
             )[0][0]
             self.mobile_ion_specie_locations[specie_to_diff] = (
-                event.mobile_ion_specie_2_index
+            event.mobile_ion_specie_2_index
             )
         else:
-            print("Proposed a wrong event! Please check the code!")
+            logger.error("Proposed a wrong event! Please check the code!")
         self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
         self.hop_counter[specie_to_diff] += 1
         self.time += time_change
@@ -208,24 +206,21 @@ class Tracker:
         conductivity = D_J * n * self.q**2 / (k * self.T) * 1.602 * 10**11  # to mS/cm
 
         return conductivity
-
-    def show_current_info(self, comp, current_pass):
-
-        print(
-            "%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E"
-            % (
-                current_pass,
-                self.time,
-                self.results["msd"][-1],
-                self.results["D_J"][-1],
-                self.results["D_tracer"][-1],
-                self.results["conductivity"][-1],
-                self.results["H_R"][-1],
-                self.results["f"][-1],
-            )
+    
+    def show_current_info(self, current_pass):
+        logger.info(
+            "%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E",
+            current_pass,
+            self.time,
+            self.results["msd"][-1],
+            self.results["D_J"][-1],
+            self.results["D_tracer"][-1],
+            self.results["conductivity"][-1],
+            self.results["H_R"][-1],
+            self.results["f"][-1],
         )
-        # print('Center of mass (Na):',np.mean(self.frac_coords[self.na_locations]@self.latt.matrix,axis=0))
-        # print('MSD = ',np.linalg.norm(np.sum(self.displacement,axis=0))**2,'time = ',self.time)
+        logger.debug('Center of mass (%s): %s', self.mobile_ion_specie, np.mean(self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix, axis=0))
+        logger.debug('MSD = %s, time = %s', np.linalg.norm(np.sum(self.displacement, axis=0))**2, self.time)
 
     def return_current_info(self):
         return (
@@ -239,22 +234,19 @@ class Tracker:
         )
 
     def summary(self, comp, current_pass):
-        # print('\nTracker Summary:')
-        # print('comp =',comp)
-        # print('structure_idx =',structure_idx)
-        # print('Time elapsed: ',self.time)
-        # print('Current pass: ',current_pass)
-        # print('T = ',self.T,'K','v = ',self.v)
-        # print('Na ratio (Na/(Na+Va)) =',self.n_na/self.n_na_sites)
-        # print('Si ratio (Si/(Si+P)) =',self.n_si/self.n_si_sites)
-        # print('Displacement vectors r_i = ')
-        # print(self.displacement)
-        # print('Hopping counts n_i = ')
-        # print(self.hop_counter)
-        # print('average n_Na% @ Na(1) =',sum(self.frac_na_at_na1)/len(self.frac_na_at_na1))
-        # print('final n_Na% @ Na(1) =',self.frac_na_at_na1[-1])
-        # print('final Occ Na(1):',(4-3*comp)*self.frac_na_at_na1[-1])
-        # print('final Occ Na(2):',(4-3*comp)/3*(1-self.frac_na_at_na1[-1]))
+        logger.debug('\nTracker Summary:')
+        logger.debug('comp = %s', comp)
+        logger.debug('Time elapsed: %s', self.time)
+        logger.debug('Current pass: %s', current_pass)
+        logger.debug('T = %s K, v = %s', self.T, self.v)
+        logger.debug(f'{self.mobile_ion_specie} ratio ({self.mobile_ion_specie}/({self.mobile_ion_specie}+Va)) = {self.n_mobile_ion_specie/self.n_mobile_ion_specie_site}')
+        # logger.debug('Si ratio (Si/(Si+P)) = %s', self.n_si/self.n_si_sites)
+        # logger.debug('Displacement vectors r_i = %s', self.displacement)
+        # logger.debug('Hopping counts n_i = %s', self.hop_counter)
+        # logger.debug('average n_Na%% @ Na(1) = %s', sum(self.frac_na_at_na1)/len(self.frac_na_at_na1))
+        # logger.debug('final n_Na%% @ Na(1) = %s', self.frac_na_at_na1[-1])
+        # logger.debug('final Occ Na(1): %s', (4-3*comp)*self.frac_na_at_na1[-1])
+        # logger.debug('final Occ Na(2): %s', (4-3*comp)/3*(1-self.frac_na_at_na1[-1]))
 
         D_J = self.calc_D_J()
         D_tracer = self.calc_D_tracer()
@@ -268,7 +260,7 @@ class Tracker:
             np.linalg.norm(self.displacement, axis=1) ** 2
         )  # MSD = sum_i(|r_i|^2)/N
 
-        # print('Haven\'s ratio H_R =',H_R)
+        logger.debug("Haven's ratio H_R = %s", H_R)
 
         self.results["D_J"].append(D_J)
         self.results["D_tracer"].append(D_tracer)
@@ -333,7 +325,7 @@ class Tracker:
             "latt": self.latt.as_dict(),
             "volume": self.volume,
             "n_mobile_ion_specie_site": self.n_mobile_ion_specie_site,
-            "mobile_ion_specie_location": self.mobile_ion_specie_location,
+            "mobile_ion_specie_locations": self.mobile_ion_specie_locations,
             "n_mobile_ion_specie": self.n_mobile_ion_specie,
             "displacement": self.displacement,
             "hop_counter": self.hop_counter,
@@ -344,7 +336,7 @@ class Tracker:
         return d
 
     def to_json(self, fname):
-        print("Saving:", fname)
+        logger.info("Saving: %s", fname)
         with open(fname, "w") as fhandle:
             d = self.as_dict()
             jsonStr = json.dumps(
@@ -354,7 +346,7 @@ class Tracker:
 
     @classmethod
     def from_json(self, fname):
-        print("Loading:", fname)
+        logger.info("Loading: %s", fname)
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
         obj = Tracker()

@@ -8,6 +8,9 @@ Email: dengzeyu@gmail.com
 import numpy as np
 import json
 from kmcpy.external.structure import StructureKMCpy
+import logging
+
+logger = logging.getLogger(__name__) 
 
 # class IO:
 #     def __init__(self):
@@ -30,10 +33,9 @@ def convert(o):
 
 
 def _load_occ(
-    fname:str,
-    shape:list,
-    select_sites:list,
-    verbose=False,
+    fname: str,
+    shape: list,
+    select_sites: list,
     **kwargs
 ):
     """load occupation data
@@ -58,6 +60,9 @@ def _load_occ(
         # check if the occupation is compatible with the shape.
         # for example. if there is 20 occupation data and supercell is [3,1,1], it is incompatible because 20/3 is not integer
         if len(occupation_raw_data) % (shape[0] * shape[1] * shape[2]) != 0:
+            logger.error(
+                f"The length of occupation data {len(occupation_raw_data)} is incompatible with the supercell shape, please check the {fname} "
+            )
             raise ValueError(
                 f"The length of occupation data {len(occupation_raw_data)} is incompatible with the supercell shape,please check the {fname} "
             )
@@ -78,13 +83,11 @@ def _load_occ(
             occupation == 0, -1, occupation
         )  # replace 0 with -1 for Chebyshev basis
 
-        if verbose:
-            print("selected sites are", select_sites)
-            print(
-                "converting the occupation raw data to dimension:",
-                (convert_to_dimension),
-            )
-            print("occupation_chebyshev:", occupation_chebyshev)
+        logger.debug(f"Selected sites are {select_sites}")
+        logger.debug(
+            f"Converting the occupation raw data to dimension: {convert_to_dimension}"
+        )
+        logger.debug(f"Occupation (chebyshev basis after removing immutable sites): {occupation_chebyshev}")
 
         return occupation_chebyshev
 
@@ -126,17 +129,19 @@ class InputSet:
             format (str, optional): "equation" or "dict". If format=dict, then print a python dict. format=equation: print equations that is capable for kwargs.  Defaults to "equation".
         """
         if format == "dict":
-            print(self._parameters)
+            logger.info(self._parameters)
         if format == "equation":
             for i in self._parameters:
-                print(i, type(self._parameters[i]))
+                logger.info(f"{i} {type(self._parameters[i])}")
+            equation_strs = []
             for i in self._parameters:
-                if type(self._parameters[i]) is str:
-                    print(str(i) + "='" + self._parameters[i] + "'", end=",")
-                elif type(self._parameters[i]) is np.ndarray:
-                    print(str(i) + "=", self._parameters[i].tolist(), end=",")
+                if isinstance(self._parameters[i], str):
+                    equation_strs.append(f"{i}='{self._parameters[i]}'")
+                elif isinstance(self._parameters[i], np.ndarray):
+                    equation_strs.append(f"{i}={self._parameters[i].tolist()}")
                 else:
-                    print(str(i) + "=", self._parameters[i], end=",")
+                    equation_strs.append(f"{i}={self._parameters[i]}")
+            logger.info(",".join(equation_strs))
 
     def set_parameter(self, key_to_change="T", value_to_change=273.15):
         """_summary_
@@ -197,7 +202,7 @@ class InputSet:
                 "q",
             ]:
                 if i not in self._parameters:
-                    print(i + " is not defined yet in the parameters!")
+                    logger.error(f"{i} is not defined yet in the parameters!")
                     raise ValueError(
                         "This program is exploding due to undefined parameter. Please check input json file"
                     )
@@ -221,11 +226,10 @@ class InputSet:
         for index,site in enumerate(self.structure.sites):
             if site.specie.symbol not in self._parameters['immutable_sites']:
                 immutable_sites_idx.append(index)
-        print("immutable sites are", immutable_sites_idx)
+        logger.debug(f"Immutable sites are {immutable_sites_idx}")
 
         self._parameters['occ'] = _load_occ(
             self._parameters["mc_results"],
             self._parameters["supercell_shape"],
             select_sites=immutable_sites_idx,
-            verbose=verbose,
         )
