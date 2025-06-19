@@ -1,25 +1,17 @@
 #!/usr/bin/env python
 
-from turtle import distance
-from sympy import primitive
-from kmcpy.event import Event
 import numpy as np
 from numba.typed import List
 import numba as nb
-from kmcpy.io import convert
 import itertools
 import logging
 from pymatgen.util.coord import get_angle
 
+logger = logging.getLogger(__name__) 
+logging.getLogger('numba').setLevel(logging.WARNING)
 
 def print_divider():
-    print("\n\n-------------------------------------------\n\n")
-
-neighbor_info_logger = logging.getLogger("neighbor information:")
-neighbor_info_logger.setLevel("INFO")
-neighbor_info_logger.addHandler(logging.StreamHandler())
-neighbor_info_logger.addHandler(logging.FileHandler("debug.log"))
-
+    logger.info("\n\n-------------------------------------------\n\n")
 
 class neighbor_info_matcher:
     def __init__(
@@ -229,7 +221,6 @@ class neighbor_info_matcher:
                 for i in range(0, len(correct_distance_matrix)):
                     if i not in previous_possible_sequence:
                         tmp_sequence = previous_possible_sequence.copy()
-                        # print(tmp_sequence)
                         tmp_sequence.append(i)
                         tmp_rebuilt_submatrix = self.rebuild_submatrix(
                             distance_matrix=wrong_distance_matrix_of_specie,
@@ -308,10 +299,10 @@ class neighbor_info_matcher:
             rtol=rtol,
             atol=atol,
         ):
-            neighbor_info_logger.info(
+            logger.info(
                 "no need to rearrange this neighbor_info. The distance matrix is already the same. The differece matrix is : \n"
             )
-            neighbor_info_logger.info(
+            logger.info(
                 str(unsorted_neighbor_info.distance_matrix - self.distance_matrix)
             )
 
@@ -358,7 +349,7 @@ class neighbor_info_matcher:
                     + " please check if the rtol or atol is too small"
                 )
 
-        # neighbor_info_logger.warning(str(sorted_neighbor_sequence_dict))
+        # logger.warning(str(sorted_neighbor_sequence_dict))
 
         sorted_neighbor_sequence_list = []
 
@@ -391,16 +382,16 @@ class neighbor_info_matcher:
                     closest_smilarity_score = this_smilarity_score
                     closest_sequence = re_sorted_neighbors_list
 
-            neighbor_info_logger.warning(
+            logger.warning(
                 "the closest neighbor_info identified. Total difference"
                 + str(closest_smilarity_score)
             )
-            neighbor_info_logger.info("new sorting is found,new distance matrix is ")
-            neighbor_info_logger.info(
+            logger.info("new sorting is found,new distance matrix is ")
+            logger.info(
                 str(self.build_distance_matrix_from_getnninfo_output(closest_sequence))
             )
-            neighbor_info_logger.info("The differece matrix is : \n")
-            neighbor_info_logger.info(
+            logger.info("The differece matrix is : \n")
+            logger.info(
                 str(
                     self.build_distance_matrix_from_getnninfo_output(closest_sequence)
                     - self.distance_matrix
@@ -414,7 +405,7 @@ class neighbor_info_matcher:
                 *sorted_neighbor_sequence_list
             ):
 
-                # neighbor_info_logger.warning(str(possible_complete_sequence))
+                # logger.warning(str(possible_complete_sequence))
 
                 re_sorted_neighbors_list = []
 
@@ -430,18 +421,18 @@ class neighbor_info_matcher:
                     rtol=rtol,
                     atol=atol,
                 ):
-                    neighbor_info_logger.info(
+                    logger.info(
                         "new sorting is found,new distance matrix is "
                     )
-                    neighbor_info_logger.info(
+                    logger.info(
                         str(
                             self.build_distance_matrix_from_getnninfo_output(
                                 re_sorted_neighbors_list
                             )
                         )
                     )
-                    neighbor_info_logger.warning("The differece matrix is : \n")
-                    neighbor_info_logger.info(
+                    logger.warning("The differece matrix is : \n")
+                    logger.info(
                         str(
                             self.build_distance_matrix_from_getnninfo_output(
                                 re_sorted_neighbors_list
@@ -496,10 +487,10 @@ def find_atom_indices(
             'unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] '
         )
 
-    neighbor_info_logger.warning("please check if these are mobile_ion_specie_1:")
+    logger.warning("please check if these are mobile_ion_specie_1:")
     for i in mobile_ion_specie_1_indices:
 
-        neighbor_info_logger.warning(str(structure[i]))
+        logger.warning(str(structure[i]))
 
     return mobile_ion_specie_1_indices
 
@@ -519,7 +510,6 @@ def generate_events(
     supercell_shape=[2, 1, 1],
     event_fname="events.json",
     event_kernal_fname="event_kernal.csv",
-    verbosity="WARNING",
     **kwargs
 ):
     """
@@ -541,7 +531,6 @@ def generate_events(
         supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
         event_fname (str, optional): file name for the events json file. Defaults to "events.json".
         event_kernal_fname (str, optional): file name for event kernal. Defaults to 'event_kernal.csv'.
-        verbosity (str, optional): verbosity that passed to logging.logger. Select from ["INFO","warning"], higher level not yet implemented. Defaults to "INFO".
 
     Raises:
         NotImplementedError: the atom identifier type=list is not yet implemented
@@ -554,19 +543,15 @@ def generate_events(
 
     # --------------
     import json
-    import logging
     from kmcpy.external.structure import StructureKMCpy
     from kmcpy.external.local_env import CutOffDictNNKMCpy
 
     from kmcpy.io import convert
     from kmcpy.event import Event
-
-    # build the logger
-    event_generator_logger = logging.getLogger("event generator")
-    event_generator_logger.setLevel(verbosity)
-    event_generator_logger.addHandler(logging.StreamHandler())
-    event_generator_logger.addHandler(logging.FileHandler("debug.log"))
-    event_generator_logger.warning(
+    import kmcpy
+    
+    logger.info(kmcpy.get_logo())
+    logger.warning(
         "Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet."
     )
 
@@ -579,11 +564,11 @@ def generate_events(
 
     primitive_cell.remove_species(species_to_be_removed)
 
-    event_generator_logger.warning(
+    logger.warning(
         "primitive cell composition after adding oxidation state and removing uninvolved species: "
     )
-    event_generator_logger.info(str(primitive_cell.composition))
-    event_generator_logger.warning("building mobile_ion_specie_1 index list")
+    logger.info(str(primitive_cell.composition))
+    logger.warning("building mobile_ion_specie_1 index list")
 
     mobile_ion_specie_1_indices = find_atom_indices(
         primitive_cell,
@@ -608,10 +593,10 @@ def generate_events(
 
     reference_local_env_type = 0
 
-    event_generator_logger.info(
+    logger.info(
         "start finding the neighboring sequence of mobile_ion_specie_1s"
     )
-    event_generator_logger.info(
+    logger.info(
         "total number of mobile_ion_specie_1s:" + str(len(mobile_ion_specie_1_indices))
     )
 
@@ -655,7 +640,7 @@ def generate_events(
                 )
                 reference_local_env_type += 1
 
-                event_generator_logger.info(
+                logger.info(
                     str(reference_local_env_type)
                     + "th type of reference local_env structure cif file is created. please check"
                 )
@@ -666,7 +651,7 @@ def generate_events(
                 primitive_cell[mobile_ion_specie_1_index].properties["local_index"]
             ] = this_nninfo.neighbor_sequence
 
-            event_generator_logger.warning(
+            logger.warning(
                 "a new type of local environment is recognized with the species "
                 + str(this_nninfo.neighbor_species)
                 + " \nthe distance matrix are \n"
@@ -674,7 +659,7 @@ def generate_events(
             )
 
         else:
-            event_generator_logger.info(
+            logger.info(
                 "a local environment is created with the species "
                 + str(this_nninfo.neighbor_species)
                 + " \nthe distance matrix are \n"
@@ -696,7 +681,7 @@ def generate_events(
 
         neighbor_has_been_found += 1
 
-        event_generator_logger.warning(
+        logger.warning(
             str(neighbor_has_been_found)
             + " out of "
             + str(len(mobile_ion_specie_1_indices))
@@ -704,8 +689,8 @@ def generate_events(
         )
 
     supercell = primitive_cell.make_kmc_supercell(supercell_shape)
-    event_generator_logger.warning("supercell is created")
-    event_generator_logger.info(str(supercell))
+    logger.warning("supercell is created")
+    logger.info(str(supercell))
 
     supercell_mobile_ion_specie_1_indices = find_atom_indices(
         supercell,
@@ -828,7 +813,7 @@ def generate_events(
             "There is no event generated. This is probably caused by wrong input parameters."
         )
 
-    print("Saving:", event_fname)
+    logger.info(f"Saving: {event_fname}")
     with open(event_fname, "w") as fhandle:
         jsonStr = json.dumps(events_dict, indent=4, default=convert)
         fhandle.write(jsonStr)
@@ -840,11 +825,13 @@ def generate_events(
         events_site_list.append(event.local_env_indices_list)
 
     # np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int),fmt="%i") # dimension not equal error
+    
     generate_event_kernal(
         len(supercell),
         np.array(events_site_list),
         event_kernal_fname=event_kernal_fname,
     )
+    logger.info(f"Saving into: {event_kernal_fname}")
 
     return reference_local_env_dict
 
@@ -854,7 +841,6 @@ def normalize_supercell_tuple(
     image_of_site=(0, -1, 1),
     supercell_shape=[5, 6, 7],
     additional_input=False,
-    verbose=False,
 ):
     """finding the equivalent position in periodic supercell considering the periodic boundary condition. i.e., normalize the supercell tuple to make sure that each component of supercell is greater than zero
 
@@ -869,8 +855,7 @@ def normalize_supercell_tuple(
     Returns:
         tuple: supercell tuple
     """
-    if verbose:
-        print("equivalent position", site_belongs_to_supercell, image_of_site)
+    logger.debug(f"equivalent position: {site_belongs_to_supercell}, {image_of_site}")
 
     supercell = np.array(site_belongs_to_supercell) + np.array(image_of_site)
 
@@ -925,10 +910,9 @@ def generate_event_kernal(
 
 
     """
-    print("Generating event kernal ...")
+    logger.info("Generating event kernal ...")
     event_kernal = _generate_event_kernal(len_structure, events_site_list)
     with open(event_kernal_fname, "w") as f:
-        print("Saving into:", event_kernal_fname)
         for row in event_kernal:
             for item in row:
                 f.write("%5d " % item)
