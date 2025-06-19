@@ -8,6 +8,16 @@ local_env_cutoff_dict = {
         }
 from kmcpy.event_generator import generate_events
 
+import logging
+
+## for debugging purposes, we set the logging level to DEBUG
+logging.basicConfig(
+    level=logging.DEBUG, # Set to DEBUG to see everything
+    format='%(asctime)s - %(name)-28s - %(levelname)-8s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M',
+    filename='debug.log',)  # Log to a file named debug.log
+
+
 generate_events(
     prim_cif_name=prim_cif_name,
     local_env_cutoff_dict=local_env_cutoff_dict,
@@ -23,7 +33,6 @@ generate_events(
     supercell_shape=[1, 1, 1],
     event_fname="events_output_files/events.json",
     event_kernal_fname="events_output_files/event_kernal.csv",
-    verbosity="INFO",
 )
 
 print("Moving files")

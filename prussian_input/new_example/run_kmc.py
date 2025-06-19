@@ -2,6 +2,16 @@ from kmcpy.io import InputSet
 from kmcpy.kmc import KMC
 import numpy as np
 
+import logging
+
+## for debugging purposes, we set the logging level to DEBUG
+logging.basicConfig(
+    level=logging.DEBUG, # Set to DEBUG to see everything
+    format='%(asctime)s - %(name)-28s - %(levelname)-8s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M',
+    filename='debug.log',)  # Log to a file named debug.log
+
+
 inputset = InputSet.from_json("kmc_input_files/kmc_input.json")
 
 print(inputset._parameters.keys())

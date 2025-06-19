@@ -1,5 +1,14 @@
 from kmcpy.fitting import Fitting
 import numpy as np
+import logging
+
+## for debugging purposes, we set the logging level to DEBUG
+logging.basicConfig(
+    level=logging.DEBUG, # Set to DEBUG to see everything
+    format='%(asctime)s - %(name)-28s - %(levelname)-8s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M',
+    filename='debug.log',)  # Log to a file named debug.log
+
 
 local_cluster_expansion_fit = Fitting()
 
