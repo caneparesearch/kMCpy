@@ -197,7 +197,7 @@ class Test_version3(unittest.TestCase):
         print(inputset._parameters["mc_results"])
         inputset.parameter_checker()
 
-        inputset.load_occ(verbose=True)
+        inputset.load_occ()
         kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
 
@@ -240,7 +240,7 @@ class Test_version3(unittest.TestCase):
         print(inputset._parameters["mc_results"])
         inputset.parameter_checker()
 
-        inputset.load_occ(verbose=True)
+        inputset.load_occ()
         inputset.set_parameter("random_seed", np.random.randint(0, 1000000))
         kmc = KMC()
         events_initialized = kmc.initialization(**inputset._parameters)  # v in 10^13 hz
