@@ -1,5 +1,5 @@
 # Kinetic Monte Carlo Simulation using Python (kMCpy)
-![image](docs/source/_static/kmcpy_logo.png)
+![image](https://raw.githubusercontent.com/caneparesearch/kMCpy/master/docs/source/_static/kmcpy_logo.png)
 - Author: Zeyu Deng
 - Email: dengzeyu@gmail.com
 
@@ -23,7 +23,7 @@ Some of the relevant aspects of the code from the mentioned paper are shown belo
 
 The rf-kMC as a part of this code was used to model the Na-ion conductivity in the $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ which led to the discovery of maximum conductivity of the solid electrolyte is achieved for Na=3.4.
 
-![image](docs/source/_static/computed_conductivity.png)
+![image](https://raw.githubusercontent.com/caneparesearch/kMCpy/master/docs/source/_static/computed_conductivity.png)
 
    Calculated Na+ diffusivity (a), conductivity (b), Haven's ratio (c) and averaged correlation factor (d) of $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ at several temperatures: 373 (dark blue circles), 473 (orange squares) and 573 (red triangles) K, respectively. In panel (b), the computed ionic conductivities are compared with the experimental values of this work (Supplementary Fig. 6) at selected temperatures. Experimental values in (b) from this work are depicted with light blue (373 K), yellow (473 K), and red (573 K) crosses belonging to the same $\mathrm{Na_{1+x}Zr_{2}Si_{x}P_{3-x}O_{12}}$ compositions but of pellets with different compacities (>70 and >90%, see legend).
 
@@ -41,21 +41,28 @@ Check `pyproject.toml` for the required packages. The following Python packages 
 > You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
 
 ## Command line environment
-It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
+### Method 1: Install from PyPI
+You can quickly install the latest version of kMCpy through [PyPI](https://pypi.org/project/kmcpy/) to your environment.
 
 ```shell
-uv venv #optional if you have already created a venv
-source .venv/bin/activate
-uv sync
-uv pip install .
+pip install kmcpy
 ```
 
-## For developers 
+### Method 2: Install using UV and virtual environment
+However, it is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
+
 ```shell
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
 uv sync
-uv pip install -e .
+```
+
+### For developers 
+```shell
+uv venv #optional if you have already created a venv
+source .venv/bin/activate
+uv sync --extra dev
+uv pip install -e . # this makes the installation using the editable mode
 ```
 
 ## Graphic user interface (GUI)
@@ -71,7 +78,7 @@ pip install -r requirement_gui.txt .
 - You can access the documentation from: `./docs/html/index.html`.
 ```shell
 source .venv/bin/activate
-uv sync --all-groups
+uv sync --extra doc
 python build_doc.py
 ```
 
