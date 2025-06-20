@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kmcpy"
-version = "v0.1.4" # << REMEMBER TO UPDATE THIS FOR EACH RELEASE
+version = "v0.1.5" # << REMEMBER TO UPDATE THIS FOR EACH RELEASE
 description = "Kinetic Monte Carlo Simulation using Python (kMCpy)"
 readme = "README.md"
 requires-python = ">=3.10"
