@@ -13,9 +13,11 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false # Allows other matrix jobs to continue if one fails
       matrix:
-        # Test against the minimum supported Python and a recent one
-        python-version: ['3.10', '3.12', '3.13'] # Based on your requires-python = ">=3.10"
+        # Test against the minimum supported Python and a recent/latest stable one
+        # Based on your pyproject.toml: requires-python = ">=3.10"
+        python-version: ['3.10', '3.11', '3.12']
 
     steps:
       - name: Checkout code
@@ -25,92 +27,93 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          # Enable caching for pip to speed up dependency installation
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml' # Or '**/requirements*.txt' if you have those
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
-
-      - name: Cache uv
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/uv.lock') }} # Add uv.lock if you use it
-          restore-keys: |
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}-
-            ${{ runner.os }}-uv-${{ matrix.python-version }}-
-
-      - name: Install dependencies (including dev for tests)
+      - name: Install dependencies
         run: |
-          # Installs project in editable mode with 'dev' extras.
-          # Adjust if your 'dev' group isn't an extra or you manage it differently.
-          # If you adopt [project.optional-dependencies.dev]:
-          # uv pip install --system -e .[dev]
-          # If you keep [dependency-groups] and uv understands it for install:
-          uv pip install --system -e . --extra dev # syntax might vary based on uv's interpretation
+          python -m pip install --upgrade pip
+          # Install the current package in editable mode along with its 'dev' extras.
+          # This assumes your 'dev' dependencies are defined in [project.optional-dependencies.dev]
+          # in your pyproject.toml.
+          python -m pip install -e .[dev]
+          #
+          # If you don't use extras for 'dev' dependencies, you might do:
+          # python -m pip install -e .
+          # python -m pip install pytest pytest-cov # or other testing tools
+          # Or install from a requirements-dev.txt:
+          # python -m pip install -r requirements-dev.txt
 
       - name: Run Pytest
         run: |
-          # Your pytest.ini_options sets pythonpath = ["."], so this should work
-          # Or use uv run if pytest is a direct dependency or script
-          uv run pytest # Or just `pytest` if the venv is active and pytest is on PATH
-          # Or: pytest tests/ # If your tests are in a 'tests' directory
-
+          # pytest should be on PATH after the install step
+          pytest
+          # You can add options like --cov for coverage if pytest-cov is installed:
+          # pytest --cov=kmcpy --cov-report=xml
+          # (Your package name is kmcpy based on your pyproject.toml)
 
   build-and-publish:
     name: Build and Publish to PyPI
     runs-on: ubuntu-latest
-    # Only run this job if tests pass AND it's a tag push
-    needs: test # Ensures tests are run first
+    # This job should only run if the 'test' job (for all matrix configurations) completes successfully
+    # AND the trigger was a tag push.
+    needs: test
     if: success() && startsWith(github.ref, 'refs/tags/')
 
     permissions:
-      contents: read
-      id-token: write # For OIDC (recommended future enhancement)
+      contents: read     # Required to checkout the code
+      id-token: write  # Required for OIDC publishing (more secure, recommended future step)
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python for building
+        # Use a specific, stable Python version for the build process
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13' # A single, recent Python version for building
+          python-version: '3.13'
+          # Optional: Cache pip for build/twine if not covered by general caching
+          # cache: 'pip'
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v1
-
-      # Cache uv for the build job as well (can share cache configuration if key is generic enough)
-      - name: Cache uv (for build job)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-build-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-build-${{ hashFiles('**/pyproject.toml') }}-
-            ${{ runner.os }}-uv-build-
-
-      - name: Install Twine for publishing
-        run: uv pip install --system twine
-
-      - name: Build package with uv
+      - name: Install build tools
         run: |
-          # uv build will use the build backend specified in your pyproject.toml (setuptools)
-          uv build --sdist --wheel --out-dir dist/ .
-          # Optional: add --frozen-lockfile if you commit and use uv.lock for build dependencies
+          python -m pip install --upgrade pip
+          python -m pip install build twine
 
-      - name: Verify built distributions
+      - name: Build package
         run: |
+          # This command builds the sdist (.tar.gz) and wheel (.whl)
+          # in the dist/ directory. It uses the [build-system] defined
+          # in your pyproject.toml (which is setuptools in your case).
+          python -m build
+
+      - name: Verify built distributions (optional but recommended)
+        run: |
+          echo "Contents of dist/ directory:"
           ls -l dist/
+          echo "Checking distributions with twine:"
           twine check dist/*
 
       - name: Publish package to PyPI
         env:
+          # TWINE_USERNAME is set to __token__ when using an API token
           TWINE_USERNAME: __token__
+          # TWINE_PASSWORD is the API token stored as a GitHub Secret
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+        run: |
+          # Upload all files from the dist/ directory
+          twine upload dist/*
 
-      # --- Optional: Publish to TestPyPI first (for testing the publish step itself) ---
+      # --- Optional: Publish to TestPyPI first for verification ---
+      # It's highly recommended to test your publishing process on TestPyPI.
+      # You'll need a TestPyPI account and a separate API token stored in
+      # GitHub Secrets (e.g., TEST_PYPI_API_TOKEN).
+      #
       # - name: Publish package to TestPyPI
       #   env:
       #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }} # Needs a separate secret
-      #   run: twine upload --repository testpypi dist/*
+      #     TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      #   run: |
+      #     twine upload --repository testpypi dist/*

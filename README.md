@@ -54,7 +54,7 @@ uv pip install .
 ```shell
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
-uv sync
+uv sync --extra dev
 uv pip install -e .
 ```
 
@@ -71,7 +71,7 @@ pip install -r requirement_gui.txt .
 - You can access the documentation from: `./docs/html/index.html`.
 ```shell
 source .venv/bin/activate
-uv sync --all-groups
+uv sync --extra doc
 python build_doc.py
 ```
 

@@ -1,45 +1,79 @@
+[build-system]
+# Specifies the build tools needed to build your package.
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+backend-path = ["."] # Default, usually not needed if backend is standard
+
 [project]
 name = "kmcpy"
-version = "0.1.0"
+version = "0.1.0" # << REMEMBER TO UPDATE THIS FOR EACH RELEASE
 description = "Kinetic Monte Carlo Simulation using Python (kMCpy)"
 readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" } # Standard way to specify license, assumes LICENSE file exists
+authors = [{ name = "kMCpy Development Team", email = "dengzeyu@gmail.com" }]
+maintainers = [{name = "Zeyu Deng", email = "dengzeyu@gmail.com"},
+               {name = "Weihang Xie", email = "david.xie1998@gmail.com"},
+               {name = "Pieremanuele Canepa", email = "pieremanuele.canepa@gmail.com"}]
+keywords = ["kinetic monte carlo", "kmc", "simulation", "materials science", "condensed matter physics", "chemistry"] # Add more relevant keywords
+classifiers = [ # Standard PyPI classifiers, helps users find your package
+    "Development Status :: 4 - Beta", # Or "3 - Alpha", "5 - Production/Stable"
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License", # Replace with your actual license if different
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# Core runtime dependencies
 dependencies = [
     "glob2>=0.7",
     "joblib>=1.5.1",
     "numba>=0.61.2",
     "pymatgen>=2025.5.2",
-    "scikit-learn>=1.6.1",
+    "scikit-learn>=1.6.1"
 ]
 
-[dependency-groups]
+[project.urls]
+Homepage = "https://github.com/caneparesearch/kmcpy"
+Repository = "https://github.com/caneparesearch/kmcpy" 
+Issues = "https://github.com/caneparesearch/kmcpy/issues" 
+Documentation = "https://kmcpy.readthedocs.io/" 
+
+# Optional dependencies (extras)
+[project.optional-dependencies]
 dev = [
-    "pytest>=8.3.5",
+    "pytest>=8.0", 
+    "pytest-cov", 
 ]
-
 doc = [
-    "docutils",
-    "sphinx",
-    "sphinx_rtd_theme",
+    "sphinx>=7.0",
+    "sphinx-rtd-theme",
     "nbsphinx",
     "sphinx-autodoc-typehints",
-    "tqdm",
-    "psutil",
-    "Jinja2",
-    "myst_parser"
+    "myst-parser",
+    "tqdm", 
+    "psutil", 
 ]
 
+# Configuration for setuptools
 [tool.setuptools]
 packages = ["kmcpy"]
 
 [tool.pytest.ini_options]
-markers = ["order(number): mark test to run in a specific order"]
-pythonpath = ["."]
-
-[tool.uv]
-default-groups = ["dev"]
-
-[build-system]
-requires = ["setuptools>=61.0", "wheel"] # Or hatchling, flit_core, etc.
-build-backend = "setuptools.build_meta"  # Or "hatchling.build", "flit_core.buildapi"
-backend-path = ["."] # If backend is in-tree
+minversion = "7.0" # Good practice to set a minimum
+addopts = "-ra -q --color=yes" # Example: report all but passes, quiet, with color
+testpaths = [
+    "tests", # Standard location for tests, create this directory if it doesn't exist
+]
+pythonpath = ["."] # Adds project root to PYTHONPATH, so tests can import `kmcpy`
+markers = [
+    "order(number): mark test to run in a specific order" # Your custom marker
+]
