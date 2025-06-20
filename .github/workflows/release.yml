@@ -1,93 +1,116 @@
-# Make PyPI releases
-name: Release
+# .github/workflows/publish-to-pypi.yml
+
+name: Publish Python Package with UV
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
-    inputs:
-      task:
-        type: choice
-        options: [release, test-release]
-        default: release
-        description: Release to PyPI or TestPyPI.
-
-permissions:
-  contents: read
+  workflow_dispatch:  # Manual trigger
+  # push:
+  #   branches:
+  #     - master
 
 jobs:
   test:
-    # run test.yml first to ensure that the test suite is passing
-    uses: ./.github/workflows/test_ubuntu.yml
-
-  build_sdist:
-    needs: test
+    name: Run Tests
     runs-on: ubuntu-latest
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Install the project
-        run: uv sync --locked --all-extras --dev
-
-      - name: Build source distribution
-        run: |
-          uv pip install build
-          python -m build --sdist
-
-      - uses: actions/upload-artifact@v4
-        with:
-          path: dist/*.tar.gz
-
-  build_wheels:
-    needs: test
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, macos-13, windows-latest, ubuntu-24.04-arm]
-        python-version: ["310", "311", "312", "313"]
-    runs-on: ${{ matrix.os }}
+        # Test against the minimum supported Python and a recent one
+        python-version: ['3.10', '3.12', '3.13'] # Based on your requires-python = ">=3.10"
+
     steps:
-      - name: Check out repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.2
-        env:
-          CIBW_BUILD: cp${{ matrix.python-version }}-*
-
-      - name: Save artifact
-        uses: actions/upload-artifact@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          name: dist-${{ matrix.os }}-${{ matrix.python-version }}
-          path: ./wheelhouse/*.whl
+          python-version: ${{ matrix.python-version }}
 
-  release:
-    needs: [build_wheels, build_sdist]
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/uv.lock') }} # Add uv.lock if you use it
+          restore-keys: |
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}-
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-
+
+      - name: Install dependencies (including dev for tests)
+        run: |
+          # Installs project in editable mode with 'dev' extras.
+          # Adjust if your 'dev' group isn't an extra or you manage it differently.
+          # If you adopt [project.optional-dependencies.dev]:
+          uv pip install --system -e .[dev]
+          # If you keep [dependency-groups] and uv understands it for install:
+          # uv pip install --system -e . --extra dev # syntax might vary based on uv's interpretation
+
+      - name: Run Pytest
+        run: |
+          # Your pytest.ini_options sets pythonpath = ["."], so this should work
+          # Or use uv run if pytest is a direct dependency or script
+          uv run pytest # Or just `pytest` if the venv is active and pytest is on PATH
+          # Or: pytest tests/ # If your tests are in a 'tests' directory
+
+
+  build-and-publish:
+    name: Build and Publish to PyPI
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/kmcpy
+    # Only run this job if tests pass AND it's a tag push
+    needs: test # Ensures tests are run first
+    if: success() && startsWith(github.ref, 'refs/tags/')
+
     permissions:
-      # For PyPI trusted publishing
-      id-token: write
+      contents: read
+      id-token: write # For OIDC (recommended future enhancement)
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: '3.13' # A single, recent Python version for building
 
-      - name: Get build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
 
-      - name: Publish to PyPI or TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      # Cache uv for the build job as well (can share cache configuration if key is generic enough)
+      - name: Cache uv (for build job)
+        uses: actions/cache@v4
         with:
-          skip-existing: true
-          verbose: true
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-build-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-build-${{ hashFiles('**/pyproject.toml') }}-
+            ${{ runner.os }}-uv-build-
+
+      - name: Install Twine for publishing
+        run: uv pip install --system twine
+
+      - name: Build package with uv
+        run: |
+          # uv build will use the build backend specified in your pyproject.toml (setuptools)
+          uv build --sdist --wheel --out-dir dist/ .
+          # Optional: add --frozen-lockfile if you commit and use uv.lock for build dependencies
+
+      - name: Verify built distributions
+        run: |
+          ls -l dist/
+          twine check dist/*
+
+      - name: Publish package to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
+
+      # --- Optional: Publish to TestPyPI first (for testing the publish step itself) ---
+      # - name: Publish package to TestPyPI
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }} # Needs a separate secret
+      #   run: twine upload --repository testpypi dist/*
