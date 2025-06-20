@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+This module provides tools for generating and matching local atomic environments and events for kinetic Monte Carlo (kMC) simulations, particularly for ionic diffusion in crystalline solids. It includes utilities for neighbor environment matching, event generation, and supercell normalization, with support for structures parsed by pymatgen.
+"""
 
 import numpy as np
 from numba.typed import List

@@ -1,8 +1,6 @@
+#!/usr/bin/env python
 """
-IO takes dictionary like object and convert them into json writable string
-
-Author: Zeyu Deng
-Email: dengzeyu@gmail.com
+This module provides the InputSet class for reading and managing input parameters for KMC simulations.
 """
 
 import numpy as np

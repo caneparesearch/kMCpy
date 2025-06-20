@@ -1,8 +1,6 @@
+#!/usr/bin/env python
 """
-Function and classes for running kMC
-
-Author: Zeyu Deng
-Email: dengzeyu@gmail.com
+This module provides the KMC class and associated functions for performing Kinetic Monte Carlo (kMC) simulations, particularly for modeling stochastic processes in materials such as ion diffusion. The KMC class manages the initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports loading input data from various sources, updating system states, and tracking simulation results.
 """
 
 from numba.typed import List

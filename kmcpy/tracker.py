@@ -1,11 +1,8 @@
+#!/usr/bin/env python
 """
-Tracker is an object to track trajectories of diffusing ions
-
-Author: Zeyu Deng
-Email: dengzeyu@gmail.com
+This module defines a Tracker class for monitoring mobile ion species in kinetic Monte Carlo (kMC) simulations.
 """
 
-import numpy as np
 import numpy as np
 import pandas as pd
 from copy import copy
