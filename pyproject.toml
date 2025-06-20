@@ -19,7 +19,7 @@ classifiers = [ # Standard PyPI classifiers, helps users find your package
     "Development Status :: 4 - Beta", # Or "3 - Alpha", "5 - Production/Stable"
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License", # Replace with your actual license if different
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
