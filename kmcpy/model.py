@@ -1,7 +1,6 @@
+#!/usr/bin/env python
 """
-Functions to build the model. The LocalClusterExpansion reads a cif (for example, a NaSICON cif) and generate typically, the orbital in KMC. Typical output is lce.json
-
-This is related to the Table S3 in KMC support information pdf.
+This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
 
 from itertools import combinations
@@ -39,7 +38,7 @@ class LocalClusterExpansion:
         mobile_ion_specie_1_identifier="Na1",
         cutoff_cluster=[8, 6, 0],
         cutoff_region=4,
-        template_cif_fname="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+        template_structure_fname="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
         is_write_basis=False,
         species_to_be_removed=["Zr4+", "O2-", "O", "Zr"],
         convert_to_primitive_cell=False,
@@ -57,7 +56,7 @@ class LocalClusterExpansion:
             mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1": refers to structure_operation.find_atom_indices
             cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
             cutoff_region (float, optional): cutoff for finding migration unit. Defaults to 4.
-            template_cif_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
+            template_structure_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
             is_write_basis (bool, optional): .?. Defaults to False.
             species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
 
@@ -68,7 +67,7 @@ class LocalClusterExpansion:
         """
         logger.info(kmcpy.get_logo())
         template_structure = StructureKMCpy.from_cif(
-            template_cif_fname, primitive=convert_to_primitive_cell
+            template_structure_fname, primitive=convert_to_primitive_cell
         )
         template_structure.remove_oxidation_states()
         template_structure.remove_species(species_to_be_removed)

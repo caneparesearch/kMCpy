@@ -1,8 +1,6 @@
+#!/usr/bin/env python
 """
-Fitting is a class to generate and store the fitted results. This is the class for generating fitting_results.json
-
-Author: Zeyu Deng
-Email: dengzeyu@gmail.com
+This module provides the Fitting class for generating and storing fitting results.
 """
 
 import json
