@@ -19,10 +19,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: build
-        run: | 
-          python3 -m pip install --upgrade pip build
-          python3 -m build
+      - name: Install pypa/build
+        run: >-
+          python3 -m
+          pip install
+          build
+          --user
+      - name: Build a binary wheel and a source tarball
+        run: python3 -m build
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
   
   publish-to-pypi:
     name: Publish distribution 📦 to PyPI
