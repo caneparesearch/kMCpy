@@ -7,8 +7,6 @@ on:
   push:
     tags:
       - 'v*'  # Trigger on version tags, e.g., v1.0.0
-    branches:
-      - master
 
 jobs:
   build:
