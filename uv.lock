@@ -578,7 +578,7 @@ wheels = [
 [[package]]
 name = "kmcpy"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "glob2" },
     { name = "joblib" },
@@ -589,12 +589,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "glob2" },
-    { name = "joblib" },
-    { name = "numba" },
-    { name = "pymatgen" },
     { name = "pytest" },
-    { name = "scikit-learn" },
 ]
 doc = [
     { name = "docutils" },
@@ -618,14 +613,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "glob2", specifier = ">=0.7" },
-    { name = "joblib", specifier = ">=1.5.1" },
-    { name = "numba", specifier = ">=0.61.2" },
-    { name = "pymatgen", specifier = ">=2025.5.2" },
-    { name = "pytest", specifier = ">=8.3.5" },
-    { name = "scikit-learn", specifier = ">=1.6.1" },
-]
+dev = [{ name = "pytest", specifier = ">=8.3.5" }]
 doc = [
     { name = "docutils" },
     { name = "jinja2" },
