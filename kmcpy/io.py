@@ -249,7 +249,7 @@ class InputSet:
                 "event_kernal_fname": True,
             }
         else:
-            raise ValueError(f"Unknown task {self._parameters["task"]}. Please set task to {available_tasks}.")
+            raise ValueError(f"Unknown task {self._parameters['task']}. Please set task to {available_tasks}.")
         valid_params_lower = {param.lower() for param in parameters}
         positional_params = {param.lower() for param, required in parameters.items() if required}
         result = {}
