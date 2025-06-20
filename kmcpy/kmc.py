@@ -25,9 +25,59 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 
 class KMC:
     """
-    main function of kinetic monte carlo
+    KMC: Kinetic Monte Carlo Simulation Class
+    This class implements a Kinetic Monte Carlo (kMC) simulation for modeling stochastic processes in materials, such as ion diffusion. It provides methods for initializing the simulation from various input sources, managing events, updating system states, and running the simulation loop.
+    Attributes
+    structure : StructureKMCpy
+        The structure object representing the simulation cell.
+    keci : float
+        Fitted KECI parameter for event energy calculations.
+    empty_cluster : float
+        Fitted empty cluster energy for event energy calculations.
+    keci_site : float
+        Fitted KECI parameter for site energy calculations.
+    empty_cluster_site : float
+        Fitted empty cluster energy for site energy calculations.
+    occ_global : list
+        Current occupation list representing the system configuration.
+    events : list of Event
+        List of all possible events in the simulation.
+    prob_list : np.ndarray
+        Array of event probabilities.
+    prob_cum_list : np.ndarray
+        Cumulative sum of event probabilities for event selection.
+    site_event_list : list of list
+        Mapping from site indices to lists of event indices that need updating when a site changes.
+    inputset : InputSet
+        InputSet object containing simulation parameters (set during run).
+    rng : np.random.Generator
+        Random number generator for stochastic event selection.
+    Methods
+    -------
+    __init__(self, initial_occ, supercell_shape, fitting_results, fitting_results_site, lce_fname, lce_site_fname, template_structure_fname, event_fname, event_kernel, v=1e13, temperature=300, convert_to_primitive_cell=False, immutable_sites=[], **kwargs)
+        Initialize the KMC simulation with all required files and parameters.
+    from_inputset(cls, inputset)
+        Class method to initialize KMC from an InputSet object.
+    load_site_event_list(self, fname="../event_kernal.csv")
+        Load the mapping from site indices to event indices from a file.
+    show_project_info(self)
+        Log current probabilities and cumulative probabilities.
+    propose(self, events)
+        Propose a new event to occur, returning the event and the time increment.
+    update(self, event, events)
+        Update the system state and event probabilities after an event occurs.
+    run(self, inputset, label=None)
+        Run the KMC simulation using the provided InputSet and return a Tracker object with results.
+    as_dict(self)
+        Return a dictionary representation of the KMC object for serialization.
+    to_json(self, fname)
+        Save the KMC object to a JSON file.
+    from_json(cls, fname)
+        Class method to load a KMC object from a JSON file.
+    - It is recommended to use the `from_inputset` method for initialization.
+    - The class manages the full kMC workflow, including structure setup, event management, and simulation tracking.
+    - Logging is used extensively to provide information about the simulation state and progress.
     """
-
     def __init__(self, initial_occ: list,
                 supercell_shape: list,
                 fitting_results: str,
@@ -40,7 +90,7 @@ class KMC:
                 v: float = 1e13,
                 temperature: float = 300,
                 convert_to_primitive_cell: bool=False,
-                immutable_sites: list=[],**kwargs):
+                immutable_sites: list=[],**kwargs)-> None:
         """
                 Initialize the Kinetic Monte Carlo (kMC) simulation. 
                 It is recommended to use the `from_inputset` method to initialize the KMC object from an InputSet.
@@ -176,7 +226,7 @@ class KMC:
         self.load_site_event_list(fname = event_kernel)
 
     @classmethod
-    def from_inputset(cls, inputset: InputSet):
+    def from_inputset(cls, inputset: InputSet)-> "KMC":
         """
         Initialize KMC from InputSet object.
 
@@ -190,8 +240,8 @@ class KMC:
         return cls(**params)
 
     def load_site_event_list(
-        self, fname="../event_kernal.csv"
-    ):  # workout the site_event_list -> site_event_list[site_index] will return a list of event index to update if a site_index is chosen
+        self, fname:str="../event_kernal.csv"
+    )->None:  # workout the site_event_list -> site_event_list[site_index] will return a list of event index to update if a site_index is chosen
         logger.info("Working at the site_event_list ...")
 
         logger.info(f"Loading {fname}")
@@ -292,7 +342,7 @@ class KMC:
         logger.info("Start running kMC ... ")
         logger.info("Initial occ_global, prob_list and prob_cum_list")
         logger.info("Starting Equilbrium ...")
-        for current_pass in np.arange(inputset.equ_pass):
+        for _ in np.arange(inputset.equ_pass):
             for _ in np.arange(pass_length):
                 event, dt = self.propose(self.events)
                 self.update(event, self.events)
@@ -307,18 +357,19 @@ class KMC:
             "Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf"
         )
         for current_pass in np.arange(inputset.kmc_pass):
-            for this_kmc in np.arange(pass_length):
+            for _ in np.arange(pass_length):
                 event, dt = self.propose(self.events)
                 tracker.update(event, self.occ_global, dt)
                 self.update(event, self.events)
+            
+            tracker.update_current_pass(current_pass)
+            tracker.compute_properties()
+            tracker.show_current_info()
 
-            previous_conduct = tracker.summary(current_pass)
-            tracker.show_current_info(current_pass)
-
-        tracker.write_results(current_pass, self.occ_global, label= label)
+        tracker.write_results(self.occ_global, label=label)
         return tracker
 
-    def as_dict(self):
+    def as_dict(self)-> dict:
         d = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
@@ -331,7 +382,7 @@ class KMC:
         }
         return d
 
-    def to_json(self, fname):
+    def to_json(self, fname)-> None:
         logger.info(f"Saving: {fname}")
         with open(fname, "w") as fhandle:
             d = self.as_dict()
@@ -341,7 +392,7 @@ class KMC:
             fhandle.write(jsonStr)
 
     @classmethod
-    def from_json(cls, fname):
+    def from_json(cls, fname)-> "KMC":
         logger.info(f"Loading: {fname}")
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
@@ -351,13 +402,13 @@ class KMC:
         return obj
 
 
-def _convert_list(list_to_convert):
+def _convert_list(list_to_convert)-> List:
     converted_list = List([List(List(j) for j in i) for i in list_to_convert])
     return converted_list
 
 
 @njit
-def _propose(prob_cum_list, rng):
+def _propose(prob_cum_list, rng)-> tuple[int, float]:
     random_seed = rng.random()
     random_seed_2 = rng.random()
     proposed_event_index = np.searchsorted(
