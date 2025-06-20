@@ -1,8 +1,5 @@
 """
-Event is a database storing site and cluster info for each migration event
-
-Author: Zeyu Deng
-Email: dengzeyu@gmail.com
+This module defines the Event class, which encapsulates the information and methods required to represent and analyze a migration event in a lattice-based simulation, such as those used in kinetic Monte Carlo (kMC) studies. The Event class manages indices of mobile ions, local environments, sublattice information, and provides methods for initializing, updating, and serializing event data. It also includes methods for calculating occupation, correlation, migration barriers, and probabilities associated with migration events.
 """
 
 import numpy as np
