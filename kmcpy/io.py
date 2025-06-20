@@ -83,7 +83,6 @@ class InputSet:
     a flexible input set class for running KMC
     just a dictionary
     """
-
     def __init__(self, _parameters={}) -> None:
         self._parameters = _parameters
         pass
@@ -185,32 +184,93 @@ class InputSet:
 
 
     def parameter_checker(self):
-        """a rough parameter checker to make sure that there is enough parameters to run a job
-
-        Raises:
-            ValueError: In case that parameter is not defined in the self._parameters
         """
-        for i in [
-                "v",
-                "equ_pass",
-                "kmc_pass",
-                "supercell_shape",
-                "fitting_results",
-                "lce_fname",
-                "prim_fname",
-                "event_fname",
-                "event_kernel",
-                "initial_state",
-                "T",
-                "dimension",
-                "q",
-                "elem_hop_distance",
-            ]:
-                if i not in self._parameters:
-                    logger.error(f"Position variable: {i} is not defined yet in the parameters!")
-                    raise ValueError(
-                        f"Input error due to undefined parameter: {i}. Please check input json file"
-                    )
+        Checks all keys in self._parameters against valid_params, case-insensitively.
+
+        Returns:
+            dict: {parameter: True/False} for each parameter in self._parameters.
+        """
+        available_tasks = ["kmc", "lce","generate_event"]
+        # Convert all keys in self._parameters to lower case
+        self._parameters = {k.lower(): v for k, v in self._parameters.items()}
+
+        if self._parameters["task"] == "kmc":
+            # True -> positional parameters, False -> optional parameters
+            parameters = {
+                "task": True,
+                "v": True,
+                "equ_pass": True,
+                "kmc_pass": True,
+                "supercell_shape": True,
+                "fitting_results": True,
+                "fitting_results_site": True,
+                "lce_fname": True,
+                "lce_site_fname": True,
+                "template_structure_fname": True,
+                "event_fname": True,
+                "event_kernel": True,
+                "initial_state": True,
+                "temperature": True,
+                "dimension": True,
+                "q": True,
+                "elem_hop_distance": True,
+                "convert_to_primitive_cell": False,
+                "immutable_sites": False,
+                "mobile_ion_specie": True
+            }
+        elif self._parameters["task"] == "lce":
+            parameters = {
+                "task": True,
+                "center_frac_coord": True,
+                "mobile_ion_identifier_type": True,
+                "mobile_ion_specie_1_identifier": True,
+                "cutoff_cluster": True,
+                "cutoff_region": True,
+                "template_structure_fname": True,
+                "is_write_basis": True,
+                "species_to_be_removed": True,
+                "convert_to_primitive_cell": True,
+                "exclude_site_with_identifier": True,
+            }
+        elif self._parameters["task"] == "generate_event":
+            parameters = {
+                "task": True,
+                "template_structure_fname": True,
+                "convert_to_primitive_cell": True,
+                "local_env_cutoff_dict": True,
+                "mobile_ion_identifier_type": True,
+                "mobile_ion_specie_1_identifier": True,
+                "mobile_ion_specie_2_identifier": True,
+                "species_to_be_removed": True,
+                "distance_matrix_rtol": False,
+                "distance_matrix_atol": False,
+                "find_nearest_if_fail": False,
+                "export_local_env_structure": False,
+                "supercell_shape": True,
+                "event_fname": True,
+                "event_kernal_fname": True,
+            }
+        else:
+            raise ValueError(f"Unknown task {self._parameters["task"]}. Please set task to {available_tasks}.")
+        valid_params_lower = {param.lower() for param in parameters}
+        positional_params = {param.lower() for param, required in parameters.items() if required}
+        result = {}
+        missing_params = []
+        for key in self._parameters:
+            result[key] = key.lower() in valid_params_lower
+
+        # Check for missing positional parameters
+        for param in positional_params:
+            if param not in self._parameters:
+                missing_params.append(param)
+        if missing_params:
+            logger.error(f"Missing required parameters: {missing_params} for task {self._parameters['task']}")
+            raise ValueError(f"Missing required parameters: {missing_params} for task {self._parameters['task']}")
+
+        # Warn about ignored parameters
+        ignored_params = [key for key, valid in result.items() if not valid]
+        if ignored_params:
+            logger.warning(f"Ignored parameters: {ignored_params} for task {self._parameters['task']}")
 
     def __getattr__(self, name):
         try:
@@ -224,7 +284,7 @@ class InputSet:
         
         # workout the sites to be selected
         self.structure = StructureKMCpy.from_cif(
-            self._parameters['prim_fname'], primitive=self._parameters['convert_to_primitive_cell']
+            self._parameters['template_structure_fname'], primitive=self._parameters['convert_to_primitive_cell']
         )
 
         immutable_sites_idx = []

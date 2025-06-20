@@ -87,12 +87,12 @@ class Test_version3(unittest.TestCase):
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_1_identifier = "Na1"
         mobile_ion_specie_2_identifier = "Na2"
-        prim_cif_name = "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
+        template_structure_fname = "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
         local_env_cutoff_dict = {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
         from kmcpy.event_generator import generate_events
 
         generate_events(
-            prim_cif_name=prim_cif_name,
+            template_structure_fname=template_structure_fname,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
@@ -106,11 +106,10 @@ class Test_version3(unittest.TestCase):
             supercell_shape=[2, 1, 1],
             event_fname="events.json",
             event_kernal_fname="event_kernal.csv",
-            verbosity="INFO",
         )
 
         reference_local_env_dict = generate_events(
-            prim_cif_name=prim_cif_name,
+            template_structure_fname=template_structure_fname,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
@@ -124,7 +123,6 @@ class Test_version3(unittest.TestCase):
             supercell_shape=[2, 1, 1],
             event_fname="./input/events.json",
             event_kernal_fname="./input/event_kernal.csv",
-            verbosity="INFO",
         )
 
         print("reference_local_env_dict:", reference_local_env_dict)
@@ -150,7 +148,7 @@ class Test_version3(unittest.TestCase):
             mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
             cutoff_cluster=[6, 6, 0],
             cutoff_region=4,
-            template_cif_fname="./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+            template_structure_fname="./EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             convert_to_primitive_cell=True,
         )
         a.to_json("./input/lce.json")
