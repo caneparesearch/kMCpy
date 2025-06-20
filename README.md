@@ -41,21 +41,28 @@ Check `pyproject.toml` for the required packages. The following Python packages 
 > You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
 
 ## Command line environment
-It is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
+### Method 1: Install from PyPI
+You can quickly install the latest version of kMCpy through [PyPI](https://pypi.org/project/kmcpy/) to your environment.
+
+```shell
+pip install kmcpy
+```
+
+### Method 2: Install using UV and virtual environment
+However, it is highly recommended to install kMCpy using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
 
 ```shell
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
 uv sync
-uv pip install .
 ```
 
-## For developers 
+### For developers 
 ```shell
 uv venv #optional if you have already created a venv
 source .venv/bin/activate
 uv sync --extra dev
-uv pip install -e .
+uv pip install -e . # this makes the installation using the editable mode
 ```
 
 ## Graphic user interface (GUI)
