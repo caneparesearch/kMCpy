@@ -147,10 +147,10 @@ class Tracker:
         self.results = Results()
 
         logger.info(
-            f"Center of mass ({mobile_ion_specie}): {np.mean(
+            f"""Center of mass ({mobile_ion_specie}): {np.mean(
             self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix,
             axis=0,
-            )}")
+            )}""")
         self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
 
     @classmethod
