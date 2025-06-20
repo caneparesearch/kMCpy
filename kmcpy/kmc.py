@@ -2,7 +2,6 @@
 """
 This module provides the KMC class and associated functions for performing Kinetic Monte Carlo (kMC) simulations, particularly for modeling stochastic processes in materials such as ion diffusion. The KMC class manages the initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports loading input data from various sources, updating system states, and tracking simulation results.
 """
-
 from numba.typed import List
 from numba import njit
 from kmcpy.external.structure import StructureKMCpy
@@ -22,59 +21,12 @@ logger = logging.getLogger(__name__)
 logging.getLogger('numba').setLevel(logging.WARNING)
 
 class KMC:
-    """
-    KMC: Kinetic Monte Carlo Simulation Class
-    This class implements a Kinetic Monte Carlo (kMC) simulation for modeling stochastic processes in materials, such as ion diffusion. It provides methods for initializing the simulation from various input sources, managing events, updating system states, and running the simulation loop.
-    Attributes
-    structure : StructureKMCpy
-        The structure object representing the simulation cell.
-    keci : float
-        Fitted KECI parameter for event energy calculations.
-    empty_cluster : float
-        Fitted empty cluster energy for event energy calculations.
-    keci_site : float
-        Fitted KECI parameter for site energy calculations.
-    empty_cluster_site : float
-        Fitted empty cluster energy for site energy calculations.
-    occ_global : list
-        Current occupation list representing the system configuration.
-    events : list of Event
-        List of all possible events in the simulation.
-    prob_list : np.ndarray
-        Array of event probabilities.
-    prob_cum_list : np.ndarray
-        Cumulative sum of event probabilities for event selection.
-    site_event_list : list of list
-        Mapping from site indices to lists of event indices that need updating when a site changes.
-    inputset : InputSet
-        InputSet object containing simulation parameters (set during run).
-    rng : np.random.Generator
-        Random number generator for stochastic event selection.
-    Methods
-    -------
-    __init__(self, initial_occ, supercell_shape, fitting_results, fitting_results_site, lce_fname, lce_site_fname, template_structure_fname, event_fname, event_kernel, v=1e13, temperature=300, convert_to_primitive_cell=False, immutable_sites=[], **kwargs)
-        Initialize the KMC simulation with all required files and parameters.
-    from_inputset(cls, inputset)
-        Class method to initialize KMC from an InputSet object.
-    load_site_event_list(self, fname="../event_kernal.csv")
-        Load the mapping from site indices to event indices from a file.
-    show_project_info(self)
-        Log current probabilities and cumulative probabilities.
-    propose(self, events)
-        Propose a new event to occur, returning the event and the time increment.
-    update(self, event, events)
-        Update the system state and event probabilities after an event occurs.
-    run(self, inputset, label=None)
-        Run the KMC simulation using the provided InputSet and return a Tracker object with results.
-    as_dict(self)
-        Return a dictionary representation of the KMC object for serialization.
-    to_json(self, fname)
-        Save the KMC object to a JSON file.
-    from_json(cls, fname)
-        Class method to load a KMC object from a JSON file.
-    - It is recommended to use the `from_inputset` method for initialization.
-    - The class manages the full kMC workflow, including structure setup, event management, and simulation tracking.
-    - Logging is used extensively to provide information about the simulation state and progress.
+    """Kinetic Monte Carlo Simulation Class.
+
+    This class implements a Kinetic Monte Carlo (kMC) simulation for modeling
+    stochastic processes in materials, such as ion diffusion. It provides
+    methods for initializing the simulation from various input sources,
+    managing events, updating system states, and running the simulation loop.
     """
     def __init__(self, initial_occ: list,
                 supercell_shape: list,
@@ -89,45 +41,46 @@ class KMC:
                 temperature: float = 300,
                 convert_to_primitive_cell: bool=False,
                 immutable_sites: list=[],**kwargs)-> None:
+        """Initialize the Kinetic Monte Carlo (kMC) simulation.
+
+        It is recommended to use the `from_inputset` method to initialize the
+        KMC object from an InputSet.
+
+        Args:
+            initial_occ (list): The initial occupation list representing the
+            configuration of the system.
+            supercell_shape (list): Shape of the supercell as a list of
+            integers (e.g., [2, 2, 2]). This should be consistent with
+            events.
+            fitting_results (str): Path to the JSON file containing the
+            fitting results for E_kra.
+            fitting_results_site (str): Path to the JSON file containing the
+            fitting results for site energy difference.
+            lce_fname (str): Path to the JSON file containing the Local
+            Cluster Expansion (LCE) model.
+            lce_site_fname (str): Path to the JSON file containing the site
+            LCE model for computing site energy differences.
+            template_structure_fname (str): Path to the CIF file of the
+            template structure (with all sites filled).
+            event_fname (str): Path to the JSON file containing the list of
+            events.
+            event_kernel (str): Path to the event kernel file.
+            v (float, optional): Attempt frequency (prefactor) for hopping
+            events. Defaults to 1e13 Hz.
+            temperature (float, optional): Simulation temperature in Kelvin.
+            Defaults to 300 K.
+            convert_to_primitive_cell (bool, optional): Whether to convert the
+            structure to its primitive cell (default: False).
+            immutable_sites (list, optional): List of sites to be treated as
+            immutable and removed from the simulation (default: []).
+
+        Notes:
+            - Loads structure, fitting results, LCE models, and events.
+            - Initializes the supercell, occupation, event list, and hopping
+              probabilities.
+            - Logs detailed information about the initialization process.
+
         """
-                Initialize the Kinetic Monte Carlo (kMC) simulation. 
-                It is recommended to use the `from_inputset` method to initialize the KMC object from an InputSet.
-
-                Parameters
-                ----------
-                initial_occ : list
-                    The initial occupation list representing the configuration of the system.
-                supercell_shape : list
-                    Shape of the supercell as a list of integers (e.g., [2, 2, 2]). This should be consistent with events.
-                fitting_results : str
-                    Path to the JSON file containing the fitting results for E_kra.
-                fitting_results_site : str
-                    Path to the JSON file containing the fitting results for site energy difference.
-                lce_fname : str
-                    Path to the JSON file containing the Local Cluster Expansion (LCE) model.
-                lce_site_fname : str
-                    Path to the JSON file containing the site LCE model for computing site energy differences.
-                template_structure_fname : str
-                    Path to the CIF file of the template structure (with all sites filled).
-                event_fname : str
-                    Path to the JSON file containing the list of events.
-                event_kernel : str
-                    Path to the event kernel file.
-                v : float, optional
-                    Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
-                temperature : float, optional
-                    Simulation temperature in Kelvin. Defaults to 300 K.
-                convert_to_primitive_cell : bool, optional
-                    Whether to convert the structure to its primitive cell (default: False).
-                immutable_sites : list, optional
-                    List of sites to be treated as immutable and removed from the simulation (default: []).
-
-                Notes
-                -----
-                - Loads structure, fitting results, LCE models, and events.
-                - Initializes the supercell, occupation, event list, and hopping probabilities.
-                - Logs detailed information about the initialization process.
-                """
         logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations ...")
         self.structure = StructureKMCpy.from_cif(
@@ -225,14 +178,15 @@ class KMC:
 
     @classmethod
     def from_inputset(cls, inputset: InputSet)-> "KMC":
-        """
-        Initialize KMC from InputSet object.
+        """Initialize KMC from InputSet object.
 
         Args:
-            inputset (kmcpy.io.InputSet): InputSet object containing all necessary parameters.
+            inputset (kmcpy.io.InputSet): InputSet object containing all
+            necessary parameters.
 
         Returns:
-            KMC: An instance of the KMC class initialized with parameters from the InputSet.
+            KMC: An instance of the KMC class initialized with parameters
+            from the InputSet.
         """
         params = {k: v for k, v in inputset._parameters.items() if k != "task"}
         return cls(**params)
@@ -266,13 +220,13 @@ class KMC:
         self,
         events: list,
     ) -> tuple[Event, float]:
-        """propose a new event to be updated by update()
+        """Propose a new event to be updated by update().
 
         Args:
-            events (list): list of event
+            events (list): List of events.
 
         Returns:
-            event and dt: what event is chosen by the random, and the time for this event to occur
+            tuple[Event, float]: The chosen event and the time for this event to occur.
         """
         proposed_event_index, dt = _propose(prob_cum_list=self.prob_cum_list, rng=self.rng)
         event = events[proposed_event_index]
@@ -287,9 +241,11 @@ class KMC:
         2. Identifies all events that need to be updated due to the change in occupation.
         3. Updates each affected event's properties and recalculates their probabilities.
         4. Updates the cumulative probability list for event selection.
+
         Args:
             event: The event object that has just occurred, containing indices of the affected mobile ion species.
             events (list): List of all event objects in the system.
+            
         Side Effects:
             Modifies `self.occ_global`, `self.prob_list`, and `self.prob_cum_list` in place.
         """

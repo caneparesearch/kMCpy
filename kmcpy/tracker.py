@@ -16,99 +16,27 @@ logger = logging.getLogger(__name__)
 class Tracker:
     """
     Tracker class for monitoring mobile ion species in kinetic Monte Carlo (kMC) simulations.
+
     The Tracker class is responsible for tracking the positions, displacements, hop counts, and related transport properties
     of mobile ion species within a given structure during kMC simulations. It provides methods to update the tracked state
     after each kMC event, calculate diffusion coefficients, correlation factors, conductivity, and to summarize and save
     simulation results.
-    Attributes
-    dimension : int
-    q : float
-        Charge of the mobile ion species.
-    temperature : float
-        Simulation temperature in Kelvin.
-    v : float
-        Attempt frequency (pre-exponential factor) in Hz.
-    frac_coords : np.ndarray
-        Fractional coordinates of the sites in the structure.
-    latt : Lattice
-        Lattice object containing lattice vectors.
-    volume : float
-        Volume of the simulation cell.
-        Symbol of the mobile ion species being tracked.
-    n_mobile_ion_specie_site : int
-        Number of sites available for the mobile ion species.
-    mobile_ion_specie_locations : np.ndarray
-        Indices of the current locations of the mobile ions.
-    n_mobile_ion_specie : int
-        Number of mobile ions being tracked.
-    displacement : np.ndarray
-        Displacement vectors for each mobile ion.
-    hop_counter : np.ndarray
-        Number of hops performed by each mobile ion.
-    time : float
-        Current simulation time.
-    current_pass : int
-        Current pass or iteration number in the simulation.
-    results : Results
-        Object for storing simulation results.
-    r0 : np.ndarray
-        Initial positions of the mobile ions in Cartesian coordinates.
-    Methods
-    -------
-    __init__(occ_initial, structure, mobile_ion_specie, elem_hop_distance, dimension=3, q=1.0, temperature=300, v=1e13, **kwargs)
-        Initialize a Tracker object for monitoring mobile ion species in a structure during kMC simulations.
-    from_inputset(inputset, structure, occ_initial)
-    update(event, current_occ, dt)
-        Update the tracker state after a kMC event.
-    calc_D_J()
-        Calculate the center of mass diffusion coefficient (D_J) based on the total displacement vector.
-    calc_D_tracer()
-        Calculate the tracer diffusivity (D_tracer) based on the mean squared displacement.
-    calc_corr_factor()
-    calc_conductivity(D_J)
-        Calculate the ionic conductivity using the calculated diffusion coefficient.
-    show_current_info(current_pass)
-        Log the current simulation information.
-    return_current_info()
-        Return a tuple of the current simulation information.
-    summary(current_pass)
-        Summarize and log the current simulation state and results.
-    write_results(current_pass, current_occupation, label=None)
-    as_dict()
-        Return a dictionary representation of the Tracker object.
-    to_json(fname)
-        Save the Tracker object as a JSON file.
-    from_json(fname)
-        Load a Tracker object from a JSON file.
     """
 
     def __init__(self, occ_initial:list, structure:StructureKMCpy, mobile_ion_specie:str,  elem_hop_distance:float,
                  dimension:int=3, q:float=1.0,temperature:float=300, v:float=1e13, **kwargs)->None:
-        """
-        Initialize a Tracker object for monitoring mobile ion species in a structure during kinetic Monte Carlo simulations.
-        Parameters
-        ----------
-        occ_initial : list
-            Initial occupation list indicating the occupancy of each site.
-        structure : StructureKMCpy
-            Structure object containing fractional coordinates, lattice, and species information.
-        mobile_ion_specie : str
-            Symbol of the mobile ion species to be tracked (e.g., 'Na').
-        elem_hop_distance : float
-            Elementary hop distance for the mobile ion species.
-        dimension : int, optional
-            Dimensionality of the system (default is 3).
-        q : float, optional
-            Charge of the mobile ion species (default is 1.0).
-        temperature : float, optional
-            Simulation temperature in Kelvin (default is 300).
-        v : float, optional
-            Attempt frequency (pre-exponential factor) in Hz (default is 1e13).
-        Notes
-        -----
-        - Initializes displacement and hop counters for each mobile ion.
-        - Identifies initial locations of mobile ions in the structure.
-        - Computes and logs the center of mass for the mobile ions.
+        """Initialize a Tracker object for monitoring mobile ion species.
+
+        Args:
+            occ_initial (list): Initial occupation list.
+            structure (StructureKMCpy): Structure object.
+            mobile_ion_specie (str): Symbol of the mobile ion species (e.g., 'Na').
+            elem_hop_distance (float): Elementary hop distance for the mobile ion species.
+            dimension (int, optional): Dimensionality of the system (default is 3).
+            q (float, optional): Charge of the mobile ion species (default is 1.0).
+            temperature (float, optional): Simulation temperature in Kelvin (default is 300).
+            v (float, optional): Attempt frequency (pre-exponential factor) in Hz (default is 1e13).
+
         """
         logger.info("Initializing Tracker ...")
 
@@ -160,10 +88,12 @@ class Tracker:
                       )-> "Tracker":
         """
         Create a Tracker object from an InputSet object.
+
         Args:
             inputset (InputSet): An InputSet object containing the necessary parameters for Tracker initialization.
             structure (StructureKMCpy): A StructureKMCpy object containing the structure information.
             occ_initial (list): Initial occupation list for the mobile ion specie.
+            
         Returns:
             Tracker: An instance of the Tracker class initialized
         """
@@ -455,23 +385,16 @@ class Tracker:
         """
         Save simulation results to compressed CSV files.
 
-        Parameters
-        ----------
-        current_occupation : list
-            The current occupation state to be saved.
-        label : str, optional
-            An optional label to prefix output files. If not provided, files are saved without a label.
+        Args:
+            current_occupation (list): The current occupation state to be saved.
+            label (str, optional): An optional label to prefix output files.
+                If not provided, files are saved without a label. Defaults to None.
 
-        Saves
-        -----
-        displacement_{label}_{current_pass}.csv.gz : ndarray
-            The displacement data for the current pass.
-        hop_counter_{label}_{current_pass}.csv.gz : ndarray
-            The hop counter data for the current pass.
-        current_occ_{label}_{current_pass}.csv.gz : list
-            The current occupation data for the current pass.
-        results_{label}.csv.gz or results.csv.gz : DataFrame
-            The results DataFrame, saved with gzip compression. The filename includes the label if provided.
+        Saves:
+            displacement_{label}_{current_pass}.csv.gz (ndarray)
+            hop_counter_{label}_{current_pass}.csv.gz (ndarray)
+            current_occ_{label}_{current_pass}.csv.gz (list)
+            results_{label}.csv.gz or results.csv.gz (DataFrame):
         """
         prefix = f"{label}_{self.current_pass}"
         np.savetxt(
