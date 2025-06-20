@@ -5,6 +5,8 @@ name: Test and Publish to PyPI
 on:
   workflow_dispatch:  # Manual trigger
   push:
+    tags:
+      - 'v*'  # Trigger on version tags, e.g., v1.0.0
     branches:
       - master
 
