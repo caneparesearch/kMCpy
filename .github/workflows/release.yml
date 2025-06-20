@@ -43,9 +43,9 @@ jobs:
           # Installs project in editable mode with 'dev' extras.
           # Adjust if your 'dev' group isn't an extra or you manage it differently.
           # If you adopt [project.optional-dependencies.dev]:
-          uv pip install --system -e .[dev]
+          # uv pip install --system -e .[dev]
           # If you keep [dependency-groups] and uv understands it for install:
-          # uv pip install --system -e . --extra dev # syntax might vary based on uv's interpretation
+          uv pip install --system -e . --extra dev # syntax might vary based on uv's interpretation
 
       - name: Run Pytest
         run: |
