@@ -1,47 +1,56 @@
 # .github/workflows/publish-to-pypi.yml
 
-name: Publish Python Package
+name: Test and Publish to PyPI
 
 on:
-  workflow_dispatch:  # Manual trigger
-  # push:
-  #   branches:
-  #     - master
+  # workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - master
 
 jobs:
-  build:
-    name: Build distribution 📦
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+      matrix:
+        python-version: [3.11, 3.12, 3.13]  # Specify the Python versions you want to test against
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.x"
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install pypa/build
-      run: >-
-        python3 -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: python3 -m build
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
+      - name: Install the project
+        run: |
+          pip install --upgrade pip
+          pip install -e .[dev]
+      
+      - name: Run tests
+        run: pytest
 
+  build:
+    name: Build and publish Python 🐍 distribution 📦 to PyPI
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')  # Only publish on tag pushes
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: build
+        run: | 
+          python3 -m pip install --upgrade pip build
+          python3 -m build
+  
   publish-to-pypi:
-    name: >-
-      Publish Python 🐍 distribution 📦 to PyPI
-    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
-    needs:
-    - build
+    name: Publish distribution 📦 to PyPI
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')  # Only publish on tag pushes
+    needs: [build]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -50,10 +59,11 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
     steps:
-    - name: Download all the dists
-      uses: actions/download-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+ 
