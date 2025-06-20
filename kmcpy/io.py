@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 This module provides the InputSet class for reading and managing input parameters for KMC simulations.
 """

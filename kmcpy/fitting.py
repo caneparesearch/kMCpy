@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 This module provides the Fitting class for generating and storing fitting results.
 """

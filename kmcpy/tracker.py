@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 This module defines a Tracker class for monitoring mobile ion species in kinetic Monte Carlo (kMC) simulations.
 """
