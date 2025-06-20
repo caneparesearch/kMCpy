@@ -12,8 +12,8 @@
 #
 import os
 import sys
-from io import open as io_open
 from datetime import datetime
+from importlib.metadata import version
 
 sys.path.insert(0, os.path.abspath("../../"))
 
@@ -25,11 +25,12 @@ copyright = f"2022-{current_year}, Canepa Research Lab"
 author = "Zeyu Deng"
 
 # The full version, including alpha/beta/rc tags
-__version__ = None
+__version__ = version("kmcpy")
+version= __version__
 src_dir = os.path.abspath(os.path.dirname(__file__))
-version_file = os.path.join("../../kmcpy", "_version.py")
-with io_open(version_file, mode="r") as fd:
-    exec(fd.read())
+# version_file = os.path.join("../../kmcpy", "_version.py")
+# with io_open(version_file, mode="r") as fd:
+#     exec(fd.read())
 
 release = __version__
 
@@ -64,7 +65,8 @@ exclude_patterns = ["walkthrough/.ipynb_checkpoints/*"]
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

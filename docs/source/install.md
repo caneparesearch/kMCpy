@@ -1,15 +1,18 @@
 # Installation
 ## Prerequisite
 Check `pyproject.toml` for the required packages. The following Python packages are required to run kMCpy:
-- pymatgen: **Windows users need to install Microsoft C++ build tools (https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile pymatgen.**
+- pymatgen: for structure manipulation
 - numba: for fast computation of kMCpy routines
 - scikit-learn: for fitting local cluster expansion model
 - pytest: for unit tests
 - joblib
 - glob2
 
-> **⚠️ Warning for Windows users:**  
-> You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
+```{admonition} For Windows users
+:class: warning
+
+You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
+```
 
 ## Command line environment
 ### Method 1: Install from PyPI
