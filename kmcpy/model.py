@@ -6,7 +6,7 @@ This module provides classes and functions to build a Local Cluster Expansion (L
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
 from pymatgen.core.structure import Molecule
-from kmcpy.external import StructureKMCpy
+from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import glob

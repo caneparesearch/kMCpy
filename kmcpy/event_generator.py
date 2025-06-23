@@ -455,7 +455,7 @@ def find_atom_indices(
     """a function for generating a list of site indices that satisfies the identifier
 
     Args:
-        structure (kmcpy.external.pymatgen_structure): structure object to work on
+        structure (kmcpy.external.structure.StructureKMCpy): structure object to work on
         mobile_ion_identifier_type (str, optional): elect from: ["specie","label"]. Defaults to "specie".
         atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
 
@@ -545,8 +545,8 @@ def generate_events(
 
     # --------------
     import json
-    from kmcpy.external import StructureKMCpy
-    from kmcpy.external import CutOffDictNNKMCpy
+    from kmcpy.external.structure import StructureKMCpy
+    from kmcpy.external.local_env import CutOffDictNNKMCpy
 
     from kmcpy.io import convert
     from kmcpy.event import Event
