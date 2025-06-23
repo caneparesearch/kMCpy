@@ -703,7 +703,7 @@ def generate_events(
     events = []
     events_dict = []
 
-    indices_dict_from_identifier = supercell.kmc_build_dict3(
+    indices_dict_from_identifier = supercell.kmc_build_dict(
         skip_check=False
     )  # a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
 

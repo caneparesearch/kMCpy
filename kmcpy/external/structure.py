@@ -336,7 +336,7 @@ class StructureKMCpy(Structure):
 
         return indices_dict_from_identifier
 
-    def kmc_build_dict3(self, skip_check=True):
+    def kmc_build_dict(self, skip_check=True):
         """build a dictionary. This is a KMC specified function
 
         Change from the original kmc_build_dict, use the local_index as the identifier
