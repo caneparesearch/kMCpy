@@ -17,70 +17,78 @@ This code was recently employed to investigate the transport properties of Na-io
 
 ## Installation
 
-### Command line environment
-#### Method 1: Install using `pip`
+### Method 1: Install using `pip`
 You can quickly install the latest version of kMCpy through [PyPI](https://pypi.org/project/kmcpy/) to your environment.
 
 ```shell
 pip install kmcpy
 ```
 
-#### Method 2: Install from source using `pip`
+### Method 2: Install from source using `pip`
 
 You can install from the source code using `pip`. Assuming you have cloned the repository, navigate to the root directory of the kMCpy repository and run:
 ```shell
 pip install .
 ```
-#### Method 3: Install from source using [UV](https://docs.astral.sh/uv/getting-started/installation/)
+For development, you can clone the repository and install it in editable mode using 
+
+```shell
+pip install -e ".[dev]"
+```
+This allows you to modify the source code and see changes immediately without reinstalling.
+
+kMCpy also has a basic graphical user interface (GUI). It is based on`wxpython`. You might need to install [GTK](https://www.gtk.org/) for `wxpython`. You can install other additional dependencies for the GUI by running:
+```shell
+pip install -e ".[gui]"
+```
+
+### Method 3: Install from source using [UV](https://docs.astral.sh/uv/getting-started/installation/)
 It is highly recommended to install kMCpy from source using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
 ```shell
 uv sync
 ```
-
-For development, you can clone the repository and install it in editable mode using `pip install -e .`. This allows you to modify the source code and see changes immediately without reinstalling. For UV, you can do following:
+For development, you can install it in editable mode using:
 ```shell
 uv sync --extra dev
 uv pip install -e . # this makes the installation using the editable mode
+```
+For GUI, you can install the additional dependencies by running:
+```shell
+uv sync --extra gui
 ```
 
 > **⚠️ Warning for Windows users:**  
 > You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
 
-### Graphic user interface (GUI)
-kMCpy also has a basic GUI. It is based on`wxpython`.
-```shell
-uv sync --extra gui
-start_kmcpy_gui.py
-```
 
 ## Build documentation
 You can access the documentation at [https://kmcpy.readthedocs.io/](https://kmcpy.readthedocs.io/). However, if you want to build the documentation locally, you can do so by following these steps:
 ```shell
-source .venv/bin/activate
 uv sync --extra doc
 python build_doc.py
 ```
 
 ## Run kMCpy
-It is recommended to run kMCpy using the API. See examples for more details. A wrapper is also provided if you want to run kMCpy through command line only. 
-You can see the examples in the `examples` directory for how to use kMCpy in your own scripts. The examples cover various aspects of kMCpy, including how to build a model and use it for simulations.
+### API usage
+You can run kMC through API. You can find more details in the `examples` directory. You can see the examples in the `examples` directory for how to use kMCpy in your own scripts. The examples cover various aspects of kMCpy, including how to build a model and use it for simulations.
 
 ### Command line usage
-There is a wrapper script `run_kmc` that allows you to run kMCpy from the command line. You can use it to run a kMCpy simulation with a JSON input file. The input file should contain the necessary parameters for the simulation. It should be noted that you need to have all the input files that needed to run kMC.
+A wrapper is provided if you want to run kMCpy through command line only. There is a wrapper script `run_kmc` that allows you to run kMCpy from the command line. You can use it to run a kMCpy simulation with a JSON/YAML input file. The input file should contain the necessary parameters for the simulation. It should be noted that you need to have all the input files that needed to run kMC.
 ```shell
 run_kmc input.json
 ```
 
-For help, you can run:
+To print out all arguments, you can run:
 ```shell
 run_kmc --help
 ```
 
 ### GUI usage
-You can run kMCpy using the command line interface. The basic usage is as follows:
+You can start the GUI from command line. The basic usage is as follows:
 ```shell
 start_kmcpy_gui
 ```
+Then  a window will pop up, allowing you to select the input file and run the simulation.
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:
