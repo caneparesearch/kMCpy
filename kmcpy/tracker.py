@@ -9,7 +9,7 @@ from copy import copy
 import json
 from kmcpy.io import convert, InputSet, Results
 import logging
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.external import StructureKMCpy
 
 logger = logging.getLogger(__name__) 
 

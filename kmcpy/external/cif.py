@@ -16,7 +16,7 @@ from pymatgen.core.periodic_table import DummySpecies, Element, Species, get_el_
 from pymatgen.symmetry.analyzer import SpacegroupOperations
 from pymatgen.symmetry.structure import SymmetrizedStructure
 from pymatgen.util.coord import find_in_coord_list_pbc
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.external import StructureKMCpy
 
 class CifParserKMCpy(CifParser):
 

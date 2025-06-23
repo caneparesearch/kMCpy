@@ -545,8 +545,8 @@ def generate_events(
 
     # --------------
     import json
-    from kmcpy.external.structure import StructureKMCpy
-    from kmcpy.external.local_env import CutOffDictNNKMCpy
+    from kmcpy.external import StructureKMCpy
+    from kmcpy.external import CutOffDictNNKMCpy
 
     from kmcpy.io import convert
     from kmcpy.event import Event

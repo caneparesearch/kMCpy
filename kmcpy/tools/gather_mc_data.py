@@ -7,7 +7,7 @@ import numba as nb
 from numba.typed import List
 from joblib import Parallel, delayed
 import multiprocessing
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.external import StructureKMCpy
 
 
 def generate_supercell(prim_fname, supercell_shape):

@@ -4,7 +4,7 @@ This module provides the KMC class and associated functions for performing Kinet
 """
 from numba.typed import List
 from numba import njit
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.external import StructureKMCpy
 import numpy as np
 import pandas as pd
 from copy import copy

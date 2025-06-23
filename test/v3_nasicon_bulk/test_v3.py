@@ -15,8 +15,8 @@ class Test_version3(unittest.TestCase):
         from kmcpy.event_generator import neighbor_info_matcher
         import numpy as np
 
-        from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.external.local_env import CutOffDictNNKMCpy
+        from kmcpy.external import StructureKMCpy
+        from kmcpy.external import CutOffDictNNKMCpy
 
         nasicon = StructureKMCpy.from_cif(
             "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True
@@ -255,7 +255,7 @@ class Test_version3(unittest.TestCase):
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
         from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
-        from kmcpy.external.structure import StructureKMCpy
+        from kmcpy.external import StructureKMCpy
         import numpy as np
 
         structure_from_json = generate_supercell(

@@ -5,7 +5,7 @@ This module provides the InputSet class for reading and managing input parameter
 
 import numpy as np
 import json
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.external import StructureKMCpy
 import logging
 import pandas as pd
 

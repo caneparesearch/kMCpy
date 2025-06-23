@@ -5,12 +5,10 @@ Example program to demonstrate Gooey's presentation of subparsers
 import os
 import numpy as np
 from gooey import Gooey, GooeyParser
-from kmcpy.io import _load_occ
 from kmcpy.kmc import KMC
 from kmcpy.event_generator import generate_events
 from kmcpy.model import LocalClusterExpansion
 import kmcpy._version
-from kmcpy.external.structure import StructureKMCpy
 from kmcpy.io import InputSet
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))

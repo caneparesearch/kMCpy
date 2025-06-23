@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kmcpy"
-version = "v0.1.6" # << REMEMBER TO UPDATE THIS FOR EACH RELEASE
+version = "v0.1.7" # << REMEMBER TO UPDATE THIS FOR EACH RELEASE
 description = "Kinetic Monte Carlo Simulation using Python (kMCpy)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -64,7 +64,9 @@ doc = [
 
 # Configuration for setuptools
 [tool.setuptools]
-packages = ["kmcpy"]
+
+[tool.setuptools.packages.find]
+include = ["kmcpy", "kmcpy*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0" # Good practice to set a minimum
@@ -77,6 +79,3 @@ markers = [
     "order(number): mark test to run in a specific order" # Your custom marker
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["kmcpy", "kmcpy.*"]
