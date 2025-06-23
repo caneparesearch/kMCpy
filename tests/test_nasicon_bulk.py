@@ -8,10 +8,10 @@ file_path = os.path.join(current_dir, 'files')
 class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order(1)
-    def test_neighbor_info_matcher(self):
+    def test_NeighborInfoMatcher(self):
         print("neighbor info matcher testing")
         
-        from kmcpy.event_generator import neighbor_info_matcher
+        from kmcpy.event_generator import NeighborInfoMatcher
         import numpy as np
 
         from kmcpy.external.structure import StructureKMCpy
@@ -33,7 +33,7 @@ class TestNASICONbulk(unittest.TestCase):
         )
 
         np.set_printoptions(precision=2, suppress=True)
-        reference_neighbor = neighbor_info_matcher.from_neighbor_sequences(
+        reference_neighbor = NeighborInfoMatcher.from_neighbor_sequences(
             neighbor_sequences=reference_neighbor_sequences
         )
 
@@ -50,7 +50,7 @@ class TestNASICONbulk(unittest.TestCase):
 
         self.assertFalse(
             np.allclose(
-                neighbor_info_matcher.from_neighbor_sequences(
+                NeighborInfoMatcher.from_neighbor_sequences(
                     neighbor_sequences=wrong_sequence_neighbor
                 ).distance_matrix,
                 reference_neighbor.distance_matrix,
@@ -63,7 +63,7 @@ class TestNASICONbulk(unittest.TestCase):
             wrong_sequence_neighbor, rtol=0.01
         )
 
-        resorted_neighbor = neighbor_info_matcher.from_neighbor_sequences(
+        resorted_neighbor = NeighborInfoMatcher.from_neighbor_sequences(
             neighbor_sequences=resorted_wrong_sequence
         )
 
@@ -83,9 +83,10 @@ class TestNASICONbulk(unittest.TestCase):
         mobile_ion_specie_2_identifier = "Na2"
         template_structure_fname = f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
         local_env_cutoff_dict = {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
-        from kmcpy.event_generator import generate_events
+        from kmcpy.event_generator import EventGenerator
 
-        generate_events(
+        generator = EventGenerator()
+        generator.generate_events(
             template_structure_fname=template_structure_fname,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -102,7 +103,7 @@ class TestNASICONbulk(unittest.TestCase):
             event_kernal_fname=f"{file_path}/event_kernal.csv",
         )
 
-        reference_local_env_dict = generate_events(
+        reference_local_env_dict = generator.generate_events(
             template_structure_fname=template_structure_fname,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -128,12 +129,11 @@ class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order(3)
     def test_generate_local_cluster_exapnsion(self):
         
-        from kmcpy.model import LocalClusterExpansion
+        from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
 
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_1_identifier = "Na1"
-        a = LocalClusterExpansion()
-        a.initialization(
+        a = LocalClusterExpansion(
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
             cutoff_cluster=[6, 6, 0],
@@ -142,7 +142,7 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=True,
         )
         a.to_json(f"{file_path}/lce.json")
-        self.assertEqual(1, 1)
+        self.assertEqual(1, 1) # TODO assert something about the object
 
     def test_fitting(self):
         from kmcpy.fitting import Fitting

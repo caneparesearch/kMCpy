@@ -2,7 +2,7 @@
 """
 This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
-
+from typing import Literal
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
 from pymatgen.core.structure import Molecule
@@ -10,62 +10,59 @@ from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import glob
-from kmcpy.io import convert
 from kmcpy.event_generator import find_atom_indices
 from pymatgen.core.periodic_table import DummySpecies
 from pymatgen.core.sites import PeriodicSite
 import logging
 import kmcpy
+from kmcpy.model.model import BaseModel
+from copy import deepcopy
+import numba as nb
+from kmcpy.io import InputSet
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
+logging.getLogger('numba').setLevel(logging.WARNING)
 
-class LocalClusterExpansion:
+class LocalClusterExpansion(BaseModel):
     """
     LocalClusterExpansion will be initialized with a template structure where all the sites are occupied
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
 
-    def __init__(self):
-        logger.info("Initializing LocalClusterExpansion ...")
-        pass
-
-    def initialization(
-        self,
-        center_frac_coord = [],
-        mobile_ion_identifier_type="label",
-        mobile_ion_specie_1_identifier="Na1",
-        cutoff_cluster=[8, 6, 0],
-        cutoff_region=4,
-        template_structure_fname="EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-        is_write_basis=False,
-        species_to_be_removed=["Zr4+", "O2-", "O", "Zr"],
-        convert_to_primitive_cell=False,
-        exclude_site_with_identifier=[],
-    ):
+    def __init__(self, template_structure_fname:str, mobile_ion_specie_1_identifier:str,
+        cutoff_cluster: list = [6, 6, 6], cutoff_region:float = 4.0,
+        center_frac_coord = [], mobile_ion_identifier_type: Literal["specie","label"] = "label",
+        is_write_basis=False, species_to_be_removed=[], convert_to_primitive_cell=False,
+        exclude_site_with_identifier=[], **kwargs) -> None:
         """
         Initialization of the LocalClusterExpansion object.
 
         There are 2 ways to define the local environment (migration unit):
-        1) use the center of the mobile ion as the center of the local environment (default, center_frac_coord = []), this mobile ion is excluded from the local environment.
-        2) use a dummy site as the center of the local environment (set center_frac_coord)
+        1) Use the center of the mobile ion as the center of the local environment (default, center_frac_coord = []), this mobile ion is excluded from the local environment.
+        2) Use a dummy site as the center of the local environment (set center_frac_coord).
 
         Args:
-            center_frac_coord (list, optional): fractional coordinates of the center of the lcoal environment. Defaults to [].
-            mobile_ion_identifier_type="label",mobile_ion_specie_1_identifier="Na1": refers to structure_operation.find_atom_indices
-            cutoff_cluster (list, optional): cluster cutoff. Defaults to [6,6,6].
-            cutoff_region (float, optional): cutoff for finding migration unit. Defaults to 4.
-            template_structure_fname (str, optional): generate cluster from which cif?. Defaults to 'EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif'.
-            is_write_basis (bool, optional): .?. Defaults to False.
-            species_to_be_removed (list, optional): species to be removed which do not involve in the calculation. Defaults to ['Zr4+','O2-','O','Zr'].
+            template_structure_fname (str): Path to the template structure file (e.g., CIF file).
+            mobile_ion_specie_1_identifier (str): Identifier for the mobile ion species (e.g., "Na1").
+            cutoff_cluster (list, optional): Cutoff distances for clusters [pair, triplet, quadruplet]. Defaults to [6, 6, 6].
+            cutoff_region (float, optional): Cutoff for generating the local cluster region. Defaults to 4.0.
+            center_frac_coord (list, optional): Fractional coordinates of the center of the local environment. If empty, uses the mobile ion site. Defaults to [].
+            mobile_ion_identifier_type (Literal["specie", "label"], optional): Type of identifier for the mobile ion ("specie" or "label"). Defaults to "label".
+            is_write_basis (bool, optional): Whether to write the local environment basis to file. Defaults to False.
+            species_to_be_removed (list, optional): List of species to remove from the structure. Defaults to [].
+            convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell. Defaults to False.
+            exclude_site_with_identifier (list, optional): List of site identifiers to exclude from the local environment. Defaults to [].
 
-        If the next-step KMC is not based on the same lce object generated in this step, then be careful with 2 things:
-        1) the Ekra generated in this step can be transferred to the KMC, within which the orbitals are arranged in the same way as here;
-        2) the sublattice_indices are exactly corresponding to the input structure used in the KMC step, which might in need of re-cunstruction of a lce object using the same KMC-input structure.
-
+        Notes:
+            If the next-step KMC is not based on the same LCE object generated in this step, be careful with two things:
+            1) The Ekra generated in this step can be transferred to the KMC, provided the orbits are arranged in the same way as here.
+            2) The sublattice_indices must correspond exactly to the input structure used in the KMC step, which may require reconstruction of an LCE object using the same KMC-input structure.
         """
         logger.info(kmcpy.get_logo())
+        logger.info("Initializing LocalClusterExpansion ...")
+        self.name = "LocalClusterExpansion"
         template_structure = StructureKMCpy.from_cif(
             template_structure_fname, primitive=convert_to_primitive_cell
         )
@@ -136,6 +133,11 @@ class LocalClusterExpansion:
         for orbit in self.orbits:
             orbit.show_representative_cluster()
 
+    @classmethod
+    def from_inputset(cls, inputset: InputSet)-> "LocalClusterExpansion":
+        params = {k: v for k, v in inputset._parameters.items() if k != "task"}
+        return cls(**params)
+    
     def get_cluster_structure(
         self,
         structure,
@@ -265,11 +267,72 @@ class LocalClusterExpansion:
             orbits.append(orbit)
         return orbits
 
-    def __str__(self):
-        logger.info("\nGLOBAL INFORMATION")
-        logger.info("Number of orbits = %d", len(self.orbits))
-        logger.info("Number of clusters = %d", len(self.clusters))
+    def compute_probability(self, 
+                            occ_global,
+                            v,
+                            temperature,
+                            keci,
+                            empty_cluster,
+                            keci_site,
+                            empty_cluster_site):
+        """
+        Compute the probabilities of each orbit based on the occupancy vector.
+        The probabilities are calculated as the average cluster function over all clusters in each orbit.
+        """
+        logger.debug("Computing probabilities ...")
+        occ_sublat = deepcopy(occ_global[self.local_env_indices_list])
+        self.calc_corr()
+        self.calc_ekra(keci, empty_cluster, keci_site, empty_cluster_site)  # calculate ekra and probability
+        probability = self.calc_probability(occ_mobile_ion_specie_1, occ_mobile_ion_specie_2, v, temperature)
+        return probability
+    
+    # @profile
+    def initialize_corr(self):
+        self.corr = np.empty(shape=len(self.sublattice_indices))
+        self.corr_site = np.empty(shape=len(self.sublattice_indices_site))
 
+    # @profile
+    def calc_corr(self, corr, occ_sublat, sublattice_indices,
+                 corr_site, sublattice_indices_site):
+        _calc_corr(corr, occ_sublat, sublattice_indices)
+        _calc_corr(corr_site, occ_sublat, sublattice_indices_site)
+
+    # @profile
+    def calc_ekra(
+        self, keci, empty_cluster, keci_site, empty_cluster_site
+    ):  # input is the keci and empty_cluster; ekra = corr*keci + empty_cluster
+        ekra = np.inner(self.corr, keci) + empty_cluster
+        esite = np.inner(self.corr_site, keci_site) + empty_cluster_site
+        return ekra, esite
+
+    # @profile
+    def calc_probability(
+        self, occ_mobile_ion_specie_1,
+        occ_mobile_ion_specie_2, v, temperature
+    ) -> float:  # calc_probability() will evaluate migration probability for this event, should be updated everytime when change occupation
+        k = 8.617333262145 * 10 ** (-2)  # unit in meV/K
+        direction = (occ_mobile_ion_specie_2 - occ_mobile_ion_specie_1) / 2  # 1 if na1 -> na2, -1 if na2 -> na1
+        barrier = self.ekra + direction * self.esite / 2  # ekra
+        probability = abs(direction) * v * np.exp(-1 * (barrier) / (k * temperature))
+        return probability
+
+
+    def __str__(self):
+        return (
+            f"\nGLOBAL INFORMATION\n"
+            f"Number of orbits = {len(self.orbits)}\n"
+            f"Number of clusters = {len(self.clusters)}"
+        )
+
+    def __repr__(self):
+        return (
+            f"name: {self.name},"
+            f"LocalClusterExpansion(center_site={self.center_site}, "
+            f"MigrationUnit_structure={self.MigrationUnit_structure}, "
+            f"clusters={self.clusters}, orbits={self.orbits}, "
+            f"sublattice_indices={self.sublattice_indices})"
+        )
+    
     def write_representative_clusters(self, path="."):
         import os
         logger.info("Writing representative structures to xyz files to %s ...", path)
@@ -278,20 +341,6 @@ class LocalClusterExpansion:
             os.mkdir(path)
         for i, orbit in enumerate(self.orbits):
             orbit.clusters[0].to_xyz(os.path.join(path, f"orbit_{i}.xyz"))
-
-    def to_json(self, fname):
-        """example output as exmaples/lce.json
-
-        Args:
-            fname (_type_): _description_
-        """
-        logger.info("Saving: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(jsonStr)
 
     def as_dict(self):
         
@@ -313,13 +362,26 @@ class LocalClusterExpansion:
         return d
 
     @classmethod
-    def from_json(self, fname):
+    def from_json(cls, fname):
         logger.info("Loading: %s", fname)
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
-        obj = LocalClusterExpansion()
-        obj.__dict__ = objDict
+        obj = cls.__new__(cls)
+        for key, value in objDict.items():
+            setattr(obj, key, value)
         return obj
+
+@nb.njit
+def _calc_corr(corr, occ_latt, sublattice_indices):
+    i = 0
+    for sublat_ind_orbit in sublattice_indices:
+        corr[i] = 0
+        for sublat_ind_cluster in sublat_ind_orbit:
+            corr_cluster = 1
+            for occ_site in sublat_ind_cluster:
+                corr_cluster *= occ_latt[occ_site]
+            corr[i] += corr_cluster
+        i += 1
 
 
 class Orbit:  # orbit is a collection of symmetry equivalent clusters
@@ -463,3 +525,4 @@ class Cluster:
         else:
             d["bond_distances"] = self.bond_distances.tolist()
         return d
+
