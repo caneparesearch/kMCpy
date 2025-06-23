@@ -205,3 +205,4 @@ tests/files/fitting/local_cluster_expansion_site/keci.txt
 tests/files/events.json
 tests/files/event_kernal.csv
 tests/files/keci.txt
+tests/files/lce.json

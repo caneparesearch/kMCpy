@@ -1,21 +1,73 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: If you use this work, please cite the following publications.
+title: kMCpy
+version: v0.1.8
+date-released: '2023-10-05'
 authors:
-- family-names: "Deng"
-  given-names: "Zeyu"
-  orcid: "https://orcid.org/0000-0003-0109-9367"
-- family-names: "Xie"
-  given-names: "Weihang"
-  orcid: "https://orcid.org/0000-0002-6498-2328"
-- family-names: "Mishra"
-  given-names: "Tara P."
-  orcid: "https://orcid.org/0000-0002-3000-2555"
-- family-names: "Canepa"
-  given-names: "Pieremanuele"
-  orcid: "https://orcid.org/0000-0002-5168-9253"
+- family-names: Deng
+  given-names: Zeyu
+- family-names: Mishra
+  given-names: Tara P.
+- family-names: Xie
+  given-names: Weihang
+- family-names: Saeed
+  given-names: Daanyal Ahmed
+- family-names: Gautam
+  given-names: Gopalakrishnan Sai
+- family-names: Canepa
+  given-names: Pieremanuele
 
-title: "Kinetic Monte Carlo Simulation using Python (kMCpy)"
-version: 0.1.0
-doi: 10.1016/j.commatsci.2023.112394
-date-released: 2023-08-05
-url: "https://github.com/caneparesearch/kMCpy"
+references:
+- type: article
+  title: 'kMCpy: A python package to simulate transport properties in solids with
+    kinetic Monte Carlo'
+  authors:
+  - family-names: Deng
+    given-names: Zeyu
+  - family-names: Mishra
+    given-names: Tara P.
+  - family-names: Xie
+    given-names: Weihang
+  - family-names: Saeed
+    given-names: Daanyal Ahmed
+  - family-names: Gautam
+    given-names: Gopalakrishnan Sai
+  - family-names: Canepa
+    given-names: Pieremanuele
+  journal: Computational Materials Science
+  volume: '229'
+  pages: '112394'
+  year: '2023'
+  doi: 10.1016/j.commatsci.2023.112394
+
+- type: article
+  title: Fundamental investigations on the sodium-ion transport properties of 
+    mixed polyanion solid-state battery electrolytes
+  authors:
+  - family-names: Deng
+    given-names: Zeyu
+  - family-names: Mishra
+    given-names: Tara P.
+  - family-names: Mahayoni
+    given-names: Eunike
+  - family-names: Ma
+    given-names: Qianli
+  - family-names: Tieu
+    given-names: Aaron Jue Kang
+  - family-names: Guillon
+    given-names: Olivier
+  - family-names: Chotard
+    given-names: Jean-Noël
+  - family-names: Seznec
+    given-names: Vincent
+  - family-names: Cheetham
+    given-names: Anthony K.
+  - family-names: Masquelier
+    given-names: Christian
+  journal: Nature Communications
+  volume: '13'
+  issue: '1'
+  pages: '4470'
+  year: '2022'
+  publisher: Nature Publishing Group
+  doi: 10.1038/s41467-022-32190-7

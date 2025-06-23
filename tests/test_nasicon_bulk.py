@@ -141,7 +141,7 @@ class TestNASICONbulk(unittest.TestCase):
             template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             convert_to_primitive_cell=True,
         )
-        a.to_json(f"{file_path}/input/lce.json")
+        a.to_json(f"{file_path}/lce.json")
         self.assertEqual(1, 1)
 
     def test_fitting(self):
@@ -232,7 +232,7 @@ class TestNASICONbulk(unittest.TestCase):
             f"{file_path}/gather_mc_data/prim.json", (8, 8, 8)
         )
         df = gather_data(f"{file_path}/gather_mc_data/comp*", structure_from_json)
-        df.to_json(f"{file_path}/gather_mc_data/mc_results_json.json", orient="index")
+        df.to_json(f"{file_path}/mc_results_json.json", orient="index")
         occ1 = df["occ"]
 
         structure_from_cif = StructureKMCpy.from_cif(
@@ -242,7 +242,7 @@ class TestNASICONbulk(unittest.TestCase):
         structure_from_cif.remove_oxidation_states()
         structure_from_cif = structure_from_cif.make_kmc_supercell([8, 8, 8])
         df2 = gather_data(f"{file_path}/gather_mc_data/comp*", structure_from_cif)
-        df2.to_json(f"{file_path}/gather_mc_data/mc_results_cif.json", orient="index")
+        df2.to_json(f"{file_path}/mc_results_cif.json", orient="index")
         occ2 = df2["occ"]
         for i in range(0, len(occ1[0])):
             if occ1[0][i] != occ2[0][i]:
