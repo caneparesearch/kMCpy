@@ -3,7 +3,7 @@ This is inherited from pymatgen.analysis.local_env
 """
 
 from pymatgen.analysis.local_env import CutOffDictNN, NearNeighbors
-from kmcpy.external import StructureKMCpy
+from kmcpy.external.structure import StructureKMCpy
 from monty.serialization import loadfn
 import os
 
