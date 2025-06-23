@@ -186,6 +186,7 @@ docs/build
 example/event_kernal.csv
 example/events.json
 example/fitting_results_site.json
+example/fitting_results.json
 example/keci.txt
 example/lce_site.json
 example/lce.json
