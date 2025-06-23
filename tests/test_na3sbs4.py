@@ -2,7 +2,7 @@ import unittest
 import os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-file_path = f'{current_dir}/files'
+file_path = os.path.join(current_dir, 'files')
 
 class TestNa3SbS4(unittest.TestCase):
 
