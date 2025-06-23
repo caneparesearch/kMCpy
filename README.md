@@ -47,16 +47,14 @@ uv pip install -e . # this makes the installation using the editable mode
 > You need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) to compile `pymatgen`.
 
 ### Graphic user interface (GUI)
-kMCpy also has a basic GUI. It is based on`wxpython` which needs `conda` to be installed.
+kMCpy also has a basic GUI. It is based on`wxpython`.
 ```shell
-conda create -n kmcpy python wxpython -c conda-forge
-conda activate kmcpy
-pip install -r requirement_gui.txt .
+uv sync --extra gui
+start_kmcpy_gui.py
 ```
 
-### Build documentation
-- Documentation is built using `pandoc` and `sphinx-build`.
-- You can access the documentation from: `./docs/html/index.html`.
+## Build documentation
+You can access the documentation at [https://kmcpy.readthedocs.io/](https://kmcpy.readthedocs.io/). However, if you want to build the documentation locally, you can do so by following these steps:
 ```shell
 source .venv/bin/activate
 uv sync --extra doc
@@ -65,9 +63,24 @@ python build_doc.py
 
 ## Run kMCpy
 It is recommended to run kMCpy using the API. See examples for more details. A wrapper is also provided if you want to run kMCpy through command line only. 
+You can see the examples in the `examples` directory for how to use kMCpy in your own scripts. The examples cover various aspects of kMCpy, including how to build a model and use it for simulations.
 
-- If GUI enabled: try `pythonw gui_wrapper.py` or `python gui_wrapper`
-- If GUI not enabled: `wrapper.py PATH_TO_INPUT.json`
+### Command line usage
+There is a wrapper script `run_kmc` that allows you to run kMCpy from the command line. You can use it to run a kMCpy simulation with a JSON input file. The input file should contain the necessary parameters for the simulation. It should be noted that you need to have all the input files that needed to run kMC.
+```shell
+run_kmc input.json
+```
+
+For help, you can run:
+```shell
+run_kmc --help
+```
+
+### GUI usage
+You can run kMCpy using the command line interface. The basic usage is as follows:
+```shell
+start_kmcpy_gui
+```
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:

@@ -693,6 +693,7 @@ dependencies = [
     { name = "joblib" },
     { name = "numba" },
     { name = "pymatgen" },
+    { name = "pyyaml" },
     { name = "scikit-learn" },
 ]
 
@@ -727,6 +728,7 @@ requires-dist = [
     { name = "pymatgen", specifier = ">=2025.5.2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
     { name = "sphinx", marker = "extra == 'doc'", specifier = ">=7.0" },
     { name = "sphinx-autodoc-typehints", marker = "extra == 'doc'" },

@@ -37,7 +37,8 @@ dependencies = [
     "joblib>=1.5.1",
     "numba>=0.61.2",
     "pymatgen>=2025.5.2",
-    "scikit-learn>=1.6.1"
+    "pyyaml>=6.0.2",
+    "scikit-learn>=1.6.1",
 ]
 
 [project.urls]
@@ -81,3 +82,6 @@ markers = [
     "order(number): mark test to run in a specific order" # Your custom marker
 ]
 
+[project.scripts]
+run_kmc = "kmcpy.cli.run_kmc:main"
+start_kmcpy_gui = "kmcpy.cli.gui_wrapper:main"
