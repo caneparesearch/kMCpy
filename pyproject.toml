@@ -76,3 +76,7 @@ pythonpath = ["."] # Adds project root to PYTHONPATH, so tests can import `kmcpy
 markers = [
     "order(number): mark test to run in a specific order" # Your custom marker
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["kmcpy", "kmcpy.*"]
