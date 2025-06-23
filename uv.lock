@@ -213,6 +213,15 @@ wheels = [
 ]
 
 [[package]]
+name = "colored"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/01/04aa2e928233863ddf91b35d8f9c0ae40714394afac01fa76ba4eb2f0182/colored-2.3.0.tar.gz", hash = "sha256:4daf9b3ed687a01d59005e1bd03f354475226b933abb9a01836d6dde926d4c6f", size = 14708 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/52/990d8b2a888be9fe1022eb89884849547e6341a8bec0072605fd70483db8/colored-2.3.0-py3-none-any.whl", hash = "sha256:2f7f455dc2ed490531b0b8e0ecf8f8513bb28a150d9f12f0e48b023641a55185", size = 18333 },
+]
+
+[[package]]
 name = "contourpy"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -459,6 +468,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d7/a5/bbbc3b74a94fbdbd7915e7ad030f16539bfdc1362f7e9003b594f0537950/glob2-0.7.tar.gz", hash = "sha256:85c3dbd07c8aa26d63d7aacee34fa86e9a91a3873bc30bf62ec46e531f92ab8c", size = 10697 }
 
 [[package]]
+name = "gooey"
+version = "1.0.8.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colored" },
+    { name = "pillow" },
+    { name = "psutil" },
+    { name = "pygtrie" },
+    { name = "wxpython" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/32/38/8485428936e17e9027bf70717827e052411e18a644d3bb11f70145bb8ffa/Gooey-1.0.8.1.tar.gz", hash = "sha256:08d6bf534f4d50d50dafba5cfc68dcf31a6e9eeef13a94cbe3ea17c4e45c4671", size = 599826 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/03/2d0fc5f982f085ab72c56caa27238339a28419c0da716add1c5e1cf2fa99/Gooey-1.0.8.1-py2.py3-none-any.whl", hash = "sha256:222793cf4a5dd2f9d5c3174ad7369c3df541d91a49e54d51bbee95745ed75ae2", size = 680508 },
+]
+
+[[package]]
 name = "idna"
 version = "3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -685,11 +710,15 @@ doc = [
     { name = "sphinx-autodoc-typehints" },
     { name = "tqdm" },
 ]
+gui = [
+    { name = "gooey" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "furo", marker = "extra == 'doc'" },
     { name = "glob2", specifier = ">=0.7" },
+    { name = "gooey", marker = "extra == 'gui'" },
     { name = "joblib", specifier = ">=1.5.1" },
     { name = "myst-parser", marker = "extra == 'doc'" },
     { name = "nbsphinx", marker = "extra == 'doc'" },
@@ -703,7 +732,7 @@ requires-dist = [
     { name = "sphinx-autodoc-typehints", marker = "extra == 'doc'" },
     { name = "tqdm", marker = "extra == 'doc'" },
 ]
-provides-extras = ["dev", "doc"]
+provides-extras = ["dev", "doc", "gui"]
 
 [[package]]
 name = "llvmlite"
@@ -1410,6 +1439,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7c/2d/c3338d48ea6cc0feb8446d8e6937e1408088a72a39937982cc6111d17f84/pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f", size = 4968581 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c", size = 1225293 },
+]
+
+[[package]]
+name = "pygtrie"
+version = "2.5.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/13/55deec25bf09383216fa7f1dfcdbfca40a04aa00b6d15a5cbf25af8fce5f/pygtrie-2.5.0.tar.gz", hash = "sha256:203514ad826eb403dab1d2e2ddd034e0d1534bbe4dbe0213bb0593f66beba4e2", size = 39266 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/cd/bd196b2cf014afb1009de8b0f05ecd54011d881944e62763f3c1b1e8ef37/pygtrie-2.5.0-py3-none-any.whl", hash = "sha256:8795cda8105493d5ae159a5bef313ff13156c5d4d72feddefacaad59f8c8ce16", size = 25099 },
 ]
 
 [[package]]
@@ -2256,4 +2294,32 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0b/02/ae6ceac1baeda530866a85075641cec12989bd8d31af6d5ab4a3e8c92f47/webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923", size = 9721 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78", size = 11774 },
+]
+
+[[package]]
+name = "wxpython"
+version = "4.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", marker = "python_full_version < '3.12'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4c/d9/4451392d3d6ba45aa23aa77a6f1a9970b43351b956bf61e10fd513a1dc38/wxPython-4.2.3.tar.gz", hash = "sha256:20d6e0c927e27ced85643719bd63e9f7fd501df6e9a8aab1489b039897fd7c01", size = 58861286 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/ee/883048ff3c8e83562a160c43a976034efaa7c502138774db9767679d648d/wxpython-4.2.3-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:80df5158129577b8b1153b9af28ef18cf738a8f200e87c836a1dfc9ca61f86b7", size = 18751324 },
+    { url = "https://files.pythonhosted.org/packages/a4/1d/2d26018397150818879a00be5aa66371877c39080d65edcf95674e9833ea/wxpython-4.2.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c8ce9223d256b69815ef2c64842fb6a70303ab46d262b601382adff053779ab3", size = 17844363 },
+    { url = "https://files.pythonhosted.org/packages/d8/a7/30946564eb241c02bf30c262114f1bf5540fdcc376f46245d2a5703ae9de/wxpython-4.2.3-cp310-cp310-win32.whl", hash = "sha256:d2cf6a99ec39440298a2c6fbbfd95e386f0ad7d56ae7880553c1ae45709c091a", size = 14791534 },
+    { url = "https://files.pythonhosted.org/packages/c0/48/b7f73096a5912033020d8c9ac1826c4f840724216253e2f95d575b50b62c/wxpython-4.2.3-cp310-cp310-win_amd64.whl", hash = "sha256:8e729d3110a6ed5f6520371bb3cd5f05f993f6b40d5f80ec6446b8678f2fc2ac", size = 16819235 },
+    { url = "https://files.pythonhosted.org/packages/d0/f9/e9c38a0231d993810b8b4bc2f4e12a3162a3eb2d4d51788022f054f60a75/wxpython-4.2.3-cp311-cp311-macosx_10_10_x86_64.whl", hash = "sha256:0a66b0d6fe1d7e8e133fdfdee3cae95f70cc433929f36af08f377e103584f49c", size = 18746309 },
+    { url = "https://files.pythonhosted.org/packages/c3/43/e6dd8277465e03a372127d610dd7223de9126eb42fea381747ea67a91ebd/wxpython-4.2.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:84a01d90c4514d738a05d9045f62b1f1850fbe8d967b4ae545ba090e74cb1216", size = 17841378 },
+    { url = "https://files.pythonhosted.org/packages/9a/28/18fc80c1ae7bdbbb2c03f6bc995b328b3518e5b3cd69a01fa5354b9acfa4/wxpython-4.2.3-cp311-cp311-win32.whl", hash = "sha256:4e5028d7092701ab20b3bef4547d6a7d528d82f12192d72595eeb98b2ebe6364", size = 14496540 },
+    { url = "https://files.pythonhosted.org/packages/da/8a/beb38cf4c74a6d8587372aef86c00dde6fec2c8d88292b8e36389aa9dc73/wxpython-4.2.3-cp311-cp311-win_amd64.whl", hash = "sha256:9040fe6ae7e0fd1b33c7020c392a08f94d205614a24e23b9c7a3a74a9836140d", size = 16562662 },
+    { url = "https://files.pythonhosted.org/packages/18/2f/550022808bcf4cfafc94021d3f77fec2ceccfc21d37cc2ce465027802f87/wxpython-4.2.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:c007b153ebf74a8429789a5dcb93c76b3901c531b1413695fdb96f222ec207fc", size = 18792609 },
+    { url = "https://files.pythonhosted.org/packages/da/aa/86bf3300c921d81f59ccebcb919ca7516ca7ea2b560eab36ac45e1b9931d/wxpython-4.2.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a7c95c385895b94b4784a78c06a1626329c3552fcc47a78ab88f0a02ffe1e2db", size = 17851857 },
+    { url = "https://files.pythonhosted.org/packages/e7/63/40700ad4a43962e31adf754d420d6b2a5e2d50fa5e1041a01ed73b2b0e90/wxpython-4.2.3-cp312-cp312-win32.whl", hash = "sha256:361db46442376ba1cae4ce9f8fab4081b4d085458f973b4c10b68e04492067ad", size = 14505417 },
+    { url = "https://files.pythonhosted.org/packages/1a/25/ca90e9dc793c328fb97cc011ae92d48337c1a8ef8c54576979840d74226f/wxpython-4.2.3-cp312-cp312-win_amd64.whl", hash = "sha256:9231853d8a15b0610a6153cbef65f392164c17f234c65916df499619f7e75bd9", size = 16567404 },
+    { url = "https://files.pythonhosted.org/packages/af/d9/da813737843fe4290d63061f8c77d172a3c3f9242a2d3590ecec4ff91d6d/wxpython-4.2.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:718a1560e341b5c4755fe9e8a431a1c6796a9d742a4bfce7ebd90d8a71ac0dd4", size = 18796223 },
+    { url = "https://files.pythonhosted.org/packages/7d/b5/f65ba11cd6b1de8279085fba287ec869a35eb122743d620a58d65d54a177/wxpython-4.2.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a1a367e4242ae83aedbaf2728f622be8ee7aec4721eb4254fe8cf2d86f893bc5", size = 17853488 },
+    { url = "https://files.pythonhosted.org/packages/9e/42/fe653ffb7817d09cbc146bb67ace7fc690bdbe2739bbe472f99d8c51b01c/wxpython-4.2.3-cp313-cp313-win32.whl", hash = "sha256:676aeb82d64d3d3cb94210e882a508bb1013de5fb55917f54f8dd2c1483f9110", size = 14507572 },
+    { url = "https://files.pythonhosted.org/packages/83/5c/1692523ab503b34065add84f184e1b0e4b6af6b5bde6447666a0d192b29d/wxpython-4.2.3-cp313-cp313-win_amd64.whl", hash = "sha256:dac14ea1b04d90b403414f0401704beecae0d3e7143755a20da0ac2cfec02bf9", size = 16566260 },
 ]

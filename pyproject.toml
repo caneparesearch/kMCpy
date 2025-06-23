@@ -61,7 +61,9 @@ doc = [
     "tqdm", 
     "psutil", 
 ]
-
+gui = [
+    "gooey"
+]
 # Configuration for setuptools
 [tool.setuptools]
 

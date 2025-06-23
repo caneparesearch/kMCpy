@@ -25,13 +25,13 @@ You can quickly install the latest version of kMCpy through [PyPI](https://pypi.
 pip install kmcpy
 ```
 
-#### Method 2: Install from source
+#### Method 2: Install from source using `pip`
 
 You can install from the source code using `pip`. Assuming you have cloned the repository, navigate to the root directory of the kMCpy repository and run:
 ```shell
 pip install .
 ```
-
+#### Method 3: Install from source using [UV](https://docs.astral.sh/uv/getting-started/installation/)
 It is highly recommended to install kMCpy from source using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
 ```shell
 uv sync
