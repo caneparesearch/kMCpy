@@ -3,7 +3,7 @@ import pytest
 import os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-file_path = f'{current_dir}/files'
+file_path = os.path.join(current_dir, 'files')
 
 class TestNASICONbulk(unittest.TestCase):
 
