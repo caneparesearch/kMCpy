@@ -11,9 +11,9 @@ Advantages of using kMCpy:
 
 1.  Written entirely in Python with a modular design, promoting developer-centricity and easy feature addition.
 2.  Cross-platform compatibility, supporting Windows, macOS, and Linux.
-3.  Performance-optimized kMC routines using `Numba <https://numba.pydata.org/>`_, resulting in significant speed improvements.
+3.  Performance-optimized kMC routines using [Numba](https://numba.pydata.org/), resulting in significant speed improvements.
 
-This code was recently employed to investigate `the transport properties of Na-ion in NaSiCON solid electrolyte <https://www.nature.com/articles/s41467-022-32190-7>`_. In this study, rf-kMC was used to model Na-ion conductivity in NaSiCON, leading to the discovery that maximum conductivity is achieved at Na=3.4.
+This code was recently employed to investigate the transport properties of Na-ion in [NaSiCON solid electrolyte](https://www.nature.com/articles/s41467-022-32190-7). In this study, rf-kMC was used to model Na-ion conductivity in NaSiCON, leading to the discovery that maximum conductivity is achieved at Na = 3.4.
 
 ## Installation
 
