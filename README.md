@@ -65,7 +65,7 @@ uv sync --extra gui
 You can access the documentation at [https://kmcpy.readthedocs.io/](https://kmcpy.readthedocs.io/). However, if you want to build the documentation locally, you can do so by following these steps:
 ```shell
 uv sync --extra doc
-python build_doc.py
+python scripts/build_doc.py
 ```
 
 ## Run kMCpy

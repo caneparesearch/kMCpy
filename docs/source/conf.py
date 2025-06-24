@@ -85,3 +85,6 @@ master_doc = "index"
 
 
 source_suffix = [".rst", ".md"]
+
+pygments_style = "sphinx"
+pygments_dark_style = "monokai"
