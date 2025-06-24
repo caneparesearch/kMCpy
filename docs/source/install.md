@@ -1,4 +1,4 @@
-## Installation
+# Installation
 
 ## Method 1: Install using `pip`
 You can quickly install the latest version of kMCpy through [PyPI](https://pypi.org/project/kmcpy/) to your environment.

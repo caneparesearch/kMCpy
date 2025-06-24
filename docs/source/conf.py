@@ -24,7 +24,7 @@ with open(pyproject_path, "rb") as f:
 
 project = "kMCpy"
 current_year = datetime.now().year
-copyright = f"2022-{current_year}, Canepa Research Lab at University of Houston and DENG Group at NUS"
+copyright = f"2022-{current_year}, Canepa Research Lab and DENG Group"
 author = "Zeyu Deng"
 
 version = pyproject_data["project"]["version"]
