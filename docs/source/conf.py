@@ -15,7 +15,9 @@ import sys
 from datetime import datetime
 import tomllib
 
-sys.path.insert(0, os.path.abspath("../../"))
+# Ensure the repo root is on sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
 pyproject_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../pyproject.toml"))
 with open(pyproject_path, "rb") as f:
     pyproject_data = tomllib.load(f)
@@ -81,3 +83,6 @@ master_doc = "index"
 
 
 source_suffix = [".rst", ".md"]
+
+pygments_style = "sphinx"
+pygments_dark_style = "monokai"
