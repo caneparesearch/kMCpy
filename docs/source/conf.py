@@ -18,8 +18,6 @@ import tomllib
 # Ensure the repo root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-
-sys.path.insert(0, os.path.abspath("../../"))
 pyproject_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../pyproject.toml"))
 with open(pyproject_path, "rb") as f:
     pyproject_data = tomllib.load(f)
