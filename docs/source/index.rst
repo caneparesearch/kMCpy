@@ -1,9 +1,14 @@
-.. image:: _static/kmcpy_logo.png
-   :width: 300 px
+.. image:: _static/kmcpy_logo.svg
+   :width: 400 px
    :alt: kMCpy
    :align: center
+   :class: only-light
 
-kMCpy: A python package to simulate transport properties using Kinetic Monte Carlo
+.. image:: _static/kmcpy_logo_dark.svg
+   :width: 400 px
+   :alt: kMCpy
+   :align: center
+   :class: only-dark
 ==================================================================================
 
 

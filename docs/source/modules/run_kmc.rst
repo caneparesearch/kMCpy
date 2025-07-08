@@ -1,7 +1,7 @@
-model
+run_kmc
 =========================
 
-.. automodule:: kmcpy.model.model
+.. automodule:: kmcpy.cli.run_kmc
     :members:
     :inherited-members:
                   

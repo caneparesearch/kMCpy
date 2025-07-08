@@ -1,7 +1,7 @@
-model
+model_parameters
 =========================
 
-.. automodule:: kmcpy.model.model
+.. automodule:: kmcpy.model.model_parameters
     :members:
     :inherited-members:
                   
