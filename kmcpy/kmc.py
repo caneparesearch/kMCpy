@@ -253,7 +253,7 @@ class KMC:
         self.occ_global[event.mobile_ion_specie_1_index] *= -1
         self.occ_global[event.mobile_ion_specie_2_index] *= -1
         events_to_be_updated = copy(
-            self.site_event_list[event.mobile_ion_specie_2_index]
+            self.site_event_list[event.mobile_ion_specie_2_index]+self.site_event_list[event.mobile_ion_specie_1_index]
         )  # event_to_be_updated= list, include the indices, of the event that need to be updated.
         for e_index in events_to_be_updated:
             events[e_index].update_event(
