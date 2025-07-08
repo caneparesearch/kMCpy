@@ -281,7 +281,7 @@ class LocalClusterExpansion(BaseModel):
         """
         logger.debug("Computing probabilities ...")
         occ_sublat = deepcopy(occ_global[self.local_env_indices_list])
-        self.calc_corr()
+        self.calc_corr(self.corr, occ_sublat, self.sublattice_indices, self.corr_site, self.sublattice_indices_site)
         self.calc_ekra(keci, empty_cluster, keci_site, empty_cluster_site)  # calculate ekra and probability
         probability = self.calc_probability(occ_mobile_ion_specie_1, occ_mobile_ion_specie_2, v, temperature)
         return probability
