@@ -471,7 +471,8 @@ class EventGenerator:
         export_local_env_structure=True,
         supercell_shape=[2, 1, 1],
         event_fname="events.json",
-        event_kernal_fname="event_kernal.csv",
+        event_dependencies_fname="event_dependencies.csv",
+        event_kernal_fname=None,  # Deprecated parameter for backward compatibility
     ):
         """
         220603 XIE WEIHANG
@@ -491,7 +492,8 @@ class EventGenerator:
             export_local_env_structure (bool, optional): whether to export the local environment structure to cif file. If set to true, for each representatibe local environment structure, a cif file will be generated for further investigation. This is for debug purpose. Once confirming that the code is doing correct thing, it's better to turn off this feature. Defaults to True.
             supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
             event_fname (str, optional): file name for the events json file. Defaults to "events.json".
-            event_kernal_fname (str, optional): file name for event kernal. Defaults to 'event_kernal.csv'.
+            event_dependencies_fname (str, optional): file name for event dependencies matrix. Defaults to 'event_dependencies.csv'.
+            event_kernal_fname (str, optional): [DEPRECATED] Use event_dependencies_fname instead. For backward compatibility only. Defaults to None.
 
         Raises:
             NotImplementedError: the atom identifier type=list is not yet implemented
@@ -512,6 +514,15 @@ class EventGenerator:
         import kmcpy
 
         logger.info(kmcpy.get_logo())
+        
+        # Handle backward compatibility for deprecated parameter names
+        if event_kernal_fname is not None:
+            logger.warning(
+                "Parameter 'event_kernal_fname' is deprecated and will be removed in a future version. "
+                "Please use 'event_dependencies_fname' instead."
+            )
+            event_dependencies_fname = event_kernal_fname
+        
         logger.warning(
             "Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet."
         )
@@ -588,11 +599,11 @@ class EventGenerator:
                     reference_local_env_sites = [primitive_cell[mobile_ion_specie_1_index]]
 
                     for i in unsorted_neighbor_sequences:
-
                         reference_local_env_sites.append(i["site"])
-                        reference_local_env_structure = StructureKMCpy.from_sites(
-                            sites=reference_local_env_sites
-                        )
+                    
+                    reference_local_env_structure = StructureKMCpy.from_sites(
+                        sites=reference_local_env_sites
+                    )
 
                     reference_local_env_structure.to(
                         fmt="cif",
@@ -774,25 +785,32 @@ class EventGenerator:
                 "There is no event generated. This is probably caused by wrong input parameters."
             )
 
+        # Generate events and create EventLib
+        from kmcpy.event import EventLib
+        
+        event_lib = EventLib()
+        events_dict = []
+
+        for event in events:
+            event_lib.add_event(event)
+            events_dict.append(event.as_dict())
+
         logger.info(f"Saving: {event_fname}")
         with open(event_fname, "w") as fhandle:
             jsonStr = json.dumps(events_dict, indent=4, default=convert)
             fhandle.write(jsonStr)
 
-        events_site_list = []
+        # Generate event dependencies using EventLib
+        logger.info("Generating event dependency matrix...")
+        event_lib.generate_event_dependencies()
+        
+        # Save event dependencies to file for backward compatibility
+        event_lib.save_event_dependencies_to_file(filename=event_dependencies_fname)
+        logger.info(f"Event dependencies saved to: {event_dependencies_fname}")
 
-        for event in events:
-            # sublattice indices: local site index for each site
-            events_site_list.append(event.local_env_indices_list)
-
-        # np.savetxt('./events_site_list.txt',np.array(events_site_list,dtype=int),fmt="%i") # dimension not equal error
-
-        generate_event_kernal(
-            len(supercell),
-            np.array(events_site_list),
-            event_kernal_fname=event_kernal_fname,
-        )
-        logger.info(f"Saving into: {event_kernal_fname}")
+        # Display dependency statistics
+        stats = event_lib.get_dependency_statistics()
+        logger.info(f"Generated {len(event_lib)} events with dependency statistics: {stats}")
 
         return reference_local_env_dict
 

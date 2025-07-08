@@ -11,7 +11,7 @@ from copy import copy
 import json
 from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.tracker import Tracker
-from kmcpy.event import Event
+from kmcpy.event import Event, EventLib
 from kmcpy.io import convert
 import logging
 import kmcpy
@@ -36,7 +36,8 @@ class KMC:
                 lce_site_fname: str,
                 template_structure_fname: str,
                 event_fname: str,
-                event_kernel: str,
+                event_dependencies: str = None,
+                event_kernel: str = None,  # Backward compatibility
                 v: float = 1e13,
                 temperature: float = 300,
                 convert_to_primitive_cell: bool=False,
@@ -64,7 +65,9 @@ class KMC:
             template structure (with all sites filled).
             event_fname (str): Path to the JSON file containing the list of
             events.
-            event_kernel (str): Path to the event kernel file.
+            event_dependencies (str, optional): Path to the event dependencies file. 
+            event_kernel (str, optional): Deprecated. Use event_dependencies instead.
+                Provided for backward compatibility.
             v (float, optional): Attempt frequency (prefactor) for hopping
             events. Defaults to 1e13 Hz.
             temperature (float, optional): Simulation temperature in Kelvin.
@@ -81,6 +84,13 @@ class KMC:
             - Logs detailed information about the initialization process.
 
         """
+        # Handle backward compatibility for event_kernel parameter
+        if event_dependencies is None and event_kernel is not None:
+            event_dependencies = event_kernel
+            logger.warning("Parameter 'event_kernel' is deprecated. Use 'event_dependencies' instead.")
+        elif event_dependencies is None and event_kernel is None:
+            raise ValueError("Either 'event_dependencies' or 'event_kernel' must be provided.")
+        
         logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations ...")
         self.structure = StructureKMCpy.from_cif(
@@ -125,38 +135,43 @@ class KMC:
         sublattice_indices_site = _convert_list(
             local_cluster_expansion_site.sublattice_indices
         )
-        events_site_list = []
-
         logger.info(f"Loading events from: {event_fname}")
+        
+        # Create EventLib and load events
+        self.event_lib = EventLib()
+        
         with open(event_fname, "rb") as fhandle:
             events_dict = json.load(fhandle)
 
         logger.info("Initializing correlation matrix and E_kra for all events ...")
-        events = []
         for event_dict in events_dict:
             event = Event.from_dict(event_dict)
             event.set_sublattice_indices(sublattice_indices, sublattice_indices_site)
             event.initialize_corr()
             event.update_event(
-            self.occ_global,
-            v,
-            temperature,
-            self.keci,
-            self.empty_cluster,
-            self.keci_site,
-            self.empty_cluster_site,
+                self.occ_global,
+                v,
+                temperature,
+                self.keci,
+                self.empty_cluster,
+                self.keci_site,
+                self.empty_cluster_site,
             )
-            events_site_list.append(event.local_env_indices_list)
-            events.append(event)
+            self.event_lib.add_event(event)
 
-        self.events = events
+        # Generate event dependencies using the optimized algorithm
+        logger.info("Generating event dependency matrix...")
+        self.event_lib.generate_event_dependencies()
+        
+        # Keep reference to events for backward compatibility
+        self.events = self.event_lib.events
 
         logger.info("Initializing hopping probabilities ...")
         # Preallocate prob_list and prob_cum_list arrays for reuse
-        self.prob_list = np.empty(len(events), dtype=np.float64)
-        for i, event in enumerate(events):
+        self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
+        for i, event in enumerate(self.event_lib.events):
             self.prob_list[i] = event.probability
-        self.prob_cum_list = np.empty(len(events), dtype=np.float64)
+        self.prob_cum_list = np.empty(len(self.event_lib), dtype=np.float64)
         np.cumsum(self.prob_list, out=self.prob_cum_list)
 
         logger.info("Fitted time and error (LOOCV,RMS)")
@@ -170,11 +185,13 @@ class KMC:
         )
         logger.info("Fitted KECI and empty cluster (site energy or E_end)")
         logger.info(f"{self.keci_site}, {self.empty_cluster_site}")
-        logger.info(f"Lists for each event {events_site_list}")
+        logger.info(f"Event dependency matrix generated with {len(self.event_lib)} events")
         logger.info(f"Hopping probabilities: {self.prob_list}")
         logger.info(f"Cumulative sum of hopping probabilities: {self.prob_cum_list}")
-        logger.info(f"Loading event kernel from: {event_kernel}")
-        self.load_site_event_list(fname = event_kernel)
+        
+        # Display dependency matrix statistics
+        stats = self.event_lib.get_dependency_statistics()
+        logger.info(f"Dependency matrix statistics: {stats}")
 
     @classmethod
     def from_inputset(cls, inputset: InputSet)-> "KMC":
@@ -191,22 +208,6 @@ class KMC:
         params = {k: v for k, v in inputset._parameters.items() if k != "task"}
         return cls(**params)
 
-    def load_site_event_list(
-        self, fname:str="../event_kernal.csv"
-    )->None:  # workout the site_event_list -> site_event_list[site_index] will return a list of event index to update if a site_index is chosen
-        logger.info("Working at the site_event_list ...")
-
-        logger.info(f"Loading {fname}")
-        site_event_list = []
-        with open(fname) as f:
-            data = f.readlines()
-        for x in data:
-            if len(x.strip()) == 0:
-                site_event_list.append([])
-            else:
-                site_event_list.append([int(y) for y in x.strip().split()])
-        self.site_event_list = site_event_list
-
     def show_project_info(self):
         try:
             logger.info("Probabilities:")
@@ -219,32 +220,32 @@ class KMC:
     def propose(
         self,
         events: list,
-    ) -> tuple[Event, float]:
+    ) -> tuple[Event, float, int]:
         """Propose a new event to be updated by update().
 
         Args:
             events (list): List of events.
 
         Returns:
-            tuple[Event, float]: The chosen event and the time for this event to occur.
+            tuple[Event, float, int]: The chosen event, the time for this event to occur, and the event index.
         """
         proposed_event_index, dt = _propose(prob_cum_list=self.prob_cum_list, rng=self.rng)
         event = events[proposed_event_index]
-        return event, dt
+        return event, dt, proposed_event_index
     
 
-    def update(self, event: Event, events: list[Event])-> None:
+    def update(self, event: Event, event_index: int = None)-> None:
         """
         Updates the system state and event probabilities after an event occurs.
         This method performs the following steps:
         1. Flips the occupation values of the two mobile ion species involved in the event.
-        2. Identifies all events that need to be updated due to the change in occupation.
+        2. Identifies all events that need to be updated due to the change in occupation using EventLib.
         3. Updates each affected event's properties and recalculates their probabilities.
         4. Updates the cumulative probability list for event selection.
 
         Args:
             event: The event object that has just occurred, containing indices of the affected mobile ion species.
-            events (list): List of all event objects in the system.
+            event_index (int, optional): Index of the executed event. If None, will find it automatically.
             
         Side Effects:
             Modifies `self.occ_global`, `self.prob_list`, and `self.prob_cum_list` in place.
@@ -252,11 +253,16 @@ class KMC:
 
         self.occ_global[event.mobile_ion_specie_1_index] *= -1
         self.occ_global[event.mobile_ion_specie_2_index] *= -1
-        events_to_be_updated = copy(
-            self.site_event_list[event.mobile_ion_specie_2_index]+self.site_event_list[event.mobile_ion_specie_1_index]
-        )  # event_to_be_updated= list, include the indices, of the event that need to be updated.
+        
+        # Find event index if not provided
+        if event_index is None:
+            event_index = self.event_lib.events.index(event)
+        
+        # Use EventLib to get dependent events
+        events_to_be_updated = self.event_lib.get_dependent_events(event_index)
+        
         for e_index in events_to_be_updated:
-            events[e_index].update_event(
+            self.event_lib.events[e_index].update_event(
                 self.occ_global,
                 self.inputset.v,
                 self.inputset.temperature,
@@ -265,7 +271,7 @@ class KMC:
                 self.keci_site,
                 self.empty_cluster_site,
             )
-            self.prob_list[e_index] = copy(events[e_index].probability)
+            self.prob_list[e_index] = copy(self.event_lib.events[e_index].probability)
         self.prob_cum_list = np.cumsum(self.prob_list)
 
     def run(self, inputset: InputSet, label: str = None)-> Tracker:
@@ -298,8 +304,8 @@ class KMC:
         logger.info("Starting Equilbrium ...")
         for _ in np.arange(inputset.equ_pass):
             for _ in np.arange(pass_length):
-                event, dt = self.propose(self.events)
-                self.update(event, self.events)
+                event, dt, event_index = self.propose(self.events)
+                self.update(event, event_index)
 
         logger.info("Start running kMC ...")
 
@@ -312,9 +318,9 @@ class KMC:
         )
         for current_pass in np.arange(inputset.kmc_pass):
             for _ in np.arange(pass_length):
-                event, dt = self.propose(self.events)
+                event, dt, event_index = self.propose(self.events)
                 tracker.update(event, self.occ_global, dt)
-                self.update(event, self.events)
+                self.update(event, event_index)
             
             tracker.update_current_pass(current_pass)
             tracker.compute_properties()
@@ -333,6 +339,7 @@ class KMC:
             "keci_site": self.keci_site,
             "empty_cluster_site": self.empty_cluster_site,
             "occ_global": self.occ_global,
+            "event_lib": self.event_lib.as_dict(),
         }
         return d
 
