@@ -13,26 +13,30 @@
 import os
 import sys
 from datetime import datetime
-from importlib.metadata import version
+import tomllib
 
-sys.path.insert(0, os.path.abspath("../../"))
+# Ensure the repo root is on sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
+pyproject_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../pyproject.toml"))
+with open(pyproject_path, "rb") as f:
+    pyproject_data = tomllib.load(f)
 
 # -- Project information -----------------------------------------------------
 
 project = "kMCpy"
 current_year = datetime.now().year
-copyright = f"2022-{current_year}, Canepa Research Lab"
+copyright = f"2022-{current_year}, Canepa Research Lab and DENG Group"
 author = "Zeyu Deng"
 
-# The full version, including alpha/beta/rc tags
-__version__ = version("kmcpy")
-version= __version__
+version = pyproject_data["project"]["version"]
+release = version
+
 src_dir = os.path.abspath(os.path.dirname(__file__))
 # version_file = os.path.join("../../kmcpy", "_version.py")
 # with io_open(version_file, mode="r") as fd:
 #     exec(fd.read())
 
-release = __version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -79,3 +83,6 @@ master_doc = "index"
 
 
 source_suffix = [".rst", ".md"]
+
+pygments_style = "sphinx"
+pygments_dark_style = "monokai"

@@ -6,7 +6,7 @@ from pymatgen.core.lattice import Lattice
 import numba as nb
 from numba.typed import List
 from joblib import Parallel, delayed
-import multiprocessing
+import multiprocessing, os
 from kmcpy.external.structure import StructureKMCpy
 
 
@@ -42,8 +42,10 @@ def gather_data(path, template_structure):
     )
     data = []
     for index, location in enumerate(locations):
-        x = float(location.split("_")[1])
-        structure_index = int(location.split("_")[2])
+        print('location',location)
+        current_path = os.path.split(location)[-1]
+        x = float(current_path.split("_")[1])
+        structure_index = int(current_path.split("_")[2])
         print(location, occ[index])
         data.append([x, structure_index, occ[index]])
     return pd.DataFrame(data, columns=["comp", "structure_index", "occ"]).sort_values(

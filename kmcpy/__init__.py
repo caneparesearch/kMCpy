@@ -1,11 +1,10 @@
 """Main kMCpy module."""
 import datetime
 import logging
-import os
 
 from ._version import __version__
 
-__author__ = "Zeyu Deng"
+__author__ = "kMCpy Development Team"
 __author_email__ = "dengzeyu@gmail.com"
 
 # Expose the version and the logo function as the public API for this module.
