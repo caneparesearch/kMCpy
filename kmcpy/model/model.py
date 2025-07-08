@@ -63,4 +63,4 @@ class BaseModel(ABC):
             jsonStr = json.dumps(
                 d, indent=4, default=convert
             )
-    
+            fhandle.write(jsonStr)
