@@ -206,3 +206,5 @@ tests/files/events.json
 tests/files/event_kernal.csv
 tests/files/keci.txt
 tests/files/lce.json
+tests/files/fitting/lce_params.json
+tests/files/fitting/lce_params_history.json
