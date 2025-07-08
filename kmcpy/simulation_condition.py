@@ -15,6 +15,7 @@ class SimulationCondition(ABC):
         :param attempt_frequency: Attempt frequency in Hz.
         """
         name = 'SimulationCondition' if name is None else name
+        self.name = name
         self.temperature = temperature
         self.attempt_frequency = attempt_frequency
 
