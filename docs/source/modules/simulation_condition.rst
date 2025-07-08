@@ -1,7 +1,7 @@
-model
+simulation_condition
 =========================
 
-.. automodule:: kmcpy.model.model
+.. automodule:: kmcpy.simulation_condition
     :members:
     :inherited-members:
                   

@@ -1,4 +1,4 @@
-name: Run unit tests on Ubuntu
+name: Test
 
 on:
     push:

@@ -5,10 +5,17 @@ API Reference Documentation
     :maxdepth: 2
     :caption: Contents:
 
-    event_generator.rst
-    io.rst
+    lattice_model.rst
+    model_parameters.rst
+    local_cluster_expansion.rst
     model.rst
-    event.rst
+    run_kmc.rst
+    gui_wrapper.rst
+    tracker.rst
     fitting.rst
     kmc.rst
-    tracker.rst
+    fitter.rst
+    event.rst
+    io.rst
+    simulation_condition.rst
+    event_generator.rst

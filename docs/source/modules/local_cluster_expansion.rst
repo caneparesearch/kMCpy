@@ -1,7 +1,7 @@
-model
+local_cluster_expansion
 =========================
 
-.. automodule:: kmcpy.model.model
+.. automodule:: kmcpy.model.local_cluster_expansion
     :members:
     :inherited-members:
                   

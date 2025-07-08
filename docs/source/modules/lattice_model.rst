@@ -1,7 +1,7 @@
-model
+lattice_model
 =========================
 
-.. automodule:: kmcpy.model.model
+.. automodule:: kmcpy.model.lattice_model
     :members:
     :inherited-members:
                   
