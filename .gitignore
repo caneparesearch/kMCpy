@@ -206,3 +206,12 @@ tests/files/events.json
 tests/files/event_kernal.csv
 tests/files/keci.txt
 tests/files/lce.json
+tests/files/fitting/lce_params.json
+tests/files/fitting/lce_params_history.json
+
+# Temporary development files (should be in docs/development/)
+*_INTEGRATION.md
+*_COMPLETE.md
+*_FIX.md
+*_WARNINGS_FIX.md
+test_*.py  # Temporary test files (real tests should be in tests/)
