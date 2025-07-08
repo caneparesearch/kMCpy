@@ -6,6 +6,8 @@
   </picture>
 </h1>
 
+[![GitHub release](https://img.shields.io/github/release/caneparesearch/kmcpy.svg)](https://GitHub.com/caneparesearch/kmcpy/releases/)
+[![Documentation Status](https://readthedocs.org/projects/kmcpy/badge/)](https://kmcpy.readthedocs.io/en/latest/)
 [![CI Status](https://github.com/caneparesearch/kmcpy/actions/workflows/test-ubuntu.yml/badge.svg)](https://github.com/caneparesearch/kmcpy/actions/workflows/test-ubuntu.yml)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/kmcpy?logo=pypi&logoColor=white&color=blue&label=PyPI)](https://pypi.org/project/kmcpy)
 [![Requires Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg?logo=python&logoColor=white)](https://python.org/downloads)
