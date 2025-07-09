@@ -214,4 +214,6 @@ tests/files/fitting/lce_params_history.json
 *_COMPLETE.md
 *_FIX.md
 *_WARNINGS_FIX.md
+*_CLEANUP.md
+*_SUMMARY.md
 test_*.py  # Temporary test files (real tests should be in tests/)

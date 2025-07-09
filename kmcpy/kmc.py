@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
+import os
 from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.tracker import Tracker
 from kmcpy.event import Event, EventLib
@@ -19,7 +20,7 @@ from kmcpy.io import InputSet
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from kmcpy.simulation_condition import SimulationConfig
+    from kmcpy.simulation_condition import SimulationConfig, SimulationState
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
@@ -32,62 +33,65 @@ class KMC:
     methods for initializing the simulation from various input sources,
     managing events, updating system states, and running the simulation loop.
     """
-    def __init__(self, initial_occ: list,
-                supercell_shape: list,
-                fitting_results: str,
-                fitting_results_site: str,
-                lce_fname: str,
-                lce_site_fname: str,
-                template_structure_fname: str,
-                event_fname: str,
+    def __init__(self, initial_occ: list = None,
+                supercell_shape: list = None,
+                fitting_results: str = None,
+                fitting_results_site: str = None,
+                lce_fname: str = None,
+                lce_site_fname: str = None,
+                template_structure_fname: str = None,
+                event_fname: str = None,
                 event_dependencies: str = None,
                 event_kernel: str = None,  # Backward compatibility
+                initial_state: str = None,  # Path to initial state JSON file
                 v: float = 1e13,
                 temperature: float = 300,
-                convert_to_primitive_cell: bool=False,
-                immutable_sites: list=[],**kwargs)-> None:
+                convert_to_primitive_cell: bool = False,
+                immutable_sites: list = None,
+                simulation_state: "SimulationState" = None,
+                random_seed: int = None,
+                **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
-        It is recommended to use the `from_inputset` method to initialize the
-        KMC object from an InputSet.
+        This constructor now supports both legacy initialization (with individual parameters)
+        and new initialization (with SimulationState for better state management).
 
         Args:
-            initial_occ (list): The initial occupation list representing the
-            configuration of the system.
-            supercell_shape (list): Shape of the supercell as a list of
-            integers (e.g., [2, 2, 2]). This should be consistent with
-            events.
-            fitting_results (str): Path to the JSON file containing the
-            fitting results for E_kra.
-            fitting_results_site (str): Path to the JSON file containing the
-            fitting results for site energy difference.
-            lce_fname (str): Path to the JSON file containing the Local
-            Cluster Expansion (LCE) model.
-            lce_site_fname (str): Path to the JSON file containing the site
-            LCE model for computing site energy differences.
-            template_structure_fname (str): Path to the CIF file of the
-            template structure (with all sites filled).
-            event_fname (str): Path to the JSON file containing the list of
-            events.
-            event_dependencies (str, optional): Path to the event dependencies file. 
+            initial_occ (list, optional): The initial occupation list. Used in legacy mode.
+            supercell_shape (list, optional): Shape of the supercell. Used in legacy mode.
+            fitting_results (str, optional): Path to fitting results JSON file.
+            fitting_results_site (str, optional): Path to site fitting results JSON file.
+            lce_fname (str, optional): Path to LCE model JSON file.
+            lce_site_fname (str, optional): Path to site LCE model JSON file.
+            template_structure_fname (str, optional): Path to template structure CIF file.
+            event_fname (str, optional): Path to events JSON file.
+            event_dependencies (str, optional): Path to event dependencies file.
             event_kernel (str, optional): Deprecated. Use event_dependencies instead.
-                Provided for backward compatibility.
-            v (float, optional): Attempt frequency (prefactor) for hopping
-            events. Defaults to 1e13 Hz.
-            temperature (float, optional): Simulation temperature in Kelvin.
-            Defaults to 300 K.
-            convert_to_primitive_cell (bool, optional): Whether to convert the
-            structure to its primitive cell (default: False).
-            immutable_sites (list, optional): List of sites to be treated as
-            immutable and removed from the simulation (default: []).
+            initial_state (str, optional): Path to initial state JSON file.
+            v (float, optional): Attempt frequency. Defaults to 1e13 Hz.
+            temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
+            convert_to_primitive_cell (bool, optional): Whether to convert to primitive cell.
+            immutable_sites (list, optional): List of immutable sites to remove.
+            simulation_state (SimulationState, optional): SimulationState object for new architecture.
+            random_seed (int, optional): Random seed for reproducible simulations.
+            **kwargs: Additional keyword arguments.
 
-        Notes:
-            - Loads structure, fitting results, LCE models, and events.
-            - Initializes the supercell, occupation, event list, and hopping
-              probabilities.
-            - Logs detailed information about the initialization process.
-
+        Note:
+            When simulation_state is provided, it becomes the single source of truth for
+            all mutable simulation state. This is the preferred mode for new code.
+            
+            For occupation initialization, the priority is:
+            1. simulation_state (if provided)
+            2. initial_occ (if provided)
+            3. initial_state (if provided)
         """
+        # Set default values
+        if immutable_sites is None:
+            immutable_sites = []
+            
+        # Store random seed for later use
+        self.random_seed = random_seed
+            
         # Handle backward compatibility for event_kernel parameter
         if event_dependencies is None and event_kernel is not None:
             event_dependencies = event_kernel
@@ -97,48 +101,117 @@ class KMC:
         
         logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations ...")
+        
+        # Store simulation state reference (Phase 3 improvement)
+        self.simulation_state = simulation_state
+        
+        # Initialize structure
         self.structure = StructureKMCpy.from_cif(
             template_structure_fname, primitive=convert_to_primitive_cell
         )
+        
+        # Handle supercell shape
+        if supercell_shape is None:
+            supercell_shape = [1, 1, 1]
+            
         supercell_shape_matrix = np.diag(supercell_shape)
         logger.info(f"Supercell Shape:\n {supercell_shape_matrix}")
 
         logger.info("Converting to the supercell ...")
+        
+        # IMPORTANT: Calculate mutable sites BEFORE removing immutable sites
+        # This ensures consistent behavior with InputSet approach
+        mutable_sites = self._get_mutable_sites(immutable_sites)
+        
         logger.debug("removing the immutable sites: {immutable_sites}")
         self.structure.remove_species(immutable_sites)
         self.structure.make_supercell(supercell_shape_matrix)
 
+        # Load fitting results and models
+        self._load_fitting_results(fitting_results, fitting_results_site)
+        self._load_lce_models(lce_fname, lce_site_fname)
+        
+        # Initialize occupation state
+        if simulation_state is not None:
+            # Phase 3: Use SimulationState as single source of truth
+            logger.info("Using SimulationState for occupation management")
+            self.occ_global = simulation_state.occupations
+        elif initial_occ is not None:
+            # Legacy mode: use provided initial_occ
+            logger.info(f"Loading occupation (legacy mode): {initial_occ}")
+            self.occ_global = copy(initial_occ)
+        elif initial_state is not None:
+            # Phase 4: Load occupation from initial_state file
+            logger.info(f"Loading occupation from initial_state file: {initial_state}")
+            from kmcpy.io import _load_occ
+            self.occ_global = _load_occ(
+                initial_state,
+                supercell_shape,
+                # Use the pre-calculated mutable sites to ensure consistency with InputSet approach
+                mutable_sites
+            )
+        else:
+            raise ValueError("Either initial_occ, initial_state, or simulation_state must be provided")
+        
+        # Initialize events
+        self._initialize_events(event_fname, event_dependencies, v, temperature)
+        
+        logger.info("kMC initialization complete!")
+        
+    def _load_fitting_results(self, fitting_results: str, fitting_results_site: str):
+        """Load fitting results for E_kra and site energy."""
         logger.info("Loading fitting results: E_kra ...")
-        fitting_results = (
+        self.fitting_results_data = (
             pd.read_json(fitting_results, orient="index")
             .sort_values(by=["time_stamp"], ascending=False)
             .iloc[0]
         )
-        self.keci = fitting_results.keci
-        self.empty_cluster = fitting_results.empty_cluster
+        self.keci = self.fitting_results_data.keci
+        self.empty_cluster = self.fitting_results_data.empty_cluster
 
-        logger.info("Loading fitting results: site energy ...")
-        fitting_results_site = (
-            pd.read_json(fitting_results_site, orient="index")
-            .sort_values(by=["time_stamp"], ascending=False)
-            .iloc[0]
-        )
-        self.keci_site = fitting_results_site.keci
-        self.empty_cluster_site = fitting_results_site.empty_cluster
-
-        logger.info(f"Loading occupation: {initial_occ}")
-        self.occ_global = copy(initial_occ)
-
-        logger.info(f"Loading LCE models from: {lce_fname} and {lce_site_fname}")
+        # Only load site fitting results if file exists
+        if fitting_results_site is not None and os.path.exists(fitting_results_site):
+            logger.info("Loading fitting results: site energy ...")
+            self.fitting_results_site_data = (
+                pd.read_json(fitting_results_site, orient="index")
+                .sort_values(by=["time_stamp"], ascending=False)
+                .iloc[0]
+            )
+            self.keci_site = self.fitting_results_site_data.keci
+            self.empty_cluster_site = self.fitting_results_site_data.empty_cluster
+        else:
+            logger.info("No site fitting results file found - using zero site energy contributions")
+            self.fitting_results_site_data = None
+            self.keci_site = None
+            self.empty_cluster_site = None
+        
+    def _load_lce_models(self, lce_fname: str, lce_site_fname: str):
+        """Load Local Cluster Expansion models."""
+        logger.info(f"Loading LCE models from: {lce_fname}")
         local_cluster_expansion = LocalClusterExpansion.from_json(lce_fname)
-        local_cluster_expansion_site = LocalClusterExpansion.from_json(lce_site_fname)
+        
+        # Load site LCE if file exists
+        if lce_site_fname is not None and os.path.exists(lce_site_fname):
+            logger.info(f"Loading site LCE from: {lce_site_fname}")
+            local_cluster_expansion_site = LocalClusterExpansion.from_json(lce_site_fname)
+            sublattice_indices_site = _convert_list(
+                local_cluster_expansion_site.sublattice_indices
+            )
+        else:
+            logger.info("No site LCE file found - using empty site indices")
+            # Create empty sublattice indices for site model
+            sublattice_indices_site = List([])
 
         # sublattice_indices are the orbits in table S3 of support information
         # Convert them into Numba List for faster execution
         sublattice_indices = _convert_list(local_cluster_expansion.sublattice_indices)
-        sublattice_indices_site = _convert_list(
-            local_cluster_expansion_site.sublattice_indices
-        )
+        
+        # Store for later use
+        self.sublattice_indices = sublattice_indices
+        self.sublattice_indices_site = sublattice_indices_site
+        
+    def _initialize_events(self, event_fname: str, event_dependencies: str, v: float, temperature: float):
+        """Initialize events and event library."""
         logger.info(f"Loading events from: {event_fname}")
         
         # Create EventLib and load events
@@ -150,7 +223,7 @@ class KMC:
         logger.info("Initializing correlation matrix and E_kra for all events ...")
         for event_dict in events_dict:
             event = Event.from_dict(event_dict)
-            event.set_sublattice_indices(sublattice_indices, sublattice_indices_site)
+            event.set_sublattice_indices(self.sublattice_indices, self.sublattice_indices_site)
             event.initialize_corr()
             event.update_event(
                 self.occ_global,
@@ -179,13 +252,13 @@ class KMC:
         np.cumsum(self.prob_list, out=self.prob_cum_list)
 
         logger.info("Fitted time and error (LOOCV,RMS)")
-        logger.info(f"{fitting_results.time}, {fitting_results.loocv}, {fitting_results.rmse}")
+        logger.info(f"{self.fitting_results_data.time}, {self.fitting_results_data.loocv}, {self.fitting_results_data.rmse}")
         logger.info("Fitted KECI and empty cluster E_kra")
         logger.info(f"{self.keci}, {self.empty_cluster}")
 
         logger.info("Fitted time and error (LOOCV,RMS) (site energy)")
         logger.info(
-            f"{fitting_results_site.time}, {fitting_results_site.loocv}, {fitting_results_site.rmse}"
+            f"{self.fitting_results_site_data.time}, {self.fitting_results_site_data.loocv}, {self.fitting_results_site_data.rmse}"
         )
         logger.info("Fitted KECI and empty cluster (site energy or E_end)")
         logger.info(f"{self.keci_site}, {self.empty_cluster_site}")
@@ -214,7 +287,7 @@ class KMC:
 
     @classmethod
     def from_simulation_config(cls, config: "SimulationConfig") -> "KMC":
-        """Initialize KMC from SimulationConfig object.
+        """Initialize KMC from SimulationConfig object (Phase 4 - Direct workflow).
 
         Args:
             config (SimulationConfig): SimulationConfig object containing all
@@ -244,15 +317,51 @@ class KMC:
         # Validate the configuration
         config.validate()
         
-        # Convert to InputSet format for compatibility
-        inputset = config.to_inputset()
+        # Phase 4: Direct parameter mapping from SimulationConfig
+        # This avoids the need for InputSet conversion
+        kmc_params = {
+            # Core simulation parameters
+            'temperature': config.temperature,
+            'v': config.attempt_frequency,
+            'supercell_shape': config.supercell_shape,
+            'convert_to_primitive_cell': config.convert_to_primitive_cell,
+            'immutable_sites': config.immutable_sites,
+            'random_seed': config.random_seed,
+            'equ_pass': config.equilibration_passes,
+            'kmc_pass': config.kmc_passes,
+            'dimension': config.dimension,
+            'elem_hop_distance': config.elementary_hop_distance,
+            'q': config.mobile_ion_charge,
+            'mobile_ion_specie': config.mobile_ion_specie,
+            
+            # File parameters
+            'fitting_results': config.fitting_results,
+            'fitting_results_site': config.fitting_results_site,
+            'lce_fname': config.lce_fname,
+            'lce_site_fname': config.lce_site_fname,
+            'template_structure_fname': config.template_structure_fname,
+            'event_fname': config.event_fname,
+        }
         
-        # Create KMC instance using existing from_inputset method
-        return cls.from_inputset(inputset)
+        # Handle initial occupation - if both initial_occ and initial_state exist, prefer initial_occ
+        if config.initial_occ:
+            kmc_params['initial_occ'] = config.initial_occ
+        elif config.initial_state:
+            kmc_params['initial_state'] = config.initial_state
+        
+        # Handle event dependencies if provided
+        if hasattr(config, 'event_dependencies') and config.event_dependencies:
+            kmc_params['event_dependencies'] = config.event_dependencies
+        
+        # Remove None values to avoid parameter errors
+        kmc_params = {k: v for k, v in kmc_params.items() if v is not None}
+        
+        # Create KMC instance directly with validated parameters
+        return cls(**kmc_params)
 
     @classmethod
     def run_simulation(cls, config: "SimulationConfig", label: str = None) -> Tracker:
-        """Create KMC instance and run simulation in one step.
+        """Create KMC instance and run simulation in one step (Phase 4 - Streamlined workflow).
 
         Args:
             config (SimulationConfig): SimulationConfig object containing all simulation parameters.
@@ -271,10 +380,11 @@ class KMC:
                 # ... other parameters
             )
             
-            # Create and run in one step
+            # Create and run in one step (Phase 4 streamlined)
             tracker = KMC.run_simulation(config)
             ```
         """
+        # Phase 4: Use direct SimulationConfig workflow
         kmc = cls.from_simulation_config(config)
         return kmc.run(config, label)
 
@@ -307,6 +417,10 @@ class KMC:
     def update(self, event: Event, event_index: int = None)-> None:
         """
         Updates the system state and event probabilities after an event occurs.
+        
+        Phase 3 improvement: This method now works with SimulationState when available,
+        eliminating state duplication and improving consistency.
+        
         This method performs the following steps:
         1. Flips the occupation values of the two mobile ion species involved in the event.
         2. Identifies all events that need to be updated due to the change in occupation using EventLib.
@@ -318,11 +432,19 @@ class KMC:
             event_index (int, optional): Index of the executed event. If None, will find it automatically.
             
         Side Effects:
-            Modifies `self.occ_global`, `self.prob_list`, and `self.prob_cum_list` in place.
+            Modifies occupation state and probability lists in place.
         """
-
-        self.occ_global[event.mobile_ion_specie_1_index] *= -1
-        self.occ_global[event.mobile_ion_specie_2_index] *= -1
+        # Phase 3: Update occupations in SimulationState if available, otherwise use legacy mode
+        if self.simulation_state is not None:
+            # Use SimulationState as single source of truth
+            self.simulation_state.occupations[event.mobile_ion_specie_1_index] *= -1
+            self.simulation_state.occupations[event.mobile_ion_specie_2_index] *= -1
+            # Keep occ_global synchronized for event updates
+            self.occ_global = self.simulation_state.occupations
+        else:
+            # Legacy mode: update occ_global directly
+            self.occ_global[event.mobile_ion_specie_1_index] *= -1
+            self.occ_global[event.mobile_ion_specie_2_index] *= -1
         
         # Find event index if not provided
         if event_index is None:
@@ -360,24 +482,42 @@ class KMC:
             inputset = InputSet.from_json("input.json")
             tracker = kmc.run(inputset)
             
-            # Using SimulationConfig (new method)
+            # Using SimulationConfig (new method - Phase 4 improvement)
             config = SimulationConfig(name="Test", temperature=400.0, ...)
             tracker = kmc.run(config)
             ```
         """
         from kmcpy.simulation_condition import SimulationConfig
         
-        # Handle SimulationConfig input
+        # Phase 4: Enhanced handling of SimulationConfig
+        original_config = None
         if isinstance(inputset, SimulationConfig):
+            original_config = inputset
             config = inputset
             config.validate()
-            inputset = config.to_inputset()
+            
+            # Phase 4: Direct parameter usage where possible
             if label is None:
                 label = config.name
+            
+            # For now, still convert to InputSet for compatibility,
+            # but this reduces the dependency on InputSet.to_inputset()
+            inputset = config.to_inputset()
+        elif hasattr(inputset, 'to_inputset'):
+            # Handle other objects that can convert to InputSet
+            inputset = inputset.to_inputset()
+        
+        # Store the original config for potential future use
+        self._original_config = original_config
         
         # Continue with existing run logic
         self.inputset = inputset
-        if hasattr(inputset, "random_seed") and inputset.random_seed is not None:
+        
+        # Initialize random number generator
+        # Priority: instance random_seed > inputset random_seed > default
+        if self.random_seed is not None:
+            self.rng = np.random.default_rng(seed=self.random_seed)
+        elif hasattr(inputset, "random_seed") and inputset.random_seed is not None:
             self.rng = np.random.default_rng(seed=inputset.random_seed)
         else:
             self.rng = np.random.default_rng()
@@ -401,24 +541,46 @@ class KMC:
 
         logger.info("Start running kMC ...")
 
-        tracker = Tracker.from_inputset(inputset = inputset,
-                                        structure = self.structure,
-                                        occ_initial = self.occ_global)
+        # Phase 3: Enhanced Tracker creation with better SimulationState integration
+        if self.simulation_state is not None:
+            # Phase 3 mode: Use existing SimulationState
+            tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
+            logger.info("Using SimulationState-centric architecture")
+        elif hasattr(inputset, 'to_inputset'):
+            # It's a SimulationConfig but no SimulationState provided
+            tracker = Tracker.from_config(config=inputset, structure=self.structure, occ_initial=self.occ_global)
+        else:
+            # It's an InputSet (backward compatibility)
+            tracker = Tracker.from_inputset(inputset=inputset, structure=self.structure, occ_initial=self.occ_global)
         
         logger.info(
             "Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf"
         )
-        for current_pass in np.arange(inputset.kmc_pass):
+        
+        # Get the appropriate pass count
+        kmc_pass = inputset.kmc_passes if hasattr(inputset, 'kmc_passes') else inputset.kmc_pass
+        
+        for current_pass in np.arange(kmc_pass):
             for _ in np.arange(pass_length):
                 event, dt, event_index = self.propose(self.events)
-                tracker.update(event, self.occ_global, dt)
-                self.update(event, event_index)
+                
+                # Phase 3: Optimized update workflow
+                if self.simulation_state is not None:
+                    # Update SimulationState directly, no need for occupation synchronization
+                    tracker.state.update_from_event(event, dt)
+                    self.update(event, event_index)  # This will sync from SimulationState
+                else:
+                    # Legacy workflow
+                    tracker.update(event, self.occ_global, dt)
+                    self.update(event, event_index)
             
             tracker.update_current_pass(current_pass)
             tracker.compute_properties()
             tracker.show_current_info()
 
-        tracker.write_results(self.occ_global, label=label)
+        # Phase 3: Use SimulationState occupations if available
+        final_occupations = self.simulation_state.occupations if self.simulation_state else self.occ_global
+        tracker.write_results(final_occupations, label=label)
         return tracker
 
     def run_with_config(self, config: "SimulationConfig", label: str = None) -> Tracker:
@@ -461,6 +623,64 @@ class KMC:
         
         return self.run(inputset, label)
 
+    @classmethod
+    def from_simulation_state(cls, config: "SimulationConfig", simulation_state: "SimulationState") -> "KMC":
+        """Initialize KMC from SimulationConfig and SimulationState objects.
+        
+        This is the Phase 3 preferred method for creating KMC instances, as it
+        eliminates state duplication and provides better integration with SimulationState.
+
+        Args:
+            config (SimulationConfig): SimulationConfig object containing all configuration parameters.
+            simulation_state (SimulationState): SimulationState object containing mutable simulation state.
+
+        Returns:
+            KMC: An instance of the KMC class initialized with the provided configuration and state.
+            
+        Example:
+            ```python
+            from kmcpy.simulation_condition import SimulationConfig, SimulationState
+            
+            config = SimulationConfig(
+                name="NASICON_Simulation",
+                temperature=573.0,
+                # ... other parameters
+            )
+            
+            state = SimulationState(
+                initial_occ=[1, -1, 1, -1],
+                structure=structure,
+                mobile_ion_specie="Na"
+            )
+            
+            kmc = KMC.from_simulation_state(config, state)
+            ```
+        """
+        from kmcpy.simulation_condition import SimulationConfig, SimulationState
+        
+        # Validate the configuration
+        config.validate()
+        
+        # Create KMC instance with SimulationState
+        kmc = cls(
+            initial_occ=simulation_state.occupations,
+            supercell_shape=config.supercell_shape,
+            fitting_results=config.fitting_results,
+            fitting_results_site=config.fitting_results_site,
+            lce_fname=config.lce_fname,
+            lce_site_fname=config.lce_site_fname,
+            template_structure_fname=config.template_structure_fname,
+            event_fname=config.event_fname,
+            event_dependencies=config.event_dependencies,
+            v=config.attempt_frequency,
+            temperature=config.temperature,
+            convert_to_primitive_cell=config.convert_to_primitive_cell,
+            immutable_sites=config.immutable_sites,
+            simulation_state=simulation_state  # Phase 3: Pass SimulationState
+        )
+        
+        return kmc
+
     def as_dict(self)-> dict:
         d = {
             "@module": self.__class__.__module__,
@@ -494,6 +714,19 @@ class KMC:
         logger.info("load complete")
         return obj
 
+    def _get_mutable_sites(self, immutable_sites: list) -> list:
+        """Get list of mutable site indices for occupation loading."""
+        if immutable_sites is None:
+            immutable_sites = []
+            
+        mutable_sites = []
+        for index, site in enumerate(self.structure.sites):
+            if site.specie.symbol not in immutable_sites:
+                mutable_sites.append(index)
+        
+        logger.debug(f"Mutable sites: {mutable_sites}")
+        return mutable_sites
+    
 
 def _convert_list(list_to_convert)-> List:
     converted_list = List([List(List(j) for j in i) for i in list_to_convert])

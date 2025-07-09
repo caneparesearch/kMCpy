@@ -74,7 +74,7 @@ def check_file_exists(file_path):
 
 class TestNASICONbulk(unittest.TestCase):
 
-    @pytest.mark.order(1)
+    @pytest.mark.order("first")
     def test_NeighborInfoMatcher(self):
         print("neighbor info matcher testing")
         
@@ -143,7 +143,7 @@ class TestNASICONbulk(unittest.TestCase):
             )
         )
 
-    @pytest.mark.order(2)
+    @pytest.mark.order("second")
     def test_generate_events(self):
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_1_identifier = "Na1"
@@ -193,7 +193,7 @@ class TestNASICONbulk(unittest.TestCase):
             len(reference_local_env_dict), 1
         )  # only one type of local environment should be found. If more than 1, raise error.
 
-    @pytest.mark.order(3)
+    @pytest.mark.order("third")
     def test_generate_local_cluster_exapnsion(self):
         
         from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
@@ -229,7 +229,7 @@ class TestNASICONbulk(unittest.TestCase):
         print("fitting", y_pred, y_true)
         self.assertTrue(np.allclose(y_pred, y_true, rtol=0.3, atol=10.0))
 
-    @pytest.mark.order(4)
+    @pytest.mark.order("kmc_original")
     def test_kmc_main_function(self):
         """Original KMC test using InputSet approach (for reference)."""
         from kmcpy.io import InputSet
@@ -266,7 +266,7 @@ class TestNASICONbulk(unittest.TestCase):
         # np.array((3.517242770690013e-06, 26.978226076495748, 3.187544456106211e-10, 1.2783794881088614e-10, 0.025760595723683707, 0.4010546380490277, 0.04309185078659044)) this is run from the given random number kernal and random number seed. This is a very strict criteria to see if the behavior of KMC is correct
         # with 0-7, 32-37 selected: np.array(1.1193006038758543e-06, 307.37444494263616, 1.4630573145769372e-08, 4.5768825621743376e-09, 1.1823906621661553, 0.312830024946617, 0.21998150220477225)
 
-    @pytest.mark.order(4.5)
+    @pytest.mark.order("kmc_modernized")
     def test_kmc_main_function_modernized(self):
         """Modernized KMC test using SimulationCondition approach."""
         print("Testing modernized KMC workflow with SimulationCondition")
@@ -330,7 +330,7 @@ class TestNASICONbulk(unittest.TestCase):
         finally:
             os.chdir(original_cwd)
 
-    @pytest.mark.order(5)
+    @pytest.mark.order("data_gathering")
     def test_gather_mc_data(self):
         
         from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
@@ -358,7 +358,7 @@ class TestNASICONbulk(unittest.TestCase):
                 print(i, occ1[i], occ2[i])
         self.assertTrue(np.allclose(occ1[0], occ2[0], rtol=0.001, atol=0.001))
 
-    @pytest.mark.order(5)
+    @pytest.mark.order("simulation_condition_basic")
     def test_simulation_condition_with_nasicon(self):
         """Test SimulationCondition integration with NASICON test files."""
         print("Testing SimulationCondition with NASICON files")
@@ -430,7 +430,7 @@ class TestNASICONbulk(unittest.TestCase):
         
         print("✅ SimulationCondition NASICON integration test completed")
 
-    @pytest.mark.order(6)  
+    @pytest.mark.order("simulation_condition_parameters")  
     def test_simulation_condition_parameter_studies(self):
         """Test SimulationCondition parameter study capabilities."""
         print("Testing SimulationCondition parameter studies")
@@ -474,7 +474,7 @@ class TestNASICONbulk(unittest.TestCase):
         print("✓ Multi-parameter studies work")
         print("✅ Parameter studies test completed")
 
-    @pytest.mark.order(6)
+    @pytest.mark.order("kmc_comparison")
     def test_kmc_simulation_condition_vs_inputset(self):
         """Test that KMC with SimulationCondition produces same results as InputSet approach."""
         print("Testing KMC SimulationCondition vs InputSet comparison")
@@ -588,7 +588,7 @@ class TestNASICONbulk(unittest.TestCase):
         finally:
             os.chdir(original_cwd)
 
-    @pytest.mark.order(7)
+    @pytest.mark.order("parameter_matching")
     def test_simulation_condition_parameter_matching(self):
         """Test that SimulationCondition parameters match InputSet parameters."""
         print("Testing SimulationCondition parameter matching with InputSet")
@@ -688,7 +688,7 @@ class TestNASICONbulk(unittest.TestCase):
         finally:
             os.chdir(original_cwd)
 
-    @pytest.mark.order(8)
+    @pytest.mark.order("kmc_workflow")
     def test_kmc_simulation_condition_workflow(self):
         """Test complete KMC workflow using SimulationCondition approach."""
         print("Testing complete KMC workflow with SimulationCondition")

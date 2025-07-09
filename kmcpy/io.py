@@ -207,6 +207,7 @@ class InputSet:
                 "template_structure_fname": True,
                 "event_fname": True,
                 "event_kernel": True,
+                "event_dependencies": False,  # New parameter name (optional)
                 "initial_state": True,
                 "temperature": True,
                 "dimension": True,
@@ -214,7 +215,9 @@ class InputSet:
                 "elem_hop_distance": True,
                 "convert_to_primitive_cell": False,
                 "immutable_sites": False,
-                "mobile_ion_specie": True
+                "mobile_ion_specie": True,
+                "random_seed": False,  # Optional parameter for random number generation
+                "name": False  # Optional parameter for simulation name
             }
         elif self._parameters["task"] == "lce":
             parameters = {

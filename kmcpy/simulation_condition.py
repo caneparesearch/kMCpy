@@ -7,6 +7,7 @@ import numpy as np
 if TYPE_CHECKING:
     from kmcpy.io import InputSet
     from kmcpy.event import EventLib
+    from kmcpy.external.structure import StructureKMCpy
 
 @dataclass
 class SimulationCondition:
@@ -293,28 +294,148 @@ class SimulationConfig(KMCSimulationCondition):
         """Cleanup when object is deleted."""
         self.cleanup_temp_files()
 
-class SimulationState(ABC):
-    def __init__(self, occupations:list=[], probabilities:list=[], barriers:list=[], time=0.0, step=0):
+class SimulationState:
+    """
+    Concrete class for managing simulation state during KMC runs.
+    
+    This class handles all mutable state during simulation including:
+    - Current occupations
+    - Time and step tracking
+    - Mobile ion positions and displacements
+    - Hop counters
+    """
+    
+    def __init__(self, initial_occ: list, structure: Optional["StructureKMCpy"] = None, 
+                 mobile_ion_specie: str = "Li", time: float = 0.0, step: int = 0):
         """
-        occupations: dict or array-like mapping site index -> species/occupation
-        time: current simulation time
-        step: current step count
+        Initialize simulation state.
+        
+        Args:
+            initial_occ: Initial occupation list
+            structure: Structure object for mobile ion analysis
+            mobile_ion_specie: Mobile ion species identifier
+            time: Initial simulation time
+            step: Initial step count
         """
-        self.occupations = occupations
+        from copy import copy
+        import numpy as np
+        
+        # Core state
+        self.occupations = copy(initial_occ)
         self.time = time
         self.step = step
-        self.probabilities = probabilities
-        self.barriers = barriers
-
-    @abstractmethod
-    def update(self, update_message:dict, indices:list):
-        raise NotImplementedError(
-            "This method should be implemented in the subclass to update the state based on the update message."
-        )
+        self.mobile_ion_specie = mobile_ion_specie
+        
+        # Mobile ion tracking (moved from Tracker)
+        if structure is not None:
+            self._initialize_mobile_ion_tracking(structure, initial_occ)
+        else:
+            # Minimal initialization without structure
+            self.mobile_ion_locations = []
+            self.n_mobile_ion_specie = 0
+            self.displacement = np.array([])
+            self.hop_counter = np.array([])
+            self.r0 = np.array([])
     
-    def advance_time(self, dt):
+    def _initialize_mobile_ion_tracking(self, structure: "StructureKMCpy", initial_occ: list):
+        """Initialize mobile ion tracking arrays."""
+        import numpy as np
+        
+        self.structure = structure
+        self.frac_coords = structure.frac_coords
+        self.latt = structure.lattice
+        
+        # Find mobile ion sites
+        self.n_mobile_ion_specie_site = len(
+            [el.symbol for el in structure.species if self.mobile_ion_specie in el.symbol]
+        )
+        self.mobile_ion_locations = np.where(
+            np.array(initial_occ[0:self.n_mobile_ion_specie_site]) == -1
+        )[0]
+        self.n_mobile_ion_specie = len(self.mobile_ion_locations)
+        
+        # Initialize tracking arrays
+        self.displacement = np.zeros((self.n_mobile_ion_specie, 3))
+        self.hop_counter = np.zeros(self.n_mobile_ion_specie, dtype=np.int64)
+        self.r0 = self.frac_coords[self.mobile_ion_locations] @ self.latt.matrix
+    
+    def update_from_event(self, event, dt: float):
+        """
+        Update state from a KMC event.
+        
+        Args:
+            event: KMC event object
+            dt: Time increment
+        """
+        import numpy as np
+        
+        # Update time and step
         self.time += dt
         self.step += 1
+        
+        # Update mobile ion positions if structure is available
+        if hasattr(self, 'structure') and self.structure is not None:
+            self._update_mobile_ion_positions(event)
+    
+    def _update_mobile_ion_positions(self, event):
+        """Update mobile ion positions and displacements from event."""
+        import numpy as np
+        from copy import copy
+        
+        # Get event coordinates
+        mobile_ion_specie_1_coord = copy(self.frac_coords[event.mobile_ion_specie_1_index])
+        mobile_ion_specie_2_coord = copy(self.frac_coords[event.mobile_ion_specie_2_index])
+        
+        # Get current occupations
+        mobile_ion_specie_1_occ = self.occupations[event.mobile_ion_specie_1_index]
+        mobile_ion_specie_2_occ = self.occupations[event.mobile_ion_specie_2_index]
+        
+        # Determine direction and update positions
+        if mobile_ion_specie_1_occ == -1 and mobile_ion_specie_2_occ == 1:
+            # Ion moves from site 1 to site 2
+            direction = 1
+            mobile_ion_array_index = np.where(self.mobile_ion_locations == event.mobile_ion_specie_1_index)[0][0]
+            self.mobile_ion_locations[mobile_ion_array_index] = event.mobile_ion_specie_2_index
+            
+            # Update displacement
+            displacement_vector = (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord)
+            displacement_vector = displacement_vector - np.round(displacement_vector)
+            self.displacement[mobile_ion_array_index] += displacement_vector @ self.latt.matrix
+            self.hop_counter[mobile_ion_array_index] += 1
+            
+        elif mobile_ion_specie_1_occ == 1 and mobile_ion_specie_2_occ == -1:
+            # Ion moves from site 2 to site 1
+            direction = -1
+            mobile_ion_array_index = np.where(self.mobile_ion_locations == event.mobile_ion_specie_2_index)[0][0]
+            self.mobile_ion_locations[mobile_ion_array_index] = event.mobile_ion_specie_1_index
+            
+            # Update displacement
+            displacement_vector = (mobile_ion_specie_1_coord - mobile_ion_specie_2_coord)
+            displacement_vector = displacement_vector - np.round(displacement_vector)
+            self.displacement[mobile_ion_array_index] += displacement_vector @ self.latt.matrix
+            self.hop_counter[mobile_ion_array_index] += 1
+        
+        # Update occupations
+        self.occupations[event.mobile_ion_specie_1_index] *= -1
+        self.occupations[event.mobile_ion_specie_2_index] *= -1
+    
+    def advance_time(self, dt: float):
+        """Advance simulation time."""
+        self.time += dt
+        self.step += 1
+    
+    def get_current_occupations(self) -> list:
+        """Get current occupation state."""
+        return self.occupations.copy()
+    
+    def get_mobile_ion_info(self) -> dict:
+        """Get mobile ion tracking information."""
+        return {
+            'locations': self.mobile_ion_locations.copy() if hasattr(self, 'mobile_ion_locations') else [],
+            'displacement': self.displacement.copy() if hasattr(self, 'displacement') else [],
+            'hop_counter': self.hop_counter.copy() if hasattr(self, 'hop_counter') else [],
+            'n_mobile_ions': self.n_mobile_ion_specie if hasattr(self, 'n_mobile_ion_specie') else 0
+        }
 
     def to(self, filename: str) -> None:
         """
@@ -322,15 +443,34 @@ class SimulationState(ABC):
         
         :param filename: The name of the file to save the state.
         """
+        import json
+        import numpy as np
+        
+        # Prepare data for serialization
+        state_data = {
+            'occupations': self.occupations,
+            'time': self.time,
+            'step': self.step,
+            'mobile_ion_specie': self.mobile_ion_specie
+        }
+        
+        # Add mobile ion tracking data if available
+        if hasattr(self, 'mobile_ion_locations'):
+            state_data.update({
+                'mobile_ion_locations': self.mobile_ion_locations.tolist(),
+                'displacement': self.displacement.tolist(),
+                'hop_counter': self.hop_counter.tolist(),
+                'n_mobile_ion_specie': self.n_mobile_ion_specie
+            })
+        
         if filename.endswith('.json'):
-            import json
             with open(filename, 'w') as f:
-                json.dump(self.__dict__, f, indent=4)
+                json.dump(state_data, f, indent=4)
         elif filename.endswith('.h5'):
             try:
                 import h5py
                 with h5py.File(filename, 'w') as f:
-                    for key, value in self.__dict__.items():
+                    for key, value in state_data.items():
                         f.create_dataset(key, data=value)
             except ImportError:
                 raise ImportError("h5py is required for HDF5 file support. Install with: pip install h5py")
@@ -345,8 +485,10 @@ class SimulationState(ABC):
         :param filename: The name of the file to load the state from.
         :return: An instance of SimulationState.
         """
+        import json
+        import numpy as np
+        
         if filename.endswith('.json'):
-            import json
             with open(filename, 'r') as f:
                 data = json.load(f)
         elif filename.endswith('.h5'):
@@ -359,7 +501,22 @@ class SimulationState(ABC):
         else:
             raise ValueError("Unsupported file format. Use .json or .h5")
         
-        return cls(**data)
+        # Create instance with basic parameters
+        instance = cls(
+            initial_occ=data['occupations'],
+            time=data.get('time', 0.0),
+            step=data.get('step', 0),
+            mobile_ion_specie=data.get('mobile_ion_specie', 'Li')
+        )
+        
+        # Restore mobile ion tracking data if available
+        if 'mobile_ion_locations' in data:
+            instance.mobile_ion_locations = np.array(data['mobile_ion_locations'])
+            instance.displacement = np.array(data['displacement'])
+            instance.hop_counter = np.array(data['hop_counter'])
+            instance.n_mobile_ion_specie = data['n_mobile_ion_specie']
+        
+        return instance
 
 class LCESimulationState(SimulationState):
     def __init__(self, occupations:list=[], probabilities:list=[], barriers:list=[],  ekra:list=[], 
