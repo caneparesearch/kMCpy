@@ -16,6 +16,10 @@ from kmcpy.io import convert
 import logging
 import kmcpy
 from kmcpy.io import InputSet
+from typing import TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from kmcpy.simulation_condition import SimulationConfig
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
@@ -208,6 +212,72 @@ class KMC:
         params = {k: v for k, v in inputset._parameters.items() if k != "task"}
         return cls(**params)
 
+    @classmethod
+    def from_simulation_config(cls, config: "SimulationConfig") -> "KMC":
+        """Initialize KMC from SimulationConfig object.
+
+        Args:
+            config (SimulationConfig): SimulationConfig object containing all
+            necessary parameters in a structured format.
+
+        Returns:
+            KMC: An instance of the KMC class initialized with parameters
+            from the SimulationConfig.
+            
+        Example:
+            ```python
+            from kmcpy.simulation_condition import SimulationConfig
+            
+            config = SimulationConfig(
+                name="NASICON_Simulation",
+                temperature=573.0,
+                attempt_frequency=1e13,
+                fitting_results="path/to/fitting_results.json",
+                # ... other parameters
+            )
+            
+            kmc = KMC.from_simulation_config(config)
+            ```
+        """
+        from kmcpy.simulation_condition import SimulationConfig
+        
+        # Validate the configuration
+        config.validate()
+        
+        # Convert to InputSet format for compatibility
+        inputset = config.to_inputset()
+        
+        # Create KMC instance using existing from_inputset method
+        return cls.from_inputset(inputset)
+
+    @classmethod
+    def run_simulation(cls, config: "SimulationConfig", label: str = None) -> Tracker:
+        """Create KMC instance and run simulation in one step.
+
+        Args:
+            config (SimulationConfig): SimulationConfig object containing all simulation parameters.
+            label (str, optional): Label for the simulation run. Defaults to config.name.
+
+        Returns:
+            kmcpy.tracker.Tracker: Tracker object containing simulation results.
+            
+        Example:
+            ```python
+            from kmcpy.simulation_condition import SimulationConfig
+            
+            config = SimulationConfig(
+                name="NASICON_Simulation",
+                temperature=573.0,
+                # ... other parameters
+            )
+            
+            # Create and run in one step
+            tracker = KMC.run_simulation(config)
+            ```
+        """
+        kmc = cls.from_simulation_config(config)
+        return kmc.run(config, label)
+
     def show_project_info(self):
         try:
             logger.info("Probabilities:")
@@ -274,16 +344,38 @@ class KMC:
             self.prob_list[e_index] = copy(self.event_lib.events[e_index].probability)
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run(self, inputset: InputSet, label: str = None)-> Tracker:
-        """Run KMC simulation from an InputSet object.
+    def run(self, inputset: Union[InputSet, "SimulationConfig"], label: str = None) -> Tracker:
+        """Run KMC simulation from an InputSet or SimulationConfig object.
 
         Args:
-            inputset (InputSet): InputSet object containing all necessary parameters.
+            inputset (InputSet or SimulationConfig): InputSet or SimulationConfig object containing all necessary parameters.
             label (str, optional): Label for the simulation run. Defaults to None.
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
+            
+        Example:
+            ```python
+            # Using InputSet (existing method)
+            inputset = InputSet.from_json("input.json")
+            tracker = kmc.run(inputset)
+            
+            # Using SimulationConfig (new method)
+            config = SimulationConfig(name="Test", temperature=400.0, ...)
+            tracker = kmc.run(config)
+            ```
         """
+        from kmcpy.simulation_condition import SimulationConfig
+        
+        # Handle SimulationConfig input
+        if isinstance(inputset, SimulationConfig):
+            config = inputset
+            config.validate()
+            inputset = config.to_inputset()
+            if label is None:
+                label = config.name
+        
+        # Continue with existing run logic
         self.inputset = inputset
         if hasattr(inputset, "random_seed") and inputset.random_seed is not None:
             self.rng = np.random.default_rng(seed=inputset.random_seed)
@@ -328,6 +420,46 @@ class KMC:
 
         tracker.write_results(self.occ_global, label=label)
         return tracker
+
+    def run_with_config(self, config: "SimulationConfig", label: str = None) -> Tracker:
+        """Run KMC simulation from a SimulationConfig object.
+
+        Args:
+            config (SimulationConfig): SimulationConfig object containing all simulation parameters.
+            label (str, optional): Label for the simulation run. Defaults to config.name.
+
+        Returns:
+            kmcpy.tracker.Tracker: Tracker object containing simulation results.
+            
+        Example:
+            ```python
+            from kmcpy.simulation_condition import SimulationConfig
+            
+            config = SimulationConfig(
+                name="NASICON_Simulation",
+                temperature=573.0,
+                equilibration_passes=1000,
+                kmc_passes=10000,
+                # ... other parameters
+            )
+            
+            kmc = KMC.from_simulation_config(config)
+            tracker = kmc.run_with_config(config)
+            ```
+        """
+        from kmcpy.simulation_condition import SimulationConfig
+        
+        # Validate the configuration
+        config.validate()
+        
+        # Convert to InputSet for compatibility with existing run method
+        inputset = config.to_inputset()
+        
+        # Use default label if none provided
+        if label is None:
+            label = config.name
+        
+        return self.run(inputset, label)
 
     def as_dict(self)-> dict:
         d = {

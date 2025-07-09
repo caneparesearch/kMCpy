@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test script to verify KMC + EventLib integration with backward compatibility.
+Test script to verify KMC + EventLib integration with backward compatibility and SimulationCondition support.
 """
 
 import sys
@@ -54,6 +54,209 @@ def test_backward_compatibility():
     
     print("✅ Backward compatibility test passed!")
 
+def test_simulation_condition_integration():
+    """Test that SimulationCondition integration works properly."""
+    from kmcpy.simulation_condition import (
+        SimulationCondition, 
+        KMCSimulationCondition, 
+        SimulationConfig,
+        create_nasicon_config,
+        create_temperature_series
+    )
+    from kmcpy.kmc import KMC
+    
+    print("✓ SimulationCondition imports successful")
+    
+    # Test basic SimulationCondition
+    basic_condition = SimulationCondition(
+        name="Test_Condition",
+        temperature=400.0,
+        attempt_frequency=1e13,
+        random_seed=42
+    )
+    
+    assert basic_condition.name == "Test_Condition"
+    assert basic_condition.temperature == 400.0
+    assert basic_condition.attempt_frequency == 1e13
+    assert basic_condition.random_seed == 42
+    print("✓ Basic SimulationCondition creation works")
+    
+    # Test parameter validation
+    try:
+        bad_condition = SimulationCondition(
+            name="Bad_Condition",
+            temperature=-100.0,  # Invalid
+            attempt_frequency=1e13
+        )
+        assert False, "Expected validation error"
+    except ValueError:
+        print("✓ Parameter validation works")
+    
+    # Test KMCSimulationCondition
+    kmc_condition = KMCSimulationCondition(
+        name="KMC_Test",
+        temperature=573.0,
+        attempt_frequency=1e13,
+        equilibration_passes=1000,
+        kmc_passes=5000,
+        dimension=3,
+        elementary_hop_distance=2.5,
+        mobile_ion_charge=1.0,
+        random_seed=123
+    )
+    
+    assert kmc_condition.equilibration_passes == 1000
+    assert kmc_condition.kmc_passes == 5000
+    assert kmc_condition.dimension == 3
+    print("✓ KMCSimulationCondition creation works")
+    
+    # Test SimulationConfig creation
+    config = SimulationConfig(
+        name="Test_Config",
+        temperature=500.0,
+        attempt_frequency=1e13,
+        equilibration_passes=500,
+        kmc_passes=2000,
+        dimension=3,
+        elementary_hop_distance=2.0,
+        mobile_ion_charge=1.0,
+        mobile_ion_specie="Na",
+        supercell_shape=[2, 2, 2],
+        initial_occ=[1, -1, 1, -1, 1, -1, 1, -1],
+        
+        # File paths (these would be real in practice)
+        fitting_results="fake.json",
+        fitting_results_site="fake.json",
+        lce_fname="fake.json",
+        lce_site_fname="fake.json",
+        template_structure_fname="fake.cif",
+        event_fname="fake.json",
+        event_dependencies="fake.csv"
+    )
+    
+    assert config.name == "Test_Config"
+    assert config.temperature == 500.0
+    assert len(config.initial_occ) == 8
+    print("✓ SimulationConfig creation works")
+    
+    # Test parameter modification
+    modified_config = config.copy_with_changes(
+        temperature=600.0,
+        name="Modified_Config"
+    )
+    
+    assert modified_config.temperature == 600.0
+    assert modified_config.name == "Modified_Config"
+    assert modified_config.attempt_frequency == config.attempt_frequency  # Should be unchanged
+    print("✓ Parameter modification works")
+    
+    # Test convenience function
+    nasicon_config = create_nasicon_config(
+        name="Test_NASICON",
+        temperature=573.0,
+        data_dir="fake_dir"
+    )
+    
+    assert nasicon_config.name == "Test_NASICON"
+    assert nasicon_config.temperature == 573.0
+    assert nasicon_config.mobile_ion_specie == "Na"
+    print("✓ Convenience function works")
+    
+    # Test temperature series
+    temp_series = create_temperature_series(nasicon_config, [300, 400, 500])
+    assert len(temp_series) == 3
+    assert temp_series[0].temperature == 300
+    assert temp_series[1].temperature == 400
+    assert temp_series[2].temperature == 500
+    print("✓ Temperature series creation works")
+    
+    # Test KMC integration methods exist
+    assert hasattr(KMC, 'from_simulation_config'), "Missing from_simulation_config method"
+    assert hasattr(KMC, 'run_simulation'), "Missing run_simulation method"
+    print("✓ KMC integration methods exist")
+    
+    # Test that KMC methods accept SimulationConfig (will fail due to missing files)
+    try:
+        kmc_instance = KMC.from_simulation_config(config)
+        assert False, "Expected file not found error"
+    except Exception as e:
+        # Should fail due to missing files, not parameter issues
+        assert "temperature" not in str(e).lower(), f"Parameter issue detected: {e}"
+        print("✓ KMC.from_simulation_config accepts SimulationConfig")
+    
+    try:
+        tracker = KMC.run_simulation(config)
+        assert False, "Expected file not found error"
+    except Exception as e:
+        # Should fail due to missing files, not parameter issues
+        assert "temperature" not in str(e).lower(), f"Parameter issue detected: {e}"
+        print("✓ KMC.run_simulation accepts SimulationConfig")
+    
+    print("✅ SimulationCondition integration test passed!")
+
+def test_parameter_serialization():
+    """Test parameter serialization and deserialization."""
+    from kmcpy.simulation_condition import SimulationConfig
+    
+    # Create a config
+    config = SimulationConfig(
+        name="Serialization_Test",
+        temperature=450.0,
+        attempt_frequency=1e13,
+        equilibration_passes=1000,
+        kmc_passes=5000,
+        dimension=3,
+        elementary_hop_distance=2.0,
+        mobile_ion_charge=1.0,
+        mobile_ion_specie="Na",
+        supercell_shape=[2, 2, 2],
+        initial_occ=[1, -1, 1, -1],
+        
+        # File paths
+        fitting_results="fake.json",
+        fitting_results_site="fake.json",
+        lce_fname="fake.json",
+        lce_site_fname="fake.json",
+        template_structure_fname="fake.cif",
+        event_fname="fake.json",
+        event_dependencies="fake.csv"
+    )
+    
+    # Test serialization
+    regular_dict = config.to_dict()
+    dataclass_dict = config.to_dataclass_dict()
+    
+    # Check that dictionaries contain expected keys
+    assert 'name' in regular_dict
+    assert 'temperature' in regular_dict
+    assert 'v' in regular_dict  # Should map attempt_frequency to v
+    assert 'equ_pass' in regular_dict  # Should map equilibration_passes to equ_pass
+    assert 'kmc_pass' in regular_dict  # Should map kmc_passes to kmc_pass
+    
+    assert 'name' in dataclass_dict
+    assert 'temperature' in dataclass_dict
+    assert 'attempt_frequency' in dataclass_dict  # Should keep original field name
+    assert 'equilibration_passes' in dataclass_dict  # Should keep original field name
+    assert 'kmc_passes' in dataclass_dict  # Should keep original field name
+    
+    # Test parameter mapping
+    assert regular_dict['v'] == config.attempt_frequency
+    assert regular_dict['equ_pass'] == config.equilibration_passes
+    assert regular_dict['kmc_pass'] == config.kmc_passes
+    assert regular_dict['elem_hop_distance'] == config.elementary_hop_distance
+    assert regular_dict['q'] == config.mobile_ion_charge
+    
+    print("✓ Parameter serialization works correctly")
+    
+    # Test that we can recreate config from dataclass dict
+    new_config = SimulationConfig(**dataclass_dict)
+    assert new_config.name == config.name
+    assert new_config.temperature == config.temperature
+    assert new_config.attempt_frequency == config.attempt_frequency
+    
+    print("✓ Parameter deserialization works correctly")
+    print("✅ Parameter serialization test passed!")
+
 def test_eventlib_integration():
     """Test that EventLib is properly integrated."""
     from kmcpy.event import EventLib, Event
@@ -82,16 +285,20 @@ def test_eventlib_integration():
     print("✓ EventLib integration test passed!")
 
 if __name__ == "__main__":
-    print("Testing KMC + EventLib Integration with Backward Compatibility")
-    print("=" * 60)
+    print("Testing KMC + EventLib Integration with SimulationCondition Support")
+    print("=" * 70)
     
     try:
         test_backward_compatibility()
         print()
+        test_simulation_condition_integration()
+        print()
+        test_parameter_serialization()
+        print()
         test_eventlib_integration()
         
-        print("\n" + "=" * 60)
-        print("🎉 All tests passed! KMC + EventLib integration is working.")
+        print("\n" + "=" * 70)
+        print("🎉 All tests passed! KMC + EventLib + SimulationCondition integration is working.")
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback

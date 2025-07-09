@@ -62,6 +62,65 @@ class TestNa3SbS4(unittest.TestCase):
         )
         self.assertEqual(1, 1) # TODO assert something about the object
 
+    def test_simulation_config_basic(self):
+        """Test basic SimulationConfig functionality for Na3SbS4."""
+        from kmcpy.simulation_condition import SimulationConfig
+        
+        # Test basic configuration creation
+        config = SimulationConfig(
+            name="Na3SbS4_Test",
+            temperature=600.0,
+            attempt_frequency=1e13,
+            equilibration_passes=100,
+            kmc_passes=500,
+            dimension=3,
+            elementary_hop_distance=2.0,
+            mobile_ion_charge=1.0,
+            mobile_ion_specie="Na",
+            supercell_shape=[2, 2, 2],
+            initial_occ=[1, -1, 1, -1, 1, -1, 1, -1],
+            immutable_sites=["S", "Sb"],
+            
+            # Use fake file paths for testing
+            fitting_results="fake_fitting.json",
+            fitting_results_site="fake_fitting_site.json",
+            lce_fname="fake_lce.json",
+            lce_site_fname="fake_lce_site.json",
+            template_structure_fname="fake_structure.cif",
+            event_fname="fake_events.json",
+            event_dependencies="fake_dependencies.csv"
+        )
+        
+        # Test validation
+        try:
+            config.validate()
+            self.assertTrue(True)  # Validation passed
+        except Exception as e:
+            self.fail(f"Configuration validation failed: {e}")
+        
+        # Test dictionary conversion
+        config_dict = config.to_dict()
+        self.assertIn('name', config_dict)
+        self.assertIn('temperature', config_dict)
+        self.assertIn('v', config_dict)
+        self.assertEqual(config_dict['v'], 1e13)
+        
+        # Test dataclass dictionary conversion
+        dataclass_dict = config.to_dataclass_dict()
+        self.assertIn('name', dataclass_dict)
+        self.assertIn('temperature', dataclass_dict)
+        self.assertIn('attempt_frequency', dataclass_dict)
+        self.assertIn('equilibration_passes', dataclass_dict)
+        self.assertIn('kmc_passes', dataclass_dict)
+        
+        # Test parameter modification
+        modified_config = config.copy_with_changes(temperature=700.0, name="Modified_Na3SbS4")
+        self.assertEqual(modified_config.temperature, 700.0)
+        self.assertEqual(modified_config.name, "Modified_Na3SbS4")
+        self.assertEqual(modified_config.attempt_frequency, config.attempt_frequency)
+        
+        print("✓ SimulationConfig basic functionality works for Na3SbS4")
+
 
 if __name__ == "__main__":
     unittest.main()
