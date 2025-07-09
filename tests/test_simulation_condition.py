@@ -148,7 +148,15 @@ class TestSimulationConfig:
             mobile_ion_specie="Na",
             random_seed=42,
             initial_occ=[1, -1, 1, -1],  # Test with initial_occ
-            immutable_sites=["Zr", "O"]
+            immutable_sites=["Zr", "O"],
+            # Add required file parameters
+            fitting_results='test_fitting.json',
+            fitting_results_site='test_fitting_site.json',
+            lce_fname='test_lce.json',
+            lce_site_fname='test_lce_site.json',
+            template_structure_fname='test_structure.cif',
+            event_fname='test_events.json',
+            event_dependencies='test_dependencies.csv'
         )
         
         # This will create a temporary file for initial_state
@@ -172,7 +180,16 @@ class TestSimulationConfig:
             temperature=300.0,
             attempt_frequency=1e13,
             equilibration_passes=10,
-            kmc_passes=100
+            kmc_passes=100,
+            # Add required file parameters
+            fitting_results='test_fitting.json',
+            fitting_results_site='test_fitting_site.json',
+            lce_fname='test_lce.json',
+            lce_site_fname='test_lce_site.json',
+            template_structure_fname='test_structure.cif',
+            event_fname='test_events.json',
+            event_dependencies='test_dependencies.csv',
+            initial_occ=[1, -1, 1, -1]  # Required: initial_occ or initial_state
         )
         
         # Should not raise an exception

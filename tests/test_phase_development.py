@@ -43,15 +43,15 @@ def mobile_ion_sites(test_structure):
     return mobile_sites
 
 
-class TestPhase1TrackerDeduplication:
-    """Test Phase 1: Tracker parameter deduplication."""
+class TestTrackerParameterDeduplication:
+    """Test Tracker parameter deduplication."""
     
     def test_tracker_parameter_separation(self):
         """Test that Tracker no longer duplicates parameters from configuration."""
         
         # Create a test configuration
         config = SimulationConfig(
-            name="Phase1_Test",
+            name="TrackerTest",
             temperature=573.0,
             attempt_frequency=1e13,
             equilibration_passes=100,
@@ -66,7 +66,7 @@ class TestPhase1TrackerDeduplication:
         )
         
         # Verify that configuration is properly structured
-        assert config.name == "Phase1_Test"
+        assert config.name == "TrackerTest"
         assert config.temperature == 573.0
         assert config.attempt_frequency == 1e13
         assert config.equilibration_passes == 100
@@ -82,11 +82,11 @@ class TestPhase1TrackerDeduplication:
         # Initial occupations should be separate from tracker
         assert config.initial_occ == [1, -1, 1, -1]
         
-        print("✓ Phase 1: Tracker parameter deduplication working correctly")
+        print("✓ Tracker parameter deduplication working correctly")
 
 
-class TestPhase2SimulationState:
-    """Test Phase 2: SimulationState-centric architecture."""
+class TestSimulationStateArchitecture:
+    """Test SimulationState-centric architecture."""
     
     def test_simulation_state_centralized_management(self, test_structure):
         """Test that SimulationState is the central manager for all mutable state."""
@@ -130,7 +130,7 @@ class TestPhase2SimulationState:
         assert state.time == 0.1
         assert state.step == 1
         
-        print("✓ Phase 2: SimulationState-centric architecture working correctly")
+        print("✓ SimulationState-centric architecture working correctly")
     
     def test_clean_separation_of_concerns(self, test_structure):
         """Test clean separation between Config (immutable) and State (mutable)."""
@@ -166,11 +166,11 @@ class TestPhase2SimulationState:
         assert state.time == 10.0
         assert state.step == 5
         
-        print("✓ Phase 2: Clean separation of concerns working correctly")
+        print("✓ Clean separation of concerns working correctly")
 
 
-class TestPhase3KMCIntegration:
-    """Test Phase 3: KMC integration improvements."""
+class TestKMCIntegrationImprovements:
+    """Test KMC integration improvements."""
     
     def test_kmc_simulation_state_integration(self):
         """Test that KMC uses SimulationState as single source of truth."""
@@ -211,7 +211,7 @@ class TestPhase3KMCIntegration:
         assert kmc_params['supercell_shape'] == [2, 1, 1]
         assert kmc_params['immutable_sites'] == ["Zr", "O"]
         
-        print("✓ Phase 3: KMC integration working correctly")
+        print("✓ KMC integration working correctly")
     
     def test_optimized_simulation_loop(self, test_structure):
         """Test optimized simulation loop with direct state management."""
@@ -245,7 +245,7 @@ class TestPhase3KMCIntegration:
         assert abs(state.time - 0.6) < 1e-10
         assert state.occupations == [-1, -1, 1, 1]
         
-        print("✓ Phase 3: Optimized simulation loop working correctly")
+        print("✓ Optimized simulation loop working correctly")
 
 
 class TestPhase4InputSetMigration:
@@ -289,7 +289,7 @@ class TestPhase4InputSetMigration:
         print("✓ Phase 4: Direct SimulationConfig API working correctly")
     
     def test_inputset_backward_compatibility(self):
-        """Test that InputSet backward compatibility is maintained."""
+        """Test that InputSet compatibility is maintained."""
         
         # Test old-style parameters
         old_params = {
@@ -321,7 +321,7 @@ class TestPhase4InputSetMigration:
         assert inputset.temperature == 298.0
         assert inputset.v == 5e12
         
-        print("✓ Phase 4: InputSet backward compatibility maintained")
+        print("✓ InputSet compatibility maintained")
     
     def test_parameter_migration(self):
         """Test migration from old to new parameter names."""
@@ -344,7 +344,7 @@ class TestPhase4InputSetMigration:
         
         # Should contain both old and new parameter names for compatibility
         assert 'event_dependencies' in config_dict
-        assert 'event_kernel' in config_dict  # Backward compatibility
+        assert 'event_kernel' in config_dict  # Compatibility maintained
         assert config_dict['event_dependencies'] == config_dict['event_kernel']
         
         # Test that parameters are correctly set

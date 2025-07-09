@@ -87,7 +87,7 @@ def main():
 
     # things that shouldn't change at all
     event_parser.add_argument("event_fname", default="events.json")
-    event_parser.add_argument("event_kernal_fname", default="event_kernal.csv")
+    event_parser.add_argument("event_dependencies_fname", default="event_dependencies.csv")
 
     event_parser.add_argument("--distance_matrix_rtol", default=0.01, type=float)
     event_parser.add_argument("--distance_matrix_atol", default=0.01, type=float)
@@ -135,7 +135,7 @@ def main():
     )
     kmc_parser.add_argument("event_fname", default="./input/events.json", type=str)
     kmc_parser.add_argument(
-        "event_kernel", default="./input/event_kernal.csv", type=str
+        "event_dependencies", default="./input/event_dependencies.csv", type=str
     )
     kmc_parser.add_argument(
         "initial_state", default="./input/initial_state.json", type=str
@@ -206,8 +206,8 @@ def main():
 
         # fanme_path
         args.event_fname = os.path.join(args.events_output_dir, args.event_fname)
-        args.event_kernal_fname = os.path.join(
-            args.events_output_dir, args.event_kernal_fname
+        args.event_dependencies_fname = os.path.join(
+            args.events_output_dir, args.event_dependencies_fname
         )
 
         print((vars(args)))

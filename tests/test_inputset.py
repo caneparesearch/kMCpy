@@ -70,7 +70,7 @@ class TestInputSetParameterHandling:
             'LCE_Site_Fname': 'test.json',
             'Template_Structure_Fname': 'test.cif',
             'Event_Fname': 'test.json',
-            'Event_Kernel': 'test.csv',
+            'Event_Dependencies': 'test.csv',  # Use modern parameter name
             'Initial_State': 'test.json',
             'Temperature': 298.0,
             'Dimension': 3,
@@ -91,6 +91,7 @@ class TestInputSetParameterHandling:
         assert inputset.task == 'kmc'
         assert inputset.v == 5e12
         assert inputset.random_seed == 12345
+        assert inputset.event_dependencies == 'test.csv'
     
     def test_optional_parameters(self):
         """Test that optional parameters are properly handled."""
@@ -107,13 +108,15 @@ class TestInputSetParameterHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',
+            'event_dependencies': 'test.csv',
             'initial_state': 'test.json',
             'temperature': 298.0,
             'dimension': 3,
             'q': 1.0,
             'elem_hop_distance': 3.5,
-            'mobile_ion_specie': 'Na'
+            'mobile_ion_specie': 'Na',
+            'convert_to_primitive_cell': True,
+            'immutable_sites': ['Zr', 'O']
         }
         
         # Should work without optional parameters
@@ -163,20 +166,23 @@ class TestInputSetParameterHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',  # Old parameter name
+            'event_dependencies': 'test.csv',  # Use modern parameter name
             'initial_state': 'test.json',
             'temperature': 298.0,
             'dimension': 3,
             'q': 1.0,
             'elem_hop_distance': 3.5,
-            'mobile_ion_specie': 'Na'
+            'mobile_ion_specie': 'Na',
+            'convert_to_primitive_cell': True,
+            'immutable_sites': ['Zr', 'O']
         }
         
-        # Should work with old parameter name
+        # Should work with new parameter name
         inputset = InputSet(old_style_params)
         inputset.parameter_checker()
         
-        assert inputset.event_kernel == 'test.csv'
+        assert inputset.event_dependencies == 'test.csv'
+        assert inputset.event_kernel == 'test.csv'  # Backward compatibility property
     
     def test_new_parameter_names(self):
         """Test that new parameter names are accepted."""
@@ -205,7 +211,7 @@ class TestInputSetParameterHandling:
         inputset = InputSet(new_style_params)
         inputset.parameter_checker()
         
-        assert inputset.event_dependencies == 'test.csv'
+        assert inputset.event_dependencies == 'test.csv'  # InputSet now uses event_dependencies internally
     
     def test_parameter_access(self):
         """Test parameter access via __getattr__."""
@@ -221,7 +227,7 @@ class TestInputSetParameterHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',
+            'event_dependencies': 'test.csv',
             'initial_state': 'test.json',
             'temperature': 298.0,
             'dimension': 3,
@@ -259,20 +265,22 @@ class TestInputSetParameterHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',
+            'event_dependencies': 'test.csv',
             'initial_state': 'test.json',
             'temperature': 298.0,
             'dimension': 3,
             'q': 1.0,
             'elem_hop_distance': 3.5,
             'mobile_ion_specie': 'Na',
+            'convert_to_primitive_cell': True,
+            'immutable_sites': ['Zr', 'O'],
             'unknown_parameter': 'should_be_ignored'  # This should generate a warning
         }
         
         inputset = InputSet(params_with_unknown)
         
         # Should work but generate warning
-        with pytest.warns(None) as warning_list:
+        with pytest.warns(UserWarning):
             inputset.parameter_checker()
         
         # Check that warning was generated (if logging is configured)
@@ -305,7 +313,8 @@ class TestInputSetFileHandling:
             'q': 1.0,
             'elem_hop_distance': 3.5,
             'mobile_ion_specie': 'Na',
-            'random_seed': 42
+            'random_seed': 42,
+            'convert_to_primitive_cell': False
         }
         
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -333,13 +342,15 @@ class TestInputSetFileHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',
+            'event_dependencies': 'test.csv',
             'initial_state': 'test.json',
             'temperature': 298.0,
             'dimension': 3,
             'q': 1.0,
             'elem_hop_distance': 3.5,
             'mobile_ion_specie': 'Na',
+            'convert_to_primitive_cell': True,
+            'immutable_sites': ['Zr', 'O'],
             'random_seed': 42
         }
         

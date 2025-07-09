@@ -171,19 +171,11 @@ reference_distance_matrix.csv
 0th_reference_local_env.cif
 dev/scalability/input/*
 nohup.out*
-!scalability.pdf
-!manuscript/figures/performance/cutoff_time.log
-input_example/event_kernal.csv
-input_example/events.json
-input_example/keci.txt
-input_example/lce_site.json
-input_example/lce.json
-!input_example/fitting_results.json
 
 docs/build
 
 # Example files
-example/event_kernal.csv
+example/event_dependencies.csv
 example/events.json
 example/fitting_results_site.json
 example/fitting_results.json
@@ -203,11 +195,12 @@ tests/files/fitting_results.json
 tests/files/fitting/local_cluster_expansion/keci.txt
 tests/files/fitting/local_cluster_expansion_site/keci.txt
 tests/files/events.json
-tests/files/event_kernal.csv
+tests/files/event_dependencies.csv
 tests/files/keci.txt
 tests/files/lce.json
 tests/files/fitting/lce_params.json
 tests/files/fitting/lce_params_history.json
+tests/files/input/event_dependencies.csv
 
 # Temporary development files (should be in docs/development/)
 *_INTEGRATION.md

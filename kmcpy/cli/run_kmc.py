@@ -31,7 +31,7 @@ def main()->None:
             Required if input file is not provided.
         --event_fname (str): Path to the JSON file containing the list of events.
             Required if input file is not provided.
-        --event_kernel (str): Path to the event kernel file.
+        --event_dependencies (str): Path to the event dependencies file.
             Required if input file is not provided.
         -v, --v (float, optional): Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
         --temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
@@ -56,7 +56,7 @@ def main()->None:
     parser.add_argument("--lce_site_fname", type=str, help='Path to the JSON file containing the site LCE model for computing site energy differences.')
     parser.add_argument("--template_structure_fname", type=str, help='Path to the CIF file of the template structure (with all sites filled).')
     parser.add_argument("--event_fname", type=str, help='Path to the JSON file containing the list of events.')
-    parser.add_argument("--event_kernel", type=str, help='Path to the event kernel file.')
+    parser.add_argument("--event_dependencies", type=str, help='Path to the event dependencies file.')
     parser.add_argument("-v", "--v", type=float, default=1e13, help='Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.')
     parser.add_argument("--temperature", type=float, default=300, help='Simulation temperature in Kelvin. Defaults to 300 K.')
     parser.add_argument("--convert_to_primitive_cell", action='store_true', help='Whether to convert the structure to its primitive cell (default: False).')

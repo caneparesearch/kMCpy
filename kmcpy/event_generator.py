@@ -472,7 +472,6 @@ class EventGenerator:
         supercell_shape=[2, 1, 1],
         event_fname="events.json",
         event_dependencies_fname="event_dependencies.csv",
-        event_kernal_fname=None,  # Deprecated parameter for backward compatibility
     ):
         """
         220603 XIE WEIHANG
@@ -493,7 +492,6 @@ class EventGenerator:
             supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
             event_fname (str, optional): file name for the events json file. Defaults to "events.json".
             event_dependencies_fname (str, optional): file name for event dependencies matrix. Defaults to 'event_dependencies.csv'.
-            event_kernal_fname (str, optional): [DEPRECATED] Use event_dependencies_fname instead. For backward compatibility only. Defaults to None.
 
         Raises:
             NotImplementedError: the atom identifier type=list is not yet implemented
@@ -514,18 +512,6 @@ class EventGenerator:
         import kmcpy
 
         logger.info(kmcpy.get_logo())
-        
-        # Handle backward compatibility for deprecated parameter names
-        if event_kernal_fname is not None:
-            logger.warning(
-                "Parameter 'event_kernal_fname' is deprecated and will be removed in a future version. "
-                "Please use 'event_dependencies_fname' instead."
-            )
-            event_dependencies_fname = event_kernal_fname
-        
-        logger.warning(
-            "Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet."
-        )
 
         # generate primitive cell
         primitive_cell = StructureKMCpy.from_cif(
@@ -896,55 +882,3 @@ def normalize_supercell_tuple(
         supercell.append(additional_input)
 
     return tuple(supercell)
-
-
-@nb.njit
-def _generate_event_kernal(len_structure, events_site_list):
-    """to be called by generate_event_kernal for generating the event_kernal.csv
-
-    for  a event and find all other event that include the site of this event
-
-
-    Args:
-        len_structure (int): _description_
-        events_site_list (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    n_sites = len_structure
-    all_site_list = np.arange(n_sites)
-    results = List()
-    for site in all_site_list:
-        # print('Looking for site:',site)
-        row = List()
-        # is_Na1=False
-        event_index = 0
-        for event in events_site_list:
-            if site in event:
-                row.append(event_index)
-            event_index += 1
-            # if len(row)==0:
-            #    is_Na1=True
-        results.append(row)
-    return results
-
-
-def generate_event_kernal(
-    len_structure, events_site_list, event_kernal_fname="event_kernal.csv"
-):
-    """
-    event_kernal.csv:
-        event_kernal[i] tabulates the index of sites that have to be updated after event[i] has been executed
-
-
-
-    """
-    logger.info("Generating event kernal ...")
-    event_kernal = _generate_event_kernal(len_structure, events_site_list)
-    with open(event_kernal_fname, "w") as f:
-        for row in event_kernal:
-            for item in row:
-                f.write("%5d " % item)
-            f.write("\n")
-    return event_kernal

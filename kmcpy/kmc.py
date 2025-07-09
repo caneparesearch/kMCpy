@@ -42,7 +42,6 @@ class KMC:
                 template_structure_fname: str = None,
                 event_fname: str = None,
                 event_dependencies: str = None,
-                event_kernel: str = None,  # Backward compatibility
                 initial_state: str = None,  # Path to initial state JSON file
                 v: float = 1e13,
                 temperature: float = 300,
@@ -53,12 +52,9 @@ class KMC:
                 **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
-        This constructor now supports both legacy initialization (with individual parameters)
-        and new initialization (with SimulationState for better state management).
-
         Args:
-            initial_occ (list, optional): The initial occupation list. Used in legacy mode.
-            supercell_shape (list, optional): Shape of the supercell. Used in legacy mode.
+            initial_occ (list, optional): The initial occupation list.
+            supercell_shape (list, optional): Shape of the supercell.
             fitting_results (str, optional): Path to fitting results JSON file.
             fitting_results_site (str, optional): Path to site fitting results JSON file.
             lce_fname (str, optional): Path to LCE model JSON file.
@@ -66,13 +62,12 @@ class KMC:
             template_structure_fname (str, optional): Path to template structure CIF file.
             event_fname (str, optional): Path to events JSON file.
             event_dependencies (str, optional): Path to event dependencies file.
-            event_kernel (str, optional): Deprecated. Use event_dependencies instead.
             initial_state (str, optional): Path to initial state JSON file.
             v (float, optional): Attempt frequency. Defaults to 1e13 Hz.
             temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
             convert_to_primitive_cell (bool, optional): Whether to convert to primitive cell.
             immutable_sites (list, optional): List of immutable sites to remove.
-            simulation_state (SimulationState, optional): SimulationState object for new architecture.
+            simulation_state (SimulationState, optional): SimulationState object for state management.
             random_seed (int, optional): Random seed for reproducible simulations.
             **kwargs: Additional keyword arguments.
 
@@ -91,18 +86,15 @@ class KMC:
             
         # Store random seed for later use
         self.random_seed = random_seed
-            
-        # Handle backward compatibility for event_kernel parameter
-        if event_dependencies is None and event_kernel is not None:
-            event_dependencies = event_kernel
-            logger.warning("Parameter 'event_kernel' is deprecated. Use 'event_dependencies' instead.")
-        elif event_dependencies is None and event_kernel is None:
-            raise ValueError("Either 'event_dependencies' or 'event_kernel' must be provided.")
+        
+        # Validate that event_dependencies is provided
+        if event_dependencies is None:
+            raise ValueError("event_dependencies must be provided.")
         
         logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations ...")
         
-        # Store simulation state reference (Phase 3 improvement)
+        # Store simulation state reference
         self.simulation_state = simulation_state
         
         # Initialize structure
@@ -133,15 +125,15 @@ class KMC:
         
         # Initialize occupation state
         if simulation_state is not None:
-            # Phase 3: Use SimulationState as single source of truth
+            # Use SimulationState as single source of truth
             logger.info("Using SimulationState for occupation management")
             self.occ_global = simulation_state.occupations
         elif initial_occ is not None:
-            # Legacy mode: use provided initial_occ
-            logger.info(f"Loading occupation (legacy mode): {initial_occ}")
+            # Use provided initial_occ
+            logger.info(f"Loading occupation: {initial_occ}")
             self.occ_global = copy(initial_occ)
         elif initial_state is not None:
-            # Phase 4: Load occupation from initial_state file
+            # Load occupation from initial_state file
             logger.info(f"Loading occupation from initial_state file: {initial_state}")
             from kmcpy.io import _load_occ
             self.occ_global = _load_occ(
@@ -240,7 +232,7 @@ class KMC:
         logger.info("Generating event dependency matrix...")
         self.event_lib.generate_event_dependencies()
         
-        # Keep reference to events for backward compatibility
+        # Keep reference to events for compatibility
         self.events = self.event_lib.events
 
         logger.info("Initializing hopping probabilities ...")
@@ -287,7 +279,7 @@ class KMC:
 
     @classmethod
     def from_simulation_config(cls, config: "SimulationConfig") -> "KMC":
-        """Initialize KMC from SimulationConfig object (Phase 4 - Direct workflow).
+        """Initialize KMC from SimulationConfig object.
 
         Args:
             config (SimulationConfig): SimulationConfig object containing all
@@ -317,8 +309,7 @@ class KMC:
         # Validate the configuration
         config.validate()
         
-        # Phase 4: Direct parameter mapping from SimulationConfig
-        # This avoids the need for InputSet conversion
+        # Direct parameter mapping from SimulationConfig
         kmc_params = {
             # Core simulation parameters
             'temperature': config.temperature,
@@ -361,7 +352,7 @@ class KMC:
 
     @classmethod
     def run_simulation(cls, config: "SimulationConfig", label: str = None) -> Tracker:
-        """Create KMC instance and run simulation in one step (Phase 4 - Streamlined workflow).
+        """Create KMC instance and run simulation in one step.
 
         Args:
             config (SimulationConfig): SimulationConfig object containing all simulation parameters.
@@ -380,11 +371,11 @@ class KMC:
                 # ... other parameters
             )
             
-            # Create and run in one step (Phase 4 streamlined)
+            # Create and run in one step
             tracker = KMC.run_simulation(config)
             ```
         """
-        # Phase 4: Use direct SimulationConfig workflow
+        # Use direct SimulationConfig workflow
         kmc = cls.from_simulation_config(config)
         return kmc.run(config, label)
 
@@ -418,8 +409,8 @@ class KMC:
         """
         Updates the system state and event probabilities after an event occurs.
         
-        Phase 3 improvement: This method now works with SimulationState when available,
-        eliminating state duplication and improving consistency.
+        This method works with SimulationState when available, eliminating state 
+        duplication and improving consistency.
         
         This method performs the following steps:
         1. Flips the occupation values of the two mobile ion species involved in the event.
@@ -434,7 +425,7 @@ class KMC:
         Side Effects:
             Modifies occupation state and probability lists in place.
         """
-        # Phase 3: Update occupations in SimulationState if available, otherwise use legacy mode
+        # Update occupations in SimulationState if available, otherwise use direct mode
         if self.simulation_state is not None:
             # Use SimulationState as single source of truth
             self.simulation_state.occupations[event.mobile_ion_specie_1_index] *= -1
@@ -442,7 +433,7 @@ class KMC:
             # Keep occ_global synchronized for event updates
             self.occ_global = self.simulation_state.occupations
         else:
-            # Legacy mode: update occ_global directly
+            # Direct mode: update occ_global directly
             self.occ_global[event.mobile_ion_specie_1_index] *= -1
             self.occ_global[event.mobile_ion_specie_2_index] *= -1
         
@@ -489,14 +480,14 @@ class KMC:
         """
         from kmcpy.simulation_condition import SimulationConfig
         
-        # Phase 4: Enhanced handling of SimulationConfig
+        # Enhanced handling of SimulationConfig
         original_config = None
         if isinstance(inputset, SimulationConfig):
             original_config = inputset
             config = inputset
             config.validate()
             
-            # Phase 4: Direct parameter usage where possible
+            # Direct parameter usage where possible
             if label is None:
                 label = config.name
             
@@ -541,9 +532,9 @@ class KMC:
 
         logger.info("Start running kMC ...")
 
-        # Phase 3: Enhanced Tracker creation with better SimulationState integration
+        # Enhanced Tracker creation with better SimulationState integration
         if self.simulation_state is not None:
-            # Phase 3 mode: Use existing SimulationState
+            # Use existing SimulationState
             tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
             logger.info("Using SimulationState-centric architecture")
         elif hasattr(inputset, 'to_inputset'):
@@ -564,13 +555,13 @@ class KMC:
             for _ in np.arange(pass_length):
                 event, dt, event_index = self.propose(self.events)
                 
-                # Phase 3: Optimized update workflow
+                # Optimized update workflow
                 if self.simulation_state is not None:
                     # Update SimulationState directly, no need for occupation synchronization
                     tracker.state.update_from_event(event, dt)
                     self.update(event, event_index)  # This will sync from SimulationState
                 else:
-                    # Legacy workflow
+                    # Standard workflow
                     tracker.update(event, self.occ_global, dt)
                     self.update(event, event_index)
             
@@ -578,7 +569,7 @@ class KMC:
             tracker.compute_properties()
             tracker.show_current_info()
 
-        # Phase 3: Use SimulationState occupations if available
+        # Use SimulationState occupations if available
         final_occupations = self.simulation_state.occupations if self.simulation_state else self.occ_global
         tracker.write_results(final_occupations, label=label)
         return tracker
@@ -627,8 +618,8 @@ class KMC:
     def from_simulation_state(cls, config: "SimulationConfig", simulation_state: "SimulationState") -> "KMC":
         """Initialize KMC from SimulationConfig and SimulationState objects.
         
-        This is the Phase 3 preferred method for creating KMC instances, as it
-        eliminates state duplication and provides better integration with SimulationState.
+        This method eliminates state duplication and provides better integration 
+        with SimulationState.
 
         Args:
             config (SimulationConfig): SimulationConfig object containing all configuration parameters.
@@ -676,7 +667,7 @@ class KMC:
             temperature=config.temperature,
             convert_to_primitive_cell=config.convert_to_primitive_cell,
             immutable_sites=config.immutable_sites,
-            simulation_state=simulation_state  # Phase 3: Pass SimulationState
+            simulation_state=simulation_state  # Pass SimulationState
         )
         
         return kmc
