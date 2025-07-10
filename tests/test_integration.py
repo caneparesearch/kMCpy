@@ -9,13 +9,11 @@ sys.path.insert(0, '..')
 
 def test_simulation_condition_integration():
     """Test that SimulationCondition integration works properly."""
-    from kmcpy.simulation_condition import (
+    from kmcpy.simulation.condition import (
         SimulationCondition, 
-        KMCSimulationCondition, 
         SimulationConfig,
-        create_nasicon_config,
-        create_temperature_series
     )
+    from tests.test_utils import create_nasicon_config, create_temperature_series
     from kmcpy.kmc import KMC
     
     print("✓ SimulationCondition imports successful")
@@ -45,8 +43,8 @@ def test_simulation_condition_integration():
     except ValueError:
         print("✓ Parameter validation works")
     
-    # Test KMCSimulationCondition
-    kmc_condition = KMCSimulationCondition(
+    # Test SimulationConfig (merged with KMC functionality)
+    kmc_condition = SimulationConfig(
         name="KMC_Test",
         temperature=573.0,
         attempt_frequency=1e13,
@@ -61,7 +59,7 @@ def test_simulation_condition_integration():
     assert kmc_condition.equilibration_passes == 1000
     assert kmc_condition.kmc_passes == 5000
     assert kmc_condition.dimension == 3
-    print("✓ KMCSimulationCondition creation works")
+    print("✓ SimulationConfig creation works")
     
     # Test SimulationConfig creation
     config = SimulationConfig(
@@ -124,32 +122,34 @@ def test_simulation_condition_integration():
     print("✓ Temperature series creation works")
     
     # Test KMC integration methods exist
-    assert hasattr(KMC, 'from_simulation_config'), "Missing from_simulation_config method"
-    assert hasattr(KMC, 'run_simulation'), "Missing run_simulation method"
+    assert hasattr(KMC, 'from_config'), "Missing from_config method"
+    assert hasattr(KMC, 'run'), "Missing run method"
     print("✓ KMC integration methods exist")
     
     # Test that KMC methods accept SimulationConfig (will fail due to missing files)
     try:
-        kmc_instance = KMC.from_simulation_config(config)
+        kmc_instance = KMC.from_config(config)
         assert False, "Expected file not found error"
     except Exception as e:
         # Should fail due to missing files, not parameter issues
         assert "temperature" not in str(e).lower(), f"Parameter issue detected: {e}"
-        print("✓ KMC.from_simulation_config accepts SimulationConfig")
+        print("✓ KMC.from_config accepts SimulationConfig")
     
     try:
-        tracker = KMC.run_simulation(config)
+        # Test using the consolidated run method with config
+        kmc_instance = KMC.from_config(config)
+        tracker = kmc_instance.run(config)
         assert False, "Expected file not found error"
     except Exception as e:
         # Should fail due to missing files, not parameter issues
         assert "temperature" not in str(e).lower(), f"Parameter issue detected: {e}"
-        print("✓ KMC.run_simulation accepts SimulationConfig")
+        print("✓ KMC.run accepts SimulationConfig")
     
     print("✅ SimulationCondition integration test passed!")
 
 def test_parameter_serialization():
     """Test parameter serialization and deserialization."""
-    from kmcpy.simulation_condition import SimulationConfig
+    from kmcpy.simulation.condition import SimulationConfig
     
     # Create a config
     config = SimulationConfig(
@@ -218,11 +218,9 @@ def test_eventlib_integration():
     event_lib = EventLib()
     
     # Add a test event
-    event = Event()
-    event.initialization(
-        mobile_ion_specie_1_index=0,
-        mobile_ion_specie_2_index=1,
-        local_env_indices_list=[2, 3, 4]
+    event = Event(
+        mobile_ion_indices=(0, 1),
+        local_env_indices=[2, 3, 4]
     )
     event_lib.add_event(event)
     

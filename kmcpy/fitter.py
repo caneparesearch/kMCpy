@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import json
 from kmcpy.io import convert
 import logging
-from kmcpy.model.model_parameters import LCEModelParameters, LCEModelParamHistory
+from kmcpy.model.parameters import LCEModelParameters, LCEModelParamHistory
 import os
 
 logger = logging.getLogger(__name__) 
@@ -42,7 +42,7 @@ class LCEFitter(BaseFitter):
         self.model_parameters = LCEModelParameters(
             keci=[],
             empty_cluster=0.0,
-            sublattice_indices=[],
+            cluster_site_indices=[],
             weight=[],
             alpha=0.0,
             time_stamp="",
@@ -172,7 +172,7 @@ class LCEFitter(BaseFitter):
         lce_model_params = LCEModelParameters(
             keci=keci.tolist(),
             empty_cluster=empty_cluster,
-            sublattice_indices=[],
+            cluster_site_indices=[],
             weight=weight_copy.tolist(),
             alpha=alpha,
             time_stamp=time_stamp,

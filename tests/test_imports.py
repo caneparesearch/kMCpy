@@ -5,11 +5,11 @@ import pytest
     "kmcpy.external.structure",
     "kmcpy.external.cif",
     "kmcpy.external.local_env",
-    "kmcpy.simulation_condition",  # New SimulationCondition module
+    "kmcpy.simulation",  # New simulation module
     "kmcpy.kmc",
     "kmcpy.event",
     "kmcpy.io",
-    "kmcpy.tracker",
+    "kmcpy.simulation.tracker",
 ])
 def test_module_imports(module_path):
     """Test that modules can be imported without circular import errors."""
@@ -29,14 +29,11 @@ def test_top_level_imports(module_path):
 
 def test_simulation_condition_classes():
     """Test that SimulationCondition classes can be imported and instantiated."""
-    from kmcpy.simulation_condition import (
+    from kmcpy.simulation.condition import (
         SimulationCondition, 
-        KMCSimulationCondition, 
         SimulationConfig,
-        LCESimulationState,
-        create_nasicon_config,
-        create_temperature_series
     )
+    from tests.test_utils import create_nasicon_config, create_temperature_series
     
     # Test basic instantiation
     condition = SimulationCondition(
@@ -46,7 +43,7 @@ def test_simulation_condition_classes():
     )
     assert condition.name == "Test"
     
-    kmc_condition = KMCSimulationCondition(
+    kmc_condition = SimulationConfig(
         name="KMC_Test",
         temperature=400.0,
         attempt_frequency=1e13,
@@ -63,12 +60,12 @@ def test_kmc_simulation_condition_integration():
     """Test that KMC class has SimulationCondition integration methods."""
     from kmcpy.kmc import KMC
     
-    # Test that new methods exist
-    assert hasattr(KMC, 'from_simulation_config'), "KMC missing from_simulation_config method"
-    assert hasattr(KMC, 'run_simulation'), "KMC missing run_simulation method"
-    assert hasattr(KMC, 'run_with_config'), "KMC missing run_with_config method"
+    # Test that new methods exist (updated method names)
+    assert hasattr(KMC, 'from_config'), "KMC missing from_config method"
+    assert hasattr(KMC, 'from_inputset'), "KMC missing from_inputset method"
+    assert hasattr(KMC, 'run'), "KMC missing run method"
     
     # Test that methods are callable
-    assert callable(getattr(KMC, 'from_simulation_config'))
-    assert callable(getattr(KMC, 'run_simulation'))
-    assert callable(getattr(KMC, 'run_with_config'))
+    assert callable(getattr(KMC, 'from_config'))
+    assert callable(getattr(KMC, 'from_inputset'))
+    assert callable(getattr(KMC, 'run'))

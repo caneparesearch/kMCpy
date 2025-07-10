@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """
-This module defines the Event class, which encapsulates the information and methods required to represent and analyze a migration event in a lattice-based simulation, such as those used in kinetic Monte Carlo (kMC) studies. The Event class manages indices of mobile ions, local environments, sublattice information, and provides methods for initializing, updating, and serializing event data. It also includes methods for calculating occupation, correlation, migration barriers, and probabilities associated with migration events.
+This module defines the Event class, which encapsulates the information required to represent 
+a migration event in a lattice-based simulation, such as those used in kinetic Monte Carlo (kMC) studies. 
+
+The Event class focuses purely on defining which sites are involved in the hop and providing 
+the local environment indices. All energy calculations are now handled by the model classes.
 """
 
 import numpy as np
 import numba as nb
-from copy import deepcopy
 import json
 from kmcpy.io import convert
 import logging
@@ -17,124 +20,42 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 
 class Event:
     """
-    mobile_ion_specie_1_index
-    mobile_ion_specie_2_index
-    local_env_indices_list
+    Represents a migration event in a lattice-based simulation.
+    
+    The Event class focuses purely on defining which sites are involved in the hop
+    and providing the local environment indices. All calculations are now handled
+    by the model classes.
+    
+    Attributes:
+        mobile_ion_indices (tuple): Global indices of the mobile ions involved in the event
+        local_env_indices (tuple): Global indices of the neighboring sites in the supercell
     """
 
-    def __init__(self):
-        pass
-
-    def initialization(
-        self,
-        mobile_ion_specie_1_index=12,
-        mobile_ion_specie_2_index=15,
-        local_env_indices_list=[1, 2, 3, 4, 5],
-    ):
-        """3rd version of initialization. The input local_env_indices_list is already sorted. Center atom is equivalent to the Na1 in the 1st version and mobile_ion_specie_2_index is equivalent to the Na2 in the 1st version
+    def __init__(self, mobile_ion_indices: tuple, local_env_indices: tuple):
+        """Initialize the Event object with the indices of the mobile ions and their local environment.
 
         Args:
-            mobile_ion_specie_1_index (int, optional): the global index (index in supercell) of the center atom. Defaults to 12.
-            mobile_ion_specie_2_index (int, optional): the global index of the atom that the center atom is about to diffuse to. Defaults to 15.
-            local_env_indices_list (list, optional): list of integers, which is a list of indices of the neighboring sites in supercell, and is already sorted. Defaults to [1,2,3,4,5].
+            mobile_ion_indices (tuple): A tuple containing the two global indices 
+                of the mobile ions involved in the event.
+            local_env_indices (tuple): A tuple of integers representing the sorted 
+                indices of the neighboring sites in the supercell.
         """
-        self.mobile_ion_specie_1_index = mobile_ion_specie_1_index
-        self.mobile_ion_specie_2_index = mobile_ion_specie_2_index
-
-        self.local_env_indices_list = local_env_indices_list
-        self.local_env_indices_list_site = local_env_indices_list
-
-    def set_sublattice_indices(self, sublattice_indices, sublattice_indices_site):
-        self.sublattice_indices = sublattice_indices  # this stores the site indices from local_cluster_expansion object
-        self.sublattice_indices_site = sublattice_indices_site  # this stores the site indices from local_cluster_expansion object
+        self.mobile_ion_indices = mobile_ion_indices
+        self.local_env_indices = local_env_indices
 
     def show_info(self):
+        """Display information about the event."""
         logger.info(
-            "Event: mobile_ion(1)[%s]<--> mobile_ion(2)[%s]",
-            self.mobile_ion_specie_1_index,
-            self.mobile_ion_specie_2_index,
+            "Event: mobile_ion(1)[%s] <--> mobile_ion(2)[%s]",
+            self.mobile_ion_indices[0],
+            self.mobile_ion_indices[1],
         )
-        logger.debug('Global sites indices are (excluding O and Zr): %s', self.local_env_indices_list)
-        logger.debug('Local template structure: %s', getattr(self, 'sorted_local_structure', None))
-
-        try:
-            logger.info("occ_sublat\tE_KRA\tProbability")
-            logger.info("%s\t%s\t%s", self.occ_sublat, self.ekra, self.probability)
-        except Exception:
-            pass
-
-    def clear_property(self):
-        pass
-
-    def analyze_local_structure(self, local_env_info):
-        #
-        indices_sites_group = [(s["site_index"], s["site"]) for s in local_env_info]
-
-        # this line is to sort the neighbors. First sort by x coordinate, and then sort by specie (Na, then Si/P)
-        # the sorted list, store the sequence of hash.
-        # for other materials, need to find another method to sort.
-        # this sort only works for the NaSICON!
-        indices_sites_group_sorted = sorted(
-            sorted(indices_sites_group, key=lambda x: x[1].coords[0]),
-            key=lambda x: x[1].specie,
-        )
-
-        local_env_indices_list = [s[0] for s in indices_sites_group_sorted]
-        return local_env_indices_list
-
-    # @profile
-    def set_occ(self, occ_global):
-        self.occ_sublat = deepcopy(
-            occ_global[self.local_env_indices_list]
-        )  # occ is an 1D numpy array
-
-    # @profile
-    def initialize_corr(self):
-        self.corr = np.empty(shape=len(self.sublattice_indices))
-        self.corr_site = np.empty(shape=len(self.sublattice_indices_site))
-
-    # @profile
-    def set_corr(self):
-        _set_corr(self.corr, self.occ_sublat, self.sublattice_indices)
-        _set_corr(self.corr_site, self.occ_sublat, self.sublattice_indices_site)
-
-    # @profile
-    def set_ekra(
-        self, keci, empty_cluster, keci_site, empty_cluster_site
-    ):  # input is the keci and empty_cluster; ekra = corr*keci + empty_cluster
-        self.ekra = np.inner(self.corr, keci) + empty_cluster
-        self.esite = np.inner(self.corr_site, keci_site) + empty_cluster_site
-
-    # @profile
-    def set_probability(
-        self, occ_global, v, T
-    ):  # calc_probability() will evaluate migration probability for this event, should be updated everytime when change occupation
-        k = 8.617333262145 * 10 ** (-2)  # unit in meV/K
-        direction = (
-            occ_global[self.mobile_ion_specie_2_index]
-            - occ_global[self.mobile_ion_specie_1_index]
-        ) / 2  # 1 if na1 -> na2, -1 if na2 -> na1
-        self.barrier = self.ekra + direction * self.esite / 2  # ekra
-        self.probability = abs(direction) * v * np.exp(-1 * (self.barrier) / (k * T))
-
-    # @profile
-    def update_event(
-        self, occ_global, v, T, keci, empty_cluster, keci_site, empty_cluster_site
-    ):
-        self.set_occ(occ_global)  # change occupation and correlation for this unit
-        self.set_corr()
-        self.set_ekra(
-            keci, empty_cluster, keci_site, empty_cluster_site
-        )  # calculate ekra and probability
-        self.set_probability(occ_global, v, T)
+        logger.debug('Local environment indices: %s', self.local_env_indices)
 
     def as_dict(self):
         d = {
-            "mobile_ion_specie_1_index": self.mobile_ion_specie_1_index,
-            "mobile_ion_specie_2_index": self.mobile_ion_specie_2_index,
-            "local_env_indices_list": self.local_env_indices_list,
-            "local_env_indices_list": self.local_env_indices_list,
-            "local_env_indices_list_site": self.local_env_indices_list_site,
+            "mobile_ion_indices": self.mobile_ion_indices,
+            "local_env_indices": self.local_env_indices,
         }
         return d
 
@@ -156,34 +77,17 @@ class Event:
         obj.__dict__ = objDict
         return obj
     @classmethod
-    def from_dict(self, event_dict):  # convert dict into event object
-        event = Event()
-        event.__dict__ = event_dict
-        return event
-
-
-@nb.njit
-def _set_corr(corr, occ_latt, sublattice_indices):
-    i = 0
-    for sublat_ind_orbit in sublattice_indices:
-        corr[i] = 0
-        for sublat_ind_cluster in sublat_ind_orbit:
-            corr_cluster = 1
-            for occ_site in sublat_ind_cluster:
-                corr_cluster *= occ_latt[occ_site]
-            corr[i] += corr_cluster
-        i += 1
+    def from_dict(cls, event_dict):
+        """Create Event from dictionary."""
+        mobile_ion_indices = event_dict.get("mobile_ion_indices", (12, 15))
+        local_env_indices = event_dict.get("local_env_indices", (1, 2, 3, 4, 5))
+        return cls(mobile_ion_indices, local_env_indices)
 
 
 @nb.njit
 def _generate_event_dependency_matrix(events_site_list):
     """
-    Generate the event dependency matrix using numba for performance.
-    
-    Optimized algorithm that avoids expensive set operations:
-    1. Pre-converts site lists to sorted arrays for faster intersection
-    2. Uses binary search-like approach for finding overlaps
-    3. Reduces memory allocations
+    Generate the event dependency matrix.
     
     Args:
         events_site_list: List of lists, where each inner list contains 
@@ -200,7 +104,7 @@ def _generate_event_dependency_matrix(events_site_list):
     sorted_event_sites = List()
     for event_sites in events_site_list:
         # Convert to numpy array and sort
-        sites_array = np.array([site for site in event_sites])
+        sites_array = np.array([site for site in event_sites], dtype=np.int64)
         sites_array.sort()
         sorted_event_sites.append(sites_array)
     
@@ -262,9 +166,8 @@ class EventLib(ABC):
         site_to_events (dict): Mapping from global site index to list of event indices 
                               that involve that site
                               
-    Note: All indices (mobile_ion_specie_1_index, mobile_ion_specie_2_index, and 
-    local_env_indices_list) are global site indices, despite the misleading name 
-    of local_env_indices_list.
+    Note: All indices (mobile_ion_indices and local_env_indices) are global site indices, 
+    despite the misleading name of local_env_indices.
     """
 
     def __init__(self):
@@ -278,12 +181,15 @@ class EventLib(ABC):
         self.events.append(event)
         
         # Update site to events mapping using global site indices
-        # mobile_ion_specie_1_index, mobile_ion_specie_2_index, and local_env_indices_list 
-        # all contain global indices (despite the misleading name of local_env_indices_list)
-        sites_involved = set()
-        sites_involved.add(event.mobile_ion_specie_1_index)
-        sites_involved.add(event.mobile_ion_specie_2_index)
-        sites_involved.update(event.local_env_indices_list)
+        # mobile_ion_indices and local_env_indices 
+        # all contain global indices
+        sites_involved = []
+        # Add mobile ion indices
+        for site in event.mobile_ion_indices:
+            sites_involved.append(site)
+        # Add local environment indices
+        for site in event.local_env_indices:
+            sites_involved.append(site)
         
         for site in sites_involved:
             if site not in self.site_to_events:
@@ -310,9 +216,8 @@ class EventLib(ABC):
         When an event is executed, all dependent events need to be updated.
         The dependency matrix is stored as self.event_dependencies.
         
-        Note: All indices (mobile_ion_specie_1_index, mobile_ion_specie_2_index, and 
-        local_env_indices_list) are global site indices, despite the misleading name 
-        of local_env_indices_list.
+        Note: All indices (mobile_ion_indices and 
+        local_env_indices) are global site indices.
         
         Returns:
             list: 2D list where event_dependencies[i] contains indices of events that 
@@ -321,14 +226,16 @@ class EventLib(ABC):
         logger.info("Generating and storing event dependency matrix in class...")
         
         # Build events_site_list for numba function using all global site indices
-        # mobile_ion_specie_1_index, mobile_ion_specie_2_index, and local_env_indices_list
-        # all contain global indices (despite the misleading name of local_env_indices_list)
+        # mobile_ion_indices and local_env_indices
+        # all contain global indices
         events_site_list = List()
         for event in self.events:
             sites_involved = List()
-            sites_involved.append(event.mobile_ion_specie_1_index)
-            sites_involved.append(event.mobile_ion_specie_2_index)
-            for site in event.local_env_indices_list:
+            # Add mobile ion indices individually to avoid extend() deprecation warning
+            for site in event.mobile_ion_indices:
+                sites_involved.append(site)
+            # Add local environment indices individually
+            for site in event.local_env_indices:
                 sites_involved.append(site)
             events_site_list.append(sites_involved)
         
@@ -370,31 +277,6 @@ class EventLib(ABC):
             return []
             
         return list(self.event_dependencies[event_index])
-    
-    def update_dependent_events(self, executed_event_index, occ_global, v, T, 
-                               keci, empty_cluster, keci_site, empty_cluster_site):
-        """
-        Update all events that depend on the execution of a specific event.
-        
-        Args:
-            executed_event_index (int): Index of the event that was executed
-            occ_global: Global occupation array
-            v: Attempt frequency
-            T: Temperature
-            keci: Cluster expansion coefficients
-            empty_cluster: Empty cluster contribution
-            keci_site: Site cluster expansion coefficients  
-            empty_cluster_site: Site empty cluster contribution
-        """
-        dependent_events = self.get_dependent_events(executed_event_index)
-        
-        for event_idx in dependent_events:
-            self.events[event_idx].update_event(
-                occ_global, v, T, keci, empty_cluster, keci_site, empty_cluster_site
-            )
-        
-        logger.debug("Updated %d events dependent on event %d", 
-                    len(dependent_events), executed_event_index)
 
     def as_dict(self):
         """Convert EventLib to dictionary for serialization."""

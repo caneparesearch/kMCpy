@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from kmcpy.io import InputSet
-from kmcpy.kmc import KMC
+from kmcpy.simulation.kmc import KMC
 import kmcpy
 import argparse
 

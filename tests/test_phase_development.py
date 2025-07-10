@@ -12,8 +12,9 @@ from pathlib import Path
 from pymatgen.core import Structure, Lattice, Element, Species
 from pymatgen.core.sites import PeriodicSite
 
-from kmcpy.simulation_condition import SimulationConfig, SimulationState
-from kmcpy.tracker import Tracker
+from kmcpy.simulation.condition import SimulationConfig
+from kmcpy.simulation.state import SimulationState
+from kmcpy.simulation.tracker import Tracker
 from kmcpy.io import InputSet
 
 
@@ -110,15 +111,12 @@ class TestSimulationStateArchitecture:
         # Create SimulationState (mutable) with pymatgen structure
         state = SimulationState(
             initial_occ=config.initial_occ,
-            structure=test_structure,
-            mobile_ion_specie=config.mobile_ion_specie
         )
         
         # Test that SimulationState manages all mutable state
         assert state.occupations == [1, -1, 1, -1]
         assert state.time == 0.0
         assert state.step == 0
-        assert state.mobile_ion_specie == "Na"
         
         # Test state updates without complex event handling
         state.time = 0.1
@@ -146,8 +144,6 @@ class TestSimulationStateArchitecture:
         # State should be mutable
         state = SimulationState(
             initial_occ=[1, -1, 1, -1],
-            structure=test_structure,
-            mobile_ion_specie=config.mobile_ion_specie
         )
         
         # Configuration should not change during simulation
@@ -219,8 +215,6 @@ class TestKMCIntegrationImprovements:
         # Create SimulationState for optimized loop
         state = SimulationState(
             initial_occ=[1, -1, 1, -1],
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         # Test optimized state updates
@@ -368,8 +362,6 @@ class TestOccupationManagement:
         
         state = SimulationState(
             initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         # Test initial state
@@ -404,8 +396,6 @@ class TestOccupationManagement:
         
         state = SimulationState(
             initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         # State should manage its own occupations

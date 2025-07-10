@@ -13,7 +13,8 @@ from kmcpy.external.structure import StructureKMCpy
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from kmcpy.simulation_condition import SimulationConfig, SimulationState
+    from kmcpy.simulation.condition import SimulationConfig
+    from kmcpy.simulation.state import SimulationState
 
 logger = logging.getLogger(__name__) 
 
@@ -28,14 +29,13 @@ class Tracker:
     """
 
     def __init__(self, config: "SimulationConfig", structure: StructureKMCpy, 
-                 initial_state: Optional["SimulationState"] = None, occ_initial: list = None, **kwargs) -> None:
+                 initial_state: Optional["SimulationState"] = None, **kwargs) -> None:
         """Initialize a Tracker object for monitoring mobile ion species.
 
         Args:
             config (SimulationConfig): Configuration object containing simulation parameters.
             structure (StructureKMCpy): Structure object.
             initial_state (SimulationState, optional): Initial simulation state. If None, creates from config or occ_initial.
-            occ_initial (list, optional): Initial occupation list for backward compatibility.
             **kwargs: Additional legacy parameters for backward compatibility.
 
         """
@@ -49,55 +49,47 @@ class Tracker:
         if initial_state is not None:
             self.state = initial_state
         else:
-            # Create SimulationState from configuration or provided occ_initial
-            from kmcpy.simulation_condition import SimulationState
-            initial_occ = occ_initial if occ_initial is not None else config.initial_occ
-            self.state = SimulationState(
-                initial_occ=initial_occ,
-                structure=structure,
-                mobile_ion_specie=config.mobile_ion_specie
-            )
+            raise ValueError("SimulationState must be provided to Tracker")
+        
+        # Initialize mobile ion tracking in Tracker (where it belongs)
+        initial_occ = initial_state.occupations if initial_state else occ_initial
+        self._initialize_mobile_ion_tracking(initial_occ)
         
         # Results storage (only responsibility of Tracker)
         self.results = Results()
         self.current_pass = 0
         
-        logger.info("number of mobile ion specie = %d", self.state.n_mobile_ion_specie)
+        logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
         logger.info(
             f"""Center of mass ({self.mobile_ion_specie}): {np.mean(
-            self.state.r0, axis=0
+            self.r0, axis=0
             )}""")
     
+    def _initialize_mobile_ion_tracking(self, initial_occ: list):
+        """Initialize mobile ion tracking arrays."""
+        import numpy as np
+        
+        # Find mobile ion sites (working version - mobile ion sites are first N sites)
+        self.n_mobile_ion_specie_site = len(
+            [el.symbol for el in self.structure.species if self.mobile_ion_specie in el.symbol]
+        )
+        self.mobile_ion_specie_locations = np.where(
+            np.array(initial_occ[0:self.n_mobile_ion_specie_site]) == -1
+        )[0]
+        self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
+        
+        logger.debug('Initial mobile ion locations = %s', self.mobile_ion_specie_locations)
+        
+        # Initialize tracking arrays
+        self.displacement = np.zeros((self.n_mobile_ion_specie, 3))
+        self.hop_counter = np.zeros(self.n_mobile_ion_specie, dtype=np.int64)
+        self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
+
     # Properties to access state information (delegation to state)
     @property
     def occ_initial(self) -> list:
         """Get initial occupation from state."""
         return self.state.occupations  # Current occupations
-    
-    @property
-    def mobile_ion_specie_locations(self) -> np.ndarray:
-        """Get mobile ion locations from state."""
-        return self.state.mobile_ion_locations
-    
-    @property
-    def displacement(self) -> np.ndarray:
-        """Get displacement from state."""
-        return self.state.displacement
-    
-    @property
-    def hop_counter(self) -> np.ndarray:
-        """Get hop counter from state."""
-        return self.state.hop_counter
-    
-    @property
-    def n_mobile_ion_specie(self) -> int:
-        """Get number of mobile ion species from state."""
-        return self.state.n_mobile_ion_specie
-    
-    @property
-    def n_mobile_ion_specie_site(self) -> int:
-        """Get number of mobile ion species sites from state."""
-        return self.state.n_mobile_ion_specie_site if hasattr(self.state, 'n_mobile_ion_specie_site') else 0
 
     @property
     def frac_coords(self) -> np.ndarray:
@@ -113,12 +105,7 @@ class Tracker:
     def volume(self) -> float:
         """Get volume from structure."""
         return self.structure.volume
-    
-    @property
-    def r0(self) -> np.ndarray:
-        """Get initial positions from state."""
-        return self.state.r0
-    
+
     # Properties to access configuration parameters (no duplication)
     @property
     def dimension(self) -> int:
@@ -176,10 +163,14 @@ class Tracker:
             Tracker: An instance of the Tracker class initialized with parameters from the InputSet.
         """
         # Convert InputSet to SimulationConfig for clean architecture
-        from kmcpy.simulation_condition import SimulationConfig
+        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.simulation.state import SimulationState
         config = SimulationConfig.from_inputset(inputset)
         
-        return cls(config=config, structure=structure, occ_initial=occ_initial)
+        # Create SimulationState with initial occupation
+        initial_state = SimulationState(initial_occ=occ_initial)
+        
+        return cls(config=config, structure=structure, initial_state=initial_state)
     
     @classmethod
     def from_config(cls, config: "SimulationConfig", structure: StructureKMCpy, occ_initial: list) -> "Tracker":
@@ -196,7 +187,11 @@ class Tracker:
         Returns:
             Tracker: An instance of the Tracker class.
         """
-        return cls(config=config, structure=structure, occ_initial=occ_initial)
+        # Create SimulationState with initial occupation
+        from kmcpy.simulation.state import SimulationState
+        initial_state = SimulationState(initial_occ=occ_initial)
+        
+        return cls(config=config, structure=structure, initial_state=initial_state)
 
 
     def update(self, event, current_occ, dt)->None:  # this should be called after update() of KMC run
@@ -222,37 +217,61 @@ class Tracker:
         Raises:
             Logs an error if the event direction cannot be determined (i.e., if the event is invalid).
         """
+        mobile_ion_specie_1_coord = copy(
+            self.frac_coords[event.mobile_ion_indices[0]]
+        )
+        mobile_ion_specie_2_coord = copy(
+            self.frac_coords[event.mobile_ion_indices[1]]
+        )
+        mobile_ion_specie_1_occ = current_occ[event.mobile_ion_indices[0]]
+        mobile_ion_specie_2_occ = current_occ[event.mobile_ion_indices[1]]
+
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('--------------------- Tracker Update Start ---------------------')
             logger.debug(
             "%s(1): idx=%d, coord=%s, occ=%s",
-            self.mobile_ion_specie, event.mobile_ion_specie_1_index, 
-            np.array2string(self.frac_coords[event.mobile_ion_specie_1_index], precision=4), 
-            current_occ[event.mobile_ion_specie_1_index]
+            self.mobile_ion_specie, event.mobile_ion_indices[0], np.array2string(mobile_ion_specie_1_coord, precision=4), mobile_ion_specie_1_occ
             )
             logger.debug(
             "%s(2): idx=%d, coord=%s, occ=%s",
-            self.mobile_ion_specie, event.mobile_ion_specie_2_index, 
-            np.array2string(self.frac_coords[event.mobile_ion_specie_2_index], precision=4), 
-            current_occ[event.mobile_ion_specie_2_index]
+            self.mobile_ion_specie, event.mobile_ion_indices[1], np.array2string(mobile_ion_specie_2_coord, precision=4), mobile_ion_specie_2_occ
             )
-            logger.debug("Current simulation time: %.6f", self.state.time)
+            logger.debug("Current simulation time: %.6f", self.time)
             logger.debug("Hop counters: %s", np.array2string(self.hop_counter, precision=0, separator=', '))
             logger.debug("Event probability: %s", getattr(event, "probability", None))
             logger.debug("Mobile ion locations before update: %s", self.mobile_ion_specie_locations)
             logger.debug("Occupation before update: %s", np.array2string(current_occ, precision=0, separator=', '))
-        
-        # Phase 3: Only synchronize if this is legacy mode (not using integrated SimulationState)
-        # If KMC is using SimulationState directly, the state is already consistent
-        if not hasattr(self, '_skip_occupation_sync') or not self._skip_occupation_sync:
-            # Synchronize state occupations with KMC's current occupations before the event
-            # SimulationState will then update them internally during update_from_event
-            self.state.occupations = list(current_occ)
-        
-        # Use SimulationState's update_from_event method
-        # This will update occupations, time, displacement, and hop counters
-        self.state.update_from_event(event, dt)
-        
+        direction = int(
+            (mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2
+        )  # na1 -> na2 direction = 1; na2 -> na1 direction = -1
+        displacement_frac = copy(
+            direction * (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord)
+        )
+        displacement_frac -= np.array(
+            [int(round(i)) for i in displacement_frac]
+        )  # for periodic condition
+        displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
+        if direction == -1:  # Na(2) -> Na(1)
+            logger.debug(f'Diffuse direction: {self.mobile_ion_specie}(2) -> {self.mobile_ion_specie}(1)')
+            specie_to_diff = np.where(
+            self.mobile_ion_specie_locations == event.mobile_ion_indices[1]
+            )[0][0]
+            self.mobile_ion_specie_locations[specie_to_diff] = (
+            event.mobile_ion_indices[0]
+            )
+        elif direction == 1:  # Na(1) -> Na(2)
+            logger.debug(f'Diffuse direction: {self.mobile_ion_specie}(1) -> {self.mobile_ion_specie}(2)')
+            specie_to_diff = np.where(
+            self.mobile_ion_specie_locations == event.mobile_ion_indices[0]
+            )[0][0]
+            self.mobile_ion_specie_locations[specie_to_diff] = (
+            event.mobile_ion_indices[1]
+            )
+        else:
+            logger.error("Proposed a wrong event! Please check the code!")
+        self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
+        self.hop_counter[specie_to_diff] += 1
+        self.state.time += dt
         logger.debug('------------------------ Tracker Update End --------------------')
         # self.frac_na_at_na1.append(np.count_nonzero(self.mobile_ion_specie_location < self.n_mobile_ion_specie_site/4)/self.n_mobile_ion_specie)
 

@@ -17,14 +17,13 @@ class TestNa3SbS4(unittest.TestCase):
         mobile_ion_specie_2_identifier = "Na1"
         template_structure_fname = f"{file_path}/Na3SbS4_cubic.cif"
         local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
-        from kmcpy.event_generator import EventGenerator
+        from kmcpy.event import EventGenerator
 
         reference_local_env_dict = EventGenerator().generate_events(
             template_structure_fname=template_structure_fname,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
-            mobile_ion_specie_2_identifier=mobile_ion_specie_2_identifier,
+            mobile_ion_identifiers=("Na1", "Na1"),
             species_to_be_removed=["S2-", "S", "Zr4+", "Zr"],
             distance_matrix_rtol=0.01,
             distance_matrix_atol=0.01,
@@ -65,7 +64,7 @@ class TestNa3SbS4(unittest.TestCase):
 
     def test_simulation_config_basic(self):
         """Test basic SimulationConfig functionality for Na3SbS4."""
-        from kmcpy.simulation_condition import SimulationConfig
+        from kmcpy.simulation.condition import SimulationConfig
         
         # Test basic configuration creation
         config = SimulationConfig(

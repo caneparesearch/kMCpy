@@ -9,7 +9,8 @@ import tempfile
 import json
 from pathlib import Path
 
-from kmcpy.simulation_condition import SimulationCondition, SimulationConfig, SimulationState
+from kmcpy.simulation.condition import SimulationCondition, SimulationConfig
+from kmcpy.simulation.state import SimulationState
 from kmcpy.io import InputSet
 
 
@@ -233,30 +234,24 @@ def test_structure():
 class TestSimulationState:
     """Test cases for SimulationState class."""
     
-    def test_initialization(self, test_structure):
+    def test_initialization(self):
         """Test SimulationState initialization."""
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         assert np.array_equal(state.occupations, initial_occ)
-        assert state.structure == test_structure
-        assert state.mobile_ion_specie == "Na"
         assert state.time == 0.0
         assert state.step == 0
     
-    def test_occupation_management(self, test_structure):
+    def test_occupation_management(self):
         """Test occupation state management."""
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         # Test initial occupations
@@ -267,21 +262,18 @@ class TestSimulationState:
         state.occupations[1] = 1
         assert np.array_equal(state.occupations, [-1, 1, 1, -1])
     
-    def test_update_from_event(self, test_structure):
+    def test_update_from_event(self):
         """Test updating state from an event."""
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         # Simple event object
         class SimpleEvent:
             def __init__(self, idx1, idx2):
-                self.mobile_ion_specie_1_index = idx1
-                self.mobile_ion_specie_2_index = idx2
+                self.mobile_ion_indices = (idx1, idx2)
         
         event = SimpleEvent(0, 1)  # Swap occupations at indices 0 and 1
         dt = 0.1
@@ -293,33 +285,14 @@ class TestSimulationState:
         assert np.array_equal(state.occupations, [-1, 1, 1, -1])
         assert state.time == 0.1
         assert state.step == 1
-    
-    def test_state_properties(self, test_structure):
-        """Test state properties and methods."""
-        initial_occ = [1, -1, 1, -1]
+
         
-        state = SimulationState(
-            initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
-        )
-        
-        # Test occupied sites
-        occupied_sites = state.get_occupied_sites()
-        assert occupied_sites == [0, 2]  # Sites with occupation = 1
-        
-        # Test vacant sites
-        vacant_sites = state.get_vacant_sites()
-        assert vacant_sites == [1, 3]  # Sites with occupation = -1
-    
-    def test_copy(self, test_structure):
+    def test_copy(self):
         """Test copying simulation state."""
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             initial_occ=initial_occ,
-            structure=test_structure,
-            mobile_ion_specie="Na"
         )
         
         # Update original state
