@@ -99,7 +99,8 @@ def create_test_config(
         'fitting_results': 'test_fitting.json',
         'lce_fname': 'test_lce.json',
         'template_structure_fname': 'test_structure.cif',
-        'event_fname': 'test_events.json'
+        'event_fname': 'test_events.json',
+        'event_dependencies': 'test_dependencies.csv'
     }
     
     # Override with user-provided kwargs
