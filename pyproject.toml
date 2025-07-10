@@ -72,13 +72,17 @@ include = ["kmcpy", "kmcpy*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0" # Good practice to set a minimum
-addopts = "-ra -q --color=yes" # Example: report all but passes, quiet, with color
+addopts = "-ra -q --color=yes --tb=short" # Example: report all but passes, quiet, with color
 testpaths = [
     "tests", # Standard location for tests, create this directory if it doesn't exist
 ]
 pythonpath = ["."] # Adds project root to PYTHONPATH, so tests can import `kmcpy`
 markers = [
-    "order(number): mark test to run in a specific order" # Your custom marker
+    "order(number): mark test to run in a specific order", # Your custom marker
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "nasicon: marks tests specific to NASICON materials",
 ]
 
 [project.scripts]

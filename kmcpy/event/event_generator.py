@@ -4,14 +4,11 @@ This module provides tools for generating and matching local atomic environments
 """
 
 import numpy as np
-from numba.typed import List
-import numba as nb
 import itertools
 import logging
 from pymatgen.util.coord import get_angle
 
 logger = logging.getLogger(__name__) 
-logging.getLogger('numba').setLevel(logging.WARNING)
 
 def print_divider():
     logger.info("\n\n-------------------------------------------\n\n")
@@ -462,8 +459,7 @@ class EventGenerator:
         convert_to_primitive_cell=False,
         local_env_cutoff_dict={("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0},
         mobile_ion_identifier_type="label",
-        mobile_ion_specie_1_identifier="Na1",
-        mobile_ion_specie_2_identifier="Na2",
+        mobile_ion_identifiers=("Na1", "Na2"),
         species_to_be_removed=["O2-", "O"],
         distance_matrix_rtol=0.01,
         distance_matrix_atol=0.01,
@@ -472,7 +468,6 @@ class EventGenerator:
         supercell_shape=[2, 1, 1],
         event_fname="events.json",
         event_dependencies_fname="event_dependencies.csv",
-        event_kernal_fname=None,  # Deprecated parameter for backward compatibility
     ):
         """
         220603 XIE WEIHANG
@@ -483,8 +478,7 @@ class EventGenerator:
             convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
             local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
             mobile_ion_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
-            mobile_ion_specie_1_identifier (str, optional): identifier for mobile_ion_specie_1. Defaults to "Li+".
-            mobile_ion_specie_2_identifier (str, optional): identifier for the atom that mobile_ion_specie_1 will diffuse to . Defaults to "Li+".
+            mobile_ion_identifiers (tuple, optional): A tuple containing the identifiers for the two mobile ion species involved in an event. Defaults to ("Na1", "Na2").
             species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to ["O2-","O"].
             distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.
             distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.
@@ -493,7 +487,6 @@ class EventGenerator:
             supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
             event_fname (str, optional): file name for the events json file. Defaults to "events.json".
             event_dependencies_fname (str, optional): file name for event dependencies matrix. Defaults to 'event_dependencies.csv'.
-            event_kernal_fname (str, optional): [DEPRECATED] Use event_dependencies_fname instead. For backward compatibility only. Defaults to None.
 
         Raises:
             NotImplementedError: the atom identifier type=list is not yet implemented
@@ -514,18 +507,6 @@ class EventGenerator:
         import kmcpy
 
         logger.info(kmcpy.get_logo())
-        
-        # Handle backward compatibility for deprecated parameter names
-        if event_kernal_fname is not None:
-            logger.warning(
-                "Parameter 'event_kernal_fname' is deprecated and will be removed in a future version. "
-                "Please use 'event_dependencies_fname' instead."
-            )
-            event_dependencies_fname = event_kernal_fname
-        
-        logger.warning(
-            "Extracting clusters from primitive cell structure. This primitive cell should be bulk structure, grain boundary model not implemented yet."
-        )
 
         # generate primitive cell
         primitive_cell = StructureKMCpy.from_cif(
@@ -540,12 +521,12 @@ class EventGenerator:
             "primitive cell composition after adding oxidation state and removing uninvolved species: "
         )
         logger.info(str(primitive_cell.composition))
-        logger.warning("building mobile_ion_specie_1 index list")
+        logger.warning("building migrating_ion index list")
 
-        mobile_ion_specie_1_indices = find_atom_indices(
+        migrating_ion_indices = find_atom_indices(
             primitive_cell,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            atom_identifier=mobile_ion_specie_1_identifier,
+            atom_identifier=mobile_ion_identifiers[0],
         )
 
         # --------
@@ -566,19 +547,19 @@ class EventGenerator:
         reference_local_env_type = 0
 
         logger.info(
-            "start finding the neighboring sequence of mobile_ion_specie_1s"
+            "start finding the neighboring sequence of migrating_ions"
         )
         logger.info(
-            "total number of mobile_ion_specie_1s:" + str(len(mobile_ion_specie_1_indices))
+            "total number of migrating_ions:" + str(len(migrating_ion_indices))
         )
 
         neighbor_has_been_found = 0
 
-        for mobile_ion_specie_1_index in mobile_ion_specie_1_indices:
+        for migrating_ion_index in migrating_ion_indices:
 
             unsorted_neighbor_sequences = sorted(
                 sorted(
-                    local_env_finder.get_nn_info(primitive_cell, mobile_ion_specie_1_index),
+                    local_env_finder.get_nn_info(primitive_cell, migrating_ion_index),
                     key=lambda x: x["site"].coords[0],
                 ),
                 key=lambda x: x["site"].specie,
@@ -596,7 +577,7 @@ class EventGenerator:
 
                 if export_local_env_structure:
 
-                    reference_local_env_sites = [primitive_cell[mobile_ion_specie_1_index]]
+                    reference_local_env_sites = [primitive_cell[migrating_ion_index]]
 
                     for i in unsorted_neighbor_sequences:
                         reference_local_env_sites.append(i["site"])
@@ -620,7 +601,7 @@ class EventGenerator:
                 reference_local_env_dict[this_nninfo.neighbor_species] = this_nninfo
 
                 local_env_info_dict[
-                    primitive_cell[mobile_ion_specie_1_index].properties["local_index"]
+                    primitive_cell[migrating_ion_index].properties["local_index"]
                 ] = this_nninfo.neighbor_sequence
 
                 logger.warning(
@@ -648,7 +629,7 @@ class EventGenerator:
                 )
 
                 local_env_info_dict[
-                    primitive_cell[mobile_ion_specie_1_index].properties["local_index"]
+                    primitive_cell[migrating_ion_index].properties["local_index"]
                 ] = sorted_neighbor_sequence
 
             neighbor_has_been_found += 1
@@ -656,7 +637,7 @@ class EventGenerator:
             logger.warning(
                 str(neighbor_has_been_found)
                 + " out of "
-                + str(len(mobile_ion_specie_1_indices))
+                + str(len(migrating_ion_indices))
                 + " neighboring sequence has been found"
             )
 
@@ -664,10 +645,10 @@ class EventGenerator:
         logger.warning("supercell is created")
         logger.info(str(supercell))
 
-        supercell_mobile_ion_specie_1_indices = find_atom_indices(
+        supercell_migrating_ion_indices = find_atom_indices(
             supercell,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            atom_identifier=mobile_ion_specie_1_identifier,
+            atom_identifier=mobile_ion_identifiers[0],
         )
 
         events = []
@@ -677,36 +658,36 @@ class EventGenerator:
             skip_check=False
         )  # a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
 
-        for supercell_mobile_ion_specie_1_index in supercell_mobile_ion_specie_1_indices:
+        for supercell_migrating_ion_index in supercell_migrating_ion_indices:
 
-            # for mobile_ion_specie_1s of newly generated supercell, find the neighbors
+            # for migrating_ions of newly generated supercell, find the neighbors
 
-            supercell_tuple = supercell[supercell_mobile_ion_specie_1_index].properties[
+            supercell_tuple = supercell[supercell_migrating_ion_index].properties[
                 "supercell"
             ]
 
-            local_index_of_this_mobile_ion_specie_1 = supercell[
-                supercell_mobile_ion_specie_1_index
+            local_index_of_this_migrating_ion = supercell[
+                supercell_migrating_ion_index
             ].properties["local_index"]
 
             local_env_info = []  # list of integer / indices of local environment
 
             for neighbor_site_in_primitive_cell in local_env_info_dict[
-                local_index_of_this_mobile_ion_specie_1
+                local_index_of_this_migrating_ion
             ]:
                 """
 
-                 local_env_info_dict[local_index_of_this_mobile_ion_specie_1]
+                 local_env_info_dict[local_index_of_this_migrating_ion]
 
-                In primitive cell, the mobile_ion_specie_1 has 1 unique identifier: The "local index inside the primitive cell"
+                In primitive cell, the migrating_ion has 1 unique identifier: The "local index inside the primitive cell"
 
-                In supercell, the mobile_ion_specie_1 has an additional unique identifier: "supercell_tuple"
+                In supercell, the migrating_ion has an additional unique identifier: "supercell_tuple"
 
                 However, as long as the "local index inside the primitive cell" is the same,
-                no matter which supercell this mobile_ion_specie_1 belongs to,
+                no matter which supercell this migrating_ion belongs to,
                 the sequence of "local index" of its neighbor sites are the same.
-                For example, In primitive cell, mobile_ion_specie_1 with index 1 has neighbor arranged in 1,3,2,4,6,5,
-                then for every mobile_ion_specie_1 with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
+                For example, In primitive cell, migrating_ion with index 1 has neighbor arranged in 1,3,2,4,6,5,
+                then for every migrating_ion with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
 
                 In the loop. I'm mapping the sequence in primitive cell to supercell!
 
@@ -747,29 +728,27 @@ class EventGenerator:
                 """
                 if mobile_ion_identifier_type == "specie":
 
-                    if mobile_ion_specie_2_identifier in supercell[local_env].species:
-                        # initialize the event
-                        this_event = Event()
-                        this_event.initialization(
-                            supercell_mobile_ion_specie_1_index, local_env, local_env_info
+                    if mobile_ion_identifiers[1] in supercell[local_env].species:
+                        # initialize the event using the new Event constructor
+                        this_event = Event(
+                            mobile_ion_indices=(supercell_migrating_ion_index, local_env),
+                            local_env_indices=local_env_info,
                         )
                         events.append(this_event)
-                        events_dict.append(this_event.as_dict())
 
                 elif mobile_ion_identifier_type == "label":
 
                     if (
                         supercell[local_env].properties["label"]
-                        == mobile_ion_specie_2_identifier
+                        == mobile_ion_identifiers[1]
                     ):
                         # or for understanding, if any site in local environment, its label== "Na2"
-                        # initialize the event
-                        this_event = Event()
-                        this_event.initialization(
-                            supercell_mobile_ion_specie_1_index, local_env, local_env_info
+                        # initialize the event using the new Event constructor
+                        this_event = Event(
+                            mobile_ion_indices=(supercell_migrating_ion_index, local_env),
+                            local_env_indices=local_env_info,
                         )
                         events.append(this_event)
-                        events_dict.append(this_event.as_dict())
 
                 elif mobile_ion_identifier_type == "list":
                     raise NotImplementedError()
@@ -896,55 +875,3 @@ def normalize_supercell_tuple(
         supercell.append(additional_input)
 
     return tuple(supercell)
-
-
-@nb.njit
-def _generate_event_kernal(len_structure, events_site_list):
-    """to be called by generate_event_kernal for generating the event_kernal.csv
-
-    for  a event and find all other event that include the site of this event
-
-
-    Args:
-        len_structure (int): _description_
-        events_site_list (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    n_sites = len_structure
-    all_site_list = np.arange(n_sites)
-    results = List()
-    for site in all_site_list:
-        # print('Looking for site:',site)
-        row = List()
-        # is_Na1=False
-        event_index = 0
-        for event in events_site_list:
-            if site in event:
-                row.append(event_index)
-            event_index += 1
-            # if len(row)==0:
-            #    is_Na1=True
-        results.append(row)
-    return results
-
-
-def generate_event_kernal(
-    len_structure, events_site_list, event_kernal_fname="event_kernal.csv"
-):
-    """
-    event_kernal.csv:
-        event_kernal[i] tabulates the index of sites that have to be updated after event[i] has been executed
-
-
-
-    """
-    logger.info("Generating event kernal ...")
-    event_kernal = _generate_event_kernal(len_structure, events_site_list)
-    with open(event_kernal_fname, "w") as f:
-        for row in event_kernal:
-            for item in row:
-                f.write("%5d " % item)
-            f.write("\n")
-    return event_kernal

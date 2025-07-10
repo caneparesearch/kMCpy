@@ -3,6 +3,7 @@ from pymatgen.core.structure import Structure
 import numpy as np
 from kmcpy.model.basis import ChebychevBasis, OccupationBasis
 from pymatgen.analysis.structure_matcher import StructureMatcher
+from abc import  abstractmethod
 
 class LatticeModel(BaseModel):
     '''LatticeModel deal with the structure template which converts the structure to an occupation array and vice versa
@@ -80,42 +81,6 @@ class LatticeModel(BaseModel):
                 occ.append(self.basis.basis_function[1])  # not the same as the template structure
 
         return np.array(occ)
-        
-    # def get_occ_from_structure(self, structure: Structure, tol=1e-3):
-    #     '''get_occ_from_structure() returns an occupation numpy array of occupation 0/-1 is the same as template and +1 is different
-    #     '''
-    #     occ = []
-        
-    #     # Automatically determine the supercell matrix
-    #     supercell_matrix = np.linalg.solve(self.template_structure.lattice.matrix.T, structure.lattice.matrix.T).T
-    #     if not np.allclose(np.dot(supercell_matrix, self.template_structure.lattice.matrix), structure.lattice.matrix, atol=tol):
-    #         raise ValueError('Lattice of given structure and template_structure (in supercell) are not the same!')
-        
-    #     supercell_template = self.template_structure.copy()
-    #     supercell_template.make_supercell(supercell_matrix)
-        
-    #     if np.allclose(supercell_template.lattice.matrix, structure.lattice.matrix, atol=tol):
-    #         for each_site in supercell_template:
-    #             if self.is_in(each_site, structure, tol):
-    #                 occ.append(self.basis.basis_function[0]) # same as the template structure
-    #             else:
-    #                 occ.append(self.basis.basis_function[1]) # not the same as the template structure
-    #     else:
-    #         raise ValueError('Lattice of structure and template_structure are not the same!')
-    #     return np.array(occ)
-    
-    # def is_in(self,site,structure,tol=1e-3):# check if site is in structure, it matches the first site that encountered in the structure
-    #     exist = False
-    #     if site.lattice != structure.lattice:
-    #         raise ValueError('Checking the existence of a site in a structure with different lattices!')
-    #     for i,s in enumerate(structure.sites):
-    #         if  self.get_site_species(site) == self.get_site_species(s):
-    #             # the one __eq__ implemented in pymatgen uses np.allclose for coordinates, which is not working with PBC condition 
-    #             if abs(site.distance(s)<tol) and exist == False:
-    #                 exist = True
-    #             elif abs(site.distance(s)<tol) and exist == True:
-    #                 raise ValueError('There are more than two sites exist in the structure!')
-    #     return exist
     
     def get_structure_from_occ(self,occ):
         '''get_structure_from_occ() takes an occupation array and returns a pymatgen Structure
@@ -130,4 +95,36 @@ class LatticeModel(BaseModel):
         non_vacancy_idx = [i for (i,s) in enumerate(species) if 'X' not in s]
         non_vacancy_species = [s for s in species if 'X' not in s]
         return Structure(species=non_vacancy_species,lattice=lattice,coords=frac_coords[non_vacancy_idx],coords_are_cartesian=False)
+    
+    @abstractmethod
+    def compute(self, *args, **kwargs):
+        """
+        Placeholder compute method for LatticeModel.
+        Subclasses should override this method to provide specific computation logic.
+        """
+        raise NotImplementedError("LatticeModel subclasses must implement compute() method")
+    
+    @abstractmethod
+    def compute_probability(self, *args, **kwargs):
+        """
+        Compute the transition probability based on the model's parameters and the current state.
+        This method must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+    
+    def __str__(self):
+        return f"LatticeModel with {len(self.template_structure)} sites"
+    
+    def __repr__(self):
+        return f"LatticeModel(template_structure={self.template_structure.composition}, basis_type={type(self.basis).__name__})"
+    
+    def as_dict(self):
+        """
+        Convert the model object to a dictionary representation.
+        """
+        return {
+            "template_structure": self.template_structure.as_dict(),
+            "species_to_site": self.species_to_site,
+            "basis_type": "occupation" if isinstance(self.basis, OccupationBasis) else "chebychev"
+        }
 

@@ -34,9 +34,24 @@ class BaseModel(ABC):
         raise NotImplementedError("Subclasses must implement this method.")    
     
     @abstractmethod
+    def compute(self, *args, **kwargs):
+        """
+        Generic computation method for the model. This method must be implemented by subclasses.
+        Can return either site energy or barrier energy depending on the model configuration.
+        
+        Returns:
+            float: The computed energy value (site energy, barrier energy, etc.)
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+    
+    @abstractmethod
     def compute_probability(self, *args, **kwargs):
         """
-        Compute probability based on the model. This method must be implemented by subclasses.
+        Compute the transition probability based on the model's parameters and the current state.
+        This method must be implemented by subclasses.
+        
+        Returns:
+            float: The computed transition probability.
         """
         raise NotImplementedError("Subclasses must implement this method.")
     
@@ -64,3 +79,53 @@ class BaseModel(ABC):
                 d, indent=4, default=convert
             )
             fhandle.write(jsonStr)
+
+
+class CompositeModel(BaseModel):
+    def __init__(self, models, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.models = models
+
+    def __str__(self):
+        return f"CompositeModel with {len(self.models)} models"
+
+    def __repr__(self):
+        return f"CompositeModel(models={self.models}, weights={self.weights})"
+    
+    @abstractmethod
+    def compute(self, *args, **kwargs):
+        """
+        Compute the transition probability based on the model's parameters and the current state.
+        This method must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+    
+    @abstractmethod
+    def compute_probability(self, *args, **kwargs):
+        """
+        Compute the transition probability based on the model's parameters and the current state.
+        This method must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    @abstractmethod
+    def as_dict(self):
+        """
+        Convert the composite model object to a dictionary representation.
+        This method must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    @abstractmethod
+    def from_dict(cls, d):
+        """
+        Create a composite model object from a dictionary representation.
+        This method must be implemented by subclasses.
+        
+        Args:
+            d (dict): Dictionary representation of the model.
+        
+        Returns:
+            CompositeModel: An instance of the composite model.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")

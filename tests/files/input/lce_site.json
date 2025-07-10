@@ -15107,7 +15107,7 @@
             "multiplicity": 6
         }
     ],
-    "sublattice_indices": [
+    "cluster_site_indices": [
         [
             [
                 0

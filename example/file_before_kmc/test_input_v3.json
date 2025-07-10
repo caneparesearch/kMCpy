@@ -10,7 +10,7 @@
     "lce_site_fname" : "lce_site.json",
     "prim_fname" : "./file_before_kmc/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
     "event_fname" : "events.json",
-    "event_kernel" : "./event_kernal.csv",
+    "event_dependencies" : "./event_dependencies.csv",
     "initial_state" : "./file_before_kmc/initial_state.json",
     "mobile_ion_specie" : "Na",
     "temperature": 298,

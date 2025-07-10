@@ -4,11 +4,33 @@ import logging
 
 from ._version import __version__
 
+# Import main classes for convenient access
+from .model import BaseModel, LocalClusterExpansion, CompositeLCEModel
+from .simulation.kmc import KMC
+from .event import Event, EventGenerator, NeighborInfoMatcher
+from .simulation.condition import SimulationCondition, SimulationConfig
+from .simulation.state import SimulationState
+from .simulation.tracker import Tracker
+
 __author__ = "kMCpy Development Team"
 __author_email__ = "dengzeyu@gmail.com"
 
-# Expose the version and the logo function as the public API for this module.
-__all__ = ["__version__", "get_logo"]
+# Expose the main classes and functions as the public API
+__all__ = [
+    "__version__", 
+    "get_logo",
+    "BaseModel",
+    "LocalClusterExpansion", 
+    "CompositeLCEModel",
+    "KMC",
+    "Event",
+    "EventGenerator",
+    "NeighborInfoMatcher",
+    "SimulationCondition",
+    "SimulationConfig", 
+    "SimulationState",
+    "Tracker"
+]
 
 
 # 2. LOGGING SETUP: This is perfect.

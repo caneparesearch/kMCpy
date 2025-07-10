@@ -8,6 +8,7 @@ import json
 from kmcpy.external.structure import StructureKMCpy
 import logging
 import pandas as pd
+import warnings
 
 logger = logging.getLogger(__name__) 
 
@@ -82,8 +83,14 @@ class InputSet:
     just a dictionary
     """
     def __init__(self, _parameters={}) -> None:
+        # Handle parameter name transitions for backward compatibility
+        if 'event_kernel' in _parameters and 'event_dependencies' not in _parameters:
+            # Map old parameter name to new one
+            _parameters = _parameters.copy()  # Don't modify the original
+            _parameters['event_dependencies'] = _parameters['event_kernel']
+            logger.warning("Parameter 'event_kernel' is deprecated. Use 'event_dependencies' instead.")
+        
         self._parameters = _parameters
-        pass
 
     @classmethod
     def from_json(
@@ -141,8 +148,21 @@ class InputSet:
         # check parameters
         input_set.parameter_checker()
 
-        # load occupation data
-        input_set.load_occ()
+        # load occupation data only if template structure file exists
+        import os
+        template_file = input_set._parameters.get('template_structure_fname', '')
+        if template_file and os.path.exists(template_file):
+            input_set.load_occ()
+        elif template_file:
+            # File specified but doesn't exist - this is an error
+            input_set.load_occ()  # This will raise FileNotFoundError
+        else:
+            # No file specified - set minimal structure attributes for testing
+            logger.warning("No template structure file specified")
+            input_set.structure = None
+            input_set.occupation = []
+            input_set.n_sites = 0
+            
         return input_set
 
     def __str__(self):
@@ -166,7 +186,7 @@ class InputSet:
             InputSet: a InputSet class with modified parameters
         """
 
-        new_InputSet = InputSet(self._parameters)
+        new_InputSet = InputSet(self._parameters.copy())
         for key_to_change in kwargs:
             new_InputSet.set_parameter(key_to_change, kwargs[key_to_change])
         return new_InputSet
@@ -206,7 +226,8 @@ class InputSet:
                 "lce_site_fname": True,
                 "template_structure_fname": True,
                 "event_fname": True,
-                "event_kernel": True,
+                "event_dependencies": True,  # New parameter name
+                "event_kernel": False,  # Old parameter name (optional for backward compatibility)
                 "initial_state": True,
                 "temperature": True,
                 "dimension": True,
@@ -214,7 +235,9 @@ class InputSet:
                 "elem_hop_distance": True,
                 "convert_to_primitive_cell": False,
                 "immutable_sites": False,
-                "mobile_ion_specie": True
+                "mobile_ion_specie": True,
+                "random_seed": False,  # Optional parameter for random number generation
+                "name": False  # Optional parameter for simulation name
             }
         elif self._parameters["task"] == "lce":
             parameters = {
@@ -227,14 +250,14 @@ class InputSet:
                 "template_structure_fname": True,
                 "is_write_basis": True,
                 "species_to_be_removed": True,
-                "convert_to_primitive_cell": True,
+                "convert_to_primitive_cell": False,
                 "exclude_site_with_identifier": True,
             }
         elif self._parameters["task"] == "generate_event":
             parameters = {
                 "task": True,
                 "template_structure_fname": True,
-                "convert_to_primitive_cell": True,
+                "convert_to_primitive_cell": False,
                 "local_env_cutoff_dict": True,
                 "mobile_ion_identifier_type": True,
                 "mobile_ion_specie_1_identifier": True,
@@ -246,7 +269,7 @@ class InputSet:
                 "export_local_env_structure": False,
                 "supercell_shape": True,
                 "event_fname": True,
-                "event_kernal_fname": True,
+                "event_dependencies_fname": True,
             }
         else:
             raise ValueError(f"Unknown task {self._parameters['task']}. Please set task to {available_tasks}.")
@@ -268,9 +291,15 @@ class InputSet:
         # Warn about ignored parameters
         ignored_params = [key for key, valid in result.items() if not valid]
         if ignored_params:
-            logger.warning(f"Ignored parameters: {ignored_params} for task {self._parameters['task']}")
+            warnings.warn(f"Ignored parameters: {ignored_params} for task {self._parameters['task']}", UserWarning)
 
     def __getattr__(self, name):
+        # Handle backward compatibility for parameter names
+        if name == 'event_kernel' and 'event_kernel' not in self._parameters:
+            # Map old parameter name to new one
+            if 'event_dependencies' in self._parameters:
+                return self._parameters['event_dependencies']
+        
         try:
             return self._parameters[name]
         except KeyError:

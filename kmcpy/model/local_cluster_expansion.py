@@ -10,21 +10,23 @@ from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import glob
-from kmcpy.event_generator import find_atom_indices
+from kmcpy.event.event_generator import find_atom_indices
 from pymatgen.core.periodic_table import DummySpecies
 from pymatgen.core.sites import PeriodicSite
 import logging
 import kmcpy
-from kmcpy.model.model import BaseModel
+from kmcpy.model.lattice_model import LatticeModel
 from copy import deepcopy
 import numba as nb
 from kmcpy.io import InputSet
+from kmcpy.event import Event
+from kmcpy.simulation.state import SimulationState
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
 logging.getLogger('numba').setLevel(logging.WARNING)
 
-class LocalClusterExpansion(BaseModel):
+class LocalClusterExpansion(LatticeModel):
     """
     LocalClusterExpansion will be initialized with a template structure where all the sites are occupied
     cutoff_cluster is the cutoff for pairs and triplet
@@ -58,7 +60,7 @@ class LocalClusterExpansion(BaseModel):
         Notes:
             If the next-step KMC is not based on the same LCE object generated in this step, be careful with two things:
             1) The Ekra generated in this step can be transferred to the KMC, provided the orbits are arranged in the same way as here.
-            2) The sublattice_indices must correspond exactly to the input structure used in the KMC step, which may require reconstruction of an LCE object using the same KMC-input structure.
+            2) The cluster_site_indices must correspond exactly to the input structure used in the KMC step, which may require reconstruction of an LCE object using the same KMC-input structure.
         """
         logger.info(kmcpy.get_logo())
         logger.info("Initializing LocalClusterExpansion ...")
@@ -123,10 +125,22 @@ class LocalClusterExpansion(BaseModel):
 
         self.orbits = self.orbits_constructor(self.clusters)
 
-        self.sublattice_indices = [
+        self.cluster_site_indices = [
             [cluster.site_indices for cluster in orbit.clusters]
             for orbit in self.orbits
-        ]  # sublattice_indices[orbit,cluster,site]
+        ]  # cluster_site_indices[orbit,cluster,site]
+        
+        # Initialize parent LatticeModel - create minimal species_to_site mapping
+        # For now, create a simple mapping based on the template structure
+        species_to_site = {}
+        for site in template_structure:
+            species = site.species.elements[0].symbol
+            if species not in species_to_site:
+                species_to_site[species] = [species, "X"]  # Allow vacancy
+        
+        # Call parent constructor
+        super().__init__(template_structure, species_to_site, basis_type='occupation')
+        
         logger.info(
             "Type\tIndex\tmax_length\tmin_length\tPoint Group\tMultiplicity"
         )
@@ -138,6 +152,92 @@ class LocalClusterExpansion(BaseModel):
         params = {k: v for k, v in inputset._parameters.items() if k != "task"}
         return cls(**params)
     
+    @classmethod
+    def from_json(cls, filename: str):
+        """
+        Load a LocalClusterExpansion object from a JSON file.
+        
+        Args:
+            filename: Path to the JSON file containing the LocalClusterExpansion data
+            
+        Returns:
+            LocalClusterExpansion: The loaded LocalClusterExpansion object
+        """
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        
+        # Create a new instance without calling __init__
+        obj = cls.__new__(cls)
+        
+        # Restore all attributes from the JSON data
+        for key, value in data.items():
+            if key.startswith('@'):
+                # Skip metadata keys
+                continue
+            elif key == 'orbits':
+                # Reconstruct orbits from the stored data
+                obj.orbits = []
+                for orbit_data in value:
+                    orbit = Orbit()
+                    orbit.multiplicity = orbit_data.get('multiplicity', 0)
+                    
+                    # Reconstruct clusters for each orbit
+                    orbit.clusters = []
+                    for cluster_data in orbit_data.get('clusters', []):
+                        # Create cluster from stored data
+                        from pymatgen.core.structure import Molecule
+                        cluster = Cluster.__new__(Cluster)
+                        cluster.site_indices = cluster_data.get('site_indices', [])
+                        cluster.type = cluster_data.get('type', 'point')
+                        cluster.structure = Molecule.from_dict(cluster_data.get('structure', {}))
+                        cluster.sym = cluster_data.get('sym', '')
+                        cluster.max_length = cluster_data.get('max_length', 0)
+                        cluster.min_length = cluster_data.get('min_length', 0)
+                        cluster.bond_distances = cluster_data.get('bond_distances', [])
+                        orbit.clusters.append(cluster)
+                    
+                    obj.orbits.append(orbit)
+            elif key == 'center_site':
+                # Reconstruct center_site from its dict representation
+                from pymatgen.core.sites import PeriodicSite
+                obj.center_site = PeriodicSite.from_dict(value)
+            elif key == 'MigrationUnit_structure' or key == 'migration_unit_structure':
+                # Reconstruct migration unit structure
+                if value.get('@class') == 'Molecule':
+                    from pymatgen.core.structure import Molecule
+                    obj.MigrationUnit_structure = Molecule.from_dict(value)
+                else:
+                    from pymatgen.core.structure import Structure
+                    obj.MigrationUnit_structure = Structure.from_dict(value)
+            elif key == 'template_structure':
+                # Reconstruct template structure if present
+                from pymatgen.core.structure import Structure
+                obj.template_structure = Structure.from_dict(value)
+            elif key == 'basis':
+                # Reconstruct basis if present, default to ChebychevBasis if unknown
+                basis_class = value.get('@class', 'ChebychevBasis')
+                if basis_class == 'ChebychevBasis':
+                    from kmcpy.model.basis import ChebychevBasis
+                    obj.basis = ChebychevBasis()
+                elif basis_class == 'OccupationBasis':
+                    from kmcpy.model.basis import OccupationBasis
+                    obj.basis = OccupationBasis()
+                else:
+                    # Default to ChebychevBasis if class is not recognized
+                    from kmcpy.model.basis import ChebychevBasis
+                    obj.basis = ChebychevBasis()
+            else:
+                # For all other attributes, set them directly
+                setattr(obj, key, value)
+        
+        # Convert cluster_site_indices to numba TypedList format if it exists
+        if hasattr(obj, 'cluster_site_indices'):
+            from numba.typed import List
+            converted_list = List([List(List(int(k) for k in j) for j in i) for i in obj.cluster_site_indices])
+            obj.cluster_site_indices = converted_list
+        
+        return obj
+
     def get_cluster_structure(
         self,
         structure,
@@ -267,122 +367,131 @@ class LocalClusterExpansion(BaseModel):
             orbits.append(orbit)
         return orbits
 
-    def compute_probability(self, 
-                            occ_global,
-                            v,
-                            temperature,
-                            keci,
-                            empty_cluster,
-                            keci_site,
-                            empty_cluster_site):
+    def compute(self, simulation_state:SimulationState, event:Event):
         """
-        Compute the probabilities of each orbit based on the occupancy vector.
-        The probabilities are calculated as the average cluster function over all clusters in each orbit.
-        """
-        logger.debug("Computing probabilities ...")
-        occ_sublat = deepcopy(occ_global[self.local_env_indices_list])
-        self.calc_corr(self.corr, occ_sublat, self.sublattice_indices, self.corr_site, self.sublattice_indices_site)
-        self.calc_ekra(keci, empty_cluster, keci_site, empty_cluster_site)  # calculate ekra and probability
-        probability = self.calc_probability(occ_mobile_ion_specie_1, occ_mobile_ion_specie_2, v, temperature)
-        return probability
-    
-    # @profile
-    def initialize_corr(self):
-        self.corr = np.empty(shape=len(self.sublattice_indices))
-        self.corr_site = np.empty(shape=len(self.sublattice_indices_site))
-
-    # @profile
-    def calc_corr(self, corr, occ_sublat, sublattice_indices,
-                 corr_site, sublattice_indices_site):
-        _calc_corr(corr, occ_sublat, sublattice_indices)
-        _calc_corr(corr_site, occ_sublat, sublattice_indices_site)
-
-    # @profile
-    def calc_ekra(
-        self, keci, empty_cluster, keci_site, empty_cluster_site
-    ):  # input is the keci and empty_cluster; ekra = corr*keci + empty_cluster
-        ekra = np.inner(self.corr, keci) + empty_cluster
-        esite = np.inner(self.corr_site, keci_site) + empty_cluster_site
-        return ekra, esite
-
-    # @profile
-    def calc_probability(
-        self, occ_mobile_ion_specie_1,
-        occ_mobile_ion_specie_2, v, temperature
-    ) -> float:  # calc_probability() will evaluate migration probability for this event, should be updated everytime when change occupation
-        k = 8.617333262145 * 10 ** (-2)  # unit in meV/K
-        direction = (occ_mobile_ion_specie_2 - occ_mobile_ion_specie_1) / 2  # 1 if na1 -> na2, -1 if na2 -> na1
-        barrier = self.ekra + direction * self.esite / 2  # ekra
-        probability = abs(direction) * v * np.exp(-1 * (barrier) / (k * temperature))
-        return probability
-
-
-    def __str__(self):
-        return (
-            f"\nGLOBAL INFORMATION\n"
-            f"Number of orbits = {len(self.orbits)}\n"
-            f"Number of clusters = {len(self.clusters)}"
-        )
-
-    def __repr__(self):
-        return (
-            f"name: {self.name},"
-            f"LocalClusterExpansion(center_site={self.center_site}, "
-            f"MigrationUnit_structure={self.MigrationUnit_structure}, "
-            f"clusters={self.clusters}, orbits={self.orbits}, "
-            f"sublattice_indices={self.sublattice_indices})"
-        )
-    
-    def write_representative_clusters(self, path="."):
-        import os
-        logger.info("Writing representative structures to xyz files to %s ...", path)
-        if not os.path.exists(path):
-            logger.info("Making path: %s", path)
-            os.mkdir(path)
-        for i, orbit in enumerate(self.orbits):
-            orbit.clusters[0].to_xyz(os.path.join(path, f"orbit_{i}.xyz"))
-
-    def as_dict(self):
+        Compute energy value using stored parameters and correlation coefficients.
         
-        d = {
-                "@module": self.__class__.__module__,
-                "@class": self.__class__.__name__,
-                "center_site": self.center_site.as_dict(),
-                "MigrationUnit_structure": self.MigrationUnit_structure.as_dict(),
-                "clusters": [],
-                "orbits": [],
-                "sublattice_indices": self.sublattice_indices,
-            }
-     
-        for cluster in self.clusters:
-            d["clusters"].append(cluster.as_dict())
-        for orbit in self.orbits:
-            d["orbits"].append(orbit.as_dict())
+        This method uses the fitted parameters (keci, empty_cluster) stored in the object
+        and the predefined cluster_site_indices to compute energy values.
+        
+        Args:
+            simulation_state: SimulationState object containing occupation vector (preferred)
+            event: Event object containing mobile ion indices (required for local environment)
+            
+        Returns:
+            float: The computed energy value
+        """
+        # Check if parameters are stored
+        if not hasattr(self, 'keci') or not hasattr(self, 'empty_cluster'):
+            raise ValueError("No stored parameters found. Call set_parameters() or load_parameters_from_file() first.")
+            
+        # Get occupation array - prefer simulation_state over occ_global
+        if simulation_state is not None:
+            occ_global = simulation_state.occupations
+        elif occ_global is None:
+            raise ValueError("Either simulation_state or occ_global must be provided")
+            
+        # Ensure occ_global is a numpy array for proper indexing
+        occ_global = np.array(occ_global)
+            
+        # Require event for local environment determination
+        if event is None:
+            raise ValueError("Event object is required for LocalClusterExpansion.compute() to determine local environment")
+            
+        # Initialize correlation array using stored cluster_site_indices
+        corr = np.empty(shape=len(self.cluster_site_indices))
+        
+        # Extract local occupation using event's local environment indices
+        occ_sublat = deepcopy(occ_global[event.local_env_indices])
+            
+        _calc_corr(corr, occ_sublat, self.cluster_site_indices)
+        
+        # Compute energy using stored parameters
+        result = np.inner(corr, self.keci) + self.empty_cluster
+        return result
 
-        return d
+    def compute_probability(self, *args, **kwargs):
+        raise NotImplementedError("You cannot compute probability from a single LCE model, try CompositeLCEModel.")
+    
+    def set_parameters(self, parameters):
+        """
+        Set fitted parameters for this LocalClusterExpansion model.
+        
+        Args:
+            parameters: LCEModelParameters object or dict containing keci and empty_cluster
+        """
+        from kmcpy.model.parameters import LCEModelParameters
+        
+        if isinstance(parameters, LCEModelParameters):
+            self.keci = parameters.keci
+            self.empty_cluster = parameters.empty_cluster
+            self._parameters = parameters
+        elif isinstance(parameters, dict):
+            self.keci = parameters['keci']
+            self.empty_cluster = parameters['empty_cluster']
+            self._parameters = parameters
+        else:
+            raise TypeError("Parameters must be LCEModelParameters object or dict")
+        
+        logger.info(f"Parameters set for LocalClusterExpansion: keci length={len(self.keci)}, empty_cluster={self.empty_cluster}")
 
-    @classmethod
-    def from_json(cls, fname):
-        logger.info("Loading: %s", fname)
-        with open(fname, "rb") as fhandle:
-            objDict = json.load(fhandle)
-        obj = cls.__new__(cls)
-        for key, value in objDict.items():
-            setattr(obj, key, value)
-        return obj
+    def load_parameters_from_file(self, filename: str):
+        """
+        Load fitted parameters from a JSON file.
+        
+        Args:
+            filename: Path to the JSON file containing LCE parameters
+        """
+        from kmcpy.model.parameters import LCEModelParameters
+        
+        parameters = LCEModelParameters.from_json(filename)
+        self.set_parameters(parameters)
 
-@nb.njit
-def _calc_corr(corr, occ_latt, sublattice_indices):
-    i = 0
-    for sublat_ind_orbit in sublattice_indices:
-        corr[i] = 0
-        for sublat_ind_cluster in sublat_ind_orbit:
-            corr_cluster = 1
-            for occ_site in sublat_ind_cluster:
-                corr_cluster *= occ_latt[occ_site]
-            corr[i] += corr_cluster
-        i += 1
 
+
+    def write_representative_clusters(self, filename='representative_clusters.txt'):
+        """
+        Write representative clusters to a text file.
+        
+        Args:
+            filename: Name of the output file
+        """
+        with open(filename, 'w') as f:
+            f.write("Representative Clusters for LocalClusterExpansion\n")
+            f.write("=" * 50 + "\n\n")
+            f.write("Type\tIndex\tmax_length\tmin_length\tPoint Group\tMultiplicity\n")
+            for i, orbit in enumerate(self.orbits):
+                cluster = orbit.clusters[0]  # representative cluster
+                f.write(f"{cluster.type}\t{i}\t{cluster.max_length:.3f}\t{cluster.min_length:.3f}\t{cluster.sym}\t{orbit.multiplicity}\n")
+        logger.info(f"Representative clusters written to {filename}")
+    
+    def __str__(self):
+        """String representation of the LocalClusterExpansion."""
+        lines = [
+            f"LocalClusterExpansion: {self.name}",
+            f"Number of orbits: {len(self.orbits)}",
+            f"Local environment sites: {len(self.MigrationUnit_structure)}",
+            f"Center site: {self.center_site.species} at {self.center_site.frac_coords}"
+        ]
+        return "\n".join(lines)
+    
+    def __repr__(self):
+        """Detailed representation of the LocalClusterExpansion."""
+        return f"LocalClusterExpansion(orbits={len(self.orbits)}, sites={len(self.MigrationUnit_structure)})"
+    
+    def as_dict(self):
+        """
+        Return a dictionary representation of the LocalClusterExpansion.
+        """
+        return {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
+            "name": self.name,
+            "orbits": [orbit.as_dict() for orbit in self.orbits],
+            "cluster_site_indices": self.cluster_site_indices,
+            "center_site": self.center_site.as_dict(),
+            "migration_unit_structure": self.MigrationUnit_structure.as_dict()
+        }
 
 class Orbit:  # orbit is a collection of symmetry equivalent clusters
     def __init__(self):
@@ -526,3 +635,22 @@ class Cluster:
             d["bond_distances"] = self.bond_distances.tolist()
         return d
 
+@nb.njit
+def _calc_corr(corr, occ_latt, cluster_site_indices):
+    """
+    Calculate correlation function for cluster expansion.
+    
+    Args:
+        corr: Output correlation array
+        occ_latt: Occupation array for the lattice
+        cluster_site_indices: Nested list structure [orbit][cluster][site]
+    """
+    i = 0
+    for sublat_ind_orbit in cluster_site_indices:
+        corr[i] = 0
+        for sublat_ind_cluster in sublat_ind_orbit:
+            corr_cluster = 1
+            for occ_site in sublat_ind_cluster:
+                corr_cluster *= occ_latt[occ_site]
+            corr[i] += corr_cluster
+        i += 1

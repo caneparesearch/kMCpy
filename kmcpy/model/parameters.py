@@ -55,13 +55,13 @@ class LCEModelParameters(ModelParameters):
     Class for storing fitted results for LocalClusterExpansion Model.
     """
     def __init__(self, keci:list[float], empty_cluster:float, 
-                 sublattice_indices:list[int], 
+                 cluster_site_indices:list[int], 
                  weight:list[float], alpha:float, time_stamp:float, time:str, 
                  rmse:float, loocv:float,**kwargs) -> None:
         super().__init__(name="LCEModelParameters")
         self.keci = keci
         self.empty_cluster = empty_cluster
-        self.sublattice_indices = sublattice_indices
+        self.cluster_site_indices = cluster_site_indices
         self.weight = weight
         self.alpha = alpha
         self.time_stamp = time_stamp
@@ -73,7 +73,7 @@ class LCEModelParameters(ModelParameters):
         return {
             "keci": self.keci,
             "empty_cluster": self.empty_cluster,
-            "sublattice_indices": self.sublattice_indices,
+            "cluster_site_indices": self.cluster_site_indices,
             "weight": self.weight,
             "alpha": self.alpha,
             "time_stamp": self.time_stamp,
