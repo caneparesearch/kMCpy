@@ -6,7 +6,7 @@ import pytest
     "kmcpy.external.cif",
     "kmcpy.external.local_env",
     "kmcpy.simulation",  # New simulation module
-    "kmcpy.kmc",
+    "kmcpy.simulation.kmc",
     "kmcpy.event",
     "kmcpy.io",
     "kmcpy.simulation.tracker",
@@ -58,7 +58,7 @@ def test_simulation_condition_classes():
 
 def test_kmc_simulation_condition_integration():
     """Test that KMC class has SimulationCondition integration methods."""
-    from kmcpy.kmc import KMC
+    from kmcpy.simulation.kmc import KMC
     
     # Test that new methods exist (updated method names)
     assert hasattr(KMC, 'from_config'), "KMC missing from_config method"

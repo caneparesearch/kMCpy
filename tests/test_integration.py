@@ -14,7 +14,7 @@ def test_simulation_condition_integration():
         SimulationConfig,
     )
     from tests.test_utils import create_nasicon_config, create_temperature_series
-    from kmcpy.kmc import KMC
+    from kmcpy.simulation.kmc import KMC
     
     print("✓ SimulationCondition imports successful")
     

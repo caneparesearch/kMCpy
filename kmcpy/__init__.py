@@ -6,7 +6,7 @@ from ._version import __version__
 
 # Import main classes for convenient access
 from .model import BaseModel, LocalClusterExpansion, CompositeLCEModel
-from .kmc import KMC
+from .simulation.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
 from .simulation.condition import SimulationCondition, SimulationConfig
 from .simulation.state import SimulationState

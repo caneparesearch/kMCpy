@@ -234,7 +234,7 @@ class TestNASICONbulk(unittest.TestCase):
     def test_kmc_main_function(self):
         """Original KMC test using InputSet approach (for reference)."""
         from kmcpy.io import InputSet
-        from kmcpy.kmc import KMC
+        from kmcpy.simulation.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -281,7 +281,7 @@ class TestNASICONbulk(unittest.TestCase):
         print("Testing modernized KMC workflow with SimulationCondition")
 
         from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.kmc import KMC
+        from kmcpy.simulation.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -381,7 +381,7 @@ class TestNASICONbulk(unittest.TestCase):
         print("Testing SimulationCondition with NASICON files")
 
         from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.kmc import KMC
+        from kmcpy.simulation.kmc import KMC
 
         # Check if required files exist
         required_files = [
@@ -497,7 +497,7 @@ class TestNASICONbulk(unittest.TestCase):
         print("Testing KMC SimulationCondition vs InputSet comparison")
 
         from kmcpy.io import InputSet
-        from kmcpy.kmc import KMC
+        from kmcpy.simulation.kmc import KMC
         from kmcpy.simulation.condition import SimulationConfig
         import numpy as np
 
@@ -720,7 +720,7 @@ class TestNASICONbulk(unittest.TestCase):
         print("Testing complete KMC workflow with SimulationCondition")
 
         from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.kmc import KMC
+        from kmcpy.simulation.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
