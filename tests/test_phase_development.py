@@ -127,7 +127,7 @@ class TestSimulationStateArchitecture:
         assert state.time == 0.1
         assert state.step == 1
         
-        print("✓ SimulationState-centric architecture working correctly")
+        # Test passed; no need for additional logging
     
     def test_clean_separation_of_concerns(self, test_structure):
         """Test clean separation between Config (immutable) and State (mutable)."""
