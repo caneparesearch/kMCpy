@@ -83,7 +83,6 @@ class TestTrackerParameterDeduplication:
         # Initial occupations should be separate from tracker
         assert config.initial_occ == [1, -1, 1, -1]
         
-        print("✓ Tracker parameter deduplication working correctly")
 
 
 class TestSimulationStateArchitecture:
