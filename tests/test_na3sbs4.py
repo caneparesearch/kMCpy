@@ -13,7 +13,7 @@ class TestNa3SbS4(unittest.TestCase):
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
         mobile_ion_identifier_type = "label"
-        mobile_ion_specie_1_identifier = "Na1"
+        mobile_ion_specie_identifier = "Na1"
         mobile_ion_specie_2_identifier = "Na1"
         template_structure_fname = f"{file_path}/Na3SbS4_cubic.cif"
         local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
@@ -45,13 +45,20 @@ class TestNa3SbS4(unittest.TestCase):
 
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
-        from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
+        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+        from kmcpy.external.structure import StructureKMCpy
 
         mobile_ion_identifier_type = "label"
-        mobile_ion_specie_1_identifier = "Na1"
-        a = LocalClusterExpansion(
+        mobile_ion_specie_identifier = "Na1"
+        structure = StructureKMCpy.from_cif(
+            filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
+        )
+        a = LocalClusterExpansion(template_structure=structure,
+            specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
+            basis_type="chebychev")
+        a.build(
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
+            mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],
             cutoff_region=5,
             template_structure_fname=f"{file_path}/Na3SbS4_cubic.cif",
@@ -64,7 +71,7 @@ class TestNa3SbS4(unittest.TestCase):
 
     def test_simulation_config_basic(self):
         """Test basic SimulationConfig functionality for Na3SbS4."""
-        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.simulator.condition import SimulationConfig
         
         # Test basic configuration creation
         config = SimulationConfig(

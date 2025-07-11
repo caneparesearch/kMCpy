@@ -4,12 +4,12 @@ This module provides the Fitting class for generating and storing fitting result
 """
 from abc import ABC, abstractmethod
 import json
-from kmcpy.io import convert
+from kmcpy.io.io import convert
 import logging
-from kmcpy.model.parameters import LCEModelParameters, LCEModelParamHistory
+from kmcpy.models.parameters import LCEModelParameters, LCEModelParamHistory
 import os
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
 
 class BaseFitter(ABC):
     """Main class for model fitting"""
@@ -202,3 +202,4 @@ class LCEFitter(BaseFitter):
                 logger.error(f"Error saving LCE model parameters history: {e}")
                 raise e
         return lce_model_params, y_pred, y_true
+

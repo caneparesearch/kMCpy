@@ -9,12 +9,12 @@ sys.path.insert(0, '..')
 
 def test_simulation_condition_integration():
     """Test that SimulationCondition integration works properly."""
-    from kmcpy.simulation.condition import (
+    from kmcpy.simulator.condition import (
         SimulationCondition, 
         SimulationConfig,
     )
     from tests.test_utils import create_nasicon_config, create_temperature_series
-    from kmcpy.simulation.kmc import KMC
+    from kmcpy.simulator.kmc import KMC
     
     print("✓ SimulationCondition imports successful")
     
@@ -149,7 +149,7 @@ def test_simulation_condition_integration():
 
 def test_parameter_serialization():
     """Test parameter serialization and deserialization."""
-    from kmcpy.simulation.condition import SimulationConfig
+    from kmcpy.simulator.condition import SimulationConfig
     
     # Create a config
     config = SimulationConfig(

@@ -1,7 +1,7 @@
 import unittest
 import pytest
 import os
-from kmcpy.simulation.condition import (
+from kmcpy.simulator.condition import (
     SimulationConfig,
 )
 
@@ -196,16 +196,19 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("third")
     def test_generate_local_cluster_exapnsion(self):
-        from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
-
+        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+        from kmcpy.external.structure import StructureKMCpy
         mobile_ion_identifier_type = "label"
-        mobile_ion_specie_1_identifier = "Na1"
-        a = LocalClusterExpansion(
+        mobile_ion_specie_identifier = "Na1"
+        structure = StructureKMCpy.from_cif(filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True)
+        a = LocalClusterExpansion(template_structure = structure, 
+                                  specie_site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"}, 
+                                  basis_type="chebychev")
+        a.build(
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
+            mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],
             cutoff_region=4,
-            template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             convert_to_primitive_cell=True,
         )
         a.to_json(f"{file_path}/lce.json")
@@ -233,8 +236,8 @@ class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("kmc_original")
     def test_kmc_main_function(self):
         """Original KMC test using InputSet approach (for reference)."""
-        from kmcpy.io import InputSet
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.io.io import InputSet
+        from kmcpy.simulator.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -280,8 +283,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Modernized KMC test using SimulationCondition approach."""
         print("Testing modernized KMC workflow with SimulationCondition")
 
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.simulator.condition import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -380,8 +383,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Test SimulationCondition integration with NASICON test files."""
         print("Testing SimulationCondition with NASICON files")
 
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.simulator.condition import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
 
         # Check if required files exist
         required_files = [
@@ -496,9 +499,9 @@ class TestNASICONbulk(unittest.TestCase):
         """Test that KMC with SimulationCondition produces same results as InputSet approach."""
         print("Testing KMC SimulationCondition vs InputSet comparison")
 
-        from kmcpy.io import InputSet
-        from kmcpy.simulation.kmc import KMC
-        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.io.io import InputSet
+        from kmcpy.simulator.kmc import KMC
+        from kmcpy.simulator.condition import SimulationConfig
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -603,8 +606,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Test that SimulationCondition parameters match InputSet parameters."""
         print("Testing SimulationCondition parameter matching with InputSet")
 
-        from kmcpy.io import InputSet
-        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.io.io import InputSet
+        from kmcpy.simulator.condition import SimulationConfig
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -719,8 +722,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Test complete KMC workflow using SimulationCondition approach."""
         print("Testing complete KMC workflow with SimulationCondition")
 
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.simulator.condition import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work

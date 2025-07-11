@@ -7,14 +7,14 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.io import convert, InputSet, Results
+from kmcpy.io.io import convert, InputSet, Results
 import logging
 from kmcpy.external.structure import StructureKMCpy
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from kmcpy.simulation.condition import SimulationConfig
-    from kmcpy.simulation.state import SimulationState
+    from kmcpy.simulator.condition import SimulationConfig
+    from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__) 
 
@@ -163,8 +163,8 @@ class Tracker:
             Tracker: An instance of the Tracker class initialized with parameters from the InputSet.
         """
         # Convert InputSet to SimulationConfig for clean architecture
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.state import SimulationState
+        from kmcpy.simulator.condition import SimulationConfig
+        from kmcpy.simulator.state import SimulationState
         config = SimulationConfig.from_inputset(inputset)
         
         # Create SimulationState with initial occupation
@@ -188,7 +188,7 @@ class Tracker:
             Tracker: An instance of the Tracker class.
         """
         # Create SimulationState with initial occupation
-        from kmcpy.simulation.state import SimulationState
+        from kmcpy.simulator.state import SimulationState
         initial_state = SimulationState(initial_occ=occ_initial)
         
         return cls(config=config, structure=structure, initial_state=initial_state)

@@ -10,14 +10,16 @@ the local environment indices. All energy calculations are now handled by the mo
 import numpy as np
 import numba as nb
 import json
-from kmcpy.io import convert
+from kmcpy.io.io import convert
 import logging
 from abc import ABC
 from numba.typed import List
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
 
+@dataclass
 class Event:
     """
     Represents a migration event in a lattice-based simulation.
@@ -29,19 +31,10 @@ class Event:
     Attributes:
         mobile_ion_indices (tuple): Global indices of the mobile ions involved in the event
         local_env_indices (tuple): Global indices of the neighboring sites in the supercell
+
     """
-
-    def __init__(self, mobile_ion_indices: tuple, local_env_indices: tuple):
-        """Initialize the Event object with the indices of the mobile ions and their local environment.
-
-        Args:
-            mobile_ion_indices (tuple): A tuple containing the two global indices 
-                of the mobile ions involved in the event.
-            local_env_indices (tuple): A tuple of integers representing the sorted 
-                indices of the neighboring sites in the supercell.
-        """
-        self.mobile_ion_indices = mobile_ion_indices
-        self.local_env_indices = local_env_indices
+    mobile_ion_indices: tuple
+    local_env_indices: tuple    
 
     def show_info(self):
         """Display information about the event."""
@@ -59,7 +52,7 @@ class Event:
         }
         return d
 
-    def to_json(self, fname):
+    def to_json(self, fname:str):
         logger.info("Saving: %s", fname)
         with open(fname, "w") as fhandle:
             d = self.as_dict()
@@ -69,18 +62,19 @@ class Event:
             fhandle.write(jsonStr)
 
     @classmethod
-    def from_json(self, fname):
+    def from_json(self, fname:str):
         logger.info("Loading: %s", fname)
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
         obj = Event()
         obj.__dict__ = objDict
         return obj
+    
     @classmethod
-    def from_dict(cls, event_dict):
+    def from_dict(cls, event_dict:dict):
         """Create Event from dictionary."""
-        mobile_ion_indices = event_dict.get("mobile_ion_indices", (12, 15))
-        local_env_indices = event_dict.get("local_env_indices", (1, 2, 3, 4, 5))
+        mobile_ion_indices = event_dict.get("mobile_ion_indices")
+        local_env_indices = event_dict.get("local_env_indices")
         return cls(mobile_ion_indices, local_env_indices)
 
 

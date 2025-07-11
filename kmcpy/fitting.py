@@ -4,7 +4,7 @@ This module provides the Fitting class for generating and storing fitting result
 """
 
 import json
-from kmcpy.io import convert
+from kmcpy.io.io import convert
 import logging
 
 logger = logging.getLogger(__name__) 

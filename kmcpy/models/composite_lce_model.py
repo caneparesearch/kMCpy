@@ -15,11 +15,11 @@ import numpy as np
 import pandas as pd
 import os
 
-from kmcpy.model.model import CompositeModel
-from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.model import CompositeModel
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
-from kmcpy.simulation.condition import SimulationCondition
-from kmcpy.simulation.state import SimulationState
+from kmcpy.simulator.condition import SimulationCondition
+from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,7 @@ class CompositeLCEModel(CompositeModel):
         """
         Create a CompositeLCEModel from a dictionary.
         """
-        from kmcpy.io import convert
+        from kmcpy.io.io import convert
         site_model = convert(d["site_model"]) if d.get("site_model") else None
         kra_model = convert(d["kra_model"]) if d.get("kra_model") else None
         return cls(site_model=site_model, kra_model=kra_model, name=d.get("name"))

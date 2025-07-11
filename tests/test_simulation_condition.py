@@ -9,9 +9,9 @@ import tempfile
 import json
 from pathlib import Path
 
-from kmcpy.simulation.condition import SimulationCondition, SimulationConfig
-from kmcpy.simulation.state import SimulationState
-from kmcpy.io import InputSet
+from kmcpy.simulator.condition import SimulationCondition, SimulationConfig
+from kmcpy.simulator.state import SimulationState
+from kmcpy.io.io import InputSet
 
 
 class TestSimulationCondition:

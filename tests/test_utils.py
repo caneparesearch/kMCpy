@@ -5,7 +5,7 @@ This module contains utility functions that are specific to testing,
 including configuration builders for specific material systems.
 """
 
-from kmcpy.simulation.condition import SimulationConfig
+from kmcpy.simulator.condition import SimulationConfig
 
 
 def create_nasicon_config(

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import json
 import logging
-from kmcpy.io import convert
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -69,6 +68,7 @@ class BaseModel(ABC):
         raise NotImplementedError("Subclasses must implement this method.")
     
     def to_json(self, fname):
+        from kmcpy.io import convert
         """
         Save the model object to a JSON file.
         """

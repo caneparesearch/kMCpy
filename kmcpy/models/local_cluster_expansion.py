@@ -9,18 +9,17 @@ from pymatgen.core.structure import Molecule
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
-import glob
 from kmcpy.event.event_generator import find_atom_indices
 from pymatgen.core.periodic_table import DummySpecies
 from pymatgen.core.sites import PeriodicSite
 import logging
 import kmcpy
-from kmcpy.model.lattice_model import LatticeModel
+from kmcpy.models.lattice_model import LatticeModel
 from copy import deepcopy
 import numba as nb
-from kmcpy.io import InputSet
+from kmcpy.io.io import InputSet
 from kmcpy.event import Event
-from kmcpy.simulation.state import SimulationState
+from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -32,22 +31,32 @@ class LocalClusterExpansion(LatticeModel):
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
+    def __init__(self, template_structure:StructureKMCpy, specie_site_mapping:dict, basis_type:str='chebychev'):
+        """
+        Initialization of the LocalClusterExpansion object.
+        
+        Args:
+            template_structure (StructureKMCpy): The template structure with all sites filled.
+            specie_site_mapping (dict): Mapping of species to their corresponding sites.
+            basis_type (str): Type of basis to use, default is 'chebychev'.
+        """
+        super().__init__(template_structure, specie_site_mapping, basis_type)
+        self.name = "LocalClusterExpansion"
 
-    def __init__(self, template_structure_fname:str, mobile_ion_specie_1_identifier:str,
+    def build(self, mobile_ion_specie_identifier:str=None,
         cutoff_cluster: list = [6, 6, 6], cutoff_region:float = 4.0,
         center_frac_coord = [], mobile_ion_identifier_type: Literal["specie","label"] = "label",
         is_write_basis=False, species_to_be_removed=[], convert_to_primitive_cell=False,
         exclude_site_with_identifier=[], **kwargs) -> None:
         """
-        Initialization of the LocalClusterExpansion object.
+        Build the LocalClusterExpansion model from a structure file or an in-memory StructureKMCpy object.
 
         There are 2 ways to define the local environment (migration unit):
         1) Use the center of the mobile ion as the center of the local environment (default, center_frac_coord = []), this mobile ion is excluded from the local environment.
         2) Use a dummy site as the center of the local environment (set center_frac_coord).
 
         Args:
-            template_structure_fname (str): Path to the template structure file (e.g., CIF file).
-            mobile_ion_specie_1_identifier (str): Identifier for the mobile ion species (e.g., "Na1").
+            mobile_ion_specie_identifier (str): Identifier for the mobile ion species (e.g., "Na1").
             cutoff_cluster (list, optional): Cutoff distances for clusters [pair, triplet, quadruplet]. Defaults to [6, 6, 6].
             cutoff_region (float, optional): Cutoff for generating the local cluster region. Defaults to 4.0.
             center_frac_coord (list, optional): Fractional coordinates of the center of the local environment. If empty, uses the mobile ion site. Defaults to [].
@@ -65,42 +74,44 @@ class LocalClusterExpansion(LatticeModel):
         logger.info(kmcpy.get_logo())
         logger.info("Initializing LocalClusterExpansion ...")
         self.name = "LocalClusterExpansion"
-        template_structure = StructureKMCpy.from_cif(
-            template_structure_fname, primitive=convert_to_primitive_cell
-        )
-        template_structure.remove_oxidation_states()
-        template_structure.remove_species(species_to_be_removed)
+        
+        structure = self.template_structure.copy()
+        structure.remove_oxidation_states()
+        structure.remove_species(species_to_be_removed)
 
-        mobile_ion_specie_1_indices = find_atom_indices(
-            template_structure,
+        if mobile_ion_specie_identifier is None:
+            raise ValueError("mobile_ion_specie_identifier must be provided.")
+
+        mobile_ion_specie_index = find_atom_indices(
+            structure,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            atom_identifier=mobile_ion_specie_1_identifier,
+            atom_identifier=mobile_ion_specie_identifier,
         )
 
-        mobile_ion_specie_1_indices=mobile_ion_specie_1_indices[0]# just use the first one 
+        mobile_ion_specie_index=mobile_ion_specie_index[0]# just use the first one 
         
         if center_frac_coord:
             logger.info(f"Centering the local environment at {center_frac_coord} ...")
             
-            dummy_lattice = template_structure.lattice
+            dummy_lattice = structure.lattice
             self.center_site = PeriodicSite(species=DummySpecies('X'),
                               coords=center_frac_coord,
                               coords_are_cartesian=False,
                               lattice = dummy_lattice)
             logger.debug(f"Dummy site: {self.center_site}")
         else:
-            logger.info(f"Centering the local environment at {mobile_ion_specie_1_indices} ...")
-            self.center_site = template_structure[
-                mobile_ion_specie_1_indices
+            logger.info(f"Centering the local environment at {mobile_ion_specie_index} ...")
+            self.center_site = structure[
+                mobile_ion_specie_index
             ]  # self.center_site: pymatgen.site
 
-            template_structure.remove_sites([mobile_ion_specie_1_indices]) # remove the mobile ion from the template structure
+            structure.remove_sites([mobile_ion_specie_index]) # remove the mobile ion from the template structure
 
         logger.info(f"Searching local env around {self.center_site} ...")
 
         # fallback to the initial get cluster structure
-        self.MigrationUnit_structure = self.get_cluster_structure(
-            structure=template_structure,
+        self.local_env_structure = self.get_local_env_structure(
+            structure=structure,
             cutoff=cutoff_region,
             center_site=self.center_site,
             is_write_basis=is_write_basis,
@@ -108,7 +119,7 @@ class LocalClusterExpansion(LatticeModel):
         )
 
         # List all possible point, pair and triplet clusters
-        atom_index_list = np.arange(0, len(self.MigrationUnit_structure))
+        atom_index_list = np.arange(0, len(self.local_env_structure))
 
         cluster_indexes = (
             list(combinations(atom_index_list, 1))
@@ -119,28 +130,25 @@ class LocalClusterExpansion(LatticeModel):
 
         logger.info(f"{len(cluster_indexes)} clusters will be generated ...")
 
-        self.clusters = self.clusters_constructor(
+        self.clusters = self.build_clusters(
             cluster_indexes, [10] + cutoff_cluster
         )
 
-        self.orbits = self.orbits_constructor(self.clusters)
+        self.orbits = self.build_orbits(self.clusters)
 
         self.cluster_site_indices = [
             [cluster.site_indices for cluster in orbit.clusters]
             for orbit in self.orbits
         ]  # cluster_site_indices[orbit,cluster,site]
         
-        # Initialize parent LatticeModel - create minimal species_to_site mapping
+        # Initialize parent LatticeModel - create minimal specie_site_mapping mapping
         # For now, create a simple mapping based on the template structure
-        species_to_site = {}
-        for site in template_structure:
+        specie_site_mapping = {}
+        for site in structure:
             species = site.species.elements[0].symbol
-            if species not in species_to_site:
-                species_to_site[species] = [species, "X"]  # Allow vacancy
-        
-        # Call parent constructor
-        super().__init__(template_structure, species_to_site, basis_type='occupation')
-        
+            if species not in specie_site_mapping:
+                specie_site_mapping[species] = [species, "X"]  # Allow vacancy
+                
         logger.info(
             "Type\tIndex\tmax_length\tmin_length\tPoint Group\tMultiplicity"
         )
@@ -150,7 +158,8 @@ class LocalClusterExpansion(LatticeModel):
     @classmethod
     def from_inputset(cls, inputset: InputSet)-> "LocalClusterExpansion":
         params = {k: v for k, v in inputset._parameters.items() if k != "task"}
-        return cls(**params)
+        lce = cls(**params)
+        return lce.build(**params)
     
     @classmethod
     def from_json(cls, filename: str):
@@ -163,6 +172,7 @@ class LocalClusterExpansion(LatticeModel):
         Returns:
             LocalClusterExpansion: The loaded LocalClusterExpansion object
         """
+        from kmcpy.models.cluster import Orbit, Cluster
         with open(filename, 'r') as f:
             data = json.load(f)
         
@@ -205,10 +215,10 @@ class LocalClusterExpansion(LatticeModel):
                 # Reconstruct migration unit structure
                 if value.get('@class') == 'Molecule':
                     from pymatgen.core.structure import Molecule
-                    obj.MigrationUnit_structure = Molecule.from_dict(value)
+                    obj.local_env_structure = Molecule.from_dict(value)
                 else:
                     from pymatgen.core.structure import Structure
-                    obj.MigrationUnit_structure = Structure.from_dict(value)
+                    obj.local_env_structure = Structure.from_dict(value)
             elif key == 'template_structure':
                 # Reconstruct template structure if present
                 from pymatgen.core.structure import Structure
@@ -217,14 +227,14 @@ class LocalClusterExpansion(LatticeModel):
                 # Reconstruct basis if present, default to ChebychevBasis if unknown
                 basis_class = value.get('@class', 'ChebychevBasis')
                 if basis_class == 'ChebychevBasis':
-                    from kmcpy.model.basis import ChebychevBasis
+                    from kmcpy.models.basis import ChebychevBasis
                     obj.basis = ChebychevBasis()
                 elif basis_class == 'OccupationBasis':
-                    from kmcpy.model.basis import OccupationBasis
+                    from kmcpy.models.basis import OccupationBasis
                     obj.basis = OccupationBasis()
                 else:
                     # Default to ChebychevBasis if class is not recognized
-                    from kmcpy.model.basis import ChebychevBasis
+                    from kmcpy.models.basis import ChebychevBasis
                     obj.basis = ChebychevBasis()
             else:
                 # For all other attributes, set them directly
@@ -238,7 +248,7 @@ class LocalClusterExpansion(LatticeModel):
         
         return obj
 
-    def get_cluster_structure(
+    def get_local_env_structure(
         self,
         structure,
         center_site,
@@ -276,57 +286,9 @@ class LocalClusterExpansion(LatticeModel):
             )
         return local_env_structure
     
-    def get_occupation_neb_cif(
-        self, other_cif_name, species_to_be_removed=["Zr4+", "O2-", "O", "Zr"]
-    ):  # input is a cif structure
-        occupation = []
-        other_structure = StructureKMCpy.from_file(other_cif_name)
-        other_structure.remove_oxidation_states()
-        other_structure.remove_species(species_to_be_removed)
-        other_structure_mol = self.get_cluster_structure(
-            other_structure, self.center_site
-        )
-        for this_site in self.MigrationUnit_structure:
-            if self.is_exists(
-                this_site, other_structure_mol
-            ):  # Chebyshev basis is used here: ±1
-                occu = -1
-            else:
-                occu = 1
-            occupation.append(occu)
-        return occupation
 
-    def get_correlation_matrix_neb_cif(self, other_cif_names):
-        correlation_matrix = []
-        occupation_matrix = []
-        for other_cif_name in sorted(glob.glob(other_cif_names)):
-            occupation = self.get_occupation_neb_cif(other_cif_name)
-            correlation = [
-                (orbit.multiplicity) * orbit.get_cluster_function(occupation)
-                for orbit in self.orbits
-            ]
-            occupation_matrix.append(occupation)
-            correlation_matrix.append(correlation)
-            logger.info(f"{other_cif_name}: {occupation}")
-        self.correlation_matrix = correlation_matrix
-
-        logger.info(np.round(correlation_matrix, decimals=3))
-        np.savetxt(fname="occupation.txt", X=occupation_matrix, fmt="%5d")
-        np.savetxt(fname="correlation_matrix.txt", X=correlation_matrix, fmt="%.8f")
-        self.correlation_matrix = correlation_matrix
-        logger.debug(f"{other_cif_name}\t{occupation}\t{np.around(correlation,decimals=3)}")
-
-    def is_exists(self, this_site, other_structure):
-        # 2 things to compare: 1. cartesian coords 2. species at each site
-        is_exists = False
-        for s_other in other_structure:
-            if (np.linalg.norm(this_site.coords - s_other.coords) < 1e-3) and (
-                this_site.species == s_other.species
-            ):
-                is_exists = True
-        return is_exists
-
-    def clusters_constructor(self, indexes, cutoff):  # return a list of Cluster
+    def build_clusters(self, indexes, cutoff):  # return a list of Cluster
+        from kmcpy.models.cluster import Cluster
         clusters = []
         logger.info("\nGenerating possible clusters within this migration unit...")
         logger.info(
@@ -336,13 +298,13 @@ class LocalClusterExpansion(LatticeModel):
             cutoff[3],
         )
         for site_indices in indexes:
-            sites = [self.MigrationUnit_structure[s] for s in site_indices]
+            sites = [self.local_env_structure[s] for s in site_indices]
             cluster = Cluster(site_indices, sites)
             if cluster.max_length < cutoff[len(cluster.site_indices) - 1]:
                 clusters.append(cluster)
         return clusters
 
-    def orbits_constructor(self, clusters):
+    def build_orbits(self, clusters):
         """
         return a list of Orbit
 
@@ -351,6 +313,8 @@ class LocalClusterExpansion(LatticeModel):
                 if not, attach the cluster to orbit
                 else,
         """
+        from kmcpy.models.cluster import Orbit
+
         orbit_clusters = []
         grouped_clusters = []
         for i in clusters:
@@ -420,7 +384,7 @@ class LocalClusterExpansion(LatticeModel):
         Args:
             parameters: LCEModelParameters object or dict containing keci and empty_cluster
         """
-        from kmcpy.model.parameters import LCEModelParameters
+        from kmcpy.models.parameters import LCEModelParameters
         
         if isinstance(parameters, LCEModelParameters):
             self.keci = parameters.keci
@@ -442,12 +406,10 @@ class LocalClusterExpansion(LatticeModel):
         Args:
             filename: Path to the JSON file containing LCE parameters
         """
-        from kmcpy.model.parameters import LCEModelParameters
+        from kmcpy.models.parameters import LCEModelParameters
         
         parameters = LCEModelParameters.from_json(filename)
         self.set_parameters(parameters)
-
-
 
     def write_representative_clusters(self, filename='representative_clusters.txt'):
         """
@@ -470,14 +432,14 @@ class LocalClusterExpansion(LatticeModel):
         lines = [
             f"LocalClusterExpansion: {self.name}",
             f"Number of orbits: {len(self.orbits)}",
-            f"Local environment sites: {len(self.MigrationUnit_structure)}",
+            f"Local environment sites: {len(self.local_env_structure)}",
             f"Center site: {self.center_site.species} at {self.center_site.frac_coords}"
         ]
         return "\n".join(lines)
     
     def __repr__(self):
         """Detailed representation of the LocalClusterExpansion."""
-        return f"LocalClusterExpansion(orbits={len(self.orbits)}, sites={len(self.MigrationUnit_structure)})"
+        return f"LocalClusterExpansion(orbits={len(self.orbits)}, sites={len(self.local_env_structure)})"
     
     def as_dict(self):
         """
@@ -490,150 +452,8 @@ class LocalClusterExpansion(LatticeModel):
             "orbits": [orbit.as_dict() for orbit in self.orbits],
             "cluster_site_indices": self.cluster_site_indices,
             "center_site": self.center_site.as_dict(),
-            "migration_unit_structure": self.MigrationUnit_structure.as_dict()
+            "migration_unit_structure": self.local_env_structure.as_dict()
         }
-
-class Orbit:  # orbit is a collection of symmetry equivalent clusters
-    def __init__(self):
-        self.clusters = []
-        self.multiplicity = 0
-
-    def attach_cluster(self, cluster):
-        self.clusters.append(cluster)
-        self.multiplicity += 1
-
-    def get_cluster_function(
-        self, occupancy
-    ):  # Phi[orbit] = 1/multiplicity * sum(prod(cluster))
-        cluster_function = (1 / self.multiplicity) * sum(
-            [c.get_cluster_function(occupancy) for c in self.clusters]
-        )
-        return cluster_function
-
-    def __str__(self):
-        try:
-            for i, cluster in enumerate(self.clusters):
-                logger.info(
-                    "Cluster[%d]: %5s\t%10s\t%8.3f\t%8.3f\t%5s\t%5d",
-                    i,
-                    cluster.type,
-                    str(cluster.site_indices),
-                    cluster.max_length,
-                    cluster.min_length,
-                    cluster.sym,
-                    self.multiplicity,
-                )
-        except TypeError:
-            logger.info("No cluster in this orbit!")
-    def to_xyz(self, fname):
-        self.clusters[0].to_xyz(fname)
-
-    def show_representative_cluster(self):
-        logger.info(
-            "{0:5s}\t{1:10s}\t{2:8.3f}\t{3:8.3f}\t{4:5s}\t{5:5d}".format(
-                self.clusters[0].type,
-                str(self.clusters[0].site_indices),
-                self.clusters[0].max_length,
-                self.clusters[0].min_length,
-                self.clusters[0].sym,
-                self.multiplicity,
-            )
-        )
-
-    def as_dict(self):
-        d = {
-            "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
-            "clusters": [],
-            "multiplicity": self.multiplicity,
-        }
-        for cluster in self.clusters:
-            d["clusters"].append(cluster.as_dict())
-        return d
-
-class Cluster:
-    def __init__(self, site_indices, sites):
-        cluster_type = {1: "point", 2: "pair", 3: "triplet", 4: "quadruplet"}
-        self.site_indices = site_indices
-        self.type = cluster_type[len(site_indices)]
-        self.structure = Molecule.from_sites(sites)
-        self.sym = PointGroupAnalyzer(self.structure).sch_symbol
-        if self.type == "point":
-            self.max_length = 0
-            self.min_length = 0
-            self.bond_distances = []
-        else:
-            self.max_length, self.min_length, self.bond_distances = (
-                self.get_bond_distances()
-            )
-
-    def __eq__(
-        self, other
-    ):  # to compare 2 clusters and check if they're the same by comparing atomic distances
-        if self.type != other.type:
-            return False
-        elif self.type == "point" and other.type == "point":
-            return self.structure.species == other.structure.species
-        elif self.structure.composition != other.structure.composition:
-            return
-        else:
-            return np.linalg.norm(self.bond_distances - other.bond_distances) < 1e-3
-
-    def get_site(self):
-        return [self.diff_unit_structure[s] for s in self.index]
-
-    def get_bond_distances(self):
-        indices_combination = list(combinations(np.arange(0, len(self.structure)), 2))
-        bond_distances = np.array(
-            [self.structure.get_distance(*c) for c in indices_combination]
-        )
-        bond_distances.sort()
-        max_length = max(bond_distances)
-        min_length = min(bond_distances)
-        return max_length, min_length, bond_distances
-
-    def get_cluster_function(self, occupation):
-        cluster_function = np.prod([occupation[i] for i in self.site_indices])
-        return cluster_function
-
-    def to_xyz(self, fname):
-        local_structure_no_oxidation = self.structure.copy()
-        local_structure_no_oxidation.remove_oxidation_states()
-        local_structure_no_oxidation.to(filename=fname, fmt="xyz")
-
-    def __str__(self):
-        logger.info("==============================================================")
-        logger.info(
-            "This cluster is a %s, constructed by site %s", self.type, self.site_indices
-        )
-        logger.info(
-            "max length = %.3f Angst ,min_length = %.3f Angst",
-            self.max_length,
-            self.min_length,
-        )
-        logger.info("Point Group: %s", self.sym)
-        try:
-            logger.info("Cluster function = %s", self.cluster_function_string)
-        except AttributeError:
-            pass
-        logger.info("==============================================================\n")
-
-    def as_dict(self):
-        d = {
-            "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
-            "site_indices": self.site_indices,
-            "type": self.type,
-            "structure": self.structure.as_dict(),
-            "sym": self.sym,
-            "max_length": self.max_length,
-            "min_length": self.min_length,
-        }
-        if type(self.bond_distances) is list:
-            d["bond_distances"] = self.bond_distances
-        else:
-            d["bond_distances"] = self.bond_distances.tolist()
-        return d
 
 @nb.njit
 def _calc_corr(corr, occ_latt, cluster_site_indices):
@@ -646,9 +466,9 @@ def _calc_corr(corr, occ_latt, cluster_site_indices):
         cluster_site_indices: Nested list structure [orbit][cluster][site]
     """
     i = 0
-    for sublat_ind_orbit in cluster_site_indices:
+    for sublat_ind_orbit in cluster_site_indices: # loop through orbits
         corr[i] = 0
-        for sublat_ind_cluster in sublat_ind_orbit:
+        for sublat_ind_cluster in sublat_ind_orbit: # loop through clusters in the orbit
             corr_cluster = 1
             for occ_site in sublat_ind_cluster:
                 corr_cluster *= occ_latt[occ_site]

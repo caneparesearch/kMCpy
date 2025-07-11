@@ -13,19 +13,19 @@ import pandas as pd
 from copy import copy
 import json
 import os
-from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.simulation.tracker import Tracker
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.simulator.tracker import Tracker
 from kmcpy.event import Event, EventLib
-from kmcpy.io import convert
+from kmcpy.io.io import convert
 import logging
 import kmcpy
-from kmcpy.io import InputSet
+from kmcpy.io.io import InputSet
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from kmcpy.simulation.condition import SimulationConfig
-    from kmcpy.simulation.state import SimulationState
-    from kmcpy.model.composite_lce_model import CompositeLCEModel
+    from kmcpy.simulator.condition import SimulationConfig
+    from kmcpy.simulator.state import SimulationState
+    from kmcpy.models.composite_lce_model import CompositeLCEModel
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
@@ -96,8 +96,8 @@ class KMC:
         logger.info("Initializing simulation state and probabilities...")
         
         # Create simulation state and condition objects using config
-        from kmcpy.simulation.state import SimulationState
-        from kmcpy.simulation.condition import SimulationCondition
+        from kmcpy.simulator.state import SimulationState
+        from kmcpy.simulator.condition import SimulationCondition
         self.sim_state = SimulationState(initial_occ=self.occ_global)
         self.sim_condition = SimulationCondition(
             temperature=self.config.temperature, 
@@ -141,8 +141,8 @@ class KMC:
         Returns:
             KMC: An instance of the KMC class.
         """
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.state import SimulationState
+        from kmcpy.simulator.condition import SimulationConfig
+        from kmcpy.simulator.state import SimulationState
         
         # Validate the configuration
         config.validate()
@@ -165,7 +165,7 @@ class KMC:
             structure.make_supercell(supercell_shape_matrix)
         
         # Load models and events - use centralized loading methods
-        from kmcpy.model.composite_lce_model import CompositeLCEModel
+        from kmcpy.models.composite_lce_model import CompositeLCEModel
         from kmcpy.event import EventLib, Event
         
         # Load composite model using its centralized from_json method
@@ -222,7 +222,7 @@ class KMC:
             from the InputSet.
         """
         # Convert InputSet to SimulationConfig for consistency
-        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.simulator.condition import SimulationConfig
         
         config = SimulationConfig.from_inputset(inputset)
         
@@ -340,7 +340,7 @@ class KMC:
             tracker = kmc.run(config)
             ```
         """
-        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.simulator.condition import SimulationConfig
         
         # Enhanced handling of SimulationConfig
         original_config = None

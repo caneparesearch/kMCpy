@@ -7,9 +7,11 @@ local cluster expansion models, and composite models for kinetic Monte Carlo sim
 
 from .model import BaseModel
 from .lattice_model import LatticeModel
-from .local_cluster_expansion import LocalClusterExpansion, Orbit, Cluster
+from .local_cluster_expansion import LocalClusterExpansion
+from .cluster import Orbit, Cluster
 from .composite_lce_model import CompositeLCEModel
 from .basis import ChebychevBasis, OccupationBasis
+from .fitting.fitter import BaseFitter, LCEFitter
 
 __all__ = [
     'BaseModel',
@@ -19,5 +21,7 @@ __all__ = [
     'Orbit',
     'Cluster',
     'ChebychevBasis',
-    'OccupationBasis'
+    'OccupationBasis',
+    'BaseFitter',
+    'LCEFitter'
 ]

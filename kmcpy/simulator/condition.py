@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from copy import copy
 
 if TYPE_CHECKING:
-    from kmcpy.io import InputSet
+    from kmcpy.io.io import InputSet
     from kmcpy.external.structure import StructureKMCpy
 
 @dataclass
@@ -141,7 +141,7 @@ class SimulationConfig(SimulationCondition):
     
     def to_inputset(self) -> "InputSet":
         """Convert to InputSet object for KMC simulation."""
-        from kmcpy.io import InputSet
+        from kmcpy.io.io import InputSet
         import tempfile
         import json
         

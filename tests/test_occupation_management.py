@@ -12,7 +12,7 @@ import numpy as np
 from pymatgen.core import Structure, Lattice, Element
 from pymatgen.core.sites import PeriodicSite
 
-from kmcpy.simulation.condition import SimulationCondition
+from kmcpy.simulator.condition import SimulationCondition
 
 
 class TestOccupationManagement:

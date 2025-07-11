@@ -5,11 +5,11 @@ import pytest
     "kmcpy.external.structure",
     "kmcpy.external.cif",
     "kmcpy.external.local_env",
-    "kmcpy.simulation",  # New simulation module
-    "kmcpy.simulation.kmc",
+    "kmcpy.simulator",  # New simulator module
+    "kmcpy.simulator.kmc",
     "kmcpy.event",
     "kmcpy.io",
-    "kmcpy.simulation.tracker",
+    "kmcpy.simulator.tracker",
 ])
 def test_module_imports(module_path):
     """Test that modules can be imported without circular import errors."""
@@ -29,7 +29,7 @@ def test_top_level_imports(module_path):
 
 def test_simulation_condition_classes():
     """Test that SimulationCondition classes can be imported and instantiated."""
-    from kmcpy.simulation.condition import (
+    from kmcpy.simulator.condition import (
         SimulationCondition, 
         SimulationConfig,
     )
@@ -58,7 +58,7 @@ def test_simulation_condition_classes():
 
 def test_kmc_simulation_condition_integration():
     """Test that KMC class has SimulationCondition integration methods."""
-    from kmcpy.simulation.kmc import KMC
+    from kmcpy.simulator.kmc import KMC
     
     # Test that new methods exist (updated method names)
     assert hasattr(KMC, 'from_config'), "KMC missing from_config method"

@@ -5,12 +5,12 @@ import logging
 from ._version import __version__
 
 # Import main classes for convenient access
-from .model import BaseModel, LocalClusterExpansion, CompositeLCEModel
-from .simulation.kmc import KMC
+from .models import BaseModel, LocalClusterExpansion, CompositeLCEModel
+from .simulator.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
-from .simulation.condition import SimulationCondition, SimulationConfig
-from .simulation.state import SimulationState
-from .simulation.tracker import Tracker
+from .simulator.condition import SimulationCondition, SimulationConfig
+from .simulator.state import SimulationState
+from .simulator.tracker import Tracker
 
 __author__ = "kMCpy Development Team"
 __author_email__ = "dengzeyu@gmail.com"

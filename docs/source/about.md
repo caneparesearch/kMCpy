@@ -1,5 +1,5 @@
 # About
-kMCpy code has been developed at the [CaRe group at the National University of Singapore](https://caneparesearch.org/news/), Singapore. Please consult the section below for information on how to cite kMCpy. Please submit bug and feature request via the [GitHub issue tracker](https://github.com/caneparesearch/kMCpy/issues).
+kMCpy code has been developed by [CaRe group at the University of Houston](https://caneparesearch.org/news/), USA and [DENG group at the National University of Singapore](https://matsci.dev), Singapore. Please consult the section below for information on how to cite kMCpy. Please submit bug and feature request via the [GitHub issue tracker](https://github.com/caneparesearch/kMCpy/issues).
 # How to cite
 Please cite kMCpy and its implemented methods in your research, we kindly ask you cite the relevant publications:
 

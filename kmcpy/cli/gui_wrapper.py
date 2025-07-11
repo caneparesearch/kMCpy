@@ -5,11 +5,11 @@ Example program to demonstrate Gooey's presentation of subparsers
 import os
 import numpy as np
 from gooey import Gooey, GooeyParser
-from kmcpy.simulation.kmc import KMC
+from kmcpy.simulator.kmc import KMC
 from kmcpy.event.event_generator import EventGenerator
-from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 import kmcpy._version
-from kmcpy.io import InputSet
+from kmcpy.io.io import InputSet
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))
 def main():
@@ -36,7 +36,7 @@ def main():
     lce_parser.add_argument(
         "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
     )
-    lce_parser.add_argument("mobile_ion_specie_1_identifier", default="Na1")
+    lce_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     lce_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
     lce_parser.add_argument("species_to_be_removed", default="Zr4+,O2-,O,Zr")
     lce_parser.add_argument("cutoff_region", default=4.0)
@@ -65,7 +65,7 @@ def main():
     event_parser.add_argument(
         "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
     )
-    event_parser.add_argument("mobile_ion_specie_1_identifier", default="Na1")
+    event_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     event_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
     event_parser.add_argument(
         "local_env_cutoff_dict", default="Na+,Na+,4.0;Na+,Si4+,4.0"

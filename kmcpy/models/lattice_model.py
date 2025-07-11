@@ -1,26 +1,29 @@
-from kmcpy.model.model import BaseModel
+from .model import BaseModel
 from pymatgen.core.structure import Structure
 import numpy as np
-from kmcpy.model.basis import ChebychevBasis, OccupationBasis
+from kmcpy.models.basis import ChebychevBasis, OccupationBasis
 from pymatgen.analysis.structure_matcher import StructureMatcher
 from abc import  abstractmethod
+import logging
+
+logger = logging.getLogger(__name__) 
 
 class LatticeModel(BaseModel):
     '''LatticeModel deal with the structure template which converts the structure to an occupation array and vice versa
     '''
     def __init__(self,template_structure:Structure,
-                 species_to_site:dict,
-                 basis_type:str='occupation'):
+                 specie_site_mapping:dict,
+                 basis_type:str='chebyshev'):
         '''Initialization of LatticeModel
             Args:
             template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
-            species_to_site: a dictionary mapping from species to site type (possible species), including those immutable sites, 
+            specie_site_mapping: a dictionary mapping from species to site type (possible species), including those immutable sites, 
             e.g. {"Na":["Na","X"],"X":["Na","X"],"Sb":["Sb","W"],"W":["Sb","W"]} X is the vacancy site
             basis_type: str, the type of basis function: 'occupation':[0,1] or 'chebyshev'[-1,+1]
         '''
         self.template_structure = template_structure
-        self.species_to_site = species_to_site
- 
+        self.specie_site_mapping = specie_site_mapping
+       
         # initializing basis
         if basis_type == 'chebychev':
             self.basis = ChebychevBasis()
@@ -37,19 +40,17 @@ class LatticeModel(BaseModel):
                 from pymatgen.core.composition import CompositionError
                 raise CompositionError('This code cannot deal with partial occupation!')
             species = self.get_site_species(site)
-            for key in species_to_site:
+            for key in specie_site_mapping:
                 if key == species:
-                    self.species.append(species_to_site[key])
-        print(self.species)
+                    self.species.append(specie_site_mapping[key])
         if len(self.species) != len(self.template_structure):
-            raise ValueError('Length of template_structure is not the same as the species')
+            raise ValueError(f"Species length {len(self.species)} does not match template structure length {len(self.template_structure)}!")
  
     def get_site_species(self,site): 
         try:
             species = site.species.remove_charges().elements[0].symbol
         except:
             species = site.species.elements[0].symbol
-            print('oxdation state not removed!')
         return species
     
     def get_occ_from_structure(self, structure: Structure, tol=1e-2, angle_tol=5):
@@ -124,7 +125,7 @@ class LatticeModel(BaseModel):
         """
         return {
             "template_structure": self.template_structure.as_dict(),
-            "species_to_site": self.species_to_site,
+            "specie_site_mapping": self.specie_site_mapping,
             "basis_type": "occupation" if isinstance(self.basis, OccupationBasis) else "chebychev"
         }
 

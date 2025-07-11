@@ -8,7 +8,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from kmcpy.io import InputSet, _load_occ
+from kmcpy.io.io import InputSet, _load_occ
 
 
 class TestInputSetParameterHandling:

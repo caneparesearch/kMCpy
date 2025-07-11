@@ -12,10 +12,10 @@ from pathlib import Path
 from pymatgen.core import Structure, Lattice, Element, Species
 from pymatgen.core.sites import PeriodicSite
 
-from kmcpy.simulation.condition import SimulationConfig
-from kmcpy.simulation.state import SimulationState
-from kmcpy.simulation.tracker import Tracker
-from kmcpy.io import InputSet
+from kmcpy.simulator.condition import SimulationConfig
+from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.tracker import Tracker
+from kmcpy.io.io import InputSet
 
 
 @pytest.fixture
