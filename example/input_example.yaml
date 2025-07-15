@@ -1,0 +1,60 @@
+# KMCpy Input File
+# This example shows the new YAML structure with registry-style sections
+
+model:
+  type: composite_lce
+  composite_lce:
+    center_frac_coord: [0.5, 0.5, 0.5]
+    mobile_ion_identifier_type: "specie"
+    mobile_ion_specie_identifier: "Na"
+    cutoff_cluster: 5.0
+    cutoff_region: 10.0
+    template_structure_fname: "example/file_before_kmc/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
+    is_write_basis: true
+    species_to_be_removed: ["O"]
+    convert_to_primitive_cell: false
+    exclude_site_with_identifier: ["Zr"]
+
+kmc:
+  type: default
+  default:
+    v: 1.0
+    equ_pass: 100
+    kmc_pass: 1000
+    supercell_shape: [2, 1, 1]
+    fitting_results: "example/file_before_kmc/results.json"
+    fitting_results_site: "example/file_before_kmc/results_site.json"
+    lce_fname: "example/file_before_kmc/local_cluster_expansion"
+    lce_site_fname: "example/file_before_kmc/local_cluster_expansion_site"
+    template_structure_fname: "example/file_before_kmc/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
+    event_fname: "example/file_before_kmc/event.json"
+    event_dependencies: "example/file_before_kmc/dependencies.json"
+    initial_state: "example/file_before_kmc/initial_state.json"
+    temperature: 298
+    dimension: 3
+    q: 1
+    elem_hop_distance: 3.47782
+    convert_to_primitive_cell: true
+    immutable_sites: ["Zr", "O", "Zr4+", "O2-"]
+    mobile_ion_specie: "Na"
+    random_seed: 42
+    name: "KMC Simulation Example"
+
+generate_event:
+  type: default
+  default:
+    template_structure_fname: "example/file_before_kmc/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
+    convert_to_primitive_cell: false
+    local_env_cutoff_dict: {"Na": 3.0, "O": 2.0}
+    mobile_ion_identifier_type: "specie"
+    mobile_ion_specie_identifier: "Na"
+    mobile_ion_specie_2_identifier: "Li"
+    species_to_be_removed: ["O"]
+    distance_matrix_rtol: 1e-5
+    distance_matrix_atol: 1e-8
+    find_nearest_if_fail: true
+    export_local_env_structure: false
+    supercell_shape: [2, 1, 1]
+    event_fname: "example/file_before_kmc/event.json"
+    event_dependencies_fname: "example/file_before_kmc/dependencies.json"
+    initial_state: "example/file_before_kmc/initial_state.json"

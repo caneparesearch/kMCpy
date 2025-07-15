@@ -10,7 +10,20 @@ import logging
 import pandas as pd
 import warnings
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
+
+# Model registry for extensible model types
+MODEL_REGISTRY = {
+    "lce": "lce",  # Maps model type to task type for backward compatibility
+    "composite_lce": "lce"  # CompositeLCEModel still uses lce task type
+}
+
+# Task registry for different simulation types
+TASK_REGISTRY = {
+    "kmc": "kmc",
+    "model": "lce", 
+    "generate_event": "generate_event"
+} 
 
 def convert(o):
     if isinstance(o, np.int64):
@@ -108,32 +121,164 @@ class InputSet:
         # check parameters
         input_set.parameter_checker()
 
-        # load occupation data
-        input_set.load_occ()
+        # load occupation data only if this section needs it (kmc task)
+        if input_set._parameters.get("task") == "kmc":
+            input_set.load_occ()
+        else:
+            # Set minimal structure attributes for non-kmc tasks
+            input_set.structure = None
+            input_set.occupation = []
+            input_set.n_sites = 0
         return input_set
 
     @classmethod
-    def from_yaml(
-        cls, input_yaml_path=r"examples/test_input.yaml",
+    def from_yaml_section(
+        cls, input_yaml_path=r"examples/input_example.yaml", section="kmc", task_type=None
     ):
         """
-        input_reader takes input (a yaml file with all parameters as shown in run_kmc.py in examples folder)
-        return a dictionary with all input parameters
+        Load parameters from a specific section of a YAML file.
+        
+        Args:
+            input_yaml_path: Path to the YAML file
+            section: Section to load ('kmc', 'model', 'generate_event')
+            task_type: Optional task type for the section (e.g., 'lce' for model section)
+        
+        Returns:
+            InputSet: InputSet with parameters from the specified section
         """
         import yaml
 
-        _parameters = yaml.safe_load(open(input_yaml_path))
-        logger.debug(_parameters)
+        with open(input_yaml_path, 'r') as f:
+            yaml_data = yaml.safe_load(f)
+        
+        if section not in yaml_data:
+            raise ValueError(f"Section '{section}' not found in YAML file. Available sections: {list(yaml_data.keys())}")
+        
+        section_data = yaml_data[section]
+        
+        # Handle registry-style sections with type field
+        if isinstance(section_data, dict) and 'type' in section_data:
+            if task_type is None:
+                task_type = section_data['type']
+            
+            if task_type not in section_data:
+                raise ValueError(f"Task type '{task_type}' not found in section '{section}'. Available types: {list(section_data.keys())}")
+            
+            # Extract parameters from the specific task type
+            _parameters = section_data[task_type].copy()
+        else:
+            # Handle flat sections (like original kmc section)
+            _parameters = section_data.copy()
+        
+        # Add task field based on section
+        if section == "model":
+            _parameters["task"] = "lce"  # Default model task
+        else:
+            _parameters["task"] = section
+        
+        logger.debug(f"Loaded section '{section}' with task type '{task_type}': {_parameters}")
 
         input_set = cls(_parameters)
 
         # check parameters
         input_set.parameter_checker()
 
-        # load occupation data
-        input_set.load_occ()
+        # load occupation data only if template structure file exists and it's a kmc task
+        import os
+        template_file = input_set._parameters.get('template_structure_fname', '')
+        if input_set._parameters.get("task") == "kmc":
+            if template_file and os.path.exists(template_file):
+                input_set.load_occ()
+            elif template_file:
+                # File specified but doesn't exist - this is an error
+                input_set.load_occ()  # This will raise FileNotFoundError
+            else:
+                # No file specified - set minimal structure attributes for testing
+                logger.warning("No template structure file specified")
+                input_set.structure = None
+                input_set.occupation = []
+                input_set.n_sites = 0
+        else:
+            # Set minimal structure attributes for non-kmc tasks
+            input_set.structure = None
+            input_set.occupation = []
+            input_set.n_sites = 0
+            
         return input_set
-    
+
+    @classmethod
+    def from_yaml_kmc(cls, input_yaml_path=r"examples/input_example.yaml"):
+        """Load KMC parameters from YAML file."""
+        return cls.from_yaml_section(input_yaml_path, section="kmc")
+
+    @classmethod
+    def from_yaml_model(cls, input_yaml_path=r"examples/input_example.yaml", model_type="lce"):
+        """Load model parameters from YAML file."""
+        return cls.from_yaml_section(input_yaml_path, section="model", task_type=model_type)
+
+    @classmethod
+    def from_yaml_generate_event(cls, input_yaml_path=r"examples/input_example.yaml", event_type="default"):
+        """Load event generation parameters from YAML file."""
+        return cls.from_yaml_section(input_yaml_path, section="generate_event", task_type=event_type)
+
+    @classmethod
+    def from_yaml(
+        cls, input_yaml_path=r"examples/input_example.yaml", task_type=None
+    ):
+        """
+        Enhanced YAML loader with support for architecture.
+        
+        Args:
+            input_yaml_path: Path to the YAML file
+            task_type: Specific section to load ('kmc', 'model', 'generate_event')
+                      If None, will attempt auto-detection
+        
+        Returns:
+            InputSet: InputSet with loaded parameters
+        """
+        import yaml
+
+        with open(input_yaml_path, 'r') as f:
+            yaml_data = yaml.safe_load(f)
+        
+        # If task_type is specified, load that section
+        if task_type:
+            return cls.from_yaml_section(input_yaml_path, section=task_type)
+        
+        # Auto-detection: check if this is a legacy flat YAML or new sectioned YAML
+        available_sections = list(yaml_data.keys())
+        valid_sections = ['kmc', 'model', 'generate_event', 'lce']
+        
+        # Check if it's a legacy flat structure (has 'task' field)
+        if 'task' in yaml_data:
+            # Use original from_yaml method for backward compatibility
+            _parameters = yaml_data
+            logger.debug(_parameters)
+
+            input_set = cls(_parameters)
+            input_set.parameter_checker()
+            
+            # load occupation data only if it's a kmc task
+            if input_set._parameters.get("task") == "kmc":
+                input_set.load_occ()
+            else:
+                # Set minimal structure attributes for non-kmc tasks
+                input_set.structure = None
+                input_set.occupation = []
+                input_set.n_sites = 0
+            return input_set
+        
+        # Check if it's new sectioned structure
+        sectioned_keys = [k for k in available_sections if k in valid_sections]
+        
+        if len(sectioned_keys) == 1:
+            # Auto-detect single section
+            return cls.from_yaml_section(input_yaml_path, section=sectioned_keys[0])
+        elif len(sectioned_keys) > 1:
+            raise ValueError(f"Multiple sections found: {sectioned_keys}. Please specify task_type parameter.")
+        else:
+            raise ValueError(f"No valid sections found. Available: {available_sections}, Expected: {valid_sections}")
+
     @classmethod
     def from_dict(cls, input_dict):
         """
@@ -148,17 +293,23 @@ class InputSet:
         # check parameters
         input_set.parameter_checker()
 
-        # load occupation data only if template structure file exists
+        # load occupation data only if template structure file exists and it's a kmc task
         import os
         template_file = input_set._parameters.get('template_structure_fname', '')
-        if template_file and os.path.exists(template_file):
-            input_set.load_occ()
-        elif template_file:
-            # File specified but doesn't exist - this is an error
-            input_set.load_occ()  # This will raise FileNotFoundError
+        if input_set._parameters.get("task") == "kmc":
+            if template_file and os.path.exists(template_file):
+                input_set.load_occ()
+            elif template_file:
+                # File specified but doesn't exist - this is an error
+                input_set.load_occ()  # This will raise FileNotFoundError
+            else:
+                # No file specified - set minimal structure attributes for testing
+                logger.warning("No template structure file specified")
+                input_set.structure = None
+                input_set.occupation = []
+                input_set.n_sites = 0
         else:
-            # No file specified - set minimal structure attributes for testing
-            logger.warning("No template structure file specified")
+            # Set minimal structure attributes for non-kmc tasks
             input_set.structure = None
             input_set.occupation = []
             input_set.n_sites = 0
@@ -204,6 +355,7 @@ class InputSet:
     def parameter_checker(self):
         """
         Checks all keys in self._parameters against valid_params, case-insensitively.
+        Now supports registry-style model types.
 
         Returns:
             dict: {parameter: True/False} for each parameter in self._parameters.
@@ -215,7 +367,6 @@ class InputSet:
         if self._parameters["task"] == "kmc":
             # True -> positional parameters, False -> optional parameters
             parameters = {
-                "task": True,
                 "v": True,
                 "equ_pass": True,
                 "kmc_pass": True,
@@ -241,7 +392,6 @@ class InputSet:
             }
         elif self._parameters["task"] == "lce":
             parameters = {
-                "task": True,
                 "center_frac_coord": True,
                 "mobile_ion_identifier_type": True,
                 "mobile_ion_specie_identifier": True,
@@ -255,7 +405,6 @@ class InputSet:
             }
         elif self._parameters["task"] == "generate_event":
             parameters = {
-                "task": True,
                 "template_structure_fname": True,
                 "convert_to_primitive_cell": False,
                 "local_env_cutoff_dict": True,
@@ -273,6 +422,10 @@ class InputSet:
             }
         else:
             raise ValueError(f"Unknown task {self._parameters['task']}. Please set task to {available_tasks}.")
+        
+        # Add task as optional parameter (it's added automatically now)
+        parameters["task"] = False
+        
         valid_params_lower = {param.lower() for param in parameters}
         positional_params = {param.lower() for param, required in parameters.items() if required}
         result = {}
@@ -315,8 +468,9 @@ class InputSet:
         )
 
         immutable_sites_idx = []
+        immutable_sites = self._parameters.get('immutable_sites', [])
         for index,site in enumerate(self.structure.sites):
-            if site.specie.symbol not in self._parameters['immutable_sites']:
+            if site.specie.symbol not in immutable_sites:
                 immutable_sites_idx.append(index)
         logger.debug(f"Immutable sites are {immutable_sites_idx}")
 
