@@ -339,11 +339,12 @@ class Tracker:
         Returns:
             float: The mean correlation factor for the tracked hops.
         """
+        
+        hop_counter_safe = np.where(self.hop_counter == 0, 1, self.hop_counter)
         corr_factor = np.linalg.norm(self.displacement, axis=1) ** 2 / (
-            self.hop_counter * self.elem_hop_distance**2
+            hop_counter_safe * self.elem_hop_distance**2
         )
-
-        corr_factor = np.nan_to_num(corr_factor, nan=0)
+        corr_factor[self.hop_counter == 0] = 0  # Set correlation factor to 0 where hop_counter was zero
 
         return np.mean(corr_factor)
 
