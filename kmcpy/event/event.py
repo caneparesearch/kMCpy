@@ -98,7 +98,10 @@ def _generate_event_dependency_matrix(events_site_list):
     sorted_event_sites = List()
     for event_sites in events_site_list:
         # Convert to numpy array and sort
-        sites_array = np.array([site for site in event_sites], dtype=np.int64)
+        # Use manual loop instead of list comprehension for Numba compatibility
+        sites_array = np.empty(len(event_sites), dtype=np.int64)
+        for i, site in enumerate(event_sites):
+            sites_array[i] = site
         sites_array.sort()
         sorted_event_sites.append(sites_array)
     
