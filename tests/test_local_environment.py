@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from pymatgen.core import Structure, Lattice
 from kmcpy.structure.lattice_structure import LatticeStructure
-from kmcpy.structure.local_env import LocalLatticeStructure
+from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
 @pytest.fixture
 def global_lattice_model_and_env():

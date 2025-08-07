@@ -197,7 +197,7 @@ class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("third")
     def test_generate_local_cluster_exapnsion(self):
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-        from kmcpy.structure.local_env import LocalLatticeStructure
+        from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
         from kmcpy.external.structure import StructureKMCpy
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_identifier = "Na1"

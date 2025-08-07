@@ -30,7 +30,7 @@ class LocalClusterExpansion(BaseModel):
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-    from kmcpy.structure.local_env import LocalLatticeStructure
+    from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
     def __init__(self, template_structure:StructureKMCpy):
         """

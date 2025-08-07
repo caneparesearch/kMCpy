@@ -6,7 +6,7 @@ This module provides the core modeling
 
 from .lattice_structure import LatticeStructure
 from .vacancy import Vacancy
-from .local_env import LocalLatticeStructure
+from .local_lattice_structure import LocalLatticeStructure
 from .comparator import SupercellComparator
 
 __all__ = [

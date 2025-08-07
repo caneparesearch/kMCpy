@@ -10,7 +10,7 @@ import numpy as np
 from typing import List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 import logging
-from kmcpy.structure.local_env import LocalLatticeStructure
+from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
 if TYPE_CHECKING:
     from kmcpy.models import LocalClusterExpansion

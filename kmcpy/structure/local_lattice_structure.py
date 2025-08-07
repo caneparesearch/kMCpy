@@ -60,3 +60,26 @@ class LocalLatticeStructure(LatticeStructure):
             PointGroupAnalyzer(local_env_structure).sch_symbol,
             )
         self.structure = local_env_structure
+
+    @classmethod
+    def from_lattice_structure(cls, lattice_structure: LatticeStructure, center, cutoff,
+                               specie_site_mapping=None, basis_type='chebyshev',
+                               is_write_basis=False, exclude_species=None):
+        """
+        Create a LocalLatticeStructure from an existing LatticeStructure.
+        
+        Args:
+            lattice_structure (LatticeStructure): The base lattice structure.
+            center: Center site or coordinates for the local environment.
+            cutoff (float): Cutoff distance for the local environment.
+            specie_site_mapping (dict): Mapping of species to sites.
+            basis_type (str): Type of basis to use.
+            is_write_basis (bool): Whether to write the basis to a file.
+            exclude_species (list): Species to exclude from the local environment.
+        
+        Returns:
+            LocalLatticeStructure: The created local lattice structure.
+        """
+        return cls(template_structure=lattice_structure.structure, center=center, cutoff=cutoff,
+                   specie_site_mapping=specie_site_mapping, basis_type=basis_type,
+                   is_write_basis=is_write_basis, exclude_species=exclude_species)

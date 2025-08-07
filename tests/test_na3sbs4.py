@@ -46,7 +46,7 @@ class TestNa3SbS4(unittest.TestCase):
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-        from kmcpy.structure.local_env import LocalLatticeStructure
+        from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
         from kmcpy.external.structure import StructureKMCpy
 
         mobile_ion_identifier_type = "label"
