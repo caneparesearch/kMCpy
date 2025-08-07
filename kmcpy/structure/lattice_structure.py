@@ -5,6 +5,7 @@ from pymatgen.analysis.structure_matcher import StructureMatcher
 from abc import  ABC
 import logging
 from kmcpy.structure.vacancy import Vacancy
+from kmcpy.structure.comparator import SupercellComparator
 
 logger = logging.getLogger(__name__) 
 
