@@ -1,12 +1,12 @@
 import pytest
 import numpy as np
 from pymatgen.core import Structure, Lattice
-from kmcpy.models import LatticeModel
-from kmcpy.models.local_env import LocalEnvironment
+from kmcpy.structure.lattice_structure import LatticeStructure
+from kmcpy.structure.local_env import LocalLatticeStructure
 
 @pytest.fixture
 def global_lattice_model_and_env():
-    """A fixture to create a global LatticeModel and a LocalEnvironment for testing."""
+    """A fixture to create a global LatticeStructure and a LocalLatticeStructure for testing."""
     # Use a large lattice to avoid periodic boundary issues in the test
     lattice = Lattice.cubic(10.0)
     template_structure = Structure(
@@ -18,13 +18,13 @@ def global_lattice_model_and_env():
     specie_site_mapping = {"Na": ["Na", "X"], "Cl": ["Cl"], "Br": ["Br"]}  # X represents a vacancy
     
     # Create the global model
-    global_model = LatticeModel(
+    global_model = LatticeStructure(
         template_structure=template_structure,
         specie_site_mapping=specie_site_mapping
     )
     
     # Create a local environment centered on the first Na atom
-    local_env = LocalEnvironment(
+    local_env = LocalLatticeStructure(
         template_structure=template_structure,
         specie_site_mapping=specie_site_mapping,
         center=[0, 0, 0],
@@ -34,7 +34,7 @@ def global_lattice_model_and_env():
     return global_model, local_env
 
 def test_local_environment_setup(global_lattice_model_and_env):
-    """Test that the LocalEnvironment is set up correctly."""
+    """Test that the LocalLatticeStructure is set up correctly."""
     _, local_env = global_lattice_model_and_env
     
     # The local environment should contain the Na at [0,0,0] and the Cl at [1,0,0]

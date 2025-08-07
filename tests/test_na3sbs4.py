@@ -46,7 +46,7 @@ class TestNa3SbS4(unittest.TestCase):
         current_dir = Path(__file__).absolute().parent
         os.chdir(current_dir)
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-        from kmcpy.models.local_env import LocalEnvironment
+        from kmcpy.structure.local_env import LocalLatticeStructure
         from kmcpy.external.structure import StructureKMCpy
 
         mobile_ion_identifier_type = "label"
@@ -55,11 +55,11 @@ class TestNa3SbS4(unittest.TestCase):
             filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
         )
         a = LocalClusterExpansion(template_structure=structure)
-        local_env = LocalEnvironment(template_structure=structure, center=0, cutoff=5,
+        local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
                                      specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                                      basis_type="trigonometric")
         a.build(
-            local_env=local_env,
+            local_lattice_structure=local_lattice_structure,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],

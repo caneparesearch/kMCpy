@@ -4,12 +4,12 @@ import logging
 from typing import TYPE_CHECKING
 from abc import  abstractmethod
 
-from kmcpy.models import LatticeModel
+from kmcpy.structure.lattice_structure import LatticeStructure
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
 
-class LocalEnvironment(LatticeModel):
+class LocalLatticeStructure(LatticeStructure):
     """
     Class to handle local environment around a site in a structure.
     """

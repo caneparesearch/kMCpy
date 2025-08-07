@@ -10,7 +10,7 @@ import numpy as np
 from typing import List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 import logging
-from kmcpy.models.local_env import LocalEnvironment
+from kmcpy.structure.local_env import LocalLatticeStructure
 
 if TYPE_CHECKING:
     from kmcpy.models import LocalClusterExpansion
@@ -24,13 +24,13 @@ class NEBEntry:
     Data class to hold structure information for fitting.
     
     Attributes:
-        local_env (LocalEnvironment): Structure model of NEB calculation
+        local_lattice_structure (LocalLatticeStructure): Structure model of NEB calculation
         property_value (float): Property value for this structure (e.g. E_KRA or E_site)
         occupation (Optional[List[int]]): Occupation vector for the structure, defaults to None
         correlation (Optional[List[float]]): Correlation vector for the structure, defaults to None
         metadata (Dict): Additional metadata for the structure, defaults to None
     """
-    local_env: LocalEnvironment
+    local_lattice_structure: LocalLatticeStructure
     property_value: float
     occupation: Optional[List[int]] = None
     correlation: Optional[List[float]] = None

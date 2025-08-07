@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
 from pymatgen.core import Structure, Lattice
-from kmcpy.models.lattice_model import LatticeModel
+from kmcpy.structure.lattice_structure import LatticeStructure
 
 @pytest.fixture
 def simple_lattice_model():
-    """A fixture to create a simple LatticeModel for testing."""
+    """A fixture to create a simple LatticeStructure for testing."""
     lattice = Lattice.cubic(3.0)
     template_structure = Structure(
         lattice,
@@ -13,7 +13,7 @@ def simple_lattice_model():
         [[0, 0, 0], [0.5, 0.5, 0.5]]
     )
     specie_site_mapping = {"Na": ["Na", "X"]}  # X represents a vacancy
-    return LatticeModel(template_structure=template_structure, specie_site_mapping=specie_site_mapping)
+    return LatticeStructure(template_structure=template_structure, specie_site_mapping=specie_site_mapping)
 
 def test_get_occ_from_structure_perfect_match(simple_lattice_model):
     """Test get_occ_from_structure with a structure that perfectly matches the template."""

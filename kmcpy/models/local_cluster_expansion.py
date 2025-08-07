@@ -13,7 +13,7 @@ from kmcpy.event.event_generator import find_atom_indices
 from pymatgen.core.periodic_table import DummySpecies
 from pymatgen.core.sites import PeriodicSite
 import logging
-from kmcpy.models.lattice_model import BaseModel
+from kmcpy.models.model import BaseModel
 from copy import deepcopy
 from kmcpy.io.io import InputSet
 from kmcpy.event import Event
@@ -30,7 +30,7 @@ class LocalClusterExpansion(BaseModel):
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-    from kmcpy.models.local_env import LocalEnvironment
+    from kmcpy.structure.local_env import LocalLatticeStructure
 
     def __init__(self, template_structure:StructureKMCpy):
         """
@@ -41,7 +41,7 @@ class LocalClusterExpansion(BaseModel):
         """
         self.name = "LocalClusterExpansion"
 
-    def build(self, local_env:LocalEnvironment, 
+    def build(self, local_lattice_structure:LocalLatticeStructure, 
         cutoff_cluster: list = [6, 6, 6], **kwargs) -> None:
         """
         Build the LocalClusterExpansion model from a StructureKMCpy object.
@@ -51,7 +51,7 @@ class LocalClusterExpansion(BaseModel):
         2) Use a dummy site as the center of the local environment (set center_frac_coord).
 
         Args:
-            local_env (LocalEnvironment): Local environment object containing the structure and center site.
+            local_lattice_structure (LocalLatticeStructure): Local environment object containing the structure and center site.
             cutoff_cluster (list, optional): Cutoff distances for clusters [pair, triplet, quadruplet]. Defaults to [6, 6, 6].
             center_frac_coord (list, optional): Fractional coordinates of the center of the local environment. If empty, uses the mobile ion site. Defaults to [].
             exclude_site_with_identifier (list, optional): List of site identifiers to exclude from the local environment. Defaults to [].
@@ -63,12 +63,12 @@ class LocalClusterExpansion(BaseModel):
         """
         logger.info("Initializing LocalClusterExpansion ...")
         self.name = "LocalClusterExpansion"
-        self.local_env = local_env
-        self.center_site = local_env.center_site
-        self.local_env_structure = local_env.structure
+        self.local_lattice_structure = local_lattice_structure
+        self.center_site = local_lattice_structure.center_site
+        self.local_env_structure = local_lattice_structure.structure
 
         # List all possible point, pair and triplet clusters
-        atom_index_list = np.arange(0, len(local_env.structure))
+        atom_index_list = np.arange(0, len(local_lattice_structure.structure))
 
         cluster_indexes = (
             list(combinations(atom_index_list, 1))
@@ -80,7 +80,7 @@ class LocalClusterExpansion(BaseModel):
         logger.info(f"{len(cluster_indexes)} clusters will be generated ...")
 
         self.clusters = self.build_clusters(
-            local_env.structure, cluster_indexes, [10] + cutoff_cluster
+            local_lattice_structure.structure, cluster_indexes, [10] + cutoff_cluster
         )
 
         self.orbits = self.build_orbits(self.clusters)

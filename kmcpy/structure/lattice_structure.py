@@ -1,22 +1,21 @@
-from re import match
-from .model import BaseModel
-from pymatgen.core.structure import Structure, DummySpecies, Species
+from pymatgen.core.structure import Structure, Species
 import numpy as np
 from kmcpy.models.basis import ChebychevBasis, OccupationBasis
-from pymatgen.analysis.structure_matcher import StructureMatcher, AbstractComparator, OrderDisorderElementComparator
+from pymatgen.analysis.structure_matcher import StructureMatcher
 from abc import  ABC
 import logging
+from kmcpy.structure.vacancy import Vacancy
 
 logger = logging.getLogger(__name__) 
 
 
-class LatticeModel(ABC):
-    '''LatticeModel deal with the structure template which converts the structure to an occupation array and vice versa
+class LatticeStructure(ABC):
+    '''LatticeStructure deal with the structure template which converts the structure to an occupation array and vice versa
     '''
     def __init__(self,template_structure:Structure,
                  specie_site_mapping:dict,
                  basis_type:str='chebyshev'):
-        '''Initialization of LatticeModel
+        '''Initialization of LatticeStructure
             Args:
             template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
             specie_site_mapping: a dictionary mapping from species to site type (possible species), including those immutable sites, 
@@ -56,7 +55,7 @@ class LatticeModel(ABC):
         else:
             raise NotImplementedError(f'Basis type {basis_type} not implemented!')
         
-        # Initialization of species for LatticeModel
+        # Initialization of species for LatticeStructure
         # allowed_species is like [["Na","Va"],["Na","Va"],["Na","Va"],["Na","Va"], ... ,["Sb","W"],["Sb","W"],["Sb","W"]]
         self.allowed_species = []
         for site in self.template_structure:
@@ -278,7 +277,7 @@ class LatticeModel(ABC):
         return None
 
     def __str__(self):
-        return f"""LatticeModel with {len(self.template_structure)} sites
+        return f"""LatticeStructure with {len(self.template_structure)} sites
         Template structure:\n {self.template_structure}
         Allowed species: {self.allowed_species}
         Species mapping: {self.specie_site_mapping}
@@ -297,39 +296,3 @@ class LatticeModel(ABC):
             "basis_type": "occupation" if isinstance(self.basis, OccupationBasis) else "chebychev"
         }
 
-class Vacancy(DummySpecies):
-    """
-    A dummy species to represent a vacancy in the lattice model.
-    """
-    def __init__(self):
-        super().__init__('X', 0)  # 'X' is a common symbol for vacancies
-        self.is_vacancy = True
-
-    def __repr__(self):
-        return "Vacancy()"
-
-
-class SupercellComparator(AbstractComparator):
-    """
-    A Comparator that matches sites, given some overlap in the element
-    composition.
-    """
-
-    def are_equal(self, sp1, sp2) -> bool:
-        """
-        True if sp1 and sp2 are considered equivalent according to site_specie_mapping.
-
-        Args:
-            sp1: First species. A dict of {specie/element: amt} as per the
-                definition in Site and PeriodicSite.
-            sp2: Second species. A dict of {specie/element: amt} as per the
-                definition in Site and PeriodicSite.
-
-        Returns:
-            True if sp1 and sp2 are allowed to be on the same site according to mapping.
-        """
-        return True
-
-    def get_hash(self, composition):
-        """Get the fractional composition."""
-        return composition.fractional_composition
