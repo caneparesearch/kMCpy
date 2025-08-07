@@ -210,3 +210,5 @@ tests/files/input/event_dependencies.csv
 *_CLEANUP.md
 *_SUMMARY.md
 test_*.py  # Temporary test files (real tests should be in tests/)
+
+tmp

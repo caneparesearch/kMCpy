@@ -13,57 +13,47 @@ from kmcpy.event.event_generator import find_atom_indices
 from pymatgen.core.periodic_table import DummySpecies
 from pymatgen.core.sites import PeriodicSite
 import logging
-import kmcpy
-from kmcpy.models.lattice_model import LatticeModel
+from kmcpy.models.lattice_model import BaseModel
 from copy import deepcopy
-import numba as nb
 from kmcpy.io.io import InputSet
 from kmcpy.event import Event
 from kmcpy.simulator.state import SimulationState
+import numba as nb
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
 logging.getLogger('numba').setLevel(logging.WARNING)
 
-class LocalClusterExpansion(LatticeModel):
+class LocalClusterExpansion(BaseModel):
     """
     LocalClusterExpansion will be initialized with a template structure where all the sites are occupied
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-    def __init__(self, template_structure:StructureKMCpy, specie_site_mapping:dict, basis_type:str='chebychev'):
+    from kmcpy.models.local_env import LocalEnvironment
+
+    def __init__(self, template_structure:StructureKMCpy):
         """
         Initialization of the LocalClusterExpansion object.
         
         Args:
             template_structure (StructureKMCpy): The template structure with all sites filled.
-            specie_site_mapping (dict): Mapping of species to their corresponding sites.
-            basis_type (str): Type of basis to use, default is 'chebychev'.
         """
-        super().__init__(template_structure, specie_site_mapping, basis_type)
         self.name = "LocalClusterExpansion"
 
-    def build(self, mobile_ion_specie_identifier:str=None,
-        cutoff_cluster: list = [6, 6, 6], cutoff_region:float = 4.0,
-        center_frac_coord = [], mobile_ion_identifier_type: Literal["specie","label"] = "label",
-        is_write_basis=False, species_to_be_removed=[], convert_to_primitive_cell=False,
-        exclude_site_with_identifier=[], **kwargs) -> None:
+    def build(self, local_env:LocalEnvironment, 
+        cutoff_cluster: list = [6, 6, 6], **kwargs) -> None:
         """
-        Build the LocalClusterExpansion model from a structure file or an in-memory StructureKMCpy object.
+        Build the LocalClusterExpansion model from a StructureKMCpy object.
 
         There are 2 ways to define the local environment (migration unit):
-        1) Use the center of the mobile ion as the center of the local environment (default, center_frac_coord = []), this mobile ion is excluded from the local environment.
+        1) Use the center of the mobile ion as the center of the local environment (default, center_frac_coord = None), this mobile ion is excluded from the local environment.
         2) Use a dummy site as the center of the local environment (set center_frac_coord).
 
         Args:
-            mobile_ion_specie_identifier (str): Identifier for the mobile ion species (e.g., "Na1").
+            local_env (LocalEnvironment): Local environment object containing the structure and center site.
             cutoff_cluster (list, optional): Cutoff distances for clusters [pair, triplet, quadruplet]. Defaults to [6, 6, 6].
-            cutoff_region (float, optional): Cutoff for generating the local cluster region. Defaults to 4.0.
             center_frac_coord (list, optional): Fractional coordinates of the center of the local environment. If empty, uses the mobile ion site. Defaults to [].
-            mobile_ion_identifier_type (Literal["specie", "label"], optional): Type of identifier for the mobile ion ("specie" or "label"). Defaults to "label".
-            is_write_basis (bool, optional): Whether to write the local environment basis to file. Defaults to False.
-            species_to_be_removed (list, optional): List of species to remove from the structure. Defaults to [].
-            convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell. Defaults to False.
             exclude_site_with_identifier (list, optional): List of site identifiers to exclude from the local environment. Defaults to [].
 
         Notes:
@@ -71,55 +61,14 @@ class LocalClusterExpansion(LatticeModel):
             1) The Ekra generated in this step can be transferred to the KMC, provided the orbits are arranged in the same way as here.
             2) The cluster_site_indices must correspond exactly to the input structure used in the KMC step, which may require reconstruction of an LCE object using the same KMC-input structure.
         """
-        logger.info(kmcpy.get_logo())
         logger.info("Initializing LocalClusterExpansion ...")
         self.name = "LocalClusterExpansion"
-        
-        structure = self.template_structure.copy()
-        structure.remove_oxidation_states()
-        structure.remove_species(species_to_be_removed)
-
-        if mobile_ion_specie_identifier is None:
-            raise ValueError("mobile_ion_specie_identifier must be provided.")
-
-        mobile_ion_specie_index = find_atom_indices(
-            structure,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
-            atom_identifier=mobile_ion_specie_identifier,
-        )
-
-        mobile_ion_specie_index=mobile_ion_specie_index[0]# just use the first one 
-        
-        if center_frac_coord:
-            logger.info(f"Centering the local environment at {center_frac_coord} ...")
-            
-            dummy_lattice = structure.lattice
-            self.center_site = PeriodicSite(species=DummySpecies('X'),
-                              coords=center_frac_coord,
-                              coords_are_cartesian=False,
-                              lattice = dummy_lattice)
-            logger.debug(f"Dummy site: {self.center_site}")
-        else:
-            logger.info(f"Centering the local environment at {mobile_ion_specie_index} ...")
-            self.center_site = structure[
-                mobile_ion_specie_index
-            ]  # self.center_site: pymatgen.site
-
-            structure.remove_sites([mobile_ion_specie_index]) # remove the mobile ion from the template structure
-
-        logger.info(f"Searching local env around {self.center_site} ...")
-
-        # fallback to the initial get cluster structure
-        self.local_env_structure = self.get_local_env_structure(
-            structure=structure,
-            cutoff=cutoff_region,
-            center_site=self.center_site,
-            is_write_basis=is_write_basis,
-            exclude_species=exclude_site_with_identifier,
-        )
+        self.local_env = local_env
+        self.center_site = local_env.center_site
+        self.local_env_structure = local_env.structure
 
         # List all possible point, pair and triplet clusters
-        atom_index_list = np.arange(0, len(self.local_env_structure))
+        atom_index_list = np.arange(0, len(local_env.structure))
 
         cluster_indexes = (
             list(combinations(atom_index_list, 1))
@@ -131,7 +80,7 @@ class LocalClusterExpansion(LatticeModel):
         logger.info(f"{len(cluster_indexes)} clusters will be generated ...")
 
         self.clusters = self.build_clusters(
-            cluster_indexes, [10] + cutoff_cluster
+            local_env.structure, cluster_indexes, [10] + cutoff_cluster
         )
 
         self.orbits = self.build_orbits(self.clusters)
@@ -141,13 +90,6 @@ class LocalClusterExpansion(LatticeModel):
             for orbit in self.orbits
         ]  # cluster_site_indices[orbit,cluster,site]
         
-        # Initialize parent LatticeModel - create minimal specie_site_mapping mapping
-        # For now, create a simple mapping based on the template structure
-        specie_site_mapping = {}
-        for site in structure:
-            species = site.species.elements[0].symbol
-            if species not in specie_site_mapping:
-                specie_site_mapping[species] = [species, "X"]  # Allow vacancy
                 
         logger.info(
             "Type\tIndex\tmax_length\tmin_length\tPoint Group\tMultiplicity"
@@ -248,46 +190,17 @@ class LocalClusterExpansion(LatticeModel):
         
         return obj
 
-    def get_local_env_structure(
-        self,
-        structure,
-        center_site,
-        cutoff=4,
-        is_write_basis=False,
-        exclude_species=["Li"],
-    ):  # return a molecule structure centeret center_site
-        local_env_structure = [
-            s[0] for s in structure.get_sites_in_sphere(center_site.coords, cutoff)
-        ]
-        local_env_list_sorted = sorted(
-            sorted(local_env_structure, key=lambda x: x.coords[0]),
-            key=lambda x: x.specie,
-        )
-        local_env_list_sorted_involved = []
-        for site in local_env_list_sorted:
-            excluded = False
-            for exclude_specie in exclude_species:
-                if exclude_specie in site.species:
-                    excluded = True
-            if not excluded:
-                local_env_list_sorted_involved.append(site)
-
-        local_env_structure = Molecule.from_sites(local_env_list_sorted_involved)
-        local_env_structure.translate_sites(
-            np.arange(0, len(local_env_structure), 1).tolist(), -1 * center_site.coords
-        )
-        if is_write_basis:
-            logger.info("Local environment: ")
-            logger.info(local_env_structure)
-            local_env_structure.to(fmt="xyz", filename="local_env.xyz")
-            logger.info(
-            "The point group of local environment is: %s",
-            PointGroupAnalyzer(local_env_structure).sch_symbol,
-            )
-        return local_env_structure
     
-
-    def build_clusters(self, indexes, cutoff):  # return a list of Cluster
+    
+    def get_corr_from_structure(self, structure: StructureKMCpy, tol=1e-2, angle_tol=5):
+        '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
+        '''
+        occ = self.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        corr = np.empty(shape=len(self.basis.basis_function))
+        _calc_corr(corr, occ, self.cluster_site_indices)
+        return corr
+    
+    def build_clusters(self, local_env_structure, indexes, cutoff):  # return a list of Cluster
         from kmcpy.models.cluster import Cluster
         clusters = []
         logger.info("\nGenerating possible clusters within this migration unit...")
@@ -298,7 +211,7 @@ class LocalClusterExpansion(LatticeModel):
             cutoff[3],
         )
         for site_indices in indexes:
-            sites = [self.local_env_structure[s] for s in site_indices]
+            sites = [local_env_structure[s] for s in site_indices]
             cluster = Cluster(site_indices, sites)
             if cluster.max_length < cutoff[len(cluster.site_indices) - 1]:
                 clusters.append(cluster)
@@ -474,3 +387,39 @@ def _calc_corr(corr, occ_latt, cluster_site_indices):
                 corr_cluster *= occ_latt[occ_site]
             corr[i] += corr_cluster
         i += 1
+
+def get_local_env_structure(
+    structure,
+    center_site,
+    cutoff=4,
+    is_write_basis=False,
+    exclude_species=["Li"]):  # return a molecule structure centeret center_site
+    local_env_structure = [
+        s[0] for s in structure.get_sites_in_sphere(center_site.coords, cutoff)
+    ]
+    local_env_list_sorted = sorted(
+        sorted(local_env_structure, key=lambda x: x.coords[0]),
+        key=lambda x: x.specie,
+    )
+    local_env_list_sorted_involved = []
+    for site in local_env_list_sorted:
+        excluded = False
+        for exclude_specie in exclude_species:
+            if exclude_specie in site.species:
+                excluded = True
+        if not excluded:
+            local_env_list_sorted_involved.append(site)
+
+    local_env_structure = Molecule.from_sites(local_env_list_sorted_involved)
+    local_env_structure.translate_sites(
+        np.arange(0, len(local_env_structure), 1).tolist(), -1 * center_site.coords
+    )
+    if is_write_basis:
+        logger.info("Local environment: ")
+        logger.info(local_env_structure)
+        local_env_structure.to(fmt="xyz", filename="local_env.xyz")
+        logger.info(
+        "The point group of local environment is: %s",
+        PointGroupAnalyzer(local_env_structure).sch_symbol,
+        )
+    return local_env_structure

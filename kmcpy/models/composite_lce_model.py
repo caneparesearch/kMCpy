@@ -151,7 +151,55 @@ class CompositeLCEModel(CompositeModel):
             "kra_model": self.kra_model.as_dict() if self.kra_model else None,
             "name": self.name,
         }
+    
+    def build(self, *args, **kwargs):
+        """
+        Build the composite model based on the provided parameters.
+        
+        This method is a placeholder and does not perform any specific actions.
+        It is provided to maintain compatibility with the BaseModel interface.
+        """
+        self.site_model.build(*args, **kwargs) if self.site_model else None
+        self.kra_model.build(*args, **kwargs) if self.kra_model else None
 
+    def get_occ_from_structure(self, structure, use_model='site_model'):
+        """
+        Get the occupation vector from a structure.
+        
+        Args:
+            structure (StructureKMCpy): The structure from which to compute the occupation vector.
+            use_model (str): Specify which model to use for occupation calculation ('site_model' or 'kra_model').
+        
+        Returns:
+            np.ndarray: The occupation vector for the given structure.
+        """
+        if use_model == 'site_model' and self.site_model:
+            return self.site_model.get_occ_from_structure(structure)
+        elif use_model == 'kra_model' and self.kra_model:
+            return self.kra_model.get_occ_from_structure(structure)
+        else:
+            raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
+    
+    def get_corr_from_structure(self, structure, use_model='site_model', tol=1e-2, angle_tol=5):
+        """
+        Get the correlation vector from a structure.
+        
+        Args:
+            structure (StructureKMCpy): The structure from which to compute the correlation vector.
+            use_model (str): Specify which model to use for correlation calculation ('site_model' or 'kra_model').
+            tol (float): Tolerance for occupation comparison.
+            angle_tol (float): Angle tolerance for structure matching.
+        
+        Returns:
+            np.ndarray: The correlation vector for the given structure.
+        """
+        if use_model == 'site_model' and self.site_model:
+            return self.site_model.get_corr_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        elif use_model == 'kra_model' and self.kra_model:
+            return self.kra_model.get_corr_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        else:
+            raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
+        
     @classmethod
     def from_dict(cls, d):
         """

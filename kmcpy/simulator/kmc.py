@@ -5,15 +5,10 @@ particularly for modeling stochastic processes in materials such as ion diffusio
 initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports 
 loading input data from various sources, updating system states, and tracking simulation results.
 """
-from numba.typed import List
 from numba import njit
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
-import pandas as pd
-from copy import copy
 import json
-import os
-from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.simulator.tracker import Tracker
 from kmcpy.event import Event, EventLib
 from kmcpy.io.io import convert

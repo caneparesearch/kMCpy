@@ -197,14 +197,15 @@ class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("third")
     def test_generate_local_cluster_exapnsion(self):
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+        from kmcpy.models.local_env import LocalEnvironment
         from kmcpy.external.structure import StructureKMCpy
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_identifier = "Na1"
         structure = StructureKMCpy.from_cif(filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True)
-        a = LocalClusterExpansion(template_structure = structure, 
-                                  specie_site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"}, 
-                                  basis_type="chebychev")
-        a.build(
+        local_env = LocalEnvironment(template_structure=structure,center=0, cutoff=4.0,specie_site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"},
+                                     basis_type = "trigonometric", is_write_basis=True, exclude_species=["O2-", "O", "Zr4+", "Zr"])
+        a = LocalClusterExpansion(template_structure = structure)
+        a.build(local_env=local_env,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],

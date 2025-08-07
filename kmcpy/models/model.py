@@ -54,6 +54,17 @@ class BaseModel(ABC):
         """
         raise NotImplementedError("Subclasses must implement this method.")
     
+    @abstractmethod
+    def build(self, *args, **kwargs):
+        """
+        Build the model based on the provided parameters.
+        This method must be implemented by subclasses.
+        
+        Returns:
+            None
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+    
     def as_dict(self):
         """
         Convert the model object to a dictionary representation.

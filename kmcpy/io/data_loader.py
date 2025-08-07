@@ -10,7 +10,7 @@ import numpy as np
 from typing import List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 import logging
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.models.local_env import LocalEnvironment
 
 if TYPE_CHECKING:
     from kmcpy.models import LocalClusterExpansion
@@ -24,13 +24,13 @@ class NEBEntry:
     Data class to hold structure information for fitting.
     
     Attributes:
-        structure (StructureKMCpy): Structure model of NEB calculation
+        local_env (LocalEnvironment): Structure model of NEB calculation
         property_value (float): Property value for this structure (e.g. E_KRA or E_site)
         occupation (Optional[List[int]]): Occupation vector for the structure, defaults to None
         correlation (Optional[List[float]]): Correlation vector for the structure, defaults to None
         metadata (Dict): Additional metadata for the structure, defaults to None
     """
-    structure: StructureKMCpy
+    local_env: LocalEnvironment
     property_value: float
     occupation: Optional[List[int]] = None
     correlation: Optional[List[float]] = None
@@ -45,8 +45,8 @@ class NEBEntry:
         from kmcpy.models.local_cluster_expansion import _calc_corr
 
         self.occupation = model.get_occ_from_structure(self.structure)
-        self.correlation = np.empty(shape=len(model.cluster_site_indices))
-        _calc_corr(self.correlation, self.occupation, model.cluster_site_indices)
+        logger.warning(f"{self.structure}: {self.occupation}")
+        self.correlation = model.get_corr_from_structure(self.structure)
         logger.info(f"{self.structure}: {self.correlation}")
 
 class DataLoader:
