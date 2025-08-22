@@ -9,7 +9,6 @@ from .model import BaseModel
 from .local_cluster_expansion import LocalClusterExpansion
 from .cluster import Orbit, Cluster
 from .composite_lce_model import CompositeLCEModel
-from .basis import ChebychevBasis, OccupationBasis
 from .fitting.fitter import BaseFitter, LCEFitter
 
 __all__ = [
@@ -18,8 +17,6 @@ __all__ = [
     'CompositeLCEModel',
     'Orbit',
     'Cluster',
-    'ChebychevBasis',
-    'OccupationBasis',
     'BaseFitter',
     'LCEFitter'
 ]

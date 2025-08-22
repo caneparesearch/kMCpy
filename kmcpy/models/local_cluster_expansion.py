@@ -169,14 +169,14 @@ class LocalClusterExpansion(BaseModel):
                 # Reconstruct basis if present, default to ChebychevBasis if unknown
                 basis_class = value.get('@class', 'ChebychevBasis')
                 if basis_class == 'ChebychevBasis':
-                    from kmcpy.models.basis import ChebychevBasis
+                    from kmcpy.structure.basis import ChebychevBasis
                     obj.basis = ChebychevBasis()
                 elif basis_class == 'OccupationBasis':
-                    from kmcpy.models.basis import OccupationBasis
+                    from kmcpy.structure.basis import OccupationBasis
                     obj.basis = OccupationBasis()
                 else:
                     # Default to ChebychevBasis if class is not recognized
-                    from kmcpy.models.basis import ChebychevBasis
+                    from kmcpy.structure.basis import ChebychevBasis
                     obj.basis = ChebychevBasis()
             else:
                 # For all other attributes, set them directly

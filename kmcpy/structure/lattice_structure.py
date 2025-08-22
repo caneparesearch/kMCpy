@@ -1,6 +1,6 @@
 from pymatgen.core.structure import Structure, Species
 import numpy as np
-from kmcpy.models.basis import ChebychevBasis, OccupationBasis
+from kmcpy.structure.basis import ChebychevBasis, OccupationBasis
 from pymatgen.analysis.structure_matcher import StructureMatcher
 from abc import  ABC
 import logging
