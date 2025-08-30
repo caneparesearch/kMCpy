@@ -2,8 +2,24 @@
 Clean simulation configuration classes with clear separation of concerns.
 
 Architecture:
-- SystemConfig: Physical system definition (immutable)
-- RuntimeConfig: Simulation runtime parameters (immutable) 
+- SystemConfig: Physical system definition (        # Parameter routing tables - ONLY clean parameter names, no legacy support
+        system_param_names = {
+            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
+            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
+        }
+        
+        runtime_param_names = {
+            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
+            'random_seed', 'name'
+        }
+        
+        # Handle parameter aliases for commonly confused names
+        parameter_aliases = {
+            'mobile_species': 'mobile_ion_specie',  # Common alias
+            'initial_state_file': None,  # This should be handled differently, ignore for now
+        } RuntimeConfig: Simulation runtime parameters (immutable) 
 - SimulationConfig: Complete simulation setup (immutable)
 - SimulationState: Mutable state during execution
 """
@@ -40,6 +56,10 @@ class SystemConfig:
     # System constraints
     immutable_sites: tuple = field(default_factory=tuple)
     convert_to_primitive_cell: bool = False
+    
+    # Initial state specification
+    initial_state_file: Optional[str] = None
+    initial_occupations: Optional[list] = None
     
     def __post_init__(self):
         """Validate system configuration."""
@@ -111,91 +131,129 @@ class RuntimeConfig:
 
 @dataclass(frozen=True)
 class SimulationConfig:
-    """
-    Complete simulation configuration.
-    Immutable composition of system and runtime configs.
-    """
-    system: SystemConfig
-    runtime: RuntimeConfig
+    """Complete simulation configuration combining system and runtime parameters."""
     
-    # Initial state specification (immutable - describes what to load)
-    initial_state_file: Optional[str] = None
-    initial_occupations: Optional[tuple] = None
+    system_config: SystemConfig
+    runtime_config: RuntimeConfig
     
-    def __post_init__(self):
-        """Validate complete configuration."""
-        # Ensure we have exactly one way to specify initial state
-        has_state_file = self.initial_state_file is not None
-        has_occupations = self.initial_occupations is not None
+    def __init__(self, system_config=None, runtime_config=None, **kwargs):
+        """
+        Create SimulationConfig with automatic parameter routing.
         
-        if not (has_state_file or has_occupations):
-            raise ValueError("Must specify either initial_state_file or initial_occupations")
+        You can either:
+        1. Pass pre-built configs: SimulationConfig(system_config=sys, runtime_config=run)
+        2. Pass parameters directly: SimulationConfig(temperature=300, structure_file="x.cif", ...)
+        3. Mix both: SimulationConfig(system_config=sys, temperature=400)
         
-        if has_state_file and has_occupations:
-            raise ValueError("Cannot specify both initial_state_file and initial_occupations")
+        Parameters are automatically routed to SystemConfig or RuntimeConfig based on their names.
+        """
+        if system_config is None and runtime_config is None and not kwargs:
+            raise ValueError("Must provide either configs or parameters")
+        
+        # Split kwargs into system and runtime parameters
+        system_params = {}
+        runtime_params = {}
+        unknown_params = {}
+        
+        # Parameter routing tables
+        system_param_names = {
+            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
+            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
+            'initial_state_file', 'initial_occupations'  # Added initial state parameters
+        }
+        
+        runtime_param_names = {
+            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
+            'random_seed', 'name'
+        }
+        
+        # Route parameters
+        for key, value in kwargs.items():
+            if key in system_param_names:
+                system_params[key] = value
+            elif key in runtime_param_names:
+                runtime_params[key] = value
+            else:
+                unknown_params[key] = value
+        
+        # Reject unknown parameters - no legacy support
+        if unknown_params:
+            raise ValueError(f"Unknown parameters: {list(unknown_params.keys())}. "
+                           f"Use SimulationConfig.help_parameters() to see valid parameters.")
+        
+        # Create or update configs
+        if system_config is None:
+            system_config = SystemConfig(**system_params)
+        elif system_params:
+            # Update existing system config with new parameters
+            from dataclasses import replace
+            system_config = replace(system_config, **system_params)
+        
+        if runtime_config is None:
+            runtime_config = RuntimeConfig(**runtime_params)
+        elif runtime_params:
+            # Update existing runtime config with new parameters
+            from dataclasses import replace
+            runtime_config = replace(runtime_config, **runtime_params)
+        
+        # Set the attributes using object.__setattr__ since the class is frozen
+        object.__setattr__(self, 'system_config', system_config)
+        object.__setattr__(self, 'runtime_config', runtime_config)
+    
+    @classmethod
+    def create(cls, **kwargs):
+        """
+        Alternative factory method for cleaner API.
+        
+        Examples:
+            config = SimulationConfig.create(
+                structure_file="test.cif",
+                temperature=400.0,
+                kmc_passes=50000
+            )
+        """
+        return cls(**kwargs)
+    
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for InputSet compatibility."""
-        # Merge system and runtime configs
-        config = {}
-        config.update(self.system.to_dict())
-        config.update(self.runtime.to_dict())
-        
-        # Add initial state handling
-        if self.initial_state_file:
-            config['initial_state'] = self.initial_state_file
-        elif self.initial_occupations:
-            config['initial_occ'] = list(self.initial_occupations)
-        
-        # Add metadata
-        config['task'] = 'kmc'
-        
-        return config
+        """Convert to dictionary for serialization."""
+        result = {}
+        result.update(self.system_config.to_dict())
+        result.update(self.runtime_config.to_dict())
+        return result
     
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "SimulationConfig":
         """Create from dictionary."""
-        # Extract system parameters
-        system_params = {
-            'structure_file': config_dict.get('template_structure_fname', ''),
-            'supercell_shape': tuple(config_dict.get('supercell_shape', [1, 1, 1])),
-            'dimension': config_dict.get('dimension', 3),
-            'mobile_ion_specie': config_dict.get('mobile_ion_specie', 'Li'),
-            'mobile_ion_charge': config_dict.get('q', 1.0),
-            'elementary_hop_distance': config_dict.get('elem_hop_distance', 1.0),
-            'cluster_expansion_file': config_dict.get('lce_fname', ''),
-            'cluster_expansion_site_file': config_dict.get('lce_site_fname'),
-            'fitting_results_file': config_dict.get('fitting_results', ''),
-            'fitting_results_site_file': config_dict.get('fitting_results_site'),
-            'event_file': config_dict.get('event_fname', ''),
-            'event_dependencies': config_dict.get('event_dependencies'),
-            'immutable_sites': tuple(config_dict.get('immutable_sites', [])),
-            'convert_to_primitive_cell': config_dict.get('convert_to_primitive_cell', False)
+        # Split parameters between system and runtime configs
+        system_params = {}
+        runtime_params = {}
+        
+        # SystemConfig parameter names
+        system_param_names = {
+            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
+            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
         }
         
-        # Extract runtime parameters - support both old and new parameter names
-        runtime_params = {
-            'temperature': float(config_dict.get('temperature', 300.0)),
-            'attempt_frequency': float(config_dict.get('attempt_frequency', 1e13)),
-            'equilibration_passes': int(config_dict.get('equ_pass') or config_dict.get('equilibration_passes', 1000)),
-            'kmc_passes': int(config_dict.get('kmc_pass') or config_dict.get('kmc_passes', 10000)),
-            'random_seed': config_dict.get('random_seed'),
-            'name': str(config_dict.get('name', 'DefaultSimulation'))
+        # RuntimeConfig parameter names
+        runtime_param_names = {
+            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
+            'random_seed', 'name'
         }
         
-        # Extract initial state - support both old and new parameter names
-        initial_state_file = config_dict.get('initial_state')
-        initial_occupations = (config_dict.get('initial_occupations') or 
-                             config_dict.get('occupations') or
-                             config_dict.get('initial_occ'))
-        if initial_occupations:
-            initial_occupations = tuple(initial_occupations)
+        for key, value in config_dict.items():
+            if key in system_param_names:
+                system_params[key] = value
+            elif key in runtime_param_names:
+                runtime_params[key] = value
         
         return cls(
-            system=SystemConfig(**system_params),
-            runtime=RuntimeConfig(**runtime_params),
-            initial_state_file=initial_state_file,
-            initial_occupations=initial_occupations
+            system_config=SystemConfig(**system_params),
+            runtime_config=RuntimeConfig(**runtime_params)
         )
     
     # ===== FILE I/O METHODS =====
@@ -334,175 +392,196 @@ class SimulationConfig:
     def with_runtime_changes(self, **changes) -> "SimulationConfig":
         """Create new config with runtime parameter changes."""
         from dataclasses import replace
-        new_runtime = replace(self.runtime, **changes)
-        return replace(self, runtime=new_runtime)
+        new_runtime = replace(self.runtime_config, **changes)
+        return replace(self, runtime_config=new_runtime)
     
     def with_system_changes(self, **changes) -> "SimulationConfig":
         """Create new config with system parameter changes."""
         from dataclasses import replace
-        new_system = replace(self.system, **changes)
-        return replace(self, system=new_system)
+        new_system = replace(self.system_config, **changes)
+        return replace(self, system_config=new_system)
     
     def summary(self) -> str:
         """Human-readable summary."""
         return (
-            f"{self.runtime.name}: "
-            f"T={self.runtime.temperature}K, "
-            f"passes={self.runtime.kmc_passes}, "
-            f"system={Path(self.system.structure_file).name}"
+            f"{self.runtime_config.name}: "
+            f"T={self.runtime_config.temperature}K, "
+            f"passes={self.runtime_config.kmc_passes}, "
+            f"system={Path(self.system_config.structure_file).name}"
         )
     
-    # ===== CONVENIENCE FACTORY METHODS =====
+    # ===== CONVENIENT PROPERTY ACCESS =====
+    # Users don't need to remember which config contains what parameter
+    
+    # Runtime properties
+    @property
+    def temperature(self) -> float:
+        """Access temperature directly."""
+        return self.runtime_config.temperature
+    
+    @property
+    def name(self) -> str:
+        """Access simulation name directly."""
+        return self.runtime_config.name
+    
+    @property
+    def kmc_passes(self) -> int:
+        """Access KMC passes directly."""
+        return self.runtime_config.kmc_passes
+    
+    @property
+    def equilibration_passes(self) -> int:
+        """Access equilibration passes directly."""
+        return self.runtime_config.equilibration_passes
+    
+    @property
+    def attempt_frequency(self) -> float:
+        """Access attempt frequency directly."""
+        return self.runtime_config.attempt_frequency
+    
+    @property
+    def random_seed(self) -> Optional[int]:
+        """Access random seed directly."""
+        return self.runtime_config.random_seed
+    
+    # System properties
+    @property
+    def structure_file(self) -> str:
+        """Access structure file directly."""
+        return self.system_config.structure_file
+    
+    @property
+    def mobile_ion_specie(self) -> str:
+        """Access mobile ion species directly."""
+        return self.system_config.mobile_ion_specie
+    
+    @property
+    def supercell_shape(self) -> tuple[int, int, int]:
+        """Access supercell shape directly."""
+        return self.system_config.supercell_shape
+    
+    @property
+    def dimension(self) -> int:
+        """Access dimension directly."""
+        return self.system_config.dimension
+    
+    @property
+    def cluster_expansion_file(self) -> str:
+        """Access cluster expansion file directly."""
+        return self.system_config.cluster_expansion_file
+    
+    @property
+    def event_file(self) -> str:
+        """Access event file directly."""
+        return self.system_config.event_file
+    
+    @property
+    def immutable_sites(self) -> tuple:
+        """Access immutable sites directly."""
+        return self.system_config.immutable_sites
+    
+    @property
+    def elementary_hop_distance(self) -> float:
+        """Access elementary hop distance directly."""
+        return self.system_config.elementary_hop_distance
+    
+    @property  
+    def mobile_ion_charge(self) -> float:
+        """Access mobile ion charge directly."""
+        return self.system_config.mobile_ion_charge
+    
+    @property
+    def convert_to_primitive_cell(self) -> bool:
+        """Access convert to primitive cell directly."""
+        return self.system_config.convert_to_primitive_cell
+    
+    @property
+    def initial_state_file(self) -> Optional[str]:
+        """Access initial state file directly."""
+        return self.system_config.initial_state_file
+    
+    @property
+    def initial_occupations(self) -> Optional[list]:
+        """Access initial occupations directly."""
+        return self.system_config.initial_occupations
+    
+    # ===== HELPER METHODS =====
     
     @classmethod
-    def create(
-        cls,
-        # Required files
-        structure_file: str,
-        cluster_expansion_file: str, 
-        event_file: str,
+    def help_parameters(cls):
+        """Print available parameters and which config they belong to."""
+        print("SimulationConfig Parameters:\n")
         
-        # Initial state (one of these must be provided)
-        initial_occupations: Optional[List[int]] = None,
-        initial_state_file: Optional[str] = None,
+        print("SYSTEM PARAMETERS (physical setup):")
+        system_params = [
+            "structure_file", "supercell_shape", "dimension", "mobile_ion_specie",
+            "mobile_ion_charge", "elementary_hop_distance", "cluster_expansion_file",
+            "cluster_expansion_site_file", "fitting_results_file", "fitting_results_site_file",
+            "event_file", "event_dependencies", "immutable_sites", "convert_to_primitive_cell"
+        ]
+        for param in system_params:
+            print(f"  - {param}")
         
-        # Common simulation parameters
-        name: str = "KMC_Simulation",
-        temperature: float = 300.0,
-        kmc_passes: int = 10000,
-        equilibration_passes: int = 1000,
+        print("\nRUNTIME PARAMETERS (simulation settings):")
+        runtime_params = [
+            "temperature", "attempt_frequency", "equilibration_passes", "kmc_passes",
+            "random_seed", "name"
+        ]
+        for param in runtime_params:
+            print(f"  - {param}")
         
-        # System parameters with sensible defaults
-        mobile_species: str = "Li",
-        supercell_shape: tuple = (1, 1, 1),
-        dimension: int = 3,
+        print("\nUsage examples:")
+        print("  config = SimulationConfig(structure_file='x.cif', temperature=400)")
+        print("  config = SimulationConfig.create(temperature=300, kmc_passes=10000)")
+        print("  print(config.temperature)  # Direct access to any parameter")
+    
+    def which_config(self, parameter_name: str) -> str:
+        """Show which sub-config contains a parameter."""
+        system_params = {
+            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
+            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
+        }
         
-        # Optional advanced parameters
-        attempt_frequency: float = 1e13,
-        mobile_species_charge: float = 1.0,
-        elementary_hop_distance: float = 1.0,
-        cluster_expansion_site_file: Optional[str] = None,
-        fitting_results_file: Optional[str] = None,
-        fitting_results_site_file: Optional[str] = None,
-        event_dependencies: Optional[str] = None,
-        immutable_sites: Optional[List[int]] = None,
-        convert_to_primitive_cell: bool = False,
-        random_seed: Optional[int] = None,
+        runtime_params = {
+            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
+            'random_seed', 'name'
+        }
         
-        **kwargs
-    ) -> "SimulationConfig":
-        """
-        Convenient factory method to create SimulationConfig with minimal required parameters.
-        
-        This method automatically creates SystemConfig and RuntimeConfig internally.
+        if parameter_name in system_params:
+            return f"'{parameter_name}' is in system_config (physical setup)"
+        elif parameter_name in runtime_params:
+            return f"'{parameter_name}' is in runtime_config (simulation settings)"
+        else:
+            return f"'{parameter_name}' is not a recognized parameter"
+
+    def validate(self) -> bool:
+        """Validate the configuration."""
+        try:
+            # Basic validation - configs validate themselves in __post_init__
+            # This could be expanded with more complex cross-parameter validation
+            return True
+        except Exception as e:
+            raise ValueError(f"Configuration validation failed: {e}")
+    
+    def copy_with_changes(self, **changes) -> "SimulationConfig":
+        """Create a copy of this config with some parameters changed.
         
         Args:
-            structure_file: Path to crystal structure file (.cif, .vasp, etc.)
-            cluster_expansion_file: Path to cluster expansion model file  
-            event_file: Path to KMC events definition file
-            initial_occupations: List of initial site occupations [1, -1, 1, ...]
-            initial_state_file: Path to initial state JSON file (alternative to initial_occupations)
-            name: Simulation name for identification
-            temperature: Temperature in Kelvin
-            kmc_passes: Number of KMC steps to run
-            equilibration_passes: Number of equilibration steps
-            mobile_species: Name of mobile species (e.g., "Li", "Na", "H")
-            supercell_shape: Supercell dimensions (nx, ny, nz)
-            dimension: System dimensionality (1, 2, or 3)
-            **kwargs: Additional parameters passed to SystemConfig/RuntimeConfig
+            **changes: Parameter changes to apply
             
         Returns:
-            Complete SimulationConfig ready for use
-            
-        Example:
-            config = SimulationConfig.create(
-                structure_file="nasicon.cif",
-                cluster_expansion_file="lce.json", 
-                event_file="events.json",
-                initial_occupations=[1, -1, 1, -1, 1, -1],
-                name="NASICON_300K",
-                temperature=300.0,
-                kmc_passes=50000,
-                mobile_species="Na"
-            )
+            SimulationConfig: New config with changes applied
         """
-        # Create SystemConfig
-        system = SystemConfig(
-            structure_file=structure_file,
-            supercell_shape=tuple(supercell_shape) if isinstance(supercell_shape, list) else supercell_shape,
-            dimension=dimension,
-            mobile_ion_specie=mobile_species,  # Keep legacy name for compatibility
-            mobile_ion_charge=mobile_species_charge,
-            elementary_hop_distance=elementary_hop_distance,
-            cluster_expansion_file=cluster_expansion_file,
-            cluster_expansion_site_file=cluster_expansion_site_file,
-            fitting_results_file=fitting_results_file or cluster_expansion_file,
-            fitting_results_site_file=fitting_results_site_file or cluster_expansion_site_file,
-            event_file=event_file,
-            event_dependencies=event_dependencies,
-            immutable_sites=tuple(immutable_sites or []),
-            convert_to_primitive_cell=convert_to_primitive_cell
-        )
+        # Get current config as dict
+        current_dict = self.to_dict()
         
-        # Create RuntimeConfig 
-        runtime = RuntimeConfig(
-            temperature=temperature,
-            attempt_frequency=attempt_frequency,
-            equilibration_passes=equilibration_passes,
-            kmc_passes=kmc_passes,
-            random_seed=random_seed,
-            name=name
-        )
+        # Apply changes
+        current_dict.update(changes)
         
-        # Convert initial_occupations to tuple if provided
-        if initial_occupations is not None:
-            initial_occupations = tuple(initial_occupations)
-        
-        return cls(
-            system=system,
-            runtime=runtime,
-            initial_state_file=initial_state_file,
-            initial_occupations=initial_occupations
-        )
-    
-    @classmethod 
-    def quick_setup(
-        cls,
-        structure_file: str,
-        model_files: Dict[str, str],
-        initial_occupations: List[int],
-        temperature: float = 300.0,
-        kmc_passes: int = 10000,
-        **kwargs
-    ) -> "SimulationConfig":
-        """
-        Ultra-quick setup for common use cases.
-        
-        Args:
-            structure_file: Path to structure file
-            model_files: Dictionary with keys 'cluster_expansion', 'events'
-            initial_occupations: Initial site occupations
-            temperature: Temperature in Kelvin
-            kmc_passes: Number of KMC steps
-            **kwargs: Additional parameters
-            
-        Example:
-            config = SimulationConfig.quick_setup(
-                structure_file="structure.cif",
-                model_files={
-                    'cluster_expansion': 'lce.json',
-                    'events': 'events.json'
-                },
-                initial_occupations=[1, -1, 1, -1],
-                temperature=400.0
-            )
-        """
-        return cls.create(
-            structure_file=structure_file,
-            cluster_expansion_file=model_files['cluster_expansion'],
-            event_file=model_files['events'],
-            initial_occupations=initial_occupations,
-            temperature=temperature,
-            kmc_passes=kmc_passes,
-            **kwargs
-        )
+        # Create new config
+        return SimulationConfig.from_dict(current_dict)
+
+
+# ===== I/O HELPER CLASS =====

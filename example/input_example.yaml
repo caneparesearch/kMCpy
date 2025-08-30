@@ -19,7 +19,7 @@ kmc:
   type: default
   default:
     v: 1.0
-    equ_pass: 100
+    equilibriation_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
     fitting_results: "example/file_before_kmc/results.json"

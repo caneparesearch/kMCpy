@@ -152,7 +152,8 @@ class Tracker:
         """
         Create a Tracker object from an InputSet object.
         
-        This method maintains backward compatibility by converting InputSet to SimulationConfig.
+        DEPRECATED: This method is deprecated. Use from_config() instead.
+        Convert your InputSet to SimulationConfig first using SimulationConfigIO.
 
         Args:
             inputset (InputSet): An InputSet object containing the necessary parameters for Tracker initialization.
@@ -162,12 +163,34 @@ class Tracker:
         Returns:
             Tracker: An instance of the Tracker class initialized with parameters from the InputSet.
         """
-        # Convert InputSet to SimulationConfig for clean architecture
-        from kmcpy.simulator.condition import SimulationConfig
-        from kmcpy.simulator.state import SimulationState
-        config = SimulationConfig.from_inputset(inputset)
+        import warnings
+        warnings.warn(
+            "Tracker.from_inputset is deprecated. Use Tracker.from_config() with "
+            "SimulationConfig instead. Convert InputSet to SimulationConfig using "
+            "SimulationConfigIO first.", 
+            DeprecationWarning, 
+            stacklevel=2
+        )
+        
+        # For backward compatibility, create a minimal SimulationConfig
+        # This is a temporary bridge until all code is updated
+        from kmcpy.simulator.config import SimulationConfig
+        
+        # Extract basic parameters from InputSet (this is a fallback)
+        try:
+            config = SimulationConfig(
+                structure_file=getattr(inputset, 'structure_file', ''),
+                temperature=getattr(inputset, 'temperature', 300.0),
+                name=getattr(inputset, 'name', 'FromInputSet'),
+                kmc_passes=getattr(inputset, 'kmc_passes', 10000),
+                equilibration_passes=getattr(inputset, 'equilibration_passes', 1000),
+            )
+        except Exception as e:
+            raise ValueError(f"Cannot convert InputSet to SimulationConfig: {e}. "
+                           f"Please use SimulationConfig directly instead.")
         
         # Create SimulationState with initial occupation
+        from kmcpy.simulator.state import SimulationState
         initial_state = SimulationState(occupations=occ_initial)
         
         return cls(config=config, structure=structure, initial_state=initial_state)

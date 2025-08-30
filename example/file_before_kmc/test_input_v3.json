@@ -1,7 +1,7 @@
 {
     "task": "kmc",
     "attempt_frequency" : 5000000000000,
-    "equ_pass" : 1,
+    "equilibriation_pass" : 1,
     "kmc_pass"  : 5,
     "supercell_shape" : [2,1,1],
     "fitting_results" : "fitting_results.json",

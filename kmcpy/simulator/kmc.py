@@ -1,7 +1,22 @@
 #!/usr/bin/env python
 """
 This module provides the KMC class and associated functions for performing Kinetic Monte Carlo (kMC) simulations, 
-particularly for modeling stochastic processes in materials such as ion diffusion. The KMC class manages the 
+particularly for modeling        # Load composite model using             # Use the pre-calculated select_sites from before structure transformation
+            initial_occ = _load_occ(
+                fname=config.initial_state_file,
+                shape=list(config.supercell_shape),
+                select_sites=select_sites_for_occupation
+            )ntralized from_json method
+        model = CompositeLCEModel.from_json(
+            lce_fname=config.cluster_expansion_file,
+            fitting_results=config.fitting_results_file,
+            lce_site_fname=getattr(config, 'cluster_expansion_site_file', None),
+            fitting_results_site=getattr(config, 'fitting_results_site_file', None)
+        )
+        
+        # Load events
+        event_lib = EventLib()
+        with open(config.event_file, "rb") as fhandle: processes in materials such as ion diffusion. The KMC class manages the 
 initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports 
 loading input data from various sources, updating system states, and tracking simulation results.
 """
@@ -94,8 +109,8 @@ class KMC:
         from kmcpy.simulator.condition import SimulationCondition
         self.sim_state = SimulationState(occupations=self.occ_global)
         self.sim_condition = SimulationCondition(
-            temperature=self.config.runtime.temperature, 
-            attempt_frequency=self.config.runtime.attempt_frequency
+            temperature=self.config.temperature, 
+            attempt_frequency=self.config.attempt_frequency
         )
         
         # Calculate probabilities for all events using composite model
@@ -137,27 +152,27 @@ class KMC:
         """
         from kmcpy.simulator.state import SimulationState
         
-        # Load structure directly from config
+                # Load structure directly from config
         structure = StructureKMCpy.from_cif(
-            config.system.structure_file, 
-            primitive=config.system.convert_to_primitive_cell
+            config.structure_file, 
+            primitive=config.convert_to_primitive_cell
         )
         
         # Calculate select_sites based on original structure BEFORE removing immutable sites
         select_sites_for_occupation = []
         if config.initial_state_file:
-            immutable_sites = config.system.immutable_sites or []
+            immutable_sites = config.immutable_sites or []
             for index, site in enumerate(structure.sites):
                 if site.specie.symbol not in immutable_sites:
                     select_sites_for_occupation.append(index)
             logger.debug(f"Select sites for occupation loading: {select_sites_for_occupation}")
         
         # Apply transformations AFTER calculating select_sites
-        if config.system.immutable_sites:
-            structure.remove_species(config.system.immutable_sites)
+        if config.immutable_sites:
+            structure.remove_species(config.immutable_sites)
         
-        if config.system.supercell_shape:
-            supercell_shape_matrix = np.diag(config.system.supercell_shape)
+        if config.supercell_shape:
+            supercell_shape_matrix = np.diag(config.supercell_shape)
             structure.make_supercell(supercell_shape_matrix)
         
         # Load models and events - use centralized loading methods
@@ -166,15 +181,15 @@ class KMC:
         
         # Load composite model using its centralized from_json method
         model = CompositeLCEModel.from_json(
-            lce_fname=config.system.cluster_expansion_file,
-            fitting_results=config.system.fitting_results_file,
-            lce_site_fname=getattr(config.system, 'cluster_expansion_site_file', None),
-            fitting_results_site=getattr(config.system, 'fitting_results_site_file', None)
+            lce_fname=config.cluster_expansion_file,
+            fitting_results=config.fitting_results_file,
+            lce_site_fname=getattr(config, 'cluster_expansion_site_file', None),
+            fitting_results_site=getattr(config, 'fitting_results_site_file', None)
         )
         
         # Load events
         event_lib = EventLib()
-        with open(config.system.event_file, "rb") as fhandle:
+        with open(config.event_file, "rb") as fhandle:
             events_dict = json.load(fhandle)
         
         for event_dict in events_dict:
@@ -194,7 +209,7 @@ class KMC:
             # Use the pre-calculated select_sites from before structure transformation
             initial_occ = _load_occ(
                 fname=config.initial_state_file,
-                shape=list(config.system.supercell_shape),
+                shape=list(config.supercell_shape),
                 select_sites=select_sites_for_occupation
             )
         
@@ -300,7 +315,7 @@ class KMC:
         Args:
             config (SimulationConfig): Configuration object containing all necessary parameters.
             label (str, optional): Label for the simulation run. Defaults to None.
-                If None, will use config.runtime.name.
+                If None, will use config.name.
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
@@ -322,21 +337,21 @@ class KMC:
         """
         # Set label from config if not provided
         if label is None:
-            label = config.runtime.name
+            label = config.name
         
         # Initialize random number generator
-        if config.runtime.random_seed is not None:
-            self.rng = np.random.default_rng(seed=config.runtime.random_seed)
+        if config.random_seed is not None:
+            self.rng = np.random.default_rng(seed=config.random_seed)
         else:
             self.rng = np.random.default_rng()
 
-        logger.info(f"Simulation condition: v = {config.runtime.attempt_frequency} T = {config.runtime.temperature}")
+        logger.info(f"Simulation condition: v = {config.attempt_frequency} T = {config.temperature}")
         
         # Calculate pass length based on mobile ions
         pass_length = len([
             el.symbol
             for el in self.structure.species
-            if config.system.mobile_ion_specie in el.symbol
+            if config.mobile_ion_specie in el.symbol
         ])
         
         logger.info("============================================================")
@@ -345,7 +360,7 @@ class KMC:
         logger.info("Starting Equilibrium ...")
         
         # Equilibration phase
-        for _ in np.arange(config.runtime.equilibration_passes):
+        for _ in np.arange(config.equilibration_passes):
             for _ in np.arange(pass_length):
                 event, dt, event_index = self.propose(self.event_lib.events)
                 self.update(event, event_index)
@@ -368,7 +383,7 @@ class KMC:
         )
 
         # Main KMC loop
-        for current_pass in np.arange(config.runtime.kmc_passes):
+        for current_pass in np.arange(config.kmc_passes):
             for _ in np.arange(pass_length):
                 event, dt, event_index = self.propose(self.event_lib.events)
                 

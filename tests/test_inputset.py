@@ -20,12 +20,12 @@ class TestInputSetParameterHandling:
         valid_kmc_params = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
             'fitting_results_site': 'test.json',
-            'lce_fname': 'test.json',
+            'cluster_expansion_file': 'test.json',
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
@@ -59,12 +59,12 @@ class TestInputSetParameterHandling:
         mixed_case_params = {
             'TASK': 'kmc',
             'ATTEMPT_FREQUENCY': 5e12,
-            'Equ_Pass': 1,
+            'Equilibriation_pass': 1,
             'KMC_Pass': 10,
             'Supercell_Shape': [2, 1, 1],
             'Fitting_Results': 'test.json',
             'Fitting_Results_Site': 'test.json',
-            'LCE_Fname': 'test.json',
+            'cluster_expansion_file': 'test.json',
             'LCE_Site_Fname': 'test.json',
             'Template_Structure_Fname': 'test.cif',
             'Event_Fname': 'test.json',
@@ -97,7 +97,7 @@ class TestInputSetParameterHandling:
         minimal_params = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
@@ -156,7 +156,7 @@ class TestInputSetParameterHandling:
         new_style_params = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
@@ -185,7 +185,7 @@ class TestInputSetParameterHandling:
         params = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
@@ -223,7 +223,7 @@ class TestInputSetParameterHandling:
         params_with_unknown = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
@@ -264,7 +264,7 @@ class TestInputSetFileHandling:
         test_params = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
@@ -300,7 +300,7 @@ class TestInputSetFileHandling:
         test_params = {
             'task': 'kmc',
             'attempt_frequency': 5e12,
-            'equ_pass': 1,
+            'equilibriation_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
             'fitting_results': 'test.json',
@@ -388,7 +388,7 @@ kmc:
   type: default
   default:
     attempt_frequency: 1.0
-    equ_pass: 100
+    equilibriation_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
     fitting_results: "results.json"
@@ -475,7 +475,7 @@ kmc:
   type: default
   default:
     attempt_frequency: 1.0
-    equ_pass: 100
+    equilibriation_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
     fitting_results: "results.json"
@@ -627,7 +627,7 @@ kmc:
   type: default
   default:
     attempt_frequency: 1.0
-    equ_pass: 100
+    equilibriation_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
     fitting_results: "results.json"
@@ -695,7 +695,7 @@ kmc:
         legacy_yaml = """
 task: kmc
 attempt_frequency: 5e12
-equ_pass: 1
+equilibriation_pass: 1
 kmc_pass: 10
 supercell_shape: [2, 1, 1]
 fitting_results: "test.json"

@@ -8,7 +8,8 @@ from ._version import __version__
 from .models import BaseModel, LocalClusterExpansion, CompositeLCEModel
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
-from .simulator.condition import SimulationCondition, SimulationConfig
+from .simulator.condition import SimulationCondition
+from .simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
 from .simulator.state import SimulationState
 from .simulator.tracker import Tracker
 
@@ -28,6 +29,8 @@ __all__ = [
     "NeighborInfoMatcher",
     "SimulationCondition",
     "SimulationConfig", 
+    "SystemConfig",
+    "RuntimeConfig",
     "SimulationState",
     "Tracker"
 ]

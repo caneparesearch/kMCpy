@@ -361,7 +361,7 @@ class InputSet:
             # True -> positional parameters, False -> optional parameters
             parameters = {
                 "attempt_frequency": True,
-                "equ_pass": True,
+                "equilibriation_pass": True,
                 "kmc_pass": True,
                 "supercell_shape": True,
                 "fitting_results": True,

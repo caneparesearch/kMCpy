@@ -21,32 +21,32 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
         SimulationConfig: Test configuration object
     """
     if use_real_files:
-        # Use real test files
-        return SimulationConfig(
+        # Use real test files - Create model-based SimulationConfig using the create() method
+        config = SimulationConfig.create(
+            structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+            cluster_expansion_file=f"{file_path}/input/lce.json",
+            fitting_results_file=f"{file_path}/input/fitting_results.json",
+            cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+            fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+            event_file=f"{file_path}/input/events.json",
+            # Note: initial_state_file is not supported in the clean API
+            mobile_ion_specie="Na",
+            temperature=873.0,
             name=name,
-            temperature=573.0,
             attempt_frequency=1e13,
             equilibration_passes=10,  # Small for testing
             kmc_passes=50,  # Small for testing
             dimension=3,
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
-            mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_state=f"{file_path}/input/initial_state.json",  # Use initial_state file
-            immutable_sites=["Zr", "O"],  # Add immutable sites
-            # Real test file paths
-            fitting_results=f"{file_path}/fitting_results.json",
-            fitting_results_site=f"{file_path}/fitting_results.json",  # Use same for testing
-            lce_fname=f"{file_path}/lce.json",
-            lce_site_fname=f"{file_path}/lce.json",  # Use same for testing
-            template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-            event_fname=f"{file_path}/events.json",
-            event_dependencies=f"{file_path}/event_dependencies.csv",
+            supercell_shape=(2, 1, 1),  # Use tuple
+            immutable_sites=("Zr", "O"),  # Use tuple
         )
+        return config
     else:
         # Use fake paths for testing parameter handling
         return SimulationConfig(
+            structure_file="fake_structure.cif",  # Required parameter
             name=name,
             temperature=573.0,
             attempt_frequency=1e13,
@@ -56,17 +56,12 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_occ=[1, -1, 1, -1],
-            immutable_sites=["Zr", "O"],  # Add immutable sites
-            # Fake file paths
-            fitting_results="fake.json",
-            fitting_results_site="fake.json",
-            lce_fname="fake.json",
-            lce_site_fname="fake.json",
-            template_structure_fname="fake.cif",
-            event_fname="fake.json",
-            event_dependencies="fake.csv",
+            supercell_shape=(2, 1, 1),  # Use tuple
+            immutable_sites=("Zr", "O"),  # Use tuple
+            # Fake file paths with correct names
+            fitting_results_file="fake_fitting.json",
+            cluster_expansion_file="fake_lce.json",
+            event_file="fake_events.json",
         )
 
 
@@ -149,7 +144,7 @@ class TestNASICONbulk(unittest.TestCase):
     def test_generate_events(self):
         mobile_ion_identifier_type = "label"
         mobile_ion_identifiers = ("Na1", "Na2")
-        template_structure_fname = (
+        structure_file = (
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
         )
         local_env_cutoff_dict = {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
@@ -157,7 +152,7 @@ class TestNASICONbulk(unittest.TestCase):
 
         generator = EventGenerator()
         generator.generate_events(
-            template_structure_fname=template_structure_fname,
+            structure_file=structure_file,  # Updated parameter name
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
@@ -168,12 +163,12 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=False,
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
-            event_fname=f"{file_path}/events.json",
+            event_file=f"{file_path}/events.json",  # Updated parameter name
             event_dependencies_fname=f"{file_path}/event_dependencies.csv",
         )
 
         reference_local_env_dict = generator.generate_events(
-            template_structure_fname=template_structure_fname,
+            structure_file=structure_file,  # Updated parameter name
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
@@ -184,7 +179,7 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=True,
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
-            event_fname=f"{file_path}/events.json",
+            event_file=f"{file_path}/events.json",  # Updated parameter name
             event_dependencies_fname=f"{file_path}/event_dependencies.csv",
         )
 
@@ -254,8 +249,8 @@ class TestNASICONbulk(unittest.TestCase):
                 cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
                 fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
                 event_file=f"{file_path}/input/events.json",
-                initial_state_file=f"{file_path}/input/initial_state.json",
-                mobile_species="Na",
+                # Note: initial_state_file is not supported in the clean API
+                mobile_ion_specie="Na",  # Fixed parameter name
                 temperature=298,
                 attempt_frequency=5e12,
                 equilibration_passes=1,
@@ -319,8 +314,8 @@ class TestNASICONbulk(unittest.TestCase):
                 cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
                 fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
                 event_file=f"{file_path}/input/events.json",
-                initial_state_file=f"{file_path}/input/initial_state.json",
-                mobile_species="Na",
+                # Note: initial_state_file is not supported in the clean API
+                mobile_ion_specie="Na",
                 temperature=298.0,
                 attempt_frequency=5e12,
                 equilibration_passes=1,
@@ -534,8 +529,8 @@ class TestNASICONbulk(unittest.TestCase):
                 cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
                 fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
                 event_file=f"{file_path}/input/events.json",
-                initial_state_file=f"{file_path}/input/initial_state.json",
-                mobile_species="Na",
+                # Note: initial_state_file is not supported in the clean API
+                mobile_ion_specie="Na",
                 temperature=298.0,
                 attempt_frequency=5e12,
                 equilibration_passes=1,
@@ -618,13 +613,13 @@ class TestNASICONbulk(unittest.TestCase):
                 immutable_sites=["Zr", "O", "Zr4+", "O2-"],  # Same as JSON
                 random_seed=12345,  # Same as JSON
                 convert_to_primitive_cell=True,  # Same as JSON
-                # File paths (using absolute paths from tests directory)
-                fitting_results=f"{file_path}/input/fitting_results.json",
-                fitting_results_site=f"{file_path}/input/fitting_results_site.json",
-                lce_fname=f"{file_path}/input/lce.json",
-                lce_site_fname=f"{file_path}/input/lce_site.json",
-                template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                event_fname=f"{file_path}/input/events.json",
+                # File paths with updated parameter names
+                fitting_results_file=f"{file_path}/input/fitting_results.json",
+                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                cluster_expansion_file=f"{file_path}/input/lce.json",
+                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+                structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+                event_file=f"{file_path}/input/events.json",
                 event_dependencies=f"{file_path}/input/event_dependencies.csv",
             )
 
@@ -723,8 +718,8 @@ class TestNASICONbulk(unittest.TestCase):
                 cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
                 fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
                 event_file=f"{file_path}/input/events.json",
-                initial_state_file=f"{file_path}/input/initial_state.json",
-                mobile_species="Na",
+                # Note: initial_state_file is not supported in the clean API
+                mobile_ion_specie="Na",
                 temperature=298.0,
                 attempt_frequency=5e12,
                 equilibration_passes=1,

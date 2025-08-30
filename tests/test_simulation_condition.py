@@ -9,7 +9,8 @@ import tempfile
 import json
 from pathlib import Path
 
-from kmcpy.simulator.condition import SimulationCondition, SimulationConfig
+from kmcpy.simulator.condition import SimulationCondition
+from kmcpy.simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
 from kmcpy.simulator.state import SimulationState
 from kmcpy.io.io import InputSet
 
@@ -71,134 +72,131 @@ class TestSimulationConfig:
     """Test cases for SimulationConfig class."""
     
     def test_initialization(self):
-        """Test SimulationConfig initialization."""
+        """Test SimulationConfig initialization with new clean API."""
+        # Test the new smart constructor - no need to create separate configs
         config = SimulationConfig(
+            structure_file="test.cif",
+            supercell_shape=(2, 1, 1),
+            mobile_ion_specie="Na",
+            immutable_sites=("Zr", "O"),
             name="NASICON_Test",
             temperature=573.0,
             attempt_frequency=1e13,
             equilibration_passes=100,
-            kmc_passes=1000,
-            supercell_shape=[2, 1, 1],
-            mobile_ion_specie="Na",
-            initial_occ=[1, -1, 1, -1],
-            immutable_sites=["Zr", "O"]
+            kmc_passes=1000
         )
         
+        # Access properties directly - much cleaner!
         assert config.name == "NASICON_Test"
         assert config.temperature == 573.0
         assert config.equilibration_passes == 100
         assert config.kmc_passes == 1000
-        assert config.supercell_shape == [2, 1, 1]
+        assert config.supercell_shape == (2, 1, 1)
         assert config.mobile_ion_specie == "Na"
-        assert config.initial_occ == [1, -1, 1, -1]
-        assert config.immutable_sites == ["Zr", "O"]
+        assert config.immutable_sites == ("Zr", "O")
+        
+        # Can still access the underlying configs if needed
+        assert config.runtime_config.name == "NASICON_Test"
+        assert config.system_config.mobile_ion_specie == "Na"
     
     def test_default_values(self):
         """Test default values for SimulationConfig."""
-        config = SimulationConfig()
+        config = SimulationConfig(structure_file="test.cif")
         
-        assert config.supercell_shape == [1, 1, 1]
-        assert config.initial_occ == []
+        # Test defaults through direct property access
+        assert config.supercell_shape == (1, 1, 1)
         assert config.mobile_ion_specie == "Li"
         assert config.dimension == 3
-        assert config.mobile_ion_charge == 1.0
+        assert config.temperature == 300.0
+        assert config.kmc_passes == 10000
     
     def test_to_dict(self):
         """Test conversion to dictionary."""
         config = SimulationConfig(
+            structure_file="structure.cif",
+            supercell_shape=(2, 2, 2),
+            mobile_ion_specie="Li",
+            cluster_expansion_file="lce.json",
+            event_file="events.json",
+            fitting_results_file="test.json",
             name="Test",
             temperature=300.0,
             attempt_frequency=1e13,
             equilibration_passes=10,
-            kmc_passes=100,
-            supercell_shape=[2, 2, 2],
-            mobile_ion_specie="Li",
-            fitting_results="test.json",
-            lce_fname="lce.json",
-            template_structure_fname="structure.cif",
-            event_fname="events.json",
-            event_dependencies="deps.csv"
+            kmc_passes=100
         )
         
         result = config.to_dict()
         
+        # Check runtime parameters (uses legacy key names)
         assert result['name'] == 'Test'
         assert result['temperature'] == 300.0
-        assert result['attempt_frequency'] == 1e13
-        assert result['equ_pass'] == 10
-        assert result['kmc_pass'] == 100
-        assert result['supercell_shape'] == [2, 2, 2]
+        assert result['equ_pass'] == 10  # Legacy key name
+        assert result['kmc_pass'] == 100  # Legacy key name
+        assert result['random_seed'] is None
+        
+        # Check system parameters 
+        assert result['supercell_shape'] == [2, 2, 2]  # Converted to list
         assert result['mobile_ion_specie'] == 'Li'
-        assert result['fitting_results'] == 'test.json'
-        assert result['lce_fname'] == 'lce.json'
-        assert result['template_structure_fname'] == 'structure.cif'
-        assert result['event_fname'] == 'events.json'
-        assert result['event_dependencies'] == 'deps.csv'
-        assert result['task'] == 'kmc'
+        assert result['structure_file'] == 'structure.cif'
+        assert result['cluster_expansion_file'] == 'lce.json'
+        assert result['event_file'] == 'events.json'
+        assert result['fitting_results_file'] == 'test.json'
     
-    def test_to_inputset_conversion(self):
-        """Test conversion to InputSet."""
-        config = SimulationConfig(
-            name="Test",
-            temperature=300.0,
-            attempt_frequency=1e13,
-            equilibration_passes=10,
-            kmc_passes=100,
-            supercell_shape=[2, 1, 1],
-            mobile_ion_specie="Na",
-            random_seed=42,
-            initial_occ=[1, -1, 1, -1],  # Test with initial_occ
-            immutable_sites=["Zr", "O"],
-            # Add required file parameters
-            fitting_results='test_fitting.json',
-            fitting_results_site='test_fitting_site.json',
-            lce_fname='test_lce.json',
-            lce_site_fname='test_lce_site.json',
-            template_structure_fname='test_structure.cif',
-            event_fname='test_events.json',
-            event_dependencies='test_dependencies.csv'
-        )
+    def test_from_dict(self):
+        """Test creation from dictionary."""
+        config_dict = {
+            'name': 'Test',
+            'temperature': 300.0,
+            'attempt_frequency': 1e13,
+            'equilibration_passes': 10,
+            'kmc_passes': 100,
+            'structure_file': 'structure.cif',
+            'supercell_shape': (2, 1, 1),
+            'mobile_ion_specie': 'Na',
+            'cluster_expansion_file': 'lce.json',
+            'event_file': 'events.json'
+        }
         
-        # This will create a temporary file for initial_state
-        inputset = config.to_inputset()
+        config = SimulationConfig.from_dict(config_dict)
         
-        assert hasattr(inputset, 'name')
-        assert inputset.name == 'Test'
-        assert inputset.temperature == 300.0
-        assert inputset.attempt_frequency == 1e13
-        assert inputset.equ_pass == 10
-        assert inputset.kmc_pass == 100
-        assert inputset.supercell_shape == [2, 1, 1]
-        assert inputset.mobile_ion_specie == 'Na'
-        assert inputset.random_seed == 42
-        assert inputset.immutable_sites == ["Zr", "O"]
+        # Test direct property access - much cleaner
+        assert config.name == 'Test'
+        assert config.temperature == 300.0
+        assert config.attempt_frequency == 1e13
+        assert config.equilibration_passes == 10
+        assert config.kmc_passes == 100
+        assert config.structure_file == 'structure.cif'
+        assert config.supercell_shape == (2, 1, 1)
+        assert config.mobile_ion_specie == 'Na'
+        assert config.system_config.cluster_expansion_file == 'lce.json'
+        assert config.system_config.event_file == 'events.json'
     
     def test_validation(self):
-        """Test validation of SimulationConfig."""
+        """Test validation of SimulationConfig components."""
+        # Test valid configuration with new API
         config = SimulationConfig(
+            structure_file="test_structure.cif",
+            cluster_expansion_file="test_lce.json",
+            event_file="test_events.json",
             name="Test",
             temperature=300.0,
-            attempt_frequency=1e13,
             equilibration_passes=10,
-            kmc_passes=100,
-            # Add required file parameters
-            fitting_results='test_fitting.json',
-            fitting_results_site='test_fitting_site.json',
-            lce_fname='test_lce.json',
-            lce_site_fname='test_lce_site.json',
-            template_structure_fname='test_structure.cif',
-            event_fname='test_events.json',
-            event_dependencies='test_dependencies.csv',
-            initial_occ=[1, -1, 1, -1]  # Required: initial_occ or initial_state
+            kmc_passes=100
         )
         
         # Should not raise an exception
-        config.validate()
+        assert config.temperature == 300.0
         
-        # Test with invalid temperature
-        config.temperature = -10.0
-        with pytest.raises(ValueError):
-            config.validate()
+        # Test validation happens during construction - invalid temperature
+        with pytest.raises(ValueError, match="Temperature must be positive"):
+            SimulationConfig(
+                structure_file="test.cif",
+                name="Test",
+                temperature=-10.0,  # Invalid negative temperature
+                equilibration_passes=10,
+                kmc_passes=100
+            )
 
 
 @pytest.fixture

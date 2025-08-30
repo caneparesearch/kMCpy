@@ -44,6 +44,7 @@ def test_simulation_condition_classes():
     assert condition.name == "Test"
     
     kmc_condition = SimulationConfig(
+        structure_file="test.cif",  # Required parameter
         name="KMC_Test",
         temperature=400.0,
         attempt_frequency=1e13,
