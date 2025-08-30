@@ -57,15 +57,16 @@ def test_simulation_condition_classes():
     assert callable(create_temperature_series)
 
 def test_kmc_simulation_condition_integration():
-    """Test that KMC class has SimulationCondition integration methods."""
+    """Test that KMC class has SimulationConfig integration methods."""
     from kmcpy.simulator.kmc import KMC
     
     # Test that new methods exist (updated method names)
     assert hasattr(KMC, 'from_config'), "KMC missing from_config method"
-    assert hasattr(KMC, 'from_inputset'), "KMC missing from_inputset method"
     assert hasattr(KMC, 'run'), "KMC missing run method"
     
     # Test that methods are callable
     assert callable(getattr(KMC, 'from_config'))
-    assert callable(getattr(KMC, 'from_inputset'))
     assert callable(getattr(KMC, 'run'))
+    
+    # Verify that InputSet methods have been removed (no longer supported)
+    assert not hasattr(KMC, 'from_inputset'), "KMC should not have from_inputset method (InputSet deprecated)"

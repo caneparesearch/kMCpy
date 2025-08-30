@@ -109,7 +109,7 @@ class TestSimulationStateArchitecture:
         
         # Create SimulationState (mutable) with pymatgen structure
         state = SimulationState(
-            initial_occ=config.initial_occ,
+            occupations=config.initial_occ,
         )
         
         # Test that SimulationState manages all mutable state
@@ -142,7 +142,7 @@ class TestSimulationStateArchitecture:
         
         # State should be mutable
         state = SimulationState(
-            initial_occ=[1, -1, 1, -1],
+            occupations=[1, -1, 1, -1],
         )
         
         # Configuration should not change during simulation
@@ -195,14 +195,14 @@ class TestKMCIntegrationImprovements:
         # Test parameter mapping for KMC
         kmc_params = {
             'temperature': config.temperature,
-            'v': config.attempt_frequency,
+            'attempt_frequency': config.attempt_frequency,
             'supercell_shape': config.supercell_shape,
             'immutable_sites': config.immutable_sites,
         }
         
         # Verify parameter mapping
         assert kmc_params['temperature'] == 400.0
-        assert kmc_params['v'] == 1e13
+        assert kmc_params['attempt_frequency'] == 1e13
         assert kmc_params['supercell_shape'] == [2, 1, 1]
         assert kmc_params['immutable_sites'] == ["Zr", "O"]
         
@@ -213,7 +213,7 @@ class TestKMCIntegrationImprovements:
         
         # Create SimulationState for optimized loop
         state = SimulationState(
-            initial_occ=[1, -1, 1, -1],
+            occupations=[1, -1, 1, -1],
         )
         
         # Test optimized state updates
@@ -287,7 +287,7 @@ class TestPhase4InputSetMigration:
         # Test old-style parameters
         old_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -312,7 +312,7 @@ class TestPhase4InputSetMigration:
         
         assert inputset.event_kernel == 'test.csv'
         assert inputset.temperature == 298.0
-        assert inputset.v == 5e12
+        assert inputset.attempt_frequency == 5e12
         
         print("✓ InputSet compatibility maintained")
     
@@ -342,7 +342,7 @@ class TestPhase4InputSetMigration:
         
         # Test that parameters are correctly set
         assert config_dict['temperature'] == 300.0
-        assert config_dict['v'] == 1e13
+        assert config_dict['attempt_frequency'] == 1e13
         assert config_dict['equ_pass'] == 5
         assert config_dict['kmc_pass'] == 25
         assert config_dict['mobile_ion_specie'] == "Li"
@@ -360,7 +360,7 @@ class TestOccupationManagement:
         initial_occ = [1, -1, 1, -1]  # Sites 0,2 occupied, sites 1,3 vacant
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         # Test initial state
@@ -394,7 +394,7 @@ class TestOccupationManagement:
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         # State should manage its own occupations

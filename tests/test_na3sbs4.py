@@ -112,8 +112,8 @@ class TestNa3SbS4(unittest.TestCase):
         config_dict = config.to_dict()
         self.assertIn('name', config_dict)
         self.assertIn('temperature', config_dict)
-        self.assertIn('v', config_dict)
-        self.assertEqual(config_dict['v'], 1e13)
+        self.assertIn('attempt_frequency', config_dict)
+        self.assertEqual(config_dict['attempt_frequency'], 1e13)
         
         # Test dataclass dictionary conversion
         dataclass_dict = config.to_dataclass_dict()

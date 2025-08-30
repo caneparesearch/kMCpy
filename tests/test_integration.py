@@ -182,7 +182,6 @@ def test_parameter_serialization():
     # Check that dictionaries contain expected keys
     assert 'name' in regular_dict
     assert 'temperature' in regular_dict
-    assert 'v' in regular_dict  # Should map attempt_frequency to v
     assert 'equ_pass' in regular_dict  # Should map equilibration_passes to equ_pass
     assert 'kmc_pass' in regular_dict  # Should map kmc_passes to kmc_pass
     
@@ -193,7 +192,6 @@ def test_parameter_serialization():
     assert 'kmc_passes' in dataclass_dict  # Should keep original field name
     
     # Test parameter mapping
-    assert regular_dict['v'] == config.attempt_frequency
     assert regular_dict['equ_pass'] == config.equilibration_passes
     assert regular_dict['kmc_pass'] == config.kmc_passes
     assert regular_dict['elem_hop_distance'] == config.elementary_hop_distance

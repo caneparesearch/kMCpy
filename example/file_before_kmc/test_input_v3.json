@@ -1,6 +1,6 @@
 {
     "task": "kmc",
-    "v" : 5000000000000,
+    "attempt_frequency" : 5000000000000,
     "equ_pass" : 1,
     "kmc_pass"  : 5,
     "supercell_shape" : [2,1,1],

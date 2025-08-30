@@ -149,7 +149,7 @@ def main():
     )
 
     # simulation condition
-    kmc_parser.add_argument("v", default=5000000000000, type=int)
+    kmc_parser.add_argument("attempt_frequency", default=5000000000000, type=float)
     kmc_parser.add_argument("kmc_pass", default=100, type=int)
     kmc_parser.add_argument("T", default=298, type=int)
     kmc_parser.add_argument("q", default=1.0, type=float)

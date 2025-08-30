@@ -60,7 +60,7 @@ class TestSimulationCondition:
         expected = {
             'name': 'test',
             'temperature': 400.0,
-            'v': 2e13,
+            'attempt_frequency': 2e13,
             'random_seed': 123
         }
         
@@ -124,7 +124,7 @@ class TestSimulationConfig:
         
         assert result['name'] == 'Test'
         assert result['temperature'] == 300.0
-        assert result['v'] == 1e13
+        assert result['attempt_frequency'] == 1e13
         assert result['equ_pass'] == 10
         assert result['kmc_pass'] == 100
         assert result['supercell_shape'] == [2, 2, 2]
@@ -166,7 +166,7 @@ class TestSimulationConfig:
         assert hasattr(inputset, 'name')
         assert inputset.name == 'Test'
         assert inputset.temperature == 300.0
-        assert inputset.v == 1e13
+        assert inputset.attempt_frequency == 1e13
         assert inputset.equ_pass == 10
         assert inputset.kmc_pass == 100
         assert inputset.supercell_shape == [2, 1, 1]
@@ -239,7 +239,7 @@ class TestSimulationState:
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         assert np.array_equal(state.occupations, initial_occ)
@@ -251,7 +251,7 @@ class TestSimulationState:
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         # Test initial occupations
@@ -267,19 +267,15 @@ class TestSimulationState:
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
-        # Simple event object
-        class SimpleEvent:
-            def __init__(self, idx1, idx2):
-                self.mobile_ion_indices = (idx1, idx2)
-        
-        event = SimpleEvent(0, 1)  # Swap occupations at indices 0 and 1
+        # Apply event directly without needing event object
+        from_site, to_site = 0, 1
         dt = 0.1
         
         # Update from event
-        state.update_from_event(event, dt)
+        state.apply_event(from_site, to_site, dt)
         
         # Check that occupations were flipped
         assert np.array_equal(state.occupations, [-1, 1, 1, -1])
@@ -292,7 +288,7 @@ class TestSimulationState:
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         # Update original state

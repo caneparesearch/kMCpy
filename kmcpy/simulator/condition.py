@@ -32,7 +32,7 @@ class SimulationCondition:
         return {
             'name': self.name,
             'temperature': self.temperature,
-            'v': self.attempt_frequency,  # Use 'v' to match existing KMC interface
+            'attempt_frequency': self.attempt_frequency,
             'random_seed': self.random_seed
         }
     
@@ -214,7 +214,6 @@ class SimulationConfig(SimulationCondition):
         """
         # Map common parameter names to dataclass field names
         param_mapping = {
-            'v': 'attempt_frequency',
             'equ_pass': 'equilibration_passes',
             'kmc_pass': 'kmc_passes',
             'elem_hop_distance': 'elementary_hop_distance',
@@ -292,7 +291,6 @@ class SimulationConfig(SimulationCondition):
         
         # Map common InputSet parameter names to dataclass field names
         param_mapping = {
-            'v': 'attempt_frequency',
             'equ_pass': 'equilibration_passes',
             'kmc_pass': 'kmc_passes',
             'elem_hop_distance': 'elementary_hop_distance',

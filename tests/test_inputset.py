@@ -19,7 +19,7 @@ class TestInputSetParameterHandling:
         # Complete set of valid KMC parameters
         valid_kmc_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -50,7 +50,7 @@ class TestInputSetParameterHandling:
         
         # Verify that all parameters are accessible
         assert inputset.task == 'kmc'
-        assert inputset.v == 5e12
+        assert inputset.attempt_frequency == 5e12
         assert inputset.random_seed == 12345
         assert inputset.name == 'test_simulation'
         assert inputset.event_dependencies == 'test_deps.csv'
@@ -60,7 +60,7 @@ class TestInputSetParameterHandling:
         """Test that parameter names are case-insensitive."""
         mixed_case_params = {
             'TASK': 'kmc',
-            'V': 5e12,
+            'ATTEMPT_FREQUENCY': 5e12,
             'Equ_Pass': 1,
             'KMC_Pass': 10,
             'Supercell_Shape': [2, 1, 1],
@@ -89,7 +89,7 @@ class TestInputSetParameterHandling:
         
         # Parameters should be converted to lowercase
         assert inputset.task == 'kmc'
-        assert inputset.v == 5e12
+        assert inputset.attempt_frequency == 5e12
         assert inputset.random_seed == 12345
         assert inputset.event_dependencies == 'test.csv'
     
@@ -98,7 +98,7 @@ class TestInputSetParameterHandling:
         # Minimal required parameters
         minimal_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -131,7 +131,7 @@ class TestInputSetParameterHandling:
         """Test that missing required parameters raise appropriate errors."""
         incomplete_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'temperature': 298.0,
             # Missing many required parameters
         }
@@ -144,7 +144,7 @@ class TestInputSetParameterHandling:
         """Test that invalid task parameter raises appropriate error."""
         invalid_params = {
             'task': 'invalid_task',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'temperature': 298.0,
         }
         
@@ -156,7 +156,7 @@ class TestInputSetParameterHandling:
         """Test backward compatibility with event_kernel parameter."""
         old_style_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -188,7 +188,7 @@ class TestInputSetParameterHandling:
         """Test that new parameter names are accepted."""
         new_style_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -217,7 +217,7 @@ class TestInputSetParameterHandling:
         """Test parameter access via __getattr__."""
         params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -243,7 +243,7 @@ class TestInputSetParameterHandling:
         
         # Test attribute access
         assert inputset.task == 'kmc'
-        assert inputset.v == 5e12
+        assert inputset.attempt_frequency == 5e12
         assert inputset.random_seed == 42
         assert inputset.name == 'test_sim'
         
@@ -255,7 +255,7 @@ class TestInputSetParameterHandling:
         """Test that ignored parameters generate warnings."""
         params_with_unknown = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -296,7 +296,7 @@ class TestInputSetFileHandling:
         # Create a temporary JSON file
         test_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -332,7 +332,7 @@ class TestInputSetFileHandling:
         """Test InputSet creation from dictionary."""
         test_params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'equ_pass': 1,
             'kmc_pass': 10,
             'supercell_shape': [2, 1, 1],
@@ -362,15 +362,15 @@ class TestInputSetFileHandling:
         """Test parameter setting functionality."""
         params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'temperature': 298.0,
         }
         
         inputset = InputSet(params)
         
         # Test setting existing parameter
-        inputset.set_parameter('v', 1e13)
-        assert inputset.v == 1e13
+        inputset.set_parameter('attempt_frequency', 1e13)
+        assert inputset.attempt_frequency == 1e13
         
         # Test setting non-existent parameter
         with pytest.raises(KeyError):
@@ -380,7 +380,7 @@ class TestInputSetFileHandling:
         """Test parameter enumeration functionality."""
         params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'temperature': 298.0,
         }
         
@@ -420,7 +420,7 @@ model:
 kmc:
   type: default
   default:
-    v: 1.0
+    attempt_frequency: 1.0
     equ_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
@@ -507,7 +507,7 @@ model:
 kmc:
   type: default
   default:
-    v: 1.0
+    attempt_frequency: 1.0
     equ_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
@@ -620,7 +620,7 @@ model:
 kmc:
   type: default
   default:
-    v: 1.0
+    attempt_frequency: 1.0
 """
         
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -659,7 +659,7 @@ model:
 kmc:
   type: default
   default:
-    v: 1.0
+    attempt_frequency: 1.0
     equ_pass: 100
     kmc_pass: 1000
     supercell_shape: [2, 1, 1]
@@ -709,7 +709,7 @@ model:
 kmc:
   type: default
   default:
-    v: 1.0
+    attempt_frequency: 1.0
 """
         
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
@@ -727,7 +727,7 @@ kmc:
         """Test backward compatibility with legacy flat YAML files."""
         legacy_yaml = """
 task: kmc
-v: 5e12
+attempt_frequency: 5e12
 equ_pass: 1
 kmc_pass: 10
 supercell_shape: [2, 1, 1]
@@ -884,7 +884,7 @@ class TestInputSetAdvancedFeatures:
         """Test string representation of InputSet."""
         params = {
             'task': 'kmc',
-            'v': 5e12,
+            'attempt_frequency': 5e12,
             'temperature': 298.0,
         }
         
@@ -894,7 +894,7 @@ class TestInputSetAdvancedFeatures:
         # Should contain the parameters
         assert 'task' in str_repr
         assert 'kmc' in str_repr
-        assert 'v' in str_repr
+        assert 'attempt_frequency' in str_repr
     
     def test_change_key_name(self):
         """Test key name changing functionality."""

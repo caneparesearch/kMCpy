@@ -110,27 +110,27 @@ class Tracker:
     @property
     def dimension(self) -> int:
         """Get dimension from configuration."""
-        return self.config.dimension
+        return self.config.system.dimension
     
     @property
     def q(self) -> float:
         """Get mobile ion charge from configuration."""
-        return self.config.mobile_ion_charge
+        return self.config.system.mobile_ion_charge
     
     @property
     def elem_hop_distance(self) -> float:
         """Get elementary hop distance from configuration."""
-        return self.config.elementary_hop_distance
+        return self.config.system.elementary_hop_distance
     
     @property
     def temperature(self) -> float:
         """Get temperature from configuration."""
-        return self.config.temperature
+        return self.config.runtime.temperature
     
     @property
     def v(self) -> float:
         """Get attempt frequency from configuration."""
-        return self.config.attempt_frequency
+        return self.config.runtime.attempt_frequency
     
     @property
     def time(self) -> float:
@@ -145,7 +145,7 @@ class Tracker:
     @property
     def mobile_ion_specie(self) -> str:
         """Get mobile ion species from configuration."""
-        return self.config.mobile_ion_specie
+        return self.config.system.mobile_ion_specie
 
     @classmethod
     def from_inputset(cls, inputset: InputSet, structure: StructureKMCpy, occ_initial: list) -> "Tracker":
@@ -168,7 +168,7 @@ class Tracker:
         config = SimulationConfig.from_inputset(inputset)
         
         # Create SimulationState with initial occupation
-        initial_state = SimulationState(initial_occ=occ_initial)
+        initial_state = SimulationState(occupations=occ_initial)
         
         return cls(config=config, structure=structure, initial_state=initial_state)
     
@@ -189,7 +189,7 @@ class Tracker:
         """
         # Create SimulationState with initial occupation
         from kmcpy.simulator.state import SimulationState
-        initial_state = SimulationState(initial_occ=occ_initial)
+        initial_state = SimulationState(occupations=occ_initial)
         
         return cls(config=config, structure=structure, initial_state=initial_state)
 
@@ -269,6 +269,7 @@ class Tracker:
             )
         else:
             logger.error("Proposed a wrong event! Please check the code!")
+            return  # Return early to avoid using undefined specie_to_diff
         self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
         self.hop_counter[specie_to_diff] += 1
         self.state.time += dt

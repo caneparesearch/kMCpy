@@ -367,7 +367,7 @@ class InputSet:
         if self._parameters["task"] == "kmc":
             # True -> positional parameters, False -> optional parameters
             parameters = {
-                "v": True,
+                "attempt_frequency": True,
                 "equ_pass": True,
                 "kmc_pass": True,
                 "supercell_shape": True,

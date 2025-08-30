@@ -106,13 +106,13 @@ class TestOccupationManagement:
         
         assert 'name' in state_dict
         assert 'temperature' in state_dict
-        assert 'v' in state_dict  # attempt_frequency mapped to 'v'
+        assert 'attempt_frequency' in state_dict 
         assert 'random_seed' in state_dict
         
         # Test that values are preserved
         assert state_dict['name'] == "test_occupation_management"
         assert state_dict['temperature'] == 300.0
-        assert state_dict['v'] == 1e13
+        assert state_dict['attempt_frequency'] == 1e13
         assert state_dict['random_seed'] == 42
         
         # Test mobile sites tracking
@@ -218,7 +218,7 @@ class TestOccupationManagement:
         
         assert deserialized['name'] == "test_occupation_management"
         assert deserialized['temperature'] == 300.0
-        assert deserialized['v'] == 1e13  # attempt_frequency mapped to 'v'
+        assert deserialized['attempt_frequency'] == 1e13
         assert deserialized['random_seed'] == 42
         
         # Test dataclass dict serialization
@@ -257,7 +257,7 @@ class TestOccupationManagement:
         # Test that the condition can be converted to the format expected by KMC
         kmc_dict = simulation_condition.to_dict()
         assert 'temperature' in kmc_dict
-        assert 'v' in kmc_dict  # attempt_frequency as 'v'
+        assert 'attempt_frequency' in kmc_dict
         assert 'random_seed' in kmc_dict
         
         # Test that the condition string can be used for logging/debugging

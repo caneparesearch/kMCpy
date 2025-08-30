@@ -14,11 +14,10 @@ from kmcpy.event import Event, EventLib
 from kmcpy.io.io import convert
 import logging
 import kmcpy
-from kmcpy.io.io import InputSet
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.condition import SimulationConfig
+    from kmcpy.simulator.config import SimulationConfig
     from kmcpy.simulator.state import SimulationState
     from kmcpy.models.composite_lce_model import CompositeLCEModel
 
@@ -93,10 +92,10 @@ class KMC:
         # Create simulation state and condition objects using config
         from kmcpy.simulator.state import SimulationState
         from kmcpy.simulator.condition import SimulationCondition
-        self.sim_state = SimulationState(initial_occ=self.occ_global)
+        self.sim_state = SimulationState(occupations=self.occ_global)
         self.sim_condition = SimulationCondition(
-            temperature=self.config.temperature, 
-            attempt_frequency=self.config.attempt_frequency
+            temperature=self.config.runtime.temperature, 
+            attempt_frequency=self.config.runtime.attempt_frequency
         )
         
         # Calculate probabilities for all events using composite model
@@ -136,27 +135,29 @@ class KMC:
         Returns:
             KMC: An instance of the KMC class.
         """
-        from kmcpy.simulator.condition import SimulationConfig
         from kmcpy.simulator.state import SimulationState
         
-        # Validate the configuration
-        config.validate()
-        
-        # Convert to InputSet to leverage existing file loading infrastructure in io.py
-        inputset = config.to_inputset()
-        
-        # Load structure using InputSet's capabilities (delegating to io.py)
+        # Load structure directly from config
         structure = StructureKMCpy.from_cif(
-            inputset.template_structure_fname, 
-            primitive=inputset.convert_to_primitive_cell
+            config.system.structure_file, 
+            primitive=config.system.convert_to_primitive_cell
         )
         
-        # Apply transformations
-        if hasattr(inputset, 'immutable_sites') and inputset.immutable_sites:
-            structure.remove_species(inputset.immutable_sites)
+        # Calculate select_sites based on original structure BEFORE removing immutable sites
+        select_sites_for_occupation = []
+        if config.initial_state_file:
+            immutable_sites = config.system.immutable_sites or []
+            for index, site in enumerate(structure.sites):
+                if site.specie.symbol not in immutable_sites:
+                    select_sites_for_occupation.append(index)
+            logger.debug(f"Select sites for occupation loading: {select_sites_for_occupation}")
         
-        if hasattr(inputset, 'supercell_shape'):
-            supercell_shape_matrix = np.diag(inputset.supercell_shape)
+        # Apply transformations AFTER calculating select_sites
+        if config.system.immutable_sites:
+            structure.remove_species(config.system.immutable_sites)
+        
+        if config.system.supercell_shape:
+            supercell_shape_matrix = np.diag(config.system.supercell_shape)
             structure.make_supercell(supercell_shape_matrix)
         
         # Load models and events - use centralized loading methods
@@ -165,15 +166,15 @@ class KMC:
         
         # Load composite model using its centralized from_json method
         model = CompositeLCEModel.from_json(
-            lce_fname=inputset.lce_fname,
-            fitting_results=inputset.fitting_results,
-            lce_site_fname=getattr(inputset, 'lce_site_fname', None),
-            fitting_results_site=getattr(inputset, 'fitting_results_site', None)
+            lce_fname=config.system.cluster_expansion_file,
+            fitting_results=config.system.fitting_results_file,
+            lce_site_fname=getattr(config.system, 'cluster_expansion_site_file', None),
+            fitting_results_site=getattr(config.system, 'fitting_results_site_file', None)
         )
         
         # Load events
         event_lib = EventLib()
-        with open(inputset.event_fname, "rb") as fhandle:
+        with open(config.system.event_file, "rb") as fhandle:
             events_dict = json.load(fhandle)
         
         for event_dict in events_dict:
@@ -182,16 +183,27 @@ class KMC:
         
         event_lib.generate_event_dependencies()
         
-        # Handle initial occupation using io.py utilities
-        initial_occ = getattr(inputset, 'initial_occ', None)
-        if initial_occ is None and hasattr(inputset, 'initial_state') and inputset.initial_state:
-            # Use InputSet's load_occ capability which handles this properly
-            temp_inputset = inputset  # inputset should have load_occ method
-            if hasattr(temp_inputset, 'load_occ'):
-                temp_inputset.load_occ()
-                initial_occ = getattr(temp_inputset, 'initial_occ', None)
+        # Handle initial occupation from config
+        initial_occ = None
+        if config.initial_occupations:
+            initial_occ = list(config.initial_occupations)
+        elif config.initial_state_file:
+            # Load initial state using the proper io.py method with correct site selection
+            from kmcpy.io.io import _load_occ
+            
+            # Use the pre-calculated select_sites from before structure transformation
+            initial_occ = _load_occ(
+                fname=config.initial_state_file,
+                shape=list(config.system.supercell_shape),
+                select_sites=select_sites_for_occupation
+            )
         
-        simulation_state = SimulationState(initial_occ=initial_occ) if initial_occ is not None else None
+        # Always create a SimulationState (even if we have to use empty occupations)
+        if initial_occ is not None:
+            simulation_state = SimulationState(occupations=initial_occ)
+        else:
+            # Create with empty occupations - this will be populated during structure loading
+            simulation_state = SimulationState(occupations=[])
         
         return cls(
             structure=structure,
@@ -200,30 +212,6 @@ class KMC:
             config=config,
             simulation_state=simulation_state
         )
-        
-    @classmethod
-    def from_inputset(cls, inputset: InputSet)-> "KMC":
-        """Initialize KMC from InputSet object (legacy support).
-
-        Note: This method is kept for backward compatibility but delegates
-        to the configuration-based approach for consistency.
-
-        Args:
-            inputset (kmcpy.io.InputSet): InputSet object containing all
-            necessary parameters.
-
-        Returns:
-            KMC: An instance of the KMC class initialized with parameters
-            from the InputSet.
-        """
-        # Convert InputSet to SimulationConfig for consistency
-        from kmcpy.simulator.condition import SimulationConfig
-        
-        config = SimulationConfig.from_inputset(inputset)
-        
-        return cls.from_config(config)
-
-
 
     def show_project_info(self):
         try:
@@ -303,30 +291,27 @@ class KMC:
             )
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run(self, inputset: Union[InputSet, "SimulationConfig"], label: str = None) -> Tracker:
-        """Run KMC simulation from an InputSet or SimulationConfig object.
+    def run(self, config: "SimulationConfig", label: str = None) -> Tracker:
+        """Run KMC simulation from a SimulationConfig object.
 
-        This is the main method for running KMC simulations and supports both legacy InputSet
-        objects and modern SimulationConfig objects.
+        This is the main method for running KMC simulations using the modern
+        SimulationConfig format.
 
         Args:
-            inputset (InputSet or SimulationConfig): Configuration object containing all necessary parameters.
-                - InputSet: Legacy format for backward compatibility
-                - SimulationConfig: Modern, structured configuration format (recommended)
+            config (SimulationConfig): Configuration object containing all necessary parameters.
             label (str, optional): Label for the simulation run. Defaults to None.
-                If None and using SimulationConfig, will use config.name.
+                If None, will use config.runtime.name.
+
+        Returns:
+            kmcpy.tracker.Tracker: Tracker object containing simulation results.
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
             
         Example:
             ```python
-            # Using InputSet (legacy method)
-            inputset = InputSet.from_json("input.json")
-            tracker = kmc.run(inputset)
-            
-            # Using SimulationConfig (recommended method)
-            config = SimulationConfig(name="Test", temperature=400.0, ...)
+            # Using SimulationConfig
+            config = SimulationConfig.create(name="Test", temperature=400.0, ...)
             tracker = kmc.run(config)
             
             # Alternative usage patterns:
@@ -335,81 +320,55 @@ class KMC:
             tracker = kmc.run(config)
             ```
         """
-        from kmcpy.simulator.condition import SimulationConfig
-        
-        # Enhanced handling of SimulationConfig
-        original_config = None
-        config = None
-        if isinstance(inputset, SimulationConfig):
-            original_config = inputset
-            config = inputset
-            config.validate()
-            
-            # Direct parameter usage where possible
-            if label is None:
-                label = config.name
-            
-            # For now, still convert to InputSet for compatibility,
-            # but this reduces the dependency on InputSet.to_inputset()
-            inputset = config.to_inputset()
-        elif hasattr(inputset, 'to_inputset'):
-            # Handle other objects that can convert to InputSet
-            inputset = inputset.to_inputset()
-        
-        # Store the original config for potential future use
-        self._original_config = original_config
-        
-        # Continue with existing run logic
-        self.inputset = inputset
+        # Set label from config if not provided
+        if label is None:
+            label = config.runtime.name
         
         # Initialize random number generator
-        # Priority: config random_seed > inputset random_seed > default
-        if hasattr(self.config, 'random_seed') and self.config.random_seed is not None:
-            self.rng = np.random.default_rng(seed=self.config.random_seed)
-        elif hasattr(inputset, "random_seed") and inputset.random_seed is not None:
-            self.rng = np.random.default_rng(seed=inputset.random_seed)
+        if config.runtime.random_seed is not None:
+            self.rng = np.random.default_rng(seed=config.runtime.random_seed)
         else:
             self.rng = np.random.default_rng()
 
-        logger.info(f"Simulation condition: v = {inputset.v} T = {inputset.temperature}")
-        pass_length = len(
-            [
+        logger.info(f"Simulation condition: v = {config.runtime.attempt_frequency} T = {config.runtime.temperature}")
+        
+        # Calculate pass length based on mobile ions
+        pass_length = len([
             el.symbol
             for el in self.structure.species
-            if inputset.mobile_ion_specie in el.symbol
-            ]
-        )
+            if config.system.mobile_ion_specie in el.symbol
+        ])
+        
         logger.info("============================================================")
         logger.info("Start running kMC ... ")
         logger.info("Initial occ_global, prob_list and prob_cum_list")
-        logger.info("Starting Equilbrium ...")
-        for _ in np.arange(inputset.equ_pass):
+        logger.info("Starting Equilibrium ...")
+        
+        # Equilibration phase
+        for _ in np.arange(config.runtime.equilibration_passes):
             for _ in np.arange(pass_length):
                 event, dt, event_index = self.propose(self.event_lib.events)
                 self.update(event, event_index)
 
         logger.info("Start running kMC ...")
 
-        # Enhanced Tracker creation with better SimulationState integration
+        # Create Tracker
         if self.simulation_state is not None:
             # Use existing SimulationState
-            tracker = Tracker(config=config or self.config, structure=self.structure, initial_state=self.simulation_state)
+            tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
             logger.info("Using SimulationState-centric architecture")
-        elif hasattr(inputset, 'to_inputset'):
-            # It's a SimulationConfig but no SimulationState provided
-            tracker = Tracker.from_config(config=inputset, structure=self.structure, occ_initial=self.occ_global)
         else:
-            # It's an InputSet (backward compatibility)
-            tracker = Tracker.from_inputset(inputset=inputset, structure=self.structure, occ_initial=self.occ_global)
+            # Create tracker with current occupations
+            from kmcpy.simulator.state import SimulationState
+            initial_state = SimulationState(occupations=self.occ_global)
+            tracker = Tracker(config=config, structure=self.structure, initial_state=initial_state)
         
         logger.info(
             "Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf"
         )
 
-        # Get the appropriate pass count
-        kmc_pass = inputset.kmc_passes if hasattr(inputset, 'kmc_passes') else inputset.kmc_pass
-        
-        for current_pass in np.arange(kmc_pass):
+        # Main KMC loop
+        for current_pass in np.arange(config.runtime.kmc_passes):
             for _ in np.arange(pass_length):
                 event, dt, event_index = self.propose(self.event_lib.events)
                 
