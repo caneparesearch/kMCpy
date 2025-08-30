@@ -280,41 +280,7 @@ class TestPhase4InputSetMigration:
         assert hasattr(config, 'random_seed')
         
         print("✓ Phase 4: Direct SimulationConfig API working correctly")
-    
-    def test_inputset_backward_compatibility(self):
-        """Test that InputSet compatibility is maintained."""
-        
-        # Test old-style parameters
-        old_params = {
-            'task': 'kmc',
-            'attempt_frequency': 5e12,
-            'equ_pass': 1,
-            'kmc_pass': 10,
-            'supercell_shape': [2, 1, 1],
-            'fitting_results': 'test.json',
-            'fitting_results_site': 'test.json',
-            'lce_fname': 'test.json',
-            'lce_site_fname': 'test.json',
-            'template_structure_fname': 'test.cif',
-            'event_fname': 'test.json',
-            'event_kernel': 'test.csv',  # Old parameter name
-            'initial_state': 'test.json',
-            'temperature': 298.0,
-            'dimension': 3,
-            'q': 1.0,
-            'elem_hop_distance': 3.5,
-            'mobile_ion_specie': 'Na'
-        }
-        
-        # Should work with old parameters
-        inputset = InputSet(old_params)
-        inputset.parameter_checker()
-        
-        assert inputset.event_kernel == 'test.csv'
-        assert inputset.temperature == 298.0
-        assert inputset.attempt_frequency == 5e12
-        
-        print("✓ InputSet compatibility maintained")
+
     
     def test_parameter_migration(self):
         """Test migration from old to new parameter names."""
@@ -337,8 +303,6 @@ class TestPhase4InputSetMigration:
         
         # Should contain both old and new parameter names for compatibility
         assert 'event_dependencies' in config_dict
-        assert 'event_kernel' in config_dict  # Compatibility maintained
-        assert config_dict['event_dependencies'] == config_dict['event_kernel']
         
         # Test that parameters are correctly set
         assert config_dict['temperature'] == 300.0

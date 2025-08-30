@@ -124,7 +124,6 @@ class SimulationConfig(SimulationCondition):
             'template_structure_fname': self.template_structure_fname,
             'event_fname': self.event_fname,
             'event_dependencies': self.event_dependencies,
-            'event_kernel': self.event_dependencies,  # Backward compatibility
             'supercell_shape': self.supercell_shape,
             'initial_occ': self.initial_occ,
             'initial_state': self.initial_state,
@@ -218,7 +217,6 @@ class SimulationConfig(SimulationCondition):
             'kmc_pass': 'kmc_passes',
             'elem_hop_distance': 'elementary_hop_distance',
             'q': 'mobile_ion_charge',
-            'event_kernel': 'event_dependencies',  # Backward compatibility
         }
         
         # Apply mapping

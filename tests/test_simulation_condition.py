@@ -134,7 +134,6 @@ class TestSimulationConfig:
         assert result['template_structure_fname'] == 'structure.cif'
         assert result['event_fname'] == 'events.json'
         assert result['event_dependencies'] == 'deps.csv'
-        assert result['event_kernel'] == 'deps.csv'  # Backward compatibility
         assert result['task'] == 'kmc'
     
     def test_to_inputset_conversion(self):

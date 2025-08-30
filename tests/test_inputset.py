@@ -29,7 +29,6 @@ class TestInputSetParameterHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',
             'initial_state': 'test.json',
             'temperature': 298.0,
             'dimension': 3,
@@ -54,7 +53,6 @@ class TestInputSetParameterHandling:
         assert inputset.random_seed == 12345
         assert inputset.name == 'test_simulation'
         assert inputset.event_dependencies == 'test_deps.csv'
-        assert inputset.event_kernel == 'test.csv'
     
     def test_case_insensitive_parameters(self):
         """Test that parameter names are case-insensitive."""
@@ -152,37 +150,6 @@ class TestInputSetParameterHandling:
         with pytest.raises(ValueError, match="Unknown task"):
             inputset.parameter_checker()
     
-    def test_backward_compatibility(self):
-        """Test backward compatibility with event_kernel parameter."""
-        old_style_params = {
-            'task': 'kmc',
-            'attempt_frequency': 5e12,
-            'equ_pass': 1,
-            'kmc_pass': 10,
-            'supercell_shape': [2, 1, 1],
-            'fitting_results': 'test.json',
-            'fitting_results_site': 'test.json',
-            'lce_fname': 'test.json',
-            'lce_site_fname': 'test.json',
-            'template_structure_fname': 'test.cif',
-            'event_fname': 'test.json',
-            'event_dependencies': 'test.csv',  # Use modern parameter name
-            'initial_state': 'test.json',
-            'temperature': 298.0,
-            'dimension': 3,
-            'q': 1.0,
-            'elem_hop_distance': 3.5,
-            'mobile_ion_specie': 'Na',
-            'convert_to_primitive_cell': True,
-            'immutable_sites': ['Zr', 'O']
-        }
-        
-        # Should work with new parameter name
-        inputset = InputSet(old_style_params)
-        inputset.parameter_checker()
-        
-        assert inputset.event_dependencies == 'test.csv'
-        assert inputset.event_kernel == 'test.csv'  # Backward compatibility property
     
     def test_new_parameter_names(self):
         """Test that new parameter names are accepted."""
@@ -306,8 +273,8 @@ class TestInputSetFileHandling:
             'lce_site_fname': 'test.json',
             'template_structure_fname': 'test.cif',
             'event_fname': 'test.json',
-            'event_kernel': 'test.csv',
             'initial_state': 'test.json',
+            'event_dependencies': 'test.csv',
             'temperature': 298.0,
             'dimension': 3,
             'q': 1.0,

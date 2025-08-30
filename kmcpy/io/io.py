@@ -96,13 +96,6 @@ class InputSet:
     just a dictionary
     """
     def __init__(self, _parameters={}) -> None:
-        # Handle parameter name transitions for backward compatibility
-        if 'event_kernel' in _parameters and 'event_dependencies' not in _parameters:
-            # Map old parameter name to new one
-            _parameters = _parameters.copy()  # Don't modify the original
-            _parameters['event_dependencies'] = _parameters['event_kernel']
-            logger.warning("Parameter 'event_kernel' is deprecated. Use 'event_dependencies' instead.")
-        
         self._parameters = _parameters
 
     @classmethod
@@ -377,8 +370,7 @@ class InputSet:
                 "lce_site_fname": True,
                 "template_structure_fname": True,
                 "event_fname": True,
-                "event_dependencies": True,  # New parameter name
-                "event_kernel": False,  # Old parameter name (optional for backward compatibility)
+                "event_dependencies": True,
                 "initial_state": True,
                 "temperature": True,
                 "dimension": True,
@@ -447,12 +439,6 @@ class InputSet:
             warnings.warn(f"Ignored parameters: {ignored_params} for task {self._parameters['task']}", UserWarning)
 
     def __getattr__(self, name):
-        # Handle backward compatibility for parameter names
-        if name == 'event_kernel' and 'event_kernel' not in self._parameters:
-            # Map old parameter name to new one
-            if 'event_dependencies' in self._parameters:
-                return self._parameters['event_dependencies']
-        
         try:
             return self._parameters[name]
         except KeyError:

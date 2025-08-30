@@ -194,35 +194,6 @@ class SimulationConfigIO:
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
     
     @staticmethod
-    def _convert_legacy_parameters(params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Internal: Convert legacy parameter names to current names.
-        
-        Args:
-            params: Raw parameter dictionary
-            
-        Returns:
-            Dictionary with updated parameter names
-        """
-        # Create a copy to avoid modifying the original
-        converted = params.copy()
-        
-        # Legacy parameter name mappings
-        legacy_mappings = {
-            'event_kernel': 'event_dependencies',  # Old name -> new name
-            # Add more mappings as needed
-        }
-        
-        # Apply conversions
-        for old_name, new_name in legacy_mappings.items():
-            if old_name in converted and new_name not in converted:
-                converted[new_name] = converted[old_name]
-                logger.warning(f"Converted legacy parameter '{old_name}' to '{new_name}'")
-                # Keep old name for now to avoid breaking things
-        
-        return converted
-    
-    @staticmethod
     def _detect_file_format(filepath: str) -> str:
         """
         Internal: Auto-detect file format from extension.
