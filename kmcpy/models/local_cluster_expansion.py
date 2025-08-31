@@ -183,6 +183,19 @@ class LocalClusterExpansion(BaseModel):
         
         return obj
 
+    @classmethod
+    def from_config(cls, config: 'SimulationConfig'):
+        """
+        Create a LocalClusterExpansion from a SimulationConfig object.
+        
+        Args:
+            config: SimulationConfig containing cluster expansion file path
+            
+        Returns:
+            LocalClusterExpansion: Loaded LocalClusterExpansion instance
+        """
+        return cls.from_json(config.cluster_expansion_file)
+
     
     
     def get_corr_from_structure(self, structure: StructureKMCpy, tol=1e-2, angle_tol=5):

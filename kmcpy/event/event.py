@@ -325,10 +325,13 @@ class EventLib(ABC):
     @classmethod
     def from_json(cls, fname):
         """
-        Load EventLib from a JSON file.
+        Load EventLib from a JSON file and generate event dependencies.
         
         Args:
             fname: The name of the file to load the EventLib from.
+            
+        Returns:
+            EventLib: Loaded EventLib with event dependencies generated.
         """
         logger.info("Loading EventLib from: %s", fname)
         with open(fname, "r") as fhandle:
@@ -341,10 +344,14 @@ class EventLib(ABC):
             for event_dict in data:
                 event = Event.from_dict(event_dict)
                 event_lib.add_event(event)
-            return event_lib
         else:
             # New format - use from_dict method
-            return cls.from_dict(data)
+            event_lib = cls.from_dict(data)
+        
+        # Always generate event dependencies after loading
+        event_lib.generate_event_dependencies()
+        
+        return event_lib
     
     def clear_event_dependencies(self):
         """Clear the event dependency matrix cache. Call this if events are modified."""

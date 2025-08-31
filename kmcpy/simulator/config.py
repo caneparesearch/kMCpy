@@ -5,7 +5,7 @@ Architecture:
 - SystemConfig: Physical system definition (        # Parameter routing tables - ONLY clean parameter names, no legacy support
         system_param_names = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
             'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
         }
@@ -45,7 +45,8 @@ class SystemConfig:
     mobile_ion_charge: float = 1.0
     elementary_hop_distance: float = 1.0
     
-    # Model files
+    # Model configuration
+    model_type: str = "composite_lce"  # Default to composite_lce for backward compatibility
     cluster_expansion_file: str = ""
     cluster_expansion_site_file: Optional[str] = None
     fitting_results_file: str = ""
@@ -158,7 +159,7 @@ class SimulationConfig:
         # Parameter routing tables
         system_param_names = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
             'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
             'initial_state_file', 'initial_occupations'  # Added initial state parameters
@@ -234,7 +235,7 @@ class SimulationConfig:
         # SystemConfig parameter names
         system_param_names = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
             'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
         }
@@ -466,6 +467,11 @@ class SimulationConfig:
         return self.system_config.dimension
     
     @property
+    def model_type(self) -> str:
+        """Access model type directly."""
+        return self.system_config.model_type
+    
+    @property
     def cluster_expansion_file(self) -> str:
         """Access cluster expansion file directly."""
         return self.system_config.cluster_expansion_file
@@ -535,7 +541,7 @@ class SimulationConfig:
         print("SYSTEM PARAMETERS (physical setup):")
         system_params = [
             "structure_file", "supercell_shape", "dimension", "mobile_ion_specie",
-            "mobile_ion_charge", "elementary_hop_distance", "cluster_expansion_file",
+            "mobile_ion_charge", "elementary_hop_distance", "model_type", "cluster_expansion_file",
             "cluster_expansion_site_file", "fitting_results_file", "fitting_results_site_file",
             "event_file", "event_dependencies", "immutable_sites", "convert_to_primitive_cell"
         ]
@@ -559,7 +565,7 @@ class SimulationConfig:
         """Show which sub-config contains a parameter."""
         system_params = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'cluster_expansion_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
             'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
         }

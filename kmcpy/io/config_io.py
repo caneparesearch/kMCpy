@@ -13,6 +13,13 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Model registry mapping model type strings to model classes
+MODEL_REGISTRY = {
+    "composite_lce": "kmcpy.models.composite_lce_model.CompositeLCEModel",
+    "lce": "kmcpy.models.local_cluster_expansion.LocalClusterExpansion",
+    "local_cluster_expansion": "kmcpy.models.local_cluster_expansion.LocalClusterExpansion",
+}
+
 
 class SimulationConfigIO:
     """
@@ -265,33 +272,45 @@ class SimulationConfigIO:
             return occupation_chebyshev.tolist()
 
     @staticmethod
-    def load_events_from_file(event_file: str) -> 'EventLib':
+    def _create_model_from_config(config: 'SimulationConfig'):
         """
-        Load events from file, centralizing event loading logic.
+        Create model from configuration using registry pattern.
+        
+        Uses MODEL_REGISTRY to determine which model class to instantiate based on
+        config.model_type, then calls the model's from_config method.
         
         Args:
-            event_file: Path to event file (JSON format)
+            config: SimulationConfig containing model parameters and model_type
             
         Returns:
-            EventLib instance with loaded events
+            BaseModel: Configured model instance
             
         Raises:
-            FileNotFoundError: If event file doesn't exist
-            ValueError: If event file format is invalid
+            ValueError: If model_type is not in registry or model lacks from_config method
         """
-        from kmcpy.event import EventLib, Event
-        import json
+        # Get model type from config, default to 'composite_lce' for backward compatibility
+        model_type = getattr(config, 'model_type', 'composite_lce')
         
-        event_lib = EventLib()
-        with open(event_file, "rb") as fhandle:
-            events_dict = json.load(fhandle)
+        if model_type not in MODEL_REGISTRY:
+            available_types = list(MODEL_REGISTRY.keys())
+            raise ValueError(f"Unknown model type '{model_type}'. Available types: {available_types}")
         
-        for event_dict in events_dict:
-            event = Event.from_dict(event_dict)
-            event_lib.add_event(event)
+        # Import the model class dynamically
+        model_class_path = MODEL_REGISTRY[model_type]
+        module_path, class_name = model_class_path.rsplit('.', 1)
         
-        event_lib.generate_event_dependencies()
-        return event_lib
+        try:
+            import importlib
+            module = importlib.import_module(module_path)
+            model_class = getattr(module, class_name)
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Cannot import model class '{model_class_path}': {e}")
+        
+        # Check if the model class has a from_config method
+        if hasattr(model_class, 'from_config'):
+            return model_class.from_config(config)
+        else:
+            raise ValueError(f"Model class '{class_name}' does not have a 'from_config' method")
 
     @staticmethod
     def load_simulation_components(config: 'SimulationConfig') -> tuple:
@@ -313,7 +332,6 @@ class SimulationConfigIO:
         """
         import numpy as np
         from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.models.composite_lce_model import CompositeLCEModel
         from kmcpy.simulator.state import SimulationState
         
         # Load structure directly from config
@@ -339,16 +357,12 @@ class SimulationConfigIO:
             supercell_shape_matrix = np.diag(config.supercell_shape)
             structure.make_supercell(supercell_shape_matrix)
         
-        # Load composite model using its centralized from_json method
-        model = CompositeLCEModel.from_json(
-            lce_fname=config.cluster_expansion_file,
-            fitting_results=config.fitting_results_file,
-            lce_site_fname=config.cluster_expansion_site_file,
-            fitting_results_site=config.fitting_results_site_file
-        )
+        # Load model using factory method (currently defaults to CompositeLCEModel)
+        model = SimulationConfigIO._create_model_from_config(config)
         
-        # Load events using centralized method
-        event_lib = SimulationConfigIO.load_events_from_file(config.event_file)
+        # Load events using EventLib's own method
+        from kmcpy.event import EventLib
+        event_lib = EventLib.from_json(config.event_file)
         
         # Handle initial occupation from config using centralized loading
         initial_occ = None

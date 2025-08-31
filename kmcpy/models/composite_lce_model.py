@@ -278,3 +278,21 @@ class CompositeLCEModel(CompositeModel):
         
         # Create composite model with pre-configured models
         return cls(site_model=site_model, kra_model=kra_model)
+
+    @classmethod
+    def from_config(cls, config: 'SimulationConfig') -> "CompositeLCEModel":
+        """
+        Create a CompositeLCEModel from a SimulationConfig object.
+        
+        Args:
+            config: SimulationConfig containing model file paths
+            
+        Returns:
+            CompositeLCEModel: Configured composite model with loaded parameters
+        """
+        return cls.from_json(
+            lce_fname=config.cluster_expansion_file,
+            fitting_results=config.fitting_results_file,
+            lce_site_fname=config.cluster_expansion_site_file,
+            fitting_results_site=config.fitting_results_site_file
+        )
