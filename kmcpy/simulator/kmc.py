@@ -87,27 +87,26 @@ class KMC:
         self.event_lib = event_lib
         
         # Initialize occupation state from simulation_state
+        # Initialize simulation state and condition objects
         if simulation_state is not None:
             # Use SimulationState as single source of truth
             logger.info("Using SimulationState for occupation management")
             logger.debug(f"SimulationState occupations length: {len(simulation_state.occupations)}")
             self.occ_global = simulation_state.occupations
         else:
-            raise ValueError("SimulationState must be provided")
-        
+            raise ValueError("SimulationState must be provided for clean architecture")
+
         # Initialize simulation condition and state objects
         self._initialize_simulation()
-        
+
         logger.info("kMC initialization complete!")
-        
+    
     def _initialize_simulation(self):
-        """Initialize simulation state and calculate initial probabilities."""
-        logger.info("Initializing simulation state and probabilities...")
+        """Initialize simulation condition and calculate initial probabilities."""
+        logger.info("Initializing simulation condition and probabilities...")
         
-        # Create simulation state and condition objects using config
-        from kmcpy.simulator.state import SimulationState
+        # Create simulation condition object using config
         from kmcpy.simulator.condition import SimulationCondition
-        self.sim_state = SimulationState(occupations=self.occ_global)
         self.sim_condition = SimulationCondition(
             temperature=self.config.temperature, 
             attempt_frequency=self.config.attempt_frequency
@@ -116,13 +115,13 @@ class KMC:
         # Calculate probabilities for all events using composite model
         self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
         for i, event in enumerate(self.event_lib.events):
-            # Update the occupation in sim_state for each event calculation
-            self.sim_state.occupations = self.occ_global.copy()
-            
+            # Update the occupation in simulation_state for each event calculation
+            self.simulation_state.occupations = self.occ_global.copy()
+
             self.prob_list[i] = self.model.compute_probability(
                 event=event,
                 simulation_condition=self.sim_condition,
-                simulation_state=self.sim_state
+                simulation_state=self.simulation_state
             )
         
         self.prob_cum_list = np.empty(len(self.event_lib), dtype=np.float64)
@@ -254,37 +253,32 @@ class KMC:
         return event, dt, proposed_event_index
     
 
-    def update(self, event: Event, event_index: int = None)-> None:
+    def update(self, event: Event, event_index: int = None, dt: float = 0.0) -> None:
         """
         Updates the system state and event probabilities after an event occurs.
         
-        This method works with SimulationState when available, eliminating state 
-        duplication and improving consistency.
+        This method delegates state management to SimulationState, following clean
+        architecture principles with single responsibility and separation of concerns.
         
         This method performs the following steps:
-        1. Flips the occupation values of the two mobile ion species involved in the event.
-        2. Identifies all events that need to be updated due to the change in occupation using EventLib.
-        3. Updates each affected event's properties and recalculates their probabilities.
-        4. Updates the cumulative probability list for event selection.
+        1. Delegates occupation updates to SimulationState.apply_event()
+        2. Identifies all events that need probability updates using EventLib
+        3. Recalculates probabilities for affected events
+        4. Updates the cumulative probability list for event selection
 
         Args:
-            event: The event object that has just occurred, containing indices of the affected mobile ion species.
+            event: The event object that has just occurred.
             event_index (int, optional): Index of the executed event. If None, will find it automatically.
+            dt (float, optional): Time increment for this event. Used for state tracking.
             
         Side Effects:
-            Modifies occupation state and probability lists in place.
+            Modifies occupation state and probability lists via SimulationState delegation.
         """
-        # Update occupations in SimulationState if available, otherwise use direct mode
-        if self.simulation_state is not None:
-            # Use SimulationState as single source of truth
-            self.simulation_state.occupations[event.mobile_ion_indices[0]] *= -1
-            self.simulation_state.occupations[event.mobile_ion_indices[1]] *= -1
-            # Keep occ_global synchronized for event updates
-            self.occ_global = self.simulation_state.occupations
-        else:
-            # Direct mode: update occ_global directly
-            self.occ_global[event.mobile_ion_indices[0]] *= -1
-            self.occ_global[event.mobile_ion_indices[1]] *= -1
+        # Delegate state update to SimulationState - clean architecture with single state object
+        self.simulation_state.apply_event(event, dt)
+        
+        # Synchronize occupation reference for probability calculations
+        self.occ_global = self.simulation_state.occupations
         
         # Find event index if not provided
         if event_index is None:
@@ -295,14 +289,14 @@ class KMC:
         
         # Update probabilities for dependent events using composite model
         for e_index in events_to_be_updated:
-            # Update the simulation state with new occupations
-            self.sim_state.occupations = self.occ_global
+            # Use single simulation_state for probability calculations
+            self.simulation_state.occupations = self.occ_global
             
             # Recalculate probability using composite model
             self.prob_list[e_index] = self.model.compute_probability(
                 event=self.event_lib.events[e_index],
                 simulation_condition=self.sim_condition,
-                simulation_state=self.sim_state
+                simulation_state=self.simulation_state
             )
         self.prob_cum_list = np.cumsum(self.prob_list)
 
@@ -367,16 +361,9 @@ class KMC:
 
         logger.info("Start running kMC ...")
 
-        # Create Tracker
-        if self.simulation_state is not None:
-            # Use existing SimulationState
-            tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
-            logger.info("Using SimulationState-centric architecture")
-        else:
-            # Create tracker with current occupations
-            from kmcpy.simulator.state import SimulationState
-            initial_state = SimulationState(occupations=self.occ_global)
-            tracker = Tracker(config=config, structure=self.structure, initial_state=initial_state)
+        # Create Tracker using clean SimulationState architecture
+        tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
+        logger.info("Using clean SimulationState architecture")
         
         logger.info(
             "Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf"
@@ -388,7 +375,7 @@ class KMC:
                 event, dt, event_index = self.propose(self.event_lib.events)
                 
                 # Standard workflow - let Tracker handle mobile ion tracking
-                final_occupations = self.simulation_state.occupations if self.simulation_state else self.occ_global
+                final_occupations = self.simulation_state.occupations
                 tracker.update(event, final_occupations, dt)
                 self.update(event, event_index)
             
@@ -396,8 +383,8 @@ class KMC:
             tracker.compute_properties()
             tracker.show_current_info()
 
-        # Use SimulationState occupations if available
-        final_occupations = self.simulation_state.occupations if self.simulation_state else self.occ_global
+        # Use SimulationState occupations for final output
+        final_occupations = self.simulation_state.occupations
         tracker.write_results(final_occupations, label=label)
         return tracker
 

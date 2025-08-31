@@ -76,11 +76,15 @@ def run_simulation_example():
     # Simulation loop (simplified)
     for kmc_step in range(100):  # Just an example
         # Select and execute event (this would be done by KMC engine)
-        from_site, to_site = 0, 1  # Example transition
+        from kmcpy.event.event import Event
+        event = Event(
+            mobile_ion_indices=(0, 1),  # Example transition from site 0 to site 1
+            local_env_indices=[2, 3, 4]  # Example local environment
+        )
         dt = 1e-6  # Example time increment
         
-        # Update state
-        state.apply_event(from_site, to_site, dt)
+        # Update state with event object
+        state.apply_event(event, dt)
         
         # Optionally save checkpoints
         if kmc_step % 10 == 0:

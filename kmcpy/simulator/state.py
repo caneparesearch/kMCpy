@@ -11,6 +11,8 @@ from typing import List, Dict, Any, Optional
 import json
 import numpy as np
 
+from ..event.event import Event
+
 
 class SimulationState:
     """
@@ -50,7 +52,7 @@ class SimulationState:
         self.hop_counts: Optional[np.ndarray] = None
         self.n_mobile_species: int = 0
     
-    def apply_event(self, from_site: int, to_site: int, dt: float) -> None:
+    def apply_event(self, event: Event, dt: float) -> None:
         """
         Apply a KMC event to update state.
         
@@ -62,10 +64,12 @@ class SimulationState:
         - etc.
         
         Args:
-            from_site: Source site index
-            to_site: Destination site index  
+            event: Event object containing site indices to transition between
             dt: Time increment for this event
         """
+        # Extract site indices from event
+        from_site, to_site = event.mobile_ion_indices
+        
         # Update occupations (flip signs for transition)
         self.occupations[from_site] *= -1
         self.occupations[to_site] *= -1

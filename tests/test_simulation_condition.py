@@ -267,12 +267,16 @@ class TestSimulationState:
             occupations=initial_occ,
         )
         
-        # Apply event directly without needing event object
-        from_site, to_site = 0, 1
+        # Create event object for the update
+        from kmcpy.event.event import Event
+        event = Event(
+            mobile_ion_indices=(0, 1),  # from_site=0, to_site=1
+            local_env_indices=[2, 3, 4]  # local environment (not used in apply_event)
+        )
         dt = 0.1
         
-        # Update from event
-        state.apply_event(from_site, to_site, dt)
+        # Update from event object
+        state.apply_event(event, dt)
         
         # Check that occupations were flipped
         assert np.array_equal(state.occupations, [-1, 1, 1, -1])
