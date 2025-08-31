@@ -1,22 +1,7 @@
 #!/usr/bin/env python
 """
 This module provides the KMC class and associated functions for performing Kinetic Monte Carlo (kMC) simulations, 
-particularly for modeling        # Load composite model using             # Use the pre-calculated select_sites from before structure transformation
-            initial_occ = _load_occ(
-                fname=config.initial_state_file,
-                shape=list(config.supercell_shape),
-                select_sites=select_sites_for_occupation
-            )ntralized from_json method
-        model = CompositeLCEModel.from_json(
-            lce_fname=config.cluster_expansion_file,
-            fitting_results=config.fitting_results_file,
-            lce_site_fname=getattr(config, 'cluster_expansion_site_file', None),
-            fitting_results_site=getattr(config, 'fitting_results_site_file', None)
-        )
-        
-        # Load events
-        event_lib = EventLib()
-        with open(config.event_file, "rb") as fhandle: processes in materials such as ion diffusion. The KMC class manages the 
+particularly for modeling processes in materials such as ion diffusion. The KMC class manages the 
 initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports 
 loading input data from various sources, updating system states, and tracking simulation results.
 """
@@ -96,13 +81,7 @@ class KMC:
         else:
             raise ValueError("SimulationState must be provided for clean architecture")
 
-        # Initialize simulation condition and state objects
-        self._initialize_simulation()
-
-        logger.info("kMC initialization complete!")
-    
-    def _initialize_simulation(self):
-        """Initialize simulation condition and calculate initial probabilities."""
+        # Initialize simulation condition and calculate initial probabilities
         logger.info("Initializing simulation condition and probabilities...")
         
         # Create simulation condition object using config
@@ -134,14 +113,15 @@ class KMC:
         # Display dependency matrix statistics
         stats = self.event_lib.get_dependency_statistics()
         logger.info(f"Dependency matrix statistics: {stats}")
-        
+
+        logger.info("kMC initialization complete!")
         
     @classmethod
     def from_config(cls, config: "SimulationConfig") -> "KMC":
         """Create KMC instance from SimulationConfig (recommended initialization method).
 
-        This is the main initialization method that leverages the io.py module
-        for all file loading operations and provides a clean interface.
+        This is the main initialization method that leverages SimulationConfigIO
+        for all component loading operations and provides a clean interface.
 
         Args:
             config (SimulationConfig): Configuration object containing all necessary parameters.
@@ -149,75 +129,10 @@ class KMC:
         Returns:
             KMC: An instance of the KMC class.
         """
-        from kmcpy.simulator.state import SimulationState
+        # Use centralized component loading from SimulationConfigIO
+        from kmcpy.io.config_io import SimulationConfigIO
         
-                # Load structure directly from config
-        structure = StructureKMCpy.from_cif(
-            config.structure_file, 
-            primitive=config.convert_to_primitive_cell
-        )
-        
-        # Calculate select_sites based on original structure BEFORE removing immutable sites
-        select_sites_for_occupation = []
-        if config.initial_state_file:
-            immutable_sites = config.immutable_sites or []
-            for index, site in enumerate(structure.sites):
-                if site.specie.symbol not in immutable_sites:
-                    select_sites_for_occupation.append(index)
-            logger.debug(f"Select sites for occupation loading: {select_sites_for_occupation}")
-        
-        # Apply transformations AFTER calculating select_sites
-        if config.immutable_sites:
-            structure.remove_species(config.immutable_sites)
-        
-        if config.supercell_shape:
-            supercell_shape_matrix = np.diag(config.supercell_shape)
-            structure.make_supercell(supercell_shape_matrix)
-        
-        # Load models and events - use centralized loading methods
-        from kmcpy.models.composite_lce_model import CompositeLCEModel
-        from kmcpy.event import EventLib, Event
-        
-        # Load composite model using its centralized from_json method
-        model = CompositeLCEModel.from_json(
-            lce_fname=config.cluster_expansion_file,
-            fitting_results=config.fitting_results_file,
-            lce_site_fname=getattr(config, 'cluster_expansion_site_file', None),
-            fitting_results_site=getattr(config, 'fitting_results_site_file', None)
-        )
-        
-        # Load events
-        event_lib = EventLib()
-        with open(config.event_file, "rb") as fhandle:
-            events_dict = json.load(fhandle)
-        
-        for event_dict in events_dict:
-            event = Event.from_dict(event_dict)
-            event_lib.add_event(event)
-        
-        event_lib.generate_event_dependencies()
-        
-        # Handle initial occupation from config
-        initial_occ = None
-        if config.initial_occupations:
-            initial_occ = list(config.initial_occupations)
-        elif config.initial_state_file:
-            # Load initial state using the proper io.py method with correct site selection
-            from kmcpy.io.io import _load_occ
-            
-            # Use the pre-calculated select_sites from before structure transformation
-            initial_occ = _load_occ(
-                fname=config.initial_state_file,
-                shape=list(config.supercell_shape),
-                select_sites=select_sites_for_occupation
-            )
-        
-        # Always create a SimulationState (even if we have to use empty occupations)
-        if initial_occ is not None:
-            simulation_state = SimulationState(occupations=initial_occ)
-        else:
-            # Create with empty occupations - this will be populated during structure loading
-            simulation_state = SimulationState(occupations=[])
+        structure, model, event_lib, simulation_state = SimulationConfigIO.load_simulation_components(config)
         
         return cls(
             structure=structure,
@@ -250,10 +165,10 @@ class KMC:
         """
         proposed_event_index, dt = _propose(prob_cum_list=self.prob_cum_list, rng=self.rng)
         event = events[proposed_event_index]
-        return event, dt, proposed_event_index
+        return event, dt
     
 
-    def update(self, event: Event, event_index: int = None, dt: float = 0.0) -> None:
+    def update(self, event: Event, dt: float = 0.0) -> None:
         """
         Updates the system state and event probabilities after an event occurs.
         
@@ -262,13 +177,13 @@ class KMC:
         
         This method performs the following steps:
         1. Delegates occupation updates to SimulationState.apply_event()
-        2. Identifies all events that need probability updates using EventLib
-        3. Recalculates probabilities for affected events
-        4. Updates the cumulative probability list for event selection
+        2. Automatically finds the event index in the event library
+        3. Identifies all events that need probability updates using EventLib
+        4. Recalculates probabilities for affected events
+        5. Updates the cumulative probability list for event selection
 
         Args:
             event: The event object that has just occurred.
-            event_index (int, optional): Index of the executed event. If None, will find it automatically.
             dt (float, optional): Time increment for this event. Used for state tracking.
             
         Side Effects:
@@ -280,9 +195,8 @@ class KMC:
         # Synchronize occupation reference for probability calculations
         self.occ_global = self.simulation_state.occupations
         
-        # Find event index if not provided
-        if event_index is None:
-            event_index = self.event_lib.events.index(event)
+        # Find event index automatically from event library
+        event_index = self.event_lib.events.index(event)
         
         # Use EventLib to get dependent events
         events_to_be_updated = self.event_lib.get_dependent_events(event_index)
@@ -356,8 +270,8 @@ class KMC:
         # Equilibration phase
         for _ in np.arange(config.equilibration_passes):
             for _ in np.arange(pass_length):
-                event, dt, event_index = self.propose(self.event_lib.events)
-                self.update(event, event_index)
+                event, dt = self.propose(self.event_lib.events)
+                self.update(event)
 
         logger.info("Start running kMC ...")
 
@@ -372,12 +286,12 @@ class KMC:
         # Main KMC loop
         for current_pass in np.arange(config.kmc_passes):
             for _ in np.arange(pass_length):
-                event, dt, event_index = self.propose(self.event_lib.events)
+                event, dt = self.propose(self.event_lib.events)
                 
                 # Standard workflow - let Tracker handle mobile ion tracking
                 final_occupations = self.simulation_state.occupations
                 tracker.update(event, final_occupations, dt)
-                self.update(event, event_index)
+                self.update(event)
             
             tracker.update_current_pass(current_pass)
             tracker.compute_properties()
