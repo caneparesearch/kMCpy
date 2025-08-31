@@ -2,7 +2,10 @@
 """
 This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
-from typing import Literal
+from typing import Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from kmcpy.io.config_io import SimulationConfig
 from itertools import combinations
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer
 from pymatgen.core.structure import Molecule
@@ -17,6 +20,7 @@ from kmcpy.models.model import BaseModel
 from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import SimulationState
+from kmcpy.structure.basis import Occupation
 import numba as nb
 
 logger = logging.getLogger(__name__) 
@@ -198,9 +202,26 @@ class LocalClusterExpansion(BaseModel):
     def get_corr_from_structure(self, structure: StructureKMCpy, tol=1e-2, angle_tol=5):
         '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
         '''
-        occ = self.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
-        corr = np.empty(shape=len(self.basis.basis_function))
-        _calc_corr(corr, occ, self.cluster_site_indices)
+        # Use local_lattice_structure to get occupation data
+        occ = self.local_lattice_structure.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        
+        # occ is now an Occupation object, use its values for correlation calculation
+        corr = np.empty(shape=len(self.cluster_site_indices))
+        _calc_corr(corr, occ.values, self.cluster_site_indices)
+        return corr
+    
+    def get_corr_from_occupation(self, occupation: Occupation):
+        """
+        Get correlation function directly from an Occupation object.
+        
+        Args:
+            occupation: Occupation object containing site occupations
+            
+        Returns:
+            np.ndarray: Correlation function values
+        """
+        corr = np.empty(shape=len(self.cluster_site_indices))
+        _calc_corr(corr, occupation.values, self.cluster_site_indices)
         return corr
     
     def build_clusters(self, local_env_structure, indexes, cutoff):  # return a list of Cluster
@@ -247,7 +268,7 @@ class LocalClusterExpansion(BaseModel):
             orbits.append(orbit)
         return orbits
 
-    def compute(self, simulation_state:SimulationState, event:Event):
+    def compute(self, simulation_state: SimulationState = None, event: Event = None, occ_global=None):
         """
         Compute energy value using stored parameters and correlation coefficients.
         
@@ -257,6 +278,7 @@ class LocalClusterExpansion(BaseModel):
         Args:
             simulation_state: SimulationState object containing occupation vector (preferred)
             event: Event object containing mobile ion indices (required for local environment)
+            occ_global: Occupation array (used if simulation_state is None)
             
         Returns:
             float: The computed energy value
@@ -268,8 +290,15 @@ class LocalClusterExpansion(BaseModel):
         # Get occupation array - prefer simulation_state over occ_global
         if simulation_state is not None:
             occ_global = simulation_state.occupations
+            # If occ_global is an Occupation object, get its values
+            if hasattr(occ_global, 'values'):
+                occ_global = occ_global.values
         elif occ_global is None:
             raise ValueError("Either simulation_state or occ_global must be provided")
+        else:
+            # Handle case where occ_global is passed directly
+            if hasattr(occ_global, 'values'):
+                occ_global = occ_global.values
             
         # Ensure occ_global is a numpy array for proper indexing
         occ_global = np.array(occ_global)
