@@ -291,11 +291,16 @@ class Occupation:
         """Return number of sites."""
         return len(self._data)
     
-    def __getitem__(self, index: Union[int, slice]) -> Union[int, 'Occupation']:
+    def __getitem__(self, index: Union[int, slice, List[int], np.ndarray]):
         """Get occupation value(s) at index."""
         if isinstance(index, slice):
             return Occupation(self._data[index], basis=self._basis_obj, validate=False)
-        return self._data[index].item()
+        elif isinstance(index, (list, np.ndarray)):
+            # For array/list indexing, return a new Occupation object with the subset
+            return Occupation(self._data[index], basis=self._basis_obj, validate=False)
+        else:
+            # For single index, return scalar value
+            return self._data[index].item()
     
     def __setitem__(self, index: Union[int, slice], value: Union[int, List[int]]):
         """Set occupation value(s) at index."""

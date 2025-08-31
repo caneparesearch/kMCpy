@@ -1,11 +1,12 @@
 from pymatgen.core.structure import Structure, Species
 import numpy as np
-from kmcpy.structure.basis import ChebyshevBasis, OccupationBasis
+from kmcpy.structure.basis import Occupation, get_basis, BasisFunction
 from pymatgen.analysis.structure_matcher import StructureMatcher
-from abc import  ABC
+from abc import ABC
 import logging
 from kmcpy.structure.vacancy import Vacancy
 from kmcpy.structure.comparator import SupercellComparator
+from typing import List, Union
 
 logger = logging.getLogger(__name__) 
 
@@ -13,9 +14,9 @@ logger = logging.getLogger(__name__)
 class LatticeStructure(ABC):
     '''LatticeStructure deal with the structure template which converts the structure to an occupation array and vice versa
     '''
-    def __init__(self,template_structure:Structure,
-                 specie_site_mapping:dict,
-                 basis_type:str='chebyshev'):
+    def __init__(self, template_structure: Structure,
+                 specie_site_mapping: dict,
+                 basis_type: str = 'chebyshev'):
         '''Initialization of LatticeStructure
             Args:
             template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
@@ -48,13 +49,12 @@ class LatticeStructure(ABC):
                 ]
         self.specie_site_mapping = specie_site_mapping
                 
-        # initializing basis
-        if basis_type == 'chebyshev' or basis_type == 'trigonometric':
-            self.basis = ChebyshevBasis()
-        elif basis_type == 'occupation':
-            self.basis = OccupationBasis()
-        else:
-            raise NotImplementedError(f'Basis type {basis_type} not implemented!')
+        # Initialize basis using new registry system
+        try:
+            self.basis = get_basis(basis_type)
+            self.basis_type = basis_type
+        except ValueError as e:
+            raise ValueError(f'Basis type {basis_type} not supported. {e}')
         
         # Initialization of species for LatticeStructure
         # allowed_species is like [["Na","Va"],["Na","Va"],["Na","Va"],["Na","Va"], ... ,["Sb","W"],["Sb","W"],["Sb","W"]]
@@ -68,9 +68,9 @@ class LatticeStructure(ABC):
         if len(self.allowed_species) != len(self.template_structure):
             raise ValueError(f"Species length {len(self.allowed_species)} does not match template structure length {len(self.template_structure)}!")
  
-    def get_occ_from_structure(self, structure: Structure, tol=0.1, angle_tol=5, sc_matrix=None):
+    def get_occ_from_structure(self, structure: Structure, tol=0.1, angle_tol=5, sc_matrix=None) -> Occupation:
         """
-        get_occ_from_structure() returns an occupation numpy array based on a
+        get_occ_from_structure() returns an Occupation object based on a
         comparison with the instance's template_structure.
 
         This implementation uses pymatgen's StructureMatcher to robustly find
@@ -82,9 +82,10 @@ class LatticeStructure(ABC):
                 of the template and may contain vacancies.
             tol (float): Tolerance for structure matching.
             angle_tol (float): Angle tolerance for structure matching.
+            sc_matrix (np.ndarray, optional): Supercell matrix if known.
 
         Returns:
-            np.array: The occupation vector for the structure.
+            Occupation: The occupation object for the structure with proper basis.
         """
         # # 1. Find the supercell matrix
         if sc_matrix is None:
@@ -181,10 +182,11 @@ class LatticeStructure(ABC):
                         mapping = manual_mapping
             
             # 4. Create the occupation vector based on the mapping
-            # Initialize occupation vector with vacancy (or default) values
-            occ = np.array([self.basis.basis_function[1]] * len(supercell_template))
+            # Initialize occupation vector with all sites vacant
+            occ_data = np.full(len(supercell_template), self.basis.vacant_value, 
+                              dtype=type(self.basis.vacant_value))
             # For each site in the input structure, set the occupation at the mapped index
-            occ[mapping] = self.basis.basis_function[0] 
+            occ_data[mapping] = self.basis.occupied_value 
             
         except ValueError:
             # Second try: input structure is superset, supercell template is subset
@@ -194,33 +196,60 @@ class LatticeStructure(ABC):
                 
                 # For this case, we create occ based on supercell template size 
                 # and mark occupied sites based on reverse mapping
-                occ = np.array([self.basis.basis_function[0]] * len(supercell_template))
+                occ_data = np.full(len(supercell_template), self.basis.occupied_value, 
+                                  dtype=type(self.basis.occupied_value))
                 
             except ValueError as e:
                 logger.error(f"Could not establish mapping in either direction: {e}")
                 raise ValueError("Could not establish site mapping between the structure and the template supercell.")
 
-        return occ
+        # Return Occupation object instead of raw numpy array
+        return Occupation(occ_data, basis=self.basis, validate=False)
         
-    def get_structure_from_occ(self,occ, sc_matrix=np.eye(3)):
-        '''get_structure_from_occ() takes an occupation array and returns a pymatgen Structure
+    def get_structure_from_occ(self, occ: Occupation, sc_matrix=np.eye(3)) -> Structure:
+        '''get_structure_from_occ() takes an Occupation object and returns a pymatgen Structure
+        
+        Args:
+            occ: Occupation object containing site occupation data
+            sc_matrix: Supercell matrix for creating the supercell
+            
+        Returns:
+            Structure: pymatgen Structure with species assigned based on occupation
         '''
         supercell_template = self.template_structure.copy()
         supercell_template.make_supercell(sc_matrix)
+        
         if len(occ) != len(supercell_template):
             raise ValueError(f"Occupation array length {len(occ)} does not match template structure length {len(supercell_template)}!")
+        
         # Create a new structure based on the template
         new_structure = supercell_template.copy()
+        
         # Iterate through the sites and set species based on occupation
         for i, site in enumerate(new_structure):
-            if occ[i] == self.basis.basis_function[0]:
+            occ_value = occ[i]  # Get occupation value at site i
+            
+            if self.basis.is_occupied(occ_value):
                 # If occupied, set to the first allowed species for this site
                 site.species = self.allowed_species[i][0]
-            elif occ[i] == self.basis.basis_function[1]:
-                # If vacant, we should remove the species
+            elif self.basis.is_vacant(occ_value):
+                # If vacant, set to the second allowed species (vacancy)
                 site.species = self.allowed_species[i][1]
-                if isinstance(self.allowed_species[i][0], Vacancy()):
-                    new_structure.remove_sites([i])
+                if isinstance(self.allowed_species[i][1], Vacancy):
+                    # If it's a vacancy, we should remove the site
+                    # Note: This needs to be done carefully to avoid index issues
+                    pass  # Handle vacancy removal in a separate step
+        
+        # Remove vacancy sites in reverse order to avoid index shifting issues
+        vacancy_indices = []
+        for i, site in enumerate(new_structure):
+            if isinstance(site.species, Vacancy):
+                vacancy_indices.append(i)
+        
+        # Remove vacancy sites from the end to avoid index issues
+        for i in reversed(vacancy_indices):
+            new_structure.remove_sites([i])
+            
         return new_structure
 
     def _find_site_mapping_manual(self, supercell_template, structure, tol=0.1):
@@ -282,7 +311,7 @@ class LatticeStructure(ABC):
         Template structure:\n {self.template_structure}
         Allowed species: {self.allowed_species}
         Species mapping: {self.specie_site_mapping}
-        Basis type: {type(self.basis).__name__}"""
+        Basis type: {self.basis_type}"""
     
     def __repr__(self):
         return self.__str__()
@@ -294,6 +323,6 @@ class LatticeStructure(ABC):
         return {
             "template_structure": self.template_structure.as_dict(),
             "specie_site_mapping": self.specie_site_mapping,
-            "basis_type": "occupation" if isinstance(self.basis, OccupationBasis) else "chebyshev"
+            "basis_type": self.basis_type
         }
 

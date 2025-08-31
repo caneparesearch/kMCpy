@@ -57,7 +57,7 @@ class TestNa3SbS4(unittest.TestCase):
         a = LocalClusterExpansion()
         local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
                                      specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
-                                     basis_type="trigonometric")
+                                     basis_type="chebyshev")
         a.build(
             local_lattice_structure=local_lattice_structure,
             mobile_ion_identifier_type=mobile_ion_identifier_type,

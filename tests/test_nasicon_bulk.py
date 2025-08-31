@@ -198,7 +198,7 @@ class TestNASICONbulk(unittest.TestCase):
         mobile_ion_specie_identifier = "Na1"
         structure = StructureKMCpy.from_cif(filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True)
         local_lattice_structure = LocalLatticeStructure(template_structure=structure,center=0, cutoff=4.0,specie_site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"},
-                                     basis_type = "trigonometric", is_write_basis=True, exclude_species=["O2-", "O", "Zr4+", "Zr"])
+                                     basis_type = "chebyshev", is_write_basis=True, exclude_species=["O2-", "O", "Zr4+", "Zr"])
         a = LocalClusterExpansion()
         a.build(local_lattice_structure=local_lattice_structure,
             mobile_ion_identifier_type=mobile_ion_identifier_type,

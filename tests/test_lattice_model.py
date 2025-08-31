@@ -20,8 +20,10 @@ def test_get_occ_from_structure_perfect_match(simple_lattice_model):
     model = simple_lattice_model
     structure = model.template_structure.copy()
     occ = model.get_occ_from_structure(structure)
-    expected_occ = np.array([model.basis.basis_function[0]] * 2)
-    assert np.array_equal(occ, expected_occ)
+    # With chebyshev basis, occupied sites have value 1
+    expected_values = np.array([1] * 2)  # All sites occupied
+    assert np.array_equal(occ.values, expected_values)
+    assert occ.basis == 'chebyshev'
 
 def test_get_occ_from_structure_with_vacancy(simple_lattice_model):
     """Test get_occ_from_structure with a vacancy."""
@@ -29,8 +31,10 @@ def test_get_occ_from_structure_with_vacancy(simple_lattice_model):
     structure = model.template_structure.copy()
     structure.remove_sites([1])  # Remove one Na to create a vacancy
     occ = model.get_occ_from_structure(structure)
-    expected_occ = np.array([model.basis.basis_function[0], model.basis.basis_function[1]])
-    assert np.array_equal(occ, expected_occ)
+    # With chebyshev basis: occupied=1, vacant=-1
+    expected_values = np.array([1, -1])  # First site occupied, second vacant
+    assert np.array_equal(occ.values, expected_values)
+    assert occ.basis == 'chebyshev'
 
 def test_get_occ_from_structure_supercell(simple_lattice_model):
     """Test get_occ_from_structure with a supercell."""
@@ -38,8 +42,10 @@ def test_get_occ_from_structure_supercell(simple_lattice_model):
     supercell_structure = model.template_structure.copy()
     supercell_structure.make_supercell([2, 1, 1])
     occ = model.get_occ_from_structure(supercell_structure)
-    expected_occ = np.array([model.basis.basis_function[0]] * 4)
-    assert np.array_equal(occ, expected_occ)
+    # All sites occupied in supercell (4 sites total)
+    expected_values = np.array([1] * 4)
+    assert np.array_equal(occ.values, expected_values)
+    assert occ.basis == 'chebyshev'
 
 def test_get_occ_from_structure_supercell_with_vacancies(simple_lattice_model):
     """Test get_occ_from_structure with a supercell that has vacancies."""
@@ -48,10 +54,7 @@ def test_get_occ_from_structure_supercell_with_vacancies(simple_lattice_model):
     supercell_structure.make_supercell([2, 1, 1])
     supercell_structure.remove_sites([1, 3])  # Remove two sites to create vacancies
     occ = model.get_occ_from_structure(supercell_structure)
-    expected_occ = np.array([
-        model.basis.basis_function[0], 
-        model.basis.basis_function[1],
-        model.basis.basis_function[0],
-        model.basis.basis_function[1]
-    ])
-    assert np.array_equal(occ, expected_occ)
+    # Pattern: occupied, vacant, occupied, vacant
+    expected_values = np.array([1, -1, 1, -1])
+    assert np.array_equal(occ.values, expected_values)
+    assert occ.basis == 'chebyshev'
