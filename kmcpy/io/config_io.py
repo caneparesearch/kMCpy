@@ -221,57 +221,6 @@ class SimulationConfigIO:
             return 'unknown'
 
     @staticmethod
-    def load_occupation_data(initial_state_file: str, supercell_shape: list, select_sites: list) -> list:
-        """
-        Load occupation data from file, replacing deprecated InputSet.load_occ functionality.
-        
-        Args:
-            initial_state_file: Path to initial state file (JSON format)
-            supercell_shape: Supercell dimensions [x, y, z]
-            select_sites: Indices of sites to include in KMC (excluding immutable sites)
-            
-        Returns:
-            List of occupation values in Chebyshev basis (1 and -1)
-            
-        Raises:
-            FileNotFoundError: If initial state file doesn't exist
-            ValueError: If occupation data is incompatible with supercell shape
-        """
-        import numpy as np
-        import json
-        
-        with open(initial_state_file, "r") as f:
-            # Read the occupation from json
-            occupation_raw_data = np.array(json.load(f)["occupation"])
-
-            # Check if the occupation is compatible with the shape
-            if len(occupation_raw_data) % (supercell_shape[0] * supercell_shape[1] * supercell_shape[2]) != 0:
-                logger.error(
-                    f"The length of occupation data {len(occupation_raw_data)} is incompatible with the supercell shape"
-                )
-                raise ValueError(
-                    f"The length of occupation data {len(occupation_raw_data)} is incompatible with the supercell shape"
-                )
-
-            # Calculate total sites
-            site_nums = int(len(occupation_raw_data) / (supercell_shape[0] * supercell_shape[1] * supercell_shape[2]))
-
-            # Reshape and select sites
-            convert_to_dimension = (site_nums, supercell_shape[0], supercell_shape[1], supercell_shape[2])
-            occupation = occupation_raw_data.reshape(convert_to_dimension)[
-                select_sites
-            ].flatten("C")
-
-            # Convert to Chebyshev basis (replace 0 with -1)
-            occupation_chebyshev = np.where(occupation == 0, -1, occupation)
-
-            logger.debug(f"Selected sites are {select_sites}")
-            logger.debug(f"Converting the occupation raw data to dimension: {convert_to_dimension}")
-            logger.debug(f"Occupation (Chebyshev basis after removing immutable sites): {occupation_chebyshev}")
-
-            return occupation_chebyshev.tolist()
-
-    @staticmethod
     def _create_model_from_config(config: 'SimulationConfig'):
         """
         Create model from configuration using registry pattern.
@@ -364,17 +313,20 @@ class SimulationConfigIO:
         from kmcpy.event import EventLib
         event_lib = EventLib.from_json(config.event_file)
         
-        # Handle initial occupation from config using centralized loading
+        # Handle initial occupation from config using Occupation.from_json
         initial_occ = None
         if config.initial_occupations:
             initial_occ = list(config.initial_occupations)
         elif config.initial_state_file:
-            # Use centralized occupation loading method
-            initial_occ = SimulationConfigIO.load_occupation_data(
+            # Use Occupation.from_json method for loading and processing
+            from kmcpy.structure.basis import Occupation
+            occupation_obj = Occupation.from_json(
                 initial_state_file=config.initial_state_file,
                 supercell_shape=list(config.supercell_shape),
-                select_sites=select_sites_for_occupation
+                select_sites=select_sites_for_occupation,
+                basis='chebyshev'  # Default to Chebyshev basis for compatibility
             )
+            initial_occ = occupation_obj.values
         
         # Always create a SimulationState (even if we have to use empty occupations)
         if initial_occ is not None:

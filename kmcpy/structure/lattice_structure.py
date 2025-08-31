@@ -1,6 +1,6 @@
 from pymatgen.core.structure import Structure, Species
 import numpy as np
-from kmcpy.structure.basis import ChebychevBasis, OccupationBasis
+from kmcpy.structure.basis import ChebyshevBasis, OccupationBasis
 from pymatgen.analysis.structure_matcher import StructureMatcher
 from abc import  ABC
 import logging
@@ -50,7 +50,7 @@ class LatticeStructure(ABC):
                 
         # initializing basis
         if basis_type == 'chebyshev' or basis_type == 'trigonometric':
-            self.basis = ChebychevBasis()
+            self.basis = ChebyshevBasis()
         elif basis_type == 'occupation':
             self.basis = OccupationBasis()
         else:
@@ -294,6 +294,6 @@ class LatticeStructure(ABC):
         return {
             "template_structure": self.template_structure.as_dict(),
             "specie_site_mapping": self.specie_site_mapping,
-            "basis_type": "occupation" if isinstance(self.basis, OccupationBasis) else "chebychev"
+            "basis_type": "occupation" if isinstance(self.basis, OccupationBasis) else "chebyshev"
         }
 

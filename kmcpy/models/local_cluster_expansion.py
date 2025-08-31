@@ -159,18 +159,18 @@ class LocalClusterExpansion(BaseModel):
                 from pymatgen.core.structure import Structure
                 obj.template_structure = Structure.from_dict(value)
             elif key == 'basis':
-                # Reconstruct basis if present, default to ChebychevBasis if unknown
-                basis_class = value.get('@class', 'ChebychevBasis')
-                if basis_class == 'ChebychevBasis':
-                    from kmcpy.structure.basis import ChebychevBasis
-                    obj.basis = ChebychevBasis()
+                # Reconstruct basis if present, default to ChebyshevBasis if unknown
+                basis_class = value.get('@class', 'ChebyshevBasis')
+                if basis_class == 'ChebyshevBasis':
+                    from kmcpy.structure.basis import ChebyshevBasis
+                    obj.basis = ChebyshevBasis()
                 elif basis_class == 'OccupationBasis':
                     from kmcpy.structure.basis import OccupationBasis
                     obj.basis = OccupationBasis()
                 else:
-                    # Default to ChebychevBasis if class is not recognized
-                    from kmcpy.structure.basis import ChebychevBasis
-                    obj.basis = ChebychevBasis()
+                    # Default to ChebyshevBasis if class is not recognized
+                    from kmcpy.structure.basis import ChebyshevBasis
+                    obj.basis = ChebyshevBasis()
             else:
                 # For all other attributes, set them directly
                 setattr(obj, key, value)
