@@ -54,7 +54,7 @@ class TestNa3SbS4(unittest.TestCase):
         structure = StructureKMCpy.from_cif(
             filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
         )
-        a = LocalClusterExpansion(template_structure=structure)
+        a = LocalClusterExpansion()
         local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
                                      specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                                      basis_type="trigonometric")

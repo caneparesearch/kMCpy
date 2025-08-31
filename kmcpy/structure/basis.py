@@ -370,6 +370,50 @@ class Occupation:
         for idx in indices:
             self._data[idx] = self._basis_obj.flip_value(self._data[idx])
     
+    def swap_sites(self, site1: int, site2: int) -> 'Occupation':
+        """
+        Return new Occupation with values swapped between two sites.
+        
+        This is a common operation in KMC simulations where a species moves from
+        one site to another (e.g., ion diffusion, vacancy hopping).
+        
+        Args:
+            site1: First site index
+            site2: Second site index
+            
+        Returns:
+            New Occupation object with swapped values
+        """
+        new_data = self._data.copy()
+        new_data[site1], new_data[site2] = new_data[site2], new_data[site1]
+        return Occupation(new_data, basis=self._basis_obj, validate=False)
+    
+    def swap_sites_inplace(self, site1: int, site2: int) -> None:
+        """
+        Swap values between two sites in-place.
+        
+        Args:
+            site1: First site index
+            site2: Second site index
+        """
+        self._data[site1], self._data[site2] = self._data[site2], self._data[site1]
+    
+    def apply_event_inplace(self, from_site: int, to_site: int) -> None:
+        """
+        Apply a KMC event by flipping occupation at two sites.
+        
+        This is the standard operation for site-to-site transitions in KMC:
+        - Occupied site becomes vacant
+        - Vacant site becomes occupied
+        
+        Args:
+            from_site: Index of site to vacate
+            to_site: Index of site to occupy
+        """
+        # Flip both sites - this handles any basis representation correctly
+        self._data[from_site] = self._basis_obj.flip_value(self._data[from_site])
+        self._data[to_site] = self._basis_obj.flip_value(self._data[to_site])
+    
     def to_basis(self, target_basis: Union[str, BasisFunction]) -> 'Occupation':
         """
         Convert to different basis representation using basis objects.

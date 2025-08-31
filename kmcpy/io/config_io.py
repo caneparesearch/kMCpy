@@ -316,23 +316,25 @@ class SimulationConfigIO:
         # Handle initial occupation from config using Occupation.from_json
         initial_occ = None
         if config.initial_occupations:
-            initial_occ = list(config.initial_occupations)
+            from kmcpy.structure.basis import Occupation
+            initial_occ = Occupation(list(config.initial_occupations), basis='chebyshev')
         elif config.initial_state_file:
             # Use Occupation.from_json method for loading and processing
             from kmcpy.structure.basis import Occupation
-            occupation_obj = Occupation.from_json(
+            initial_occ = Occupation.from_json(
                 initial_state_file=config.initial_state_file,
                 supercell_shape=list(config.supercell_shape),
                 select_sites=select_sites_for_occupation,
                 basis='chebyshev'  # Default to Chebyshev basis for compatibility
             )
-            initial_occ = occupation_obj.values
         
         # Always create a SimulationState (even if we have to use empty occupations)
         if initial_occ is not None:
             simulation_state = SimulationState(occupations=initial_occ)
         else:
             # Create with empty occupations - this will be populated during structure loading
-            simulation_state = SimulationState(occupations=[])
+            from kmcpy.structure.basis import Occupation
+            empty_occ = Occupation([], basis='chebyshev')
+            simulation_state = SimulationState(occupations=empty_occ)
         
         return structure, model, event_lib, simulation_state

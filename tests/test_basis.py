@@ -451,6 +451,30 @@ class TestOccupation:
                 )
         finally:
             os.unlink(temp_file)
+    
+    def test_kmc_methods(self):
+        """Test KMC-specific methods in Occupation class."""
+        occ = Occupation([-1, 1, -1, -1], basis='chebyshev')
+        
+        # Test swap_sites (immutable)
+        swapped = occ.swap_sites(0, 1)
+        assert swapped.values == [1, -1, -1, -1]
+        assert occ.values == [-1, 1, -1, -1]  # Original unchanged
+        
+        # Test swap_sites_inplace (mutable)
+        occ_mut = occ.copy()
+        occ_mut.swap_sites_inplace(0, 1)
+        assert occ_mut.values == [1, -1, -1, -1]
+        
+        # Test apply_event_inplace (simulating ion hopping)
+        occ_event = occ.copy()
+        occ_event.apply_event_inplace(1, 2)  # Move from occupied site 1 to vacant site 2
+        assert occ_event.values == [-1, -1, 1, -1]  # Site 1 becomes vacant, site 2 occupied
+        
+        # Test with occupation basis
+        occ_occ = Occupation([0, 1, 0, 0], basis='occupation')
+        occ_occ.apply_event_inplace(1, 2)  # Move from occupied site 1 to vacant site 2
+        assert occ_occ.values == [0, 0, 1, 0]  # Site 1 becomes vacant, site 2 occupied
 
 
 class TestBasisIntegration:

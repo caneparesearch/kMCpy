@@ -115,13 +115,14 @@ class TestSimulationStateArchitecture:
         config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # Create SimulationState (mutable) with initial occupations  
-        initial_occ = [1, -1, 1, -1]
+        from kmcpy.structure.basis import Occupation
+        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
         state = SimulationState(
             occupations=initial_occ,
         )
         
         # Test that SimulationState manages all mutable state
-        assert state.occupations == [1, -1, 1, -1]
+        assert state.occupations.values == [1, -1, 1, -1]
         assert state.time == 0.0
         assert state.step == 0
         
@@ -153,8 +154,10 @@ class TestSimulationStateArchitecture:
         config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # State should be mutable
+        from kmcpy.structure.basis import Occupation
+        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
         state = SimulationState(
-            occupations=[1, -1, 1, -1],
+            occupations=initial_occ,
         )
         
         # Configuration should not change during simulation
@@ -207,7 +210,8 @@ class TestKMCIntegrationImprovements:
         assert config.runtime_config.attempt_frequency == 1e13
         
         # Create initial occupations for state
-        initial_occ = [1, -1, 1, -1]
+        from kmcpy.structure.basis import Occupation
+        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
         state = SimulationState(occupations=initial_occ)
         
         # Test parameter mapping for KMC
@@ -230,8 +234,10 @@ class TestKMCIntegrationImprovements:
         """Test optimized simulation loop with direct state management."""
         
         # Create SimulationState for optimized loop
+        from kmcpy.structure.basis import Occupation
+        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
         state = SimulationState(
-            occupations=[1, -1, 1, -1],
+            occupations=initial_occ,
         )
         
         # Test optimized state updates
@@ -343,14 +349,15 @@ class TestOccupationManagement:
     def test_occupation_state_management(self, test_structure):
         """Test that SimulationState properly manages occupations."""
         
-        initial_occ = [1, -1, 1, -1]  # Sites 0,2 occupied, sites 1,3 vacant
+        from kmcpy.structure.basis import Occupation
+        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')  # Sites 0,2 occupied, sites 1,3 vacant
         
         state = SimulationState(
             occupations=initial_occ,
         )
         
         # Test initial state
-        assert state.occupations == initial_occ
+        assert state.occupations.values == [1, -1, 1, -1]
         
         # Get occupied and vacant sites manually for testing
         occupied_sites = [i for i, occ in enumerate(state.occupations) if occ == 1]
@@ -377,7 +384,8 @@ class TestOccupationManagement:
     def test_no_state_duplication(self, test_structure):
         """Test that there's no duplication of occupation state."""
         
-        initial_occ = [1, -1, 1, -1]
+        from kmcpy.structure.basis import Occupation
+        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
         
         state = SimulationState(
             occupations=initial_occ,
@@ -385,11 +393,11 @@ class TestOccupationManagement:
         
         # State should manage its own occupations
         assert hasattr(state, 'occupations')
-        assert isinstance(state.occupations, list)  # SimulationState uses lists, not numpy arrays
+        assert isinstance(state.occupations, Occupation)  # SimulationState uses Occupation objects
         
         # Modifications should be direct
         original_occ = state.occupations.copy()
-        state.occupations[0] = -1
+        state.occupations.flip_inplace([0])  # Flip site 0
         
         # Should be modified directly
         assert state.occupations[0] == -1

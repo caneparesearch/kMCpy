@@ -31,12 +31,9 @@ class LocalClusterExpansion(BaseModel):
     """
     from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
-    def __init__(self, template_structure:StructureKMCpy):
+    def __init__(self):
         """
         Initialization of the LocalClusterExpansion object.
-        
-        Args:
-            template_structure (StructureKMCpy): The template structure with all sites filled.
         """
         self.name = "LocalClusterExpansion"
 
