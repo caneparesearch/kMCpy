@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.io.io import convert, InputSet, Results
+from kmcpy.io.io import convert, Results
 import logging
 from kmcpy.external.structure import StructureKMCpy
 from typing import TYPE_CHECKING, Optional
@@ -147,54 +147,6 @@ class Tracker:
         """Get mobile ion species from configuration."""
         return self.config.mobile_ion_specie
 
-    @classmethod
-    def from_inputset(cls, inputset: InputSet, structure: StructureKMCpy, occ_initial: list) -> "Tracker":
-        """
-        Create a Tracker object from an InputSet object.
-        
-        DEPRECATED: This method is deprecated. Use from_config() instead.
-        Convert your InputSet to SimulationConfig first using SimulationConfigIO.
-
-        Args:
-            inputset (InputSet): An InputSet object containing the necessary parameters for Tracker initialization.
-            structure (StructureKMCpy): A StructureKMCpy object containing the structure information.
-            occ_initial (list): Initial occupation list for the mobile ion specie.
-            
-        Returns:
-            Tracker: An instance of the Tracker class initialized with parameters from the InputSet.
-        """
-        import warnings
-        warnings.warn(
-            "Tracker.from_inputset is deprecated. Use Tracker.from_config() with "
-            "SimulationConfig instead. Convert InputSet to SimulationConfig using "
-            "SimulationConfigIO first.", 
-            DeprecationWarning, 
-            stacklevel=2
-        )
-        
-        # For backward compatibility, create a minimal SimulationConfig
-        # This is a temporary bridge until all code is updated
-        from kmcpy.simulator.config import SimulationConfig
-        
-        # Extract basic parameters from InputSet (this is a fallback)
-        try:
-            config = SimulationConfig(
-                structure_file=getattr(inputset, 'structure_file', ''),
-                temperature=getattr(inputset, 'temperature', 300.0),
-                name=getattr(inputset, 'name', 'FromInputSet'),
-                kmc_passes=getattr(inputset, 'kmc_passes', 10000),
-                equilibration_passes=getattr(inputset, 'equilibration_passes', 1000),
-            )
-        except Exception as e:
-            raise ValueError(f"Cannot convert InputSet to SimulationConfig: {e}. "
-                           f"Please use SimulationConfig directly instead.")
-        
-        # Create SimulationState with initial occupation
-        from kmcpy.simulator.state import SimulationState
-        initial_state = SimulationState(occupations=occ_initial)
-        
-        return cls(config=config, structure=structure, initial_state=initial_state)
-    
     @classmethod
     def from_config(cls, config: "SimulationConfig", structure: StructureKMCpy, occ_initial: list) -> "Tracker":
         """

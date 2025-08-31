@@ -141,17 +141,14 @@ def example_parameter_variations():
     return temp_configs, size_configs
 
 
-def example_from_existing_inputset():
-    """Convert from old InputSet (backward compatibility)"""
-    from kmcpy.io.io import InputSet
+def example_from_existing_config():
+    """Convert from existing modern SimulationConfig file"""
+    from kmcpy.io.config_io import SimulationConfigIO
     
-    # Load existing InputSet
-    old_inputset = InputSet.from_file("old_simulation.yaml")
+    # Load existing modern config file
+    config = SimulationConfigIO.read("modern_simulation.yaml")
     
-    # Convert to new clean architecture
-    config = SimulationConfig.from_dict(old_inputset._parameters)
-    
-    print(f"Converted: {config.summary()}")
+    print(f"Loaded: {config.summary()}")
     
     return config
 

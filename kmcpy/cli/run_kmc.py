@@ -78,55 +78,21 @@ def run_kmc(args)-> None:
     Returns:
         None
     """
-    # Handle legacy InputSet files with deprecation warning
     config = None
     
     if args.input:
-        # Try to load as modern SimulationConfig first
+        # Load modern SimulationConfig format only
         try:
             config = SimulationConfigIO.read(args.input)
         except Exception as e:
-            # Fall back to legacy InputSet with warning
-            warnings.warn(
-                f"Loading legacy InputSet format from {args.input}. "
-                f"Please convert to modern SimulationConfig format using SimulationConfigIO. "
-                f"InputSet support will be removed in a future version.",
-                DeprecationWarning,
-                stacklevel=2
+            # Provide clear error message for legacy formats
+            raise ValueError(
+                f"Unable to load configuration from {args.input}. "
+                f"Legacy InputSet format is no longer supported. "
+                f"Please convert your configuration to the modern SimulationConfig format. "
+                f"Use SimulationConfigIO to create new configuration files. "
+                f"Original error: {e}"
             )
-            
-            # Import InputSet only when needed for backward compatibility
-            from kmcpy.io import InputSet
-            
-            if args.input.endswith(".yaml") or args.input.endswith(".yml"):
-                inputset = InputSet.from_yaml(args.input)
-            else:
-                inputset = InputSet.from_json(args.input)
-            
-            # Convert InputSet to SimulationConfig parameters
-            config_params = {}
-            
-            # Map legacy parameters to clean ones
-            legacy_mapping = {
-                'lce_fname': 'cluster_expansion_file',
-                'lce_site_fname': 'cluster_expansion_site_file',
-                'template_structure_fname': 'structure_file',
-                'event_fname': 'event_file',
-                'fitting_results': 'fitting_results_file',
-                'fitting_results_site': 'fitting_results_site_file',
-                'v': 'attempt_frequency'
-            }
-            
-            for legacy_name, clean_name in legacy_mapping.items():
-                if hasattr(inputset, legacy_name):
-                    config_params[clean_name] = getattr(inputset, legacy_name)
-            
-            # Add other common parameters
-            for param in ['temperature', 'supercell_shape', 'immutable_sites', 'convert_to_primitive_cell']:
-                if hasattr(inputset, param):
-                    config_params[param] = getattr(inputset, param)
-                    
-            config = SimulationConfig(**config_params)
     else:
         # Build a dictionary from the argparse Namespace, excluding None values and 'input'
         input_dict = {k: v for k, v in vars(args).items() if k != "input" and v is not None}

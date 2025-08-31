@@ -12,7 +12,6 @@ from pathlib import Path
 from kmcpy.simulator.condition import SimulationCondition
 from kmcpy.simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
 from kmcpy.simulator.state import SimulationState
-from kmcpy.io.io import InputSet
 
 
 class TestSimulationCondition:

@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from copy import copy
 
 if TYPE_CHECKING:
-    from kmcpy.io.io import InputSet
     from kmcpy.external.structure import StructureKMCpy
 
 @dataclass

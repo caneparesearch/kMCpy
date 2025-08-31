@@ -15,7 +15,6 @@ from pymatgen.core.sites import PeriodicSite
 import logging
 from kmcpy.models.model import BaseModel
 from copy import deepcopy
-from kmcpy.io.io import InputSet
 from kmcpy.event import Event
 from kmcpy.simulator.state import SimulationState
 import numba as nb
@@ -97,24 +96,6 @@ class LocalClusterExpansion(BaseModel):
         for orbit in self.orbits:
             orbit.show_representative_cluster()
 
-    @classmethod
-    def from_inputset(cls, inputset: InputSet)-> "LocalClusterExpansion":
-        """
-        DEPRECATED: Create LocalClusterExpansion from InputSet.
-        
-        This method is deprecated. Use the direct constructor or from_json method instead.
-        """
-        import warnings
-        warnings.warn(
-            "LocalClusterExpansion.from_inputset is deprecated. Use direct constructor "
-            "or from_json method instead. InputSet support will be removed in a future version.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        params = {k: v for k, v in inputset._parameters.items() if k != "task"}
-        lce = cls(**params)
-        return lce.build(**params)
-    
     @classmethod
     def from_json(cls, filename: str):
         """

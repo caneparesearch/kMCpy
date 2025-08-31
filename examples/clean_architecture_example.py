@@ -58,9 +58,6 @@ def run_simulation_example():
     
     config = create_simulation_example()
     
-    # Convert to InputSet for compatibility with existing code
-    inputset = config.to_inputset()
-    
     # Create initial state from configuration
     # (In real code, this would come from loading initial_state_file)
     initial_occupations = [1, -1, 1, -1, 1, -1]  # Example
