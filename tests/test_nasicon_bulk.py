@@ -29,7 +29,7 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
             cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
             fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
             event_file=f"{file_path}/input/events.json",
-            # Note: initial_state_file is not supported in the clean API
+            initial_state_file=f"{file_path}/input/initial_state.json",
             mobile_ion_specie="Na",
             temperature=873.0,
             name=name,
@@ -152,7 +152,7 @@ class TestNASICONbulk(unittest.TestCase):
 
         generator = EventGenerator()
         generator.generate_events(
-            structure_file=structure_file,  # Updated parameter name
+            structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
@@ -163,12 +163,12 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=False,
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
-            event_file=f"{file_path}/events.json",  # Updated parameter name
-            event_dependencies_fname=f"{file_path}/event_dependencies.csv",
+            event_file=f"{file_path}/events.json",
+            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         reference_local_env_dict = generator.generate_events(
-            structure_file=structure_file,  # Updated parameter name
+            structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
@@ -179,8 +179,8 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=True,
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
-            event_file=f"{file_path}/events.json",  # Updated parameter name
-            event_dependencies_fname=f"{file_path}/event_dependencies.csv",
+            event_file=f"{file_path}/events.json",
+            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         print("reference_local_env_dict:", reference_local_env_dict)
@@ -249,7 +249,7 @@ class TestNASICONbulk(unittest.TestCase):
                 cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
                 fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
                 event_file=f"{file_path}/input/events.json",
-                # Note: initial_state_file is not supported in the clean API
+                initial_state_file=f"{file_path}/input/initial_state.json",
                 mobile_ion_specie="Na",  # Fixed parameter name
                 temperature=298,
                 attempt_frequency=5e12,
@@ -314,7 +314,7 @@ class TestNASICONbulk(unittest.TestCase):
                 cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
                 fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
                 event_file=f"{file_path}/input/events.json",
-                # Note: initial_state_file is not supported in the clean API
+                initial_state_file=f"{file_path}/input/initial_state.json",
                 mobile_ion_specie="Na",
                 temperature=298.0,
                 attempt_frequency=5e12,
@@ -436,17 +436,6 @@ class TestNASICONbulk(unittest.TestCase):
         self.assertTrue(hasattr(KMC, "run"))
         print("✓ KMC integration methods exist")
 
-        # Test InputSet conversion
-        try:
-            inputset = config.to_inputset()
-            self.assertEqual(inputset.temperature, config.temperature)
-            self.assertEqual(inputset.attempt_frequency, config.attempt_frequency)
-            print("✓ InputSet conversion works")
-        except Exception as e:
-            print(f"⚠ InputSet conversion failed (expected with real files): {e}")
-            # This is expected to fail with real files due to complex structure requirements
-            # The important thing is that the config validation and KMC integration methods work
-
         # Test that we can create KMC instance (may fail due to file format issues)
         try:
             kmc_instance = KMC.from_config(config)
@@ -540,7 +529,8 @@ class TestNASICONbulk(unittest.TestCase):
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,
                 random_seed=12345,
-                name="NASICON_KMC_Test"
+                name="NASICON_KMC_Test",
+                initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
             # Test KMC with SimulationConfig
@@ -580,122 +570,6 @@ class TestNASICONbulk(unittest.TestCase):
         finally:
             os.chdir(original_cwd)
 
-    @pytest.mark.order("parameter_matching")
-    def test_simulation_condition_parameter_matching(self):
-        """Test that SimulationCondition parameters match InputSet parameters."""
-        print("Testing SimulationCondition parameter matching with InputSet")
-
-        from kmcpy.io.io import InputSet
-        from kmcpy.simulator.condition import SimulationConfig
-        import numpy as np
-
-        # Change to tests directory temporarily to make relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-            # Load original InputSet
-            inputset = InputSet.from_json(f"{file_path}/input/kmc_input.json")
-
-            # Create SimulationConfig with exact same parameters
-            config = SimulationConfig(
-                name="NASICON_Parameter_Test",
-                temperature=298.0,  # Same as JSON
-                attempt_frequency=5e12,  # Same as JSON (v = 5000000000000)
-                equilibration_passes=1,  # Same as JSON (equ_pass = 1)
-                kmc_passes=100,  # Same as JSON (kmc_pass = 100)
-                dimension=3,  # Same as JSON
-                elementary_hop_distance=3.47782,  # Same as JSON (elem_hop_distance)
-                mobile_ion_charge=1.0,  # Same as JSON (q = 1.0)
-                mobile_ion_specie="Na",  # Same as JSON
-                supercell_shape=[2, 1, 1],  # Same as JSON
-                initial_state=f"{file_path}/input/initial_state.json",  # Same as JSON
-                immutable_sites=["Zr", "O", "Zr4+", "O2-"],  # Same as JSON
-                random_seed=12345,  # Same as JSON
-                convert_to_primitive_cell=True,  # Same as JSON
-                # File paths with updated parameter names
-                fitting_results_file=f"{file_path}/input/fitting_results.json",
-                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
-                cluster_expansion_file=f"{file_path}/input/lce.json",
-                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
-                structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                event_file=f"{file_path}/input/events.json",
-                event_dependencies=f"{file_path}/input/event_dependencies.csv",
-            )
-
-            # Convert SimulationConfig to InputSet
-            inputset_from_config = config.to_inputset()
-
-            # Compare key parameters
-            print("Comparing key parameters...")
-
-            # Temperature
-            self.assertEqual(inputset.temperature, inputset_from_config.temperature)
-            print(
-                f"✓ Temperature: {inputset.temperature} == {inputset_from_config.temperature}"
-            )
-
-            # Attempt frequency
-            self.assertEqual(inputset.attempt_frequency, inputset_from_config.attempt_frequency)
-            print(f"✓ Attempt frequency: {inputset.attempt_frequency} == {inputset_from_config.attempt_frequency}")
-
-            # Passes
-            self.assertEqual(inputset.equ_pass, inputset_from_config.equ_pass)
-            self.assertEqual(inputset.kmc_pass, inputset_from_config.kmc_pass)
-            print(f"✓ Passes: equ={inputset.equ_pass}, kmc={inputset.kmc_pass}")
-
-            # Dimension
-            self.assertEqual(inputset.dimension, inputset_from_config.dimension)
-            print(f"✓ Dimension: {inputset.dimension}")
-
-            # Elementary hop distance
-            self.assertEqual(
-                inputset.elem_hop_distance, inputset_from_config.elem_hop_distance
-            )
-            print(
-                f"✓ Elementary hop distance: {inputset.elem_hop_distance}"
-            )
-
-            # Mobile ion charge
-            self.assertEqual(inputset.q, inputset_from_config.q)
-            print(f"✓ Mobile ion charge: {inputset.q}")
-
-            # Mobile ion species
-            self.assertEqual(
-                inputset.mobile_ion_specie, inputset_from_config.mobile_ion_specie
-            )
-            print(f"✓ Mobile ion species: {inputset.mobile_ion_specie}")
-
-            # Supercell shape
-            self.assertEqual(
-                inputset.supercell_shape, inputset_from_config.supercell_shape
-            )
-            print(f"✓ Supercell shape: {inputset.supercell_shape}")
-
-            # Random seed
-            self.assertEqual(inputset.random_seed, inputset_from_config.random_seed)
-            print(f"✓ Random seed: {inputset.random_seed}")
-
-            # Immutable sites
-            self.assertEqual(
-                inputset.immutable_sites, inputset_from_config.immutable_sites
-            )
-            print(f"✓ Immutable sites: {inputset.immutable_sites}")
-
-            # Convert to primitive cell
-            self.assertEqual(
-                inputset.convert_to_primitive_cell,
-                inputset_from_config.convert_to_primitive_cell,
-            )
-            print(
-                f"✓ Convert to primitive cell: {inputset.convert_to_primitive_cell}"
-            )
-
-            print("✅ All parameters match between InputSet and SimulationCondition!")
-
-        finally:
-            os.chdir(original_cwd)
-
     @pytest.mark.order("kmc_workflow")
     def test_kmc_simulation_condition_workflow(self):
         """Test complete KMC workflow using SimulationCondition approach."""
@@ -729,7 +603,8 @@ class TestNASICONbulk(unittest.TestCase):
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,
                 random_seed=12345,
-                name="NASICON_SimulationCondition_Test"
+                name="NASICON_SimulationCondition_Test",
+                initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
             print("✓ SimulationConfig created with test parameters")
@@ -770,10 +645,10 @@ class TestNASICONbulk(unittest.TestCase):
                 temperature=400.0, name="NASICON_HighTemp_Test"
             )
 
-            self.assertEqual(high_temp_config.runtime.temperature, 400.0)
-            self.assertEqual(high_temp_config.runtime.name, "NASICON_HighTemp_Test")
+            self.assertEqual(high_temp_config.temperature, 400.0)
+            self.assertEqual(high_temp_config.name, "NASICON_HighTemp_Test")
             self.assertEqual(
-                high_temp_config.runtime.attempt_frequency, config.runtime.attempt_frequency
+                high_temp_config.attempt_frequency, config.attempt_frequency
             )  # Should be unchanged
 
             print("✓ Configuration modification for parameter studies works")

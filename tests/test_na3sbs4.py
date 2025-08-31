@@ -20,7 +20,7 @@ class TestNa3SbS4(unittest.TestCase):
         from kmcpy.event import EventGenerator
 
         reference_local_env_dict = EventGenerator().generate_events(
-            template_structure_fname=structure_file,  # EventGenerator still uses legacy param name
+            structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=("Na1", "Na1"),
@@ -31,8 +31,8 @@ class TestNa3SbS4(unittest.TestCase):
             convert_to_primitive_cell=False,
             export_local_env_structure=True,
             supercell_shape=[3, 3, 3],
-            event_fname=f"{file_path}/events.json",  # EventGenerator still uses legacy param name
-            event_dependencies_fname=f"{file_path}/event_dependencies.csv",
+            event_file=f"{file_path}/events.json",
+            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         self.assertEqual(

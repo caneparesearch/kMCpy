@@ -505,6 +505,26 @@ class SimulationConfig:
         """Access initial occupations directly."""
         return self.system_config.initial_occupations
     
+    @property
+    def fitting_results_file(self) -> str:
+        """Access fitting results file directly."""
+        return self.system_config.fitting_results_file
+    
+    @property
+    def fitting_results_site_file(self) -> Optional[str]:
+        """Access fitting results site file directly."""
+        return self.system_config.fitting_results_site_file
+    
+    @property
+    def cluster_expansion_site_file(self) -> Optional[str]:
+        """Access cluster expansion site file directly."""
+        return self.system_config.cluster_expansion_site_file
+    
+    @property
+    def event_dependencies(self) -> Optional[str]:
+        """Access event dependencies directly."""
+        return self.system_config.event_dependencies
+    
     # ===== HELPER METHODS =====
     
     @classmethod

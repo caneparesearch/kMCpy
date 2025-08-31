@@ -110,27 +110,27 @@ class Tracker:
     @property
     def dimension(self) -> int:
         """Get dimension from configuration."""
-        return self.config.system.dimension
+        return self.config.dimension
     
     @property
     def q(self) -> float:
         """Get mobile ion charge from configuration."""
-        return self.config.system.mobile_ion_charge
+        return self.config.mobile_ion_charge
     
     @property
     def elem_hop_distance(self) -> float:
         """Get elementary hop distance from configuration."""
-        return self.config.system.elementary_hop_distance
+        return self.config.elementary_hop_distance
     
     @property
     def temperature(self) -> float:
         """Get temperature from configuration."""
-        return self.config.runtime.temperature
+        return self.config.temperature
     
     @property
     def v(self) -> float:
         """Get attempt frequency from configuration."""
-        return self.config.runtime.attempt_frequency
+        return self.config.attempt_frequency
     
     @property
     def time(self) -> float:
@@ -145,7 +145,7 @@ class Tracker:
     @property
     def mobile_ion_specie(self) -> str:
         """Get mobile ion species from configuration."""
-        return self.config.system.mobile_ion_specie
+        return self.config.mobile_ion_specie
 
     @classmethod
     def from_inputset(cls, inputset: InputSet, structure: StructureKMCpy, occ_initial: list) -> "Tracker":

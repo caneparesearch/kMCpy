@@ -455,7 +455,7 @@ class EventGenerator:
 
     def generate_events(
         self,
-        template_structure_fname="210.cif",
+        structure_file="210.cif",
         convert_to_primitive_cell=False,
         local_env_cutoff_dict={("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0},
         mobile_ion_identifier_type="label",
@@ -466,15 +466,15 @@ class EventGenerator:
         find_nearest_if_fail=True,
         export_local_env_structure=True,
         supercell_shape=[2, 1, 1],
-        event_fname="events.json",
-        event_dependencies_fname="event_dependencies.csv",
+        event_file="events.json",
+        event_dependencies_file="event_dependencies.csv",
     ):
         """
         220603 XIE WEIHANG
         3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile_ion_specie_1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2
 
         Args:
-            template_structure_fname (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. This cif file should include all possible site i.e., no vacancy. For example when dealing with NaSICON The input cif file must be a fully occupied composition, which includes all possible Na sites N4ZSP; the varied Na-Vacancy should only be tuned by occupation list.
+            structure_file (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. This cif file should include all possible site i.e., no vacancy. For example when dealing with NaSICON The input cif file must be a fully occupied composition, which includes all possible Na sites N4ZSP; the varied Na-Vacancy should only be tuned by occupation list.
             convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
             local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
             mobile_ion_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
@@ -485,8 +485,8 @@ class EventGenerator:
             find_nearest_if_fail (bool, optional): if fail to sort the neighbor with given rtolerance and atolerance, find the best sorting that have most similar distance matrix? This should be False for bull model because if fail to find the sorting ,there must be something wrong. For grain boundary , better set this to True because they have various coordination type. Defaults to True.
             export_local_env_structure (bool, optional): whether to export the local environment structure to cif file. If set to true, for each representatibe local environment structure, a cif file will be generated for further investigation. This is for debug purpose. Once confirming that the code is doing correct thing, it's better to turn off this feature. Defaults to True.
             supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
-            event_fname (str, optional): file name for the events json file. Defaults to "events.json".
-            event_dependencies_fname (str, optional): file name for event dependencies matrix. Defaults to 'event_dependencies.csv'.
+            event_file (str, optional): file name for the events json file. Defaults to "events.json".
+            event_dependencies_file (str, optional): file name for event dependencies matrix. Defaults to 'event_dependencies.csv'.
 
         Raises:
             NotImplementedError: the atom identifier type=list is not yet implemented
@@ -510,7 +510,7 @@ class EventGenerator:
 
         # generate primitive cell
         primitive_cell = StructureKMCpy.from_cif(
-            template_structure_fname, primitive=convert_to_primitive_cell
+            structure_file, primitive=convert_to_primitive_cell
         )
         # primitive_cell.add_oxidation_state_by_element({"Na":1,"O":-2,"P":5,"Si":4,"V":2.5})
         primitive_cell.add_oxidation_state_by_guess()
@@ -774,8 +774,8 @@ class EventGenerator:
             event_lib.add_event(event)
             events_dict.append(event.as_dict())
 
-        logger.info(f"Saving: {event_fname}")
-        with open(event_fname, "w") as fhandle:
+        logger.info(f"Saving: {event_file}")
+        with open(event_file, "w") as fhandle:
             jsonStr = json.dumps(events_dict, indent=4, default=convert)
             fhandle.write(jsonStr)
 
@@ -784,8 +784,8 @@ class EventGenerator:
         event_lib.generate_event_dependencies()
         
         # Save event dependencies to file for backward compatibility
-        event_lib.save_event_dependencies_to_file(filename=event_dependencies_fname)
-        logger.info(f"Event dependencies saved to: {event_dependencies_fname}")
+        event_lib.save_event_dependencies_to_file(filename=event_dependencies_file)
+        logger.info(f"Event dependencies saved to: {event_dependencies_file}")
 
         # Display dependency statistics
         stats = event_lib.get_dependency_statistics()
