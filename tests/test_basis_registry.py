@@ -47,10 +47,6 @@ class TestBasisFunctionRegistry:
         @register_basis('custom_test')
         class CustomTestBasis(BasisFunction):
             @property
-            def name(self):
-                return 'custom_test'
-            
-            @property
             def vacant_value(self):
                 return 0.0
             
@@ -210,10 +206,6 @@ class TestCustomBasisWithOccupation:
         @register_basis('ternary_test')  
         class TernaryBasis(BasisFunction):
             @property
-            def name(self):
-                return 'ternary_test'
-            
-            @property
             def vacant_value(self):
                 return 0
             
@@ -269,10 +261,6 @@ class TestCustomBasisWithOccupation:
         
         @register_basis('float_test')
         class FloatBasis(BasisFunction):
-            @property
-            def name(self):
-                return 'float_test'
-            
             @property
             def vacant_value(self):
                 return 0.0

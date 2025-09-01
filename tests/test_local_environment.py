@@ -58,11 +58,13 @@ def test_get_local_occupation(global_lattice_model_and_env):
     # 2. Get the local occupation by slicing the full vector
     local_occ = full_occ[local_env.site_indices]
     
-    # The local environment is perfect, so occupation should be all occupied (value 1 in chebyshev basis)
-    expected_values = np.array([1, 1])  # Two occupied sites in local environment
+    # The local environment is perfect (identical to template), so all sites should be occupied
+    expected_local_occ = [
+        global_model.basis.occupied_value,  # All sites are occupied
+        global_model.basis.occupied_value
+    ]
     
-    assert np.array_equal(local_occ.values, expected_values)
-    assert local_occ.basis == 'chebyshev'
+    assert local_occ.array_equal(expected_local_occ)
 
 def test_get_local_occupation_with_vacancy(global_lattice_model_and_env):
     """Test local occupation when there's a vacancy in the local environment."""
@@ -78,10 +80,11 @@ def test_get_local_occupation_with_vacancy(global_lattice_model_and_env):
     # 2. Get the local occupation by slicing
     local_occ = full_occ[local_env.site_indices]
     
-    # The Cl site (index 1 in global, index 0 in local) is vacant.
-    # The Na site (index 0 in global, index 1 in local) is present.
-    # In chebyshev basis: vacant=-1, occupied=1
-    expected_values = np.array([-1, 1])  # First site vacant, second occupied
+    # The Cl site (index 1 in global, index 0 in local_env.site_indices) is vacant.
+    # The Na site (index 0 in global, index 1 in local_env.site_indices) is occupied.
+    expected_local_occ = [
+        global_model.basis.vacant_value,    # Cl site is vacant
+        global_model.basis.occupied_value   # Na site is occupied  
+    ]
     
-    assert np.array_equal(local_occ.values, expected_values)
-    assert local_occ.basis == 'chebyshev'
+    assert local_occ.array_equal(expected_local_occ)

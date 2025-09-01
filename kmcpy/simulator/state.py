@@ -7,14 +7,11 @@ SimulationState: Pure mutable state during simulation execution.
 No configuration mixed in, just the evolving state.
 """
 
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from typing import List, Dict, Any, Optional
 import json
 import numpy as np
 
 from ..event.event import Event
-
-if TYPE_CHECKING:
-    from ..structure.basis import Occupation
 
 
 class SimulationState:
@@ -22,23 +19,17 @@ class SimulationState:
     Pure mutable state during KMC simulation.
     
     This contains ONLY the state that changes during simulation:
-    - Current site occupations (as Occupation object with basis support)
+    - Current site occupations
     - Simulation time and step count  
     - Mobile species tracking data
     
     No configuration parameters - those belong in SimulationConfig.
     Generic design supports any KMC process (diffusion, reactions, etc.)
-    
-    The occupations are stored as an Occupation object, providing:
-    - Type safety and validation
-    - Basis function support (Chebyshev, occupation, custom)
-    - KMC-specific operations (site flipping, event application)
-    - Automatic conversion between basis representations
     """
     
     def __init__(
         self, 
-        occupations: 'Occupation',
+        occupations: List[int],
         time: float = 0.0,
         step: int = 0
     ):
@@ -46,16 +37,12 @@ class SimulationState:
         Initialize simulation state.
         
         Args:
-            occupations: Current site occupations as Occupation object
+            occupations: Current site occupations (will be copied)
             time: Current simulation time
             step: Current step number
         """
-        from ..structure.basis import Occupation
-        
-        if not isinstance(occupations, Occupation):
-            raise TypeError(f"occupations must be an Occupation object, got {type(occupations)}")
-        
-        self.occupations = occupations.copy()  # Keep as Occupation object
+        # Core mutable state
+        self.occupations = list(occupations)  # Always make a copy
         self.time = time
         self.step = step
         
@@ -83,8 +70,9 @@ class SimulationState:
         # Extract site indices from event
         from_site, to_site = event.mobile_ion_indices
         
-        # Use Occupation object's KMC event method
-        self.occupations.apply_event_inplace(from_site, to_site)
+        # Update occupations (flip signs for transition)
+        self.occupations[from_site] *= -1
+        self.occupations[to_site] *= -1
         
         # Update time and step
         self.time += dt
@@ -92,15 +80,15 @@ class SimulationState:
     
     def get_mobile_species_sites(self) -> List[int]:
         """Get indices of sites currently occupied by mobile species."""
-        return self.occupations.get_occupied_indices()
+        return [i for i, occ in enumerate(self.occupations) if occ > 0]
     
     def get_vacant_sites(self) -> List[int]:
-        """Get indices of vacant sites.""" 
-        return self.occupations.get_vacant_indices()
+        """Get indices of vacant sites."""
+        return [i for i, occ in enumerate(self.occupations) if occ < 0]
     
     def count_mobile_species(self) -> int:
         """Count total mobile species in system."""
-        return self.occupations.count_occupied()
+        return sum(1 for occ in self.occupations if occ > 0)
     
     def initialize_tracking(self, structure_data: Dict[str, Any]) -> None:
         """
@@ -148,7 +136,7 @@ class SimulationState:
     def copy(self) -> "SimulationState":
         """Create deep copy of this state."""
         new_state = SimulationState(
-            occupations=self.occupations,  # Constructor will copy the Occupation object
+            occupations=self.occupations,  # Constructor will copy
             time=self.time,
             step=self.step
         )
@@ -170,8 +158,7 @@ class SimulationState:
             filepath: Path to save checkpoint (.json or .h5)
         """
         data = {
-            'occupations': self.occupations.values,  # Save as list for JSON compatibility
-            'occupation_basis': self.occupations.basis,  # Save basis information
+            'occupations': self.occupations,
             'time': self.time,
             'step': self.step,
             'n_mobile_species': self.n_mobile_species
@@ -223,15 +210,9 @@ class SimulationState:
         else:
             raise ValueError("Checkpoint format must be .json or .h5")
         
-        # Create state object with proper Occupation object
-        from ..structure.basis import Occupation
-        
-        # Load occupation data and basis
-        occupation_basis = data.get('occupation_basis', 'chebyshev')  # Default for backward compatibility
-        occupation_obj = Occupation(data['occupations'], basis=occupation_basis)
-        
+        # Create state object
         state = cls(
-            occupations=occupation_obj,
+            occupations=data['occupations'],
             time=data['time'],
             step=data['step']
         )

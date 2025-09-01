@@ -24,11 +24,8 @@ class BasisFunction(ABC):
     Occupation class.
     """
     
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Name of the basis function."""
-        pass
+    def __init__(self):
+        self.name = self.__class__.__name__.lower().replace('basis', '')
     
     @property
     @abstractmethod
@@ -110,10 +107,6 @@ class OccupationBasis(BasisFunction):
     """
     
     @property
-    def name(self) -> str:
-        return 'occupation'
-    
-    @property
     def vacant_value(self) -> int:
         return 0
     
@@ -153,40 +146,41 @@ class OccupationBasis(BasisFunction):
 @register_basis('chebyshev')
 class ChebyshevBasis(BasisFunction):
     """
-    Chebyshev basis function mapping to [-1, +1] range.
+    Chebyshev basis function that maps between [-1, +1] representation.
+    Often used in cluster expansion for better numerical properties.
     
-    - Vacant sites: -1
-    - Occupied sites: +1
+    In Chebyshev basis:
+    - -1 = vacant site (same as template)
+    - +1 = occupied site (different from template)
     """
     
     @property
-    def name(self) -> str:
-        return 'chebyshev'
+    def vacant_value(self) -> int:
+        return -1
     
     @property
-    def vacant_value(self):
-        return -1
-        
-    @property
-    def occupied_value(self):
+    def occupied_value(self) -> int:
         return 1
-        
+    
     @property
-    def valid_values(self):
+    def valid_values(self) -> set:
         return {-1, 1}
-        
+    
     @property
-    def basis_function(self):
+    def basis_function(self) -> List[int]:
         return [-1, 1]
-        
-    def is_occupied(self, value):
-        return value == 1
-        
-    def is_vacant(self, value):
-        return value == -1
-        
-    def flip_value(self, value):
-        return 1 if value == -1 else -1
+    
+    def is_occupied(self, value: int) -> bool:
+        """Check if a value represents an occupied site."""
+        return value == self.occupied_value
+    
+    def is_vacant(self, value: int) -> bool:
+        """Check if a value represents a vacant site."""
+        return value == self.vacant_value
+    
+    def flip_value(self, value: int) -> int:
+        """Flip between occupied and vacant."""
+        return -value
     
     def to_occupation(self, value: int) -> int:
         """Convert Chebyshev value to occupation representation."""
@@ -230,7 +224,6 @@ class Occupation:
     - Immutable and mutable variants
     - Efficient numpy operations under the hood
     - Extensible via basis function registry
-    - JSON file loading with supercell reshaping via from_json() method
     """
     
     def __init__(self, data: Union[List[int], Tuple[int], np.ndarray], 
@@ -283,6 +276,11 @@ class Occupation:
         return self._data.copy()  # Return copy to maintain immutability
     
     @property
+    def array(self) -> np.ndarray:
+        """Get the underlying numpy array (alias for data, for backward compatibility)."""
+        return self.data
+    
+    @property
     def values(self) -> List[int]:
         """Get occupation values as a list."""
         return self._data.tolist()
@@ -291,15 +289,15 @@ class Occupation:
         """Return number of sites."""
         return len(self._data)
     
-    def __getitem__(self, index: Union[int, slice, List[int], np.ndarray]):
+    def __getitem__(self, index: Union[int, slice, np.ndarray, List[int]]) -> Union[int, 'Occupation']:
         """Get occupation value(s) at index."""
         if isinstance(index, slice):
             return Occupation(self._data[index], basis=self._basis_obj, validate=False)
-        elif isinstance(index, (list, np.ndarray)):
-            # For array/list indexing, return a new Occupation object with the subset
+        elif isinstance(index, (list, tuple, np.ndarray)):
+            # Handle array-like indexing (returns new Occupation object)
             return Occupation(self._data[index], basis=self._basis_obj, validate=False)
         else:
-            # For single index, return scalar value
+            # Single index (returns scalar)
             return self._data[index].item()
     
     def __setitem__(self, index: Union[int, slice], value: Union[int, List[int]]):
@@ -317,6 +315,47 @@ class Occupation:
         if not isinstance(other, Occupation):
             return False
         return self._basis_name == other._basis_name and np.array_equal(self._data, other._data)
+    
+    def __ne__(self, other) -> bool:
+        """Check inequality with another Occupation object."""
+        return not self.__eq__(other)
+    
+    def equivalent_to(self, other: 'Occupation') -> bool:
+        """
+        Check if two Occupation objects represent the same occupation pattern,
+        regardless of basis type.
+        
+        This is useful for comparing occupations that might be in different bases
+        but represent the same physical state.
+        
+        Args:
+            other: Another Occupation object to compare with
+            
+        Returns:
+            True if both objects represent the same occupation pattern
+        """
+        if not isinstance(other, Occupation):
+            return False
+        
+        # Convert both to occupation basis for comparison
+        self_occ = self.to_basis('occupation')
+        other_occ = other.to_basis('occupation')
+        return np.array_equal(self_occ._data, other_occ._data)
+    
+    def array_equal(self, array: Union[List, Tuple, np.ndarray]) -> bool:
+        """
+        Check if the underlying data array equals the given array.
+        
+        This is useful for unit tests where you want to compare the raw data
+        without creating another Occupation object.
+        
+        Args:
+            array: Array-like object to compare with
+            
+        Returns:
+            True if the arrays are equal
+        """
+        return np.array_equal(self._data, np.array(array))
     
     def __repr__(self) -> str:
         """String representation."""
@@ -374,50 +413,6 @@ class Occupation:
         
         for idx in indices:
             self._data[idx] = self._basis_obj.flip_value(self._data[idx])
-    
-    def swap_sites(self, site1: int, site2: int) -> 'Occupation':
-        """
-        Return new Occupation with values swapped between two sites.
-        
-        This is a common operation in KMC simulations where a species moves from
-        one site to another (e.g., ion diffusion, vacancy hopping).
-        
-        Args:
-            site1: First site index
-            site2: Second site index
-            
-        Returns:
-            New Occupation object with swapped values
-        """
-        new_data = self._data.copy()
-        new_data[site1], new_data[site2] = new_data[site2], new_data[site1]
-        return Occupation(new_data, basis=self._basis_obj, validate=False)
-    
-    def swap_sites_inplace(self, site1: int, site2: int) -> None:
-        """
-        Swap values between two sites in-place.
-        
-        Args:
-            site1: First site index
-            site2: Second site index
-        """
-        self._data[site1], self._data[site2] = self._data[site2], self._data[site1]
-    
-    def apply_event_inplace(self, from_site: int, to_site: int) -> None:
-        """
-        Apply a KMC event by flipping occupation at two sites.
-        
-        This is the standard operation for site-to-site transitions in KMC:
-        - Occupied site becomes vacant
-        - Vacant site becomes occupied
-        
-        Args:
-            from_site: Index of site to vacate
-            to_site: Index of site to occupy
-        """
-        # Flip both sites - this handles any basis representation correctly
-        self._data[from_site] = self._basis_obj.flip_value(self._data[from_site])
-        self._data[to_site] = self._basis_obj.flip_value(self._data[to_site])
     
     def to_basis(self, target_basis: Union[str, BasisFunction]) -> 'Occupation':
         """
@@ -514,72 +509,3 @@ class Occupation:
             
         data = np.where(occupied, basis_obj.occupied_value, basis_obj.vacant_value)
         return cls(data, basis=basis_obj, validate=False)
-    
-    @classmethod
-    def from_json(cls, initial_state_file: str, supercell_shape: List[int], 
-                  select_sites: List[int], basis: Union[str, BasisFunction] = 'chebyshev') -> 'Occupation':
-        """
-        Load occupation data from JSON file with supercell reshaping and site selection.
-        
-        This method loads occupation data from a JSON file, reshapes it according to 
-        supercell dimensions, selects specific sites, and converts to the specified basis.
-        
-        Args:
-            initial_state_file: Path to JSON file containing occupation data
-            supercell_shape: Supercell dimensions [x, y, z]
-            select_sites: Indices of sites to include (excluding immutable sites)
-            basis: Target basis function or name (default: 'chebyshev')
-            
-        Returns:
-            Occupation object with loaded and processed data
-            
-        Raises:
-            FileNotFoundError: If initial state file doesn't exist
-            ValueError: If occupation data is incompatible with supercell shape
-            KeyError: If 'occupation' key not found in JSON
-        """
-        import json
-        from pathlib import Path
-        
-        filepath = Path(initial_state_file)
-        if not filepath.exists():
-            raise FileNotFoundError(f"Initial state file not found: {filepath}")
-        
-        try:
-            with open(filepath, "r") as f:
-                data = json.load(f)
-                
-            if "occupation" not in data:
-                raise KeyError(f"'occupation' key not found in {filepath}")
-                
-            occupation_raw_data = np.array(data["occupation"])
-            
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {filepath}: {e}")
-        
-        # Check compatibility with supercell shape
-        supercell_volume = supercell_shape[0] * supercell_shape[1] * supercell_shape[2]
-        if len(occupation_raw_data) % supercell_volume != 0:
-            raise ValueError(
-                f"Length of occupation data ({len(occupation_raw_data)}) is incompatible "
-                f"with supercell shape {supercell_shape} (volume={supercell_volume})"
-            )
-        
-        # Calculate number of sites per supercell unit
-        site_nums = int(len(occupation_raw_data) / supercell_volume)
-        
-        # Reshape and select sites
-        convert_to_dimension = (site_nums, supercell_shape[0], supercell_shape[1], supercell_shape[2])
-        occupation_reshaped = occupation_raw_data.reshape(convert_to_dimension)[select_sites]
-        occupation_selected = occupation_reshaped.flatten("C")
-        
-        # Create Occupation object in occupation basis first (since JSON typically uses 0/1)
-        occupation_obj = cls(occupation_selected, basis='occupation', validate=True)
-        
-        # Convert to target basis if different from occupation basis
-        if isinstance(basis, str) and basis != 'occupation':
-            occupation_obj = occupation_obj.to_basis(basis)
-        elif isinstance(basis, BasisFunction) and basis.name != 'occupation':
-            occupation_obj = occupation_obj.to_basis(basis)
-        
-        return occupation_obj

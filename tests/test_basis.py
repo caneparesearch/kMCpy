@@ -97,7 +97,7 @@ class TestOccupation:
     """Test the Occupation class."""
     
     def test_init_chebyshev(self):
-        """Test initialization with Chebyshev basis."""
+        """Test Occupation initialization with Chebyshev basis."""
         occ = Occupation([-1, 1, -1, 1], basis='chebyshev')
         assert occ.basis == 'chebyshev'
         assert occ.values == [-1, 1, -1, 1]
@@ -113,6 +113,7 @@ class TestOccupation:
     def test_init_validation_chebyshev(self):
         """Test validation with Chebyshev basis."""
         # Valid values
+        # Test with chebyshev basis (should work)
         Occupation([-1, 1], basis='chebyshev')  # Should not raise
         
         # Invalid values
@@ -127,12 +128,7 @@ class TestOccupation:
         # Invalid values
         with pytest.raises(ValueError, match="Invalid values"):
             Occupation([-1, 1], basis='occupation')  # -1 not valid in occupation
-    
-    def test_init_invalid_basis(self):
-        """Test invalid basis raises error."""
-        with pytest.raises(ValueError, match="Unknown basis"):
-            Occupation([0, 1], basis='invalid')
-    
+        
     def test_properties(self):
         """Test basic properties."""
         occ = Occupation([-1, 1, -1], basis='chebyshev')
@@ -344,137 +340,6 @@ class TestOccupation:
         # This should not raise an error even with invalid values
         occ = Occupation([0, 2, -5], basis='chebyshev', validate=False)
         assert occ.values == [0, 2, -5]
-    
-    def test_from_json_factory(self):
-        """Test from_json factory method for loading occupation data from JSON files."""
-        import tempfile
-        import json
-        import os
-        
-        # Test data with occupation basis (0/1 values)
-        # 12 elements = 2 site types * 6 supercell volume
-        test_data = {
-            'occupation': [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0]
-        }
-        
-        # Write to temp file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(test_data, f)
-            temp_file = f.name
-        
-        try:
-            # Test loading with Chebyshev basis (should convert 0->-1, 1->1)
-            occ_cheb = Occupation.from_json(
-                initial_state_file=temp_file,
-                supercell_shape=[2, 3, 1],  # 2x3x1 = 6 supercell volume
-                select_sites=[0],  # Select only first site type (6 sites)
-                basis='chebyshev'
-            )
-            
-            assert occ_cheb.basis == 'chebyshev'
-            # Should have 6 values (first site type across supercell)
-            assert len(occ_cheb.values) == 6
-            # Values should be converted to Chebyshev basis
-            expected_cheb = [-1, 1, -1, 1, 1, -1]  # First site type values converted
-            assert occ_cheb.values == expected_cheb
-            
-            # Test loading with occupation basis (no conversion)
-            occ_occ = Occupation.from_json(
-                initial_state_file=temp_file,
-                supercell_shape=[2, 3, 1],
-                select_sites=[1],  # Select only second site type (6 sites)
-                basis='occupation'
-            )
-            
-            assert occ_occ.basis == 'occupation'
-            assert len(occ_occ.values) == 6
-            expected_occ = [1, 0, 0, 1, 1, 0]  # Second site type values unchanged
-            assert occ_occ.values == expected_occ
-            
-            # Test selecting both site types (should get all 12 values)
-            occ_both = Occupation.from_json(
-                initial_state_file=temp_file,
-                supercell_shape=[2, 3, 1],
-                select_sites=[0, 1],  # Select both site types
-                basis='chebyshev'
-            )
-            
-            assert len(occ_both.values) == 12
-            expected_both = [-1, 1, -1, 1, 1, -1, 1, -1, -1, 1, 1, -1]
-            assert occ_both.values == expected_both
-            
-        finally:
-            os.unlink(temp_file)
-    
-    def test_from_json_errors(self):
-        """Test error handling in from_json method."""
-        import tempfile
-        import json
-        import os
-        
-        # Test file not found
-        with pytest.raises(FileNotFoundError):
-            Occupation.from_json(
-                initial_state_file='nonexistent.json',
-                supercell_shape=[1, 1, 1],
-                select_sites=[0]
-            )
-        
-        # Test missing 'occupation' key
-        test_data_bad = {'wrong_key': [0, 1]}
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(test_data_bad, f)
-            temp_file = f.name
-        
-        try:
-            with pytest.raises(KeyError, match="'occupation' key not found"):
-                Occupation.from_json(
-                    initial_state_file=temp_file,
-                    supercell_shape=[1, 1, 1],
-                    select_sites=[0]
-                )
-        finally:
-            os.unlink(temp_file)
-        
-        # Test incompatible supercell shape
-        test_data = {'occupation': [0, 1, 0]}  # 3 elements
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(test_data, f)
-            temp_file = f.name
-        
-        try:
-            with pytest.raises(ValueError, match="incompatible with supercell shape"):
-                Occupation.from_json(
-                    initial_state_file=temp_file,
-                    supercell_shape=[2, 2, 1],  # Volume = 4, doesn't divide 3
-                    select_sites=[0]
-                )
-        finally:
-            os.unlink(temp_file)
-    
-    def test_kmc_methods(self):
-        """Test KMC-specific methods in Occupation class."""
-        occ = Occupation([-1, 1, -1, -1], basis='chebyshev')
-        
-        # Test swap_sites (immutable)
-        swapped = occ.swap_sites(0, 1)
-        assert swapped.values == [1, -1, -1, -1]
-        assert occ.values == [-1, 1, -1, -1]  # Original unchanged
-        
-        # Test swap_sites_inplace (mutable)
-        occ_mut = occ.copy()
-        occ_mut.swap_sites_inplace(0, 1)
-        assert occ_mut.values == [1, -1, -1, -1]
-        
-        # Test apply_event_inplace (simulating ion hopping)
-        occ_event = occ.copy()
-        occ_event.apply_event_inplace(1, 2)  # Move from occupied site 1 to vacant site 2
-        assert occ_event.values == [-1, -1, 1, -1]  # Site 1 becomes vacant, site 2 occupied
-        
-        # Test with occupation basis
-        occ_occ = Occupation([0, 1, 0, 0], basis='occupation')
-        occ_occ.apply_event_inplace(1, 2)  # Move from occupied site 1 to vacant site 2
-        assert occ_occ.values == [0, 0, 1, 0]  # Site 1 becomes vacant, site 2 occupied
 
 
 class TestBasisIntegration:

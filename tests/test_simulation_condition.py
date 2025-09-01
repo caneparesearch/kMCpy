@@ -232,38 +232,35 @@ class TestSimulationState:
     
     def test_initialization(self):
         """Test SimulationState initialization."""
-        from kmcpy.structure.basis import Occupation
-        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
+        initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             occupations=initial_occ,
         )
         
-        assert state.occupations.values == [1, -1, 1, -1]
+        assert np.array_equal(state.occupations, initial_occ)
         assert state.time == 0.0
         assert state.step == 0
     
     def test_occupation_management(self):
         """Test occupation state management."""
-        from kmcpy.structure.basis import Occupation
-        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
+        initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             occupations=initial_occ,
         )
         
         # Test initial occupations
-        assert state.occupations.values == [1, -1, 1, -1]
+        assert np.array_equal(state.occupations, [1, -1, 1, -1])
         
         # Test occupation update
-        state.occupations.flip_inplace([0])  # Flip site 0: 1 -> -1
-        state.occupations.flip_inplace([1])  # Flip site 1: -1 -> 1
-        assert state.occupations.values == [-1, 1, 1, -1]
+        state.occupations[0] = -1
+        state.occupations[1] = 1
+        assert np.array_equal(state.occupations, [-1, 1, 1, -1])
     
     def test_update_from_event(self):
         """Test updating state from an event."""
-        from kmcpy.structure.basis import Occupation
-        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
+        initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             occupations=initial_occ,
@@ -281,15 +278,14 @@ class TestSimulationState:
         state.apply_event(event, dt)
         
         # Check that occupations were flipped
-        assert state.occupations.values == [-1, 1, 1, -1]
+        assert np.array_equal(state.occupations, [-1, 1, 1, -1])
         assert state.time == 0.1
         assert state.step == 1
 
         
     def test_copy(self):
         """Test copying simulation state."""
-        from kmcpy.structure.basis import Occupation
-        initial_occ = Occupation([1, -1, 1, -1], basis='chebyshev')
+        initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
             occupations=initial_occ,
@@ -303,14 +299,14 @@ class TestSimulationState:
         state_copy = state.copy()
         
         # Check that copy is independent
-        assert state_copy.occupations.values == [1, -1, 1, -1]
+        assert np.array_equal(state_copy.occupations, state.occupations)
         assert state_copy.time == state.time
         assert state_copy.step == state.step
         
         # Modify copy
-        state_copy.occupations.values[0] = -1
+        state_copy.occupations[0] = -1
         state_copy.time = 20.0
         
         # Original should be unchanged
-        assert state.occupations.values[0] == 1
+        assert state.occupations[0] == 1
         assert state.time == 10.0

@@ -11,7 +11,7 @@ from typing import List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 import logging
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-
+from kmcpy.structure.basis import Occupation
 if TYPE_CHECKING:
     from kmcpy.models import LocalClusterExpansion
 
@@ -26,13 +26,13 @@ class NEBEntry:
     Attributes:
         local_lattice_structure (LocalLatticeStructure): Structure model of NEB calculation
         property_value (float): Property value for this structure (e.g. E_KRA or E_site)
-        occupation (Optional[List[int]]): Occupation vector for the structure, defaults to None
+        occupation (Occupation): Occupation vector for the structure, defaults to None
         correlation (Optional[List[float]]): Correlation vector for the structure, defaults to None
         metadata (Dict): Additional metadata for the structure, defaults to None
     """
     local_lattice_structure: LocalLatticeStructure
     property_value: float
-    occupation: Optional[List[int]] = None
+    occupation: Occupation = None
     correlation: Optional[List[float]] = None
     metadata: Optional[Dict] = None
 
@@ -42,9 +42,8 @@ class NEBEntry:
         Args:
             model (LocalClusterExpansion): Local Cluster Expansion model instance
         """
-        from kmcpy.models.local_cluster_expansion import _calc_corr
 
-        self.occupation = model.get_occ_from_structure(self.structure)
+        self.occupation = self.local_lattice_structure.get_occ_from_structure(self.structure)
         logger.warning(f"{self.structure}: {self.occupation}")
         self.correlation = model.get_corr_from_structure(self.structure)
         logger.info(f"{self.structure}: {self.correlation}")
