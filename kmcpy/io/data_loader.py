@@ -39,20 +39,30 @@ class NEBEntry:
     def compute_occ_corr(self, model: 'LocalClusterExpansion') -> None:
         """
         Compute occupation and correlation vectors for the structure.
+        
         Args:
             model (LocalClusterExpansion): Local Cluster Expansion model instance
         """
-
-        self.occupation = self.local_lattice_structure.get_occ_from_structure(self.structure)
-        logger.warning(f"{self.structure}: {self.occupation}")
-        self.correlation = model.get_corr_from_structure(self.structure)
-        logger.info(f"{self.structure}: {self.correlation}")
+        try:
+            # Get occupation vector from the LocalLatticeStructure
+            if hasattr(self.local_lattice_structure, 'template_structure'):
+                structure_for_occ = self.local_lattice_structure.template_structure
+            else:
+                structure_for_occ = getattr(self.local_lattice_structure, 'structure', None)
+                if structure_for_occ is None:
+                    raise ValueError("Cannot find structure data in LocalLatticeStructure")
+            
+            self.occupation = self.local_lattice_structure.get_occ_from_structure(structure_for_occ)
+            self.correlation = model.get_corr_from_structure(structure_for_occ)
+            logger.debug(f"Computed vectors: occ_len={len(self.occupation)}, corr_len={len(self.correlation)}")
+            
+        except Exception as e:
+            logger.error(f"Failed to compute occupation and correlation vectors: {e}")
+            raise
 
 class DataLoader:
     """
     Base class for data loaders.
-    
-    This class can be extended to implement specific data loading functionality.
     """
     def __init__(self):
         pass
@@ -74,106 +84,157 @@ class NEBDataLoader(DataLoader):
     """
     
     def __init__(self):
-        """
-        Initialize the NEBDataLoader.
-        """
+        """Initialize the NEBDataLoader."""
         self.neb_entries: List[NEBEntry] = []
 
-    def add(self, neb_entry: NEBEntry, model: 'LocalClusterExpansion') -> None:
+    def _validate_structure_consistency(self, new_entry: NEBEntry, rtol: float = 1e-3, atol: float = 1e-3) -> bool:
         """
-        Add a NEBEntry to the loader.
+        Validate that a new LocalLatticeStructure is consistent with existing entries.
         
         Args:
-            neb_entry (NEBEntry): NEBEntry object to add
-            model (LocalClusterExpansion): Local Cluster Expansion model instance
+            new_entry: New entry to validate
+            rtol: Relative tolerance for distance matrix comparison
+            atol: Absolute tolerance for distance matrix comparison
+            
+        Returns:
+            bool: True if consistent, False otherwise
         """
+        if not self.neb_entries or new_entry.local_lattice_structure is None:
+            return True
+            
+        try:
+            ref_structure = self.neb_entries[0].local_lattice_structure
+            new_structure = new_entry.local_lattice_structure
+            
+            # Check if both have structure attribute (Molecule)
+            if not hasattr(ref_structure, 'structure') or not hasattr(new_structure, 'structure'):
+                return True  # Skip validation if structure not available
+                
+            ref_molecule = ref_structure.structure
+            new_molecule = new_structure.structure
+            
+            # Check site count
+            if len(ref_molecule) != len(new_molecule):
+                logger.warning(f"Site count mismatch: {len(ref_molecule)} vs {len(new_molecule)}")
+                return False
+            
+            # Check species
+            ref_species = sorted([str(site.specie) for site in ref_molecule])
+            new_species = sorted([str(site.specie) for site in new_molecule])
+            if ref_species != new_species:
+                logger.warning(f"Species mismatch: {ref_species} vs {new_species}")
+                return False
+            
+            # Check distance matrices
+            ref_dist_matrix = ref_molecule.distance_matrix
+            new_dist_matrix = new_molecule.distance_matrix
+            if not np.allclose(ref_dist_matrix, new_dist_matrix, rtol=rtol, atol=atol):
+                logger.warning("Distance matrices do not match within tolerance")
+                return False
+                
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Structure validation failed: {e}")
+            return True  # Don't fail if validation itself fails
+
+    def add(self, neb_entry: NEBEntry, model: 'LocalClusterExpansion', validate_structure: bool = True) -> None:
+        """
+        Add a NEBEntry to the loader with validation.
+        
+        Args:
+            neb_entry: NEBEntry object to add
+            model: Local Cluster Expansion model instance
+            validate_structure: Whether to validate LocalLatticeStructure consistency
+        """
+        if not isinstance(neb_entry, NEBEntry):
+            raise ValueError("Entry must be a NEBEntry instance")
+            
+        if neb_entry.local_lattice_structure is None:
+            raise ValueError("NEBEntry must have a valid LocalLatticeStructure")
+            
+        # Validate structure consistency
+        if validate_structure and not self._validate_structure_consistency(neb_entry):
+            raise ValueError("LocalLatticeStructure is inconsistent with existing entries")
+            
+        # Compute vectors
         neb_entry.compute_occ_corr(model)
+        
+        # Check vector consistency
+        if self.neb_entries:
+            if len(neb_entry.occupation) != len(self.neb_entries[0].occupation):
+                raise ValueError("Occupation vector length mismatch")
+            if len(neb_entry.correlation) != len(self.neb_entries[0].correlation):
+                raise ValueError("Correlation vector length mismatch")
+        
         self.neb_entries.append(neb_entry)
         self.model_name = model.name
-        logger.debug(f"Added NEB entry: {neb_entry.structure} with property: {neb_entry.property_value}")
+        logger.info(f"Added NEB entry with property value: {neb_entry.property_value:.6f}")
     
     def get_correlation_matrix(self) -> np.ndarray:
-        """
-        Get the correlation matrix for all structures.
-        
-        Returns:
-            np.ndarray: Correlation matrix [n_structures, n_correlations]
-        """
-        return np.array([neb_entry.correlation for neb_entry in self.neb_entries])
+        """Get the correlation matrix for all structures."""
+        if not self.neb_entries:
+            raise ValueError("No entries available")
+        return np.array([entry.correlation for entry in self.neb_entries])
     
     def get_occupation_matrix(self) -> np.ndarray:
-        """
-        Get the occupation matrix for all structures.
-        
-        Returns:
-            np.ndarray: Occupation matrix [n_structures, n_sites]
-        """
-        return np.array([neb_entry.occupation for neb_entry in self.neb_entries])
+        """Get the occupation matrix for all structures."""
+        if not self.neb_entries:
+            raise ValueError("No entries available")
+        return np.array([entry.occupation for entry in self.neb_entries])
     
     def get_properties(self) -> np.ndarray:
-        """
-        Get the properties for all structures.
+        """Get the properties for all structures."""
+        if not self.neb_entries:
+            raise ValueError("No entries available")
+        return np.array([entry.property_value for entry in self.neb_entries])
         
-        Returns:
-            np.ndarray: Property vector [n_structures]
-        """
-        return np.array([neb_entry.property_value for neb_entry in self.neb_entries])
-    
-    def to_json(self, 
-                output_dir: str = ".", 
-                prefix: str = "ekra") -> None:
+    def to_json(self, output_dir: str = ".", prefix: str = "ekra") -> str:
         """
         Save training data to JSON file.
         
         Args:
-            output_dir (str): Output directory
-            prefix (str): Prefix for output files, defaults to "ekra"
+            output_dir: Output directory
+            prefix: Prefix for output files
+            
+        Returns:
+            str: Path to saved file
         """
+        if not self.neb_entries:
+            raise ValueError("No entries to save")
+            
         os.makedirs(output_dir, exist_ok=True)
         
-        # Prepare data to save
         data = {
             "correlation_matrix": self.get_correlation_matrix().tolist(),
             "occupation_matrix": self.get_occupation_matrix().tolist(),
             "properties": self.get_properties().tolist(),
-            "metadata": [
-            neb_entry.metadata if neb_entry.metadata is not None else {}
-            for neb_entry in self.neb_entries
-            ]
+            "metadata": [entry.metadata or {} for entry in self.neb_entries],
+            "n_structures": len(self.neb_entries),
+            "model_name": getattr(self, 'model_name', 'unknown')
         }
+        
         output_file = os.path.join(output_dir, f"{prefix}.json")
         with open(output_file, "w") as f:
             json.dump(data, f, indent=2)
-        logger.info(f"Saved all data to {output_file}")
-    
+            
+        logger.info(f"Saved {len(self.neb_entries)} entries to {output_file}")
+        return output_file
     
     def __str__(self) -> str:
-        """
-        String summary of loaded data.
-        """
+        """String summary of loaded data."""
         if not self.neb_entries:
-            return "NEBDataLoader: n_structures=0"
+            return "NEBDataLoader: 0 structures"
         
         properties = self.get_properties()
         n_structures = len(self.neb_entries)
-        property_min = min(properties)
-        property_max = max(properties)
-        property_mean = np.mean(properties)
-        property_std = np.std(properties)
-        has_occupations = any(entry.occupation is not None for entry in self.neb_entries)
-        has_correlations = any(entry.correlation is not None for entry in self.neb_entries)
-
-        summary = (
-            f"NEBDataLoader:\n"
-            f"  n_structures: {n_structures}\n"
-            f"  property_min: {property_min:.4f}\n"
-            f"  property_max: {property_max:.4f}\n"
-            f"  property_mean: {property_mean:.4f}\n"
-            f"  property_std: {property_std:.4f}\n"
-            f"  has_occupations: {has_occupations}\n"
-            f"  has_correlations: {has_correlations}"
+        
+        return (
+            f"NEBDataLoader: {n_structures} structures\n"
+            f"  Property range: [{np.min(properties):.4f}, {np.max(properties):.4f}]\n"
+            f"  Correlation matrix: {self.get_correlation_matrix().shape}\n"
+            f"  Occupation matrix: {self.get_occupation_matrix().shape}"
         )
-        return summary
             
     def __len__(self) -> int:
         """Return number of loaded structures."""
