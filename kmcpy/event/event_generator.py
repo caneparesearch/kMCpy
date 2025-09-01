@@ -451,7 +451,207 @@ class EventGenerator:
     """
 
     def __init__(self):
-        pass
+        self.lattice_structure = None
+        self.local_environments = {}
+
+    def generate_events_modern(
+        self,
+        structure_file="210.cif",
+        mobile_species=["Na"],
+        mobile_site_mapping=None,
+        local_env_cutoff=4.0,
+        exclude_species=None,
+        supercell_shape=[2, 1, 1],
+        event_file="events.json",
+        event_dependencies_file="event_dependencies.csv",
+        rtol=1e-3,
+        atol=1e-3
+    ):
+        """
+        Modern event generation using LatticeStructure and LocalLatticeStructure.
+        
+        This method provides a cleaner, more maintainable approach compared to generate_events().
+        
+        Args:
+            structure_file (str): Path to structure file (CIF, POSCAR, etc.)
+            mobile_species (list): List of mobile species (e.g., ["Na", "Li"])
+            mobile_site_mapping (dict): Mapping of species to possible occupants
+            local_env_cutoff (float): Cutoff distance for local environment
+            exclude_species (list): Species to exclude from analysis
+            supercell_shape (list): Shape of supercell [nx, ny, nz]
+            event_file (str): Output events file name
+            event_dependencies_file (str): Output dependencies file name
+            rtol (float): Relative tolerance for matching
+            atol (float): Absolute tolerance for matching
+            
+        Returns:
+            dict: Dictionary containing reference local environments
+        """
+        import json
+        from pymatgen.core import Structure
+        from kmcpy.structure import LatticeStructure, LocalLatticeStructure
+        from kmcpy.event import Event, EventLib
+        from kmcpy.io import convert
+        import kmcpy
+
+        logger.info(kmcpy.get_logo())
+        logger.info("Using modern event generation with LatticeStructure framework")
+
+        # Step 1: Load structure
+        structure = Structure.from_file(structure_file)
+        if exclude_species:
+            structure.remove_species(exclude_species)
+        
+        logger.info(f"Loaded structure with composition: {structure.composition}")
+
+        # Step 2: Create LatticeStructure with appropriate site mapping
+        if mobile_site_mapping is None:
+            mobile_site_mapping = {}
+            for species in mobile_species:
+                mobile_site_mapping[species] = [species, "X"]  # X = vacancy
+            # Add immobile species
+            for site in structure:
+                species_str = site.species_string
+                if species_str not in mobile_site_mapping:
+                    mobile_site_mapping[species_str] = [species_str]
+
+        self.lattice_structure = LatticeStructure(
+            template_structure=structure,
+            specie_site_mapping=mobile_site_mapping,
+            basis_type='occupation'
+        )
+
+        # Step 3: Find mobile sites
+        mobile_sites = []
+        for i, site in enumerate(structure):
+            if site.species_string in mobile_species:
+                mobile_sites.append(i)
+
+        logger.info(f"Found {len(mobile_sites)} mobile sites")
+
+        # Step 4: Generate and classify local environments
+        reference_local_envs = {}
+        
+        for site_idx in mobile_sites:
+            # Create LocalLatticeStructure for this site
+            local_env = LocalLatticeStructure(
+                template_structure=structure,
+                center=site_idx,
+                cutoff=local_env_cutoff,
+                specie_site_mapping=mobile_site_mapping,
+                exclude_species=exclude_species
+            )
+            
+            # Create environment signature
+            env_signature = self._create_environment_signature(local_env)
+            
+            if env_signature not in reference_local_envs:
+                reference_local_envs[env_signature] = {
+                    'local_env': local_env,
+                    'sites': []
+                }
+                logger.info(f"New local environment type: {env_signature}")
+            
+            reference_local_envs[env_signature]['sites'].append(site_idx)
+            self.local_environments[site_idx] = env_signature
+
+        # Step 5: Create supercell
+        supercell = structure.copy()
+        supercell.make_supercell(supercell_shape)
+        logger.info(f"Created supercell with {len(supercell)} sites")
+
+        # Step 6: Generate events
+        events = []
+        event_lib = EventLib()
+
+        # Find mobile sites in supercell
+        mobile_sites_sc = []
+        for i, site in enumerate(supercell):
+            if site.species_string in mobile_species:
+                mobile_sites_sc.append(i)
+
+        logger.info(f"Generating events from {len(mobile_sites_sc)} mobile sites in supercell...")
+
+        for site_idx in mobile_sites_sc:
+            site = supercell[site_idx]
+            neighbors = supercell.get_neighbors(site, local_env_cutoff * 1.5)
+            
+            # Get local environment indices
+            local_env_indices = self._get_local_environment_indices_supercell(
+                supercell, site_idx, local_env_cutoff
+            )
+            
+            for neighbor in neighbors:
+                neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
+                
+                if (neighbor_idx is not None and 
+                    neighbor.species_string in mobile_species and
+                    neighbor_idx != site_idx):
+                    
+                    # Create event
+                    event = Event(
+                        mobile_ion_indices=(site_idx, neighbor_idx),
+                        local_env_indices=tuple(local_env_indices)
+                    )
+                    events.append(event)
+                    event_lib.add_event(event)
+
+        if len(events) == 0:
+            raise ValueError("No events generated. Check input parameters.")
+
+        # Step 7: Generate dependencies and save
+        logger.info("Generating event dependencies...")
+        event_lib.generate_event_dependencies()
+        
+        # Save events
+        events_dict = [event.as_dict() for event in events]
+        with open(event_file, "w") as f:
+            json.dump(events_dict, f, indent=4, default=convert)
+        logger.info(f"Saved {len(events)} events to {event_file}")
+        
+        # Save dependencies
+        event_lib.save_event_dependencies_to_file(event_dependencies_file)
+        logger.info(f"Saved dependencies to {event_dependencies_file}")
+        
+        # Log statistics
+        stats = event_lib.get_dependency_statistics()
+        logger.info(f"Generated {len(event_lib)} events with dependency statistics: {stats}")
+
+        return reference_local_envs
+
+    def _create_environment_signature(self, local_env):
+        """Create a unique signature for a local environment type."""
+        species_count = {}
+        for site in local_env.structure:
+            species = site.species_string
+            species_count[species] = species_count.get(species, 0) + 1
+        
+        signature_parts = []
+        for species, count in sorted(species_count.items()):
+            signature_parts.append(f"{species}:{count}")
+        
+        return "_".join(signature_parts)
+
+    def _find_site_index_in_supercell(self, supercell, target_site):
+        """Find the index of a target site in the supercell."""
+        import numpy as np
+        for i, site in enumerate(supercell):
+            if np.allclose(site.frac_coords, target_site.frac_coords, atol=1e-4):
+                return i
+        return None
+
+    def _get_local_environment_indices_supercell(self, supercell, central_site_idx, cutoff):
+        """Get indices of sites in the local environment."""
+        central_site = supercell[central_site_idx]
+        neighbors = supercell.get_neighbors(central_site, cutoff)
+        
+        env_indices = []
+        for neighbor in neighbors:
+            neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
+            if neighbor_idx is not None:
+                env_indices.append(neighbor_idx)
+        
+        return env_indices
 
     def generate_events(
         self,

@@ -212,3 +212,4 @@ tests/files/input/event_dependencies.csv
 test_*.py  # Temporary test files (real tests should be in tests/)
 
 tmp
+tests/test_structure.cif
