@@ -7,6 +7,7 @@ integrated into the structure classes.
 """
 
 import numpy as np
+import pytest
 from pymatgen.core import Structure, Lattice
 
 def test_local_environment_comparator_integration():
@@ -70,13 +71,13 @@ def test_local_environment_comparator_integration():
                 print(f"⚠ Matching failed but this may be expected: {e}")
         
         print("✓ LocalEnvironmentComparator integration test passed!")
-        return True
+        # Test passed successfully
         
     except Exception as e:
         print(f"✗ Integration test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Integration test failed: {e}")
 
 
 def test_modern_event_generator_with_comparator():
@@ -116,19 +117,20 @@ def test_modern_event_generator_with_comparator():
             if hasattr(generator, 'reference_local_envs') and generator.reference_local_envs:
                 print(f"✓ Identified {len(generator.reference_local_envs)} reference environment types")
             
-            return True
+            # Test passed successfully
             
         except Exception as e:
             print(f"⚠ Event generation failed but integration may still work: {e}")
             # Check if the basic structure was created
             if hasattr(generator, 'lattice_structure') and generator.lattice_structure:
                 print("✓ LatticeStructure was created successfully")
-                return True
-            return False
+                # Test passed with basic functionality
+            else:
+                pytest.fail(f"Event generation and basic structure creation both failed: {e}")
     
     except Exception as e:
         print(f"✗ ModernEventGenerator test failed: {e}")
-        return False
+        pytest.fail(f"ModernEventGenerator test failed: {e}")
 
 
 def test_comparator_functionality():
@@ -163,27 +165,42 @@ def test_comparator_functionality():
         env_info = comparator.get_environment_info()
         print(f"✓ Environment info: {env_info}")
         
-        return True
+        # Test passed successfully
         
     except Exception as e:
         print(f"✗ LocalEnvironmentComparator test failed: {e}")
-        return False
+        pytest.fail(f"LocalEnvironmentComparator test failed: {e}")
 
 
 if __name__ == "__main__":
     print("Testing neighbor sequence matching integration...")
     
-    results = []
-    
     # Run tests
-    results.append(test_comparator_functionality())
-    results.append(test_local_environment_comparator_integration()) 
-    results.append(test_modern_event_generator_with_comparator())
+    try:
+        test_comparator_functionality()
+        print("✓ test_comparator_functionality passed")
+        passed = 1
+    except Exception:
+        print("✗ test_comparator_functionality failed")
+        passed = 0
+        
+    try:
+        test_local_environment_comparator_integration()
+        print("✓ test_local_environment_comparator_integration passed")
+        passed += 1
+    except Exception:
+        print("✗ test_local_environment_comparator_integration failed")
+        
+    try:
+        test_modern_event_generator_with_comparator()
+        print("✓ test_modern_event_generator_with_comparator passed")
+        passed += 1
+    except Exception:
+        print("✗ test_modern_event_generator_with_comparator failed")
+    
+    total = 3
     
     # Summary
-    passed = sum(results)
-    total = len(results)
-    
     print(f"\n{'='*50}")
     print(f"TEST RESULTS: {passed}/{total} tests passed")
     
