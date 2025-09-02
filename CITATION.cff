@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: If you use this work, please cite the following publications.
 title: kMCpy
-version: v0.2.1 # replace with whatever version you use
+version: v0.2.3 # replace with whatever version you use
 date-released: '2023-10-05'
 authors:
 - family-names: Deng
