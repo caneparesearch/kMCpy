@@ -119,7 +119,7 @@ class Fitting:
         import pandas as pd
 
         logger.info(f"Loading vaekra_fnamelues from {ekra_fname} ...")
-        e_kra = np.loadtxt()
+        e_kra = np.loadtxt(ekra_fname)
         weight = np.loadtxt(weight_fname)
         weight_copy = copy(weight)
         correlation_matrix = np.loadtxt(corr_fname)
