@@ -78,7 +78,7 @@ testpaths = [
 ]
 pythonpath = ["."] # Adds project root to PYTHONPATH, so tests can import `kmcpy`
 markers = [
-    "order(number): mark test to run in a specific order", # Your custom marker
+    "order: marks tests to run in a specific order",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",

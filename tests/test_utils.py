@@ -5,14 +5,13 @@ This module contains utility functions that are specific to testing,
 including configuration builders for specific material systems.
 """
 
-from kmcpy.simulation.condition import SimulationConfig
+from kmcpy.simulator.condition import SimulationConfig
 
 
 def create_nasicon_config(
     name: str = "NASICON_Simulation",
     temperature: float = 573.0,
     supercell_shape: list = None,
-    initial_occ: list = None,
     data_dir: str = "example",
     **kwargs
 ) -> SimulationConfig:
@@ -26,7 +25,6 @@ def create_nasicon_config(
         name: Simulation name
         temperature: Temperature in Kelvin
         supercell_shape: Supercell dimensions [nx, ny, nz]
-        initial_occ: Initial occupation list
         data_dir: Directory containing input files
         **kwargs: Additional parameters to override defaults
     
@@ -35,8 +33,6 @@ def create_nasicon_config(
     """
     if supercell_shape is None:
         supercell_shape = [2, 2, 2]
-    if initial_occ is None:
-        initial_occ = [1, -1, 1, -1, 1, -1, 1, -1]
     
     default_config = {
         'name': name,
@@ -49,13 +45,13 @@ def create_nasicon_config(
         'mobile_ion_charge': 1.0,
         'mobile_ion_specie': 'Na',
         'supercell_shape': supercell_shape,
-        'initial_occ': initial_occ,
-        'fitting_results': f"{data_dir}/fitting_results.json",
-        'fitting_results_site': f"{data_dir}/fitting_results_site.json",
-        'lce_fname': f"{data_dir}/lce.json",
-        'lce_site_fname': f"{data_dir}/lce_site.json",
-        'template_structure_fname': f"{data_dir}/0th_reference_local_env.cif",
-        'event_fname': f"{data_dir}/events.json",
+        # Use correct parameter names
+        'fitting_results_file': f"{data_dir}/fitting_results.json",
+        'fitting_results_site_file': f"{data_dir}/fitting_results_site.json",
+        'cluster_expansion_file': f"{data_dir}/lce.json",
+        'cluster_expansion_site_file': f"{data_dir}/lce_site.json",
+        'structure_file': f"{data_dir}/0th_reference_local_env.cif",
+        'event_file': f"{data_dir}/events.json",
         'event_dependencies': f"{data_dir}/event_dependencies.csv"
     }
     
@@ -134,7 +130,7 @@ def create_temperature_series(
             base_name=base_config.name, 
             temp=temp
         )
-        config = base_config.copy_with_changes(temperature=temp, name=new_name)
+        config = base_config.with_runtime_changes(temperature=temp, name=new_name)
         configs.append(config)
     
     return configs

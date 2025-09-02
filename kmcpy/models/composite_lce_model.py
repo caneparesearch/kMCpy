@@ -15,11 +15,11 @@ import numpy as np
 import pandas as pd
 import os
 
-from kmcpy.model.model import CompositeModel
-from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.model import CompositeModel
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
-from kmcpy.simulation.condition import SimulationCondition
-from kmcpy.simulation.state import SimulationState
+from kmcpy.simulator.condition import SimulationCondition
+from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__)
 
@@ -151,13 +151,61 @@ class CompositeLCEModel(CompositeModel):
             "kra_model": self.kra_model.as_dict() if self.kra_model else None,
             "name": self.name,
         }
+    
+    def build(self, *args, **kwargs):
+        """
+        Build the composite model based on the provided parameters.
+        
+        This method is a placeholder and does not perform any specific actions.
+        It is provided to maintain compatibility with the BaseModel interface.
+        """
+        self.site_model.build(*args, **kwargs) if self.site_model else None
+        self.kra_model.build(*args, **kwargs) if self.kra_model else None
 
+    def get_occ_from_structure(self, structure, use_model='site_model'):
+        """
+        Get the occupation vector from a structure.
+        
+        Args:
+            structure (StructureKMCpy): The structure from which to compute the occupation vector.
+            use_model (str): Specify which model to use for occupation calculation ('site_model' or 'kra_model').
+        
+        Returns:
+            np.ndarray: The occupation vector for the given structure.
+        """
+        if use_model == 'site_model' and self.site_model:
+            return self.site_model.local_lattice_structure.get_occ_from_structure(structure)
+        elif use_model == 'kra_model' and self.kra_model:
+            return self.kra_model.local_lattice_structure.get_occ_from_structure(structure)
+        else:
+            raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
+    
+    def get_corr_from_structure(self, structure, use_model='site_model', tol=1e-2, angle_tol=5):
+        """
+        Get the correlation vector from a structure.
+        
+        Args:
+            structure (StructureKMCpy): The structure from which to compute the correlation vector.
+            use_model (str): Specify which model to use for correlation calculation ('site_model' or 'kra_model').
+            tol (float): Tolerance for occupation comparison.
+            angle_tol (float): Angle tolerance for structure matching.
+        
+        Returns:
+            np.ndarray: The correlation vector for the given structure.
+        """
+        if use_model == 'site_model' and self.site_model:
+            return self.site_model.get_corr_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        elif use_model == 'kra_model' and self.kra_model:
+            return self.kra_model.get_corr_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        else:
+            raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
+        
     @classmethod
     def from_dict(cls, d):
         """
         Create a CompositeLCEModel from a dictionary.
         """
-        from kmcpy.io import convert
+        from kmcpy.io.io import convert
         site_model = convert(d["site_model"]) if d.get("site_model") else None
         kra_model = convert(d["kra_model"]) if d.get("kra_model") else None
         return cls(site_model=site_model, kra_model=kra_model, name=d.get("name"))
@@ -230,3 +278,21 @@ class CompositeLCEModel(CompositeModel):
         
         # Create composite model with pre-configured models
         return cls(site_model=site_model, kra_model=kra_model)
+
+    @classmethod
+    def from_config(cls, config: 'SimulationConfig') -> "CompositeLCEModel":
+        """
+        Create a CompositeLCEModel from a SimulationConfig object.
+        
+        Args:
+            config: SimulationConfig containing model file paths
+            
+        Returns:
+            CompositeLCEModel: Configured composite model with loaded parameters
+        """
+        return cls.from_json(
+            lce_fname=config.cluster_expansion_file,
+            fitting_results=config.fitting_results_file,
+            lce_site_fname=config.cluster_expansion_site_file,
+            fitting_results_site=config.fitting_results_site_file
+        )

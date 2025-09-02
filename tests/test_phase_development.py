@@ -12,10 +12,11 @@ from pathlib import Path
 from pymatgen.core import Structure, Lattice, Element, Species
 from pymatgen.core.sites import PeriodicSite
 
-from kmcpy.simulation.condition import SimulationConfig
-from kmcpy.simulation.state import SimulationState
-from kmcpy.simulation.tracker import Tracker
-from kmcpy.io import InputSet
+from kmcpy.simulator.condition import SimulationCondition
+from kmcpy.simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
+from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.tracker import Tracker
+from kmcpy.io.config_io import SimulationConfigIO
 
 
 @pytest.fixture
@@ -50,38 +51,42 @@ class TestTrackerParameterDeduplication:
     def test_tracker_parameter_separation(self):
         """Test that Tracker no longer duplicates parameters from configuration."""
         
-        # Create a test configuration
-        config = SimulationConfig(
-            name="TrackerTest",
-            temperature=573.0,
-            attempt_frequency=1e13,
-            equilibration_passes=100,
-            kmc_passes=1000,
+        # Create a test configuration using new clean API
+        system = SystemConfig(
+            structure_file="test.cif",
             dimension=3,
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_occ=[1, -1, 1, -1],
-            immutable_sites=["Zr", "O"]
+            supercell_shape=(2, 1, 1),
+            immutable_sites=("Zr", "O")
         )
+        runtime = RuntimeConfig(
+            name="TrackerTest",
+            temperature=573.0,
+            attempt_frequency=1e13,
+            equilibration_passes=100,
+            kmc_passes=1000
+        )
+        config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # Verify that configuration is properly structured
-        assert config.name == "TrackerTest"
-        assert config.temperature == 573.0
-        assert config.attempt_frequency == 1e13
-        assert config.equilibration_passes == 100
-        assert config.kmc_passes == 1000
+        assert config.runtime_config.name == "TrackerTest"
+        assert config.runtime_config.temperature == 573.0
+        assert config.runtime_config.attempt_frequency == 1e13
+        assert config.runtime_config.equilibration_passes == 100
+        assert config.runtime_config.kmc_passes == 1000
         
         # Test parameter deduplication concept
         # Configuration should contain parameters, not simulation state
-        assert hasattr(config, 'temperature')
-        assert hasattr(config, 'attempt_frequency')
-        assert hasattr(config, 'equilibration_passes')
-        assert hasattr(config, 'kmc_passes')
+        assert hasattr(config.runtime_config, 'temperature')
+        assert hasattr(config.runtime_config, 'attempt_frequency')
+        assert hasattr(config.runtime_config, 'equilibration_passes')
+        assert hasattr(config.runtime_config, 'kmc_passes')
         
-        # Initial occupations should be separate from tracker
-        assert config.initial_occ == [1, -1, 1, -1]
+        # System config should contain system parameters
+        assert config.system_config.mobile_ion_specie == "Na"
+        assert config.system_config.supercell_shape == (2, 1, 1)
         
 
 
@@ -91,25 +96,28 @@ class TestSimulationStateArchitecture:
     def test_simulation_state_centralized_management(self, test_structure):
         """Test that SimulationState is the central manager for all mutable state."""
         
-        # Create configuration (immutable)
-        config = SimulationConfig(
-            name="Phase2_Test",
-            temperature=573.0,
-            attempt_frequency=1e13,
-            equilibration_passes=100,
-            kmc_passes=1000,
+        # Create configuration (immutable) using new clean API
+        system = SystemConfig(
+            structure_file="test.cif",
             dimension=3,
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_occ=[1, -1, 1, -1],
-            immutable_sites=["Zr", "O"]
+            supercell_shape=(2, 1, 1)
         )
+        runtime = RuntimeConfig(
+            name="Phase2_Test",
+            temperature=573.0,
+            attempt_frequency=1e13,
+            equilibration_passes=100,
+            kmc_passes=1000
+        )
+        config = SimulationConfig(system_config=system, runtime_config=runtime)
         
-        # Create SimulationState (mutable) with pymatgen structure
+        # Create SimulationState (mutable) with initial occupations  
+        initial_occ = [1, -1, 1, -1]
         state = SimulationState(
-            initial_occ=config.initial_occ,
+            occupations=initial_occ,
         )
         
         # Test that SimulationState manages all mutable state
@@ -132,30 +140,34 @@ class TestSimulationStateArchitecture:
     def test_clean_separation_of_concerns(self, test_structure):
         """Test clean separation between Config (immutable) and State (mutable)."""
         
-        # Configuration should be immutable
-        config = SimulationConfig(
-            name="Separation_Test",
-            temperature=400.0,
-            attempt_frequency=2e13,
+        # Configuration should be immutable - using clean API
+        system = SystemConfig(
+            structure_file="test.cif",
             mobile_ion_specie="Li"
         )
+        runtime = RuntimeConfig(
+            name="Separation_Test",
+            temperature=400.0,
+            attempt_frequency=2e13
+        )
+        config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # State should be mutable
         state = SimulationState(
-            initial_occ=[1, -1, 1, -1],
+            occupations=[1, -1, 1, -1],
         )
         
         # Configuration should not change during simulation
-        original_temp = config.temperature
-        original_freq = config.attempt_frequency
+        original_temp = config.runtime_config.temperature
+        original_freq = config.runtime_config.attempt_frequency
         
         # Modify state
         state.time = 10.0
         state.step = 5
         
-        # Configuration should remain unchanged
-        assert config.temperature == original_temp
-        assert config.attempt_frequency == original_freq
+        # Configuration should remain unchanged (immutable)
+        assert config.runtime_config.temperature == original_temp
+        assert config.runtime_config.attempt_frequency == original_freq
         
         # State should be modified
         assert state.time == 10.0
@@ -170,41 +182,47 @@ class TestKMCIntegrationImprovements:
     def test_kmc_simulation_state_integration(self):
         """Test that KMC uses SimulationState as single source of truth."""
         
-        # Create minimal configuration for testing
-        config = SimulationConfig(
-            name="Phase3_Test",
-            temperature=400.0,
-            attempt_frequency=1e13,
-            equilibration_passes=10,
-            kmc_passes=50,
+        # Create minimal configuration for testing using clean API
+        system = SystemConfig(
+            structure_file="test.cif",
             dimension=3,
             elementary_hop_distance=3.0,
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_occ=[1, -1, 1, -1],
-            immutable_sites=["Zr", "O"]
+            supercell_shape=(2, 1, 1),
+            immutable_sites=("Zr", "O")
         )
+        runtime = RuntimeConfig(
+            name="Phase3_Test",
+            temperature=400.0,
+            attempt_frequency=1e13,
+            equilibration_passes=10,
+            kmc_passes=50
+        )
+        config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # Test that configuration is properly structured for KMC integration
-        assert config.name == "Phase3_Test"
-        assert config.temperature == 400.0
-        assert config.attempt_frequency == 1e13
-        assert config.initial_occ == [1, -1, 1, -1]
+        assert config.runtime_config.name == "Phase3_Test"
+        assert config.runtime_config.temperature == 400.0
+        assert config.runtime_config.attempt_frequency == 1e13
+        
+        # Create initial occupations for state
+        initial_occ = [1, -1, 1, -1]
+        state = SimulationState(occupations=initial_occ)
         
         # Test parameter mapping for KMC
         kmc_params = {
-            'temperature': config.temperature,
-            'v': config.attempt_frequency,
-            'supercell_shape': config.supercell_shape,
-            'immutable_sites': config.immutable_sites,
+            'temperature': config.runtime_config.temperature,
+            'attempt_frequency': config.runtime_config.attempt_frequency,
+            'supercell_shape': config.system_config.supercell_shape,
+            'immutable_sites': config.system_config.immutable_sites,
         }
         
         # Verify parameter mapping
         assert kmc_params['temperature'] == 400.0
-        assert kmc_params['v'] == 1e13
-        assert kmc_params['supercell_shape'] == [2, 1, 1]
-        assert kmc_params['immutable_sites'] == ["Zr", "O"]
+        assert kmc_params['attempt_frequency'] == 1e13
+        assert kmc_params['supercell_shape'] == (2, 1, 1)
+        assert kmc_params['immutable_sites'] == ("Zr", "O")
         
         print("✓ KMC integration working correctly")
     
@@ -213,7 +231,7 @@ class TestKMCIntegrationImprovements:
         
         # Create SimulationState for optimized loop
         state = SimulationState(
-            initial_occ=[1, -1, 1, -1],
+            occupations=[1, -1, 1, -1],
         )
         
         # Test optimized state updates
@@ -247,106 +265,74 @@ class TestPhase4InputSetMigration:
     def test_simulation_config_direct_api(self):
         """Test direct SimulationConfig API without InputSet conversion."""
         
-        # Create configuration with all necessary parameters
-        config = SimulationConfig(
+        # Create configuration with all necessary parameters using clean API
+        system = SystemConfig(
+            structure_file="test.cif",
+            supercell_shape=(2, 1, 1),
+            dimension=3,
+            mobile_ion_charge=1.0,
+            elementary_hop_distance=4.0,
+            convert_to_primitive_cell=False,
+            immutable_sites=('Zr', 'O'),
+            mobile_ion_specie='Na',
+        )
+        runtime = RuntimeConfig(
             name="Phase4_Test",
             temperature=573.0,
             attempt_frequency=1e13,
             equilibration_passes=10,
             kmc_passes=50,
-            supercell_shape=[2, 1, 1],
-            dimension=3,
-            mobile_ion_charge=1.0,
-            elementary_hop_distance=4.0,
-            convert_to_primitive_cell=False,
-            immutable_sites=['Zr', 'O'],
-            mobile_ion_specie='Na',
             random_seed=42
         )
+        config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # Test direct API usage
-        assert config.name == "Phase4_Test"
-        assert config.temperature == 573.0
-        assert config.attempt_frequency == 1e13
-        assert config.random_seed == 42
+        assert config.runtime_config.name == "Phase4_Test"
+        assert config.runtime_config.temperature == 573.0
+        assert config.runtime_config.attempt_frequency == 1e13
+        assert config.runtime_config.random_seed == 42
         
         # Test that configuration is self-contained
-        assert hasattr(config, 'temperature')
-        assert hasattr(config, 'attempt_frequency')
-        assert hasattr(config, 'equilibration_passes')
-        assert hasattr(config, 'kmc_passes')
-        assert hasattr(config, 'supercell_shape')
-        assert hasattr(config, 'mobile_ion_specie')
-        assert hasattr(config, 'random_seed')
+        assert hasattr(config.runtime_config, 'temperature')
+        assert hasattr(config.runtime_config, 'attempt_frequency')
+        assert hasattr(config.runtime_config, 'equilibration_passes')
+        assert hasattr(config.runtime_config, 'kmc_passes')
+        assert hasattr(config.system_config, 'supercell_shape')
+        assert hasattr(config.system_config, 'mobile_ion_specie')
+        assert hasattr(config.runtime_config, 'random_seed')
         
         print("✓ Phase 4: Direct SimulationConfig API working correctly")
-    
-    def test_inputset_backward_compatibility(self):
-        """Test that InputSet compatibility is maintained."""
-        
-        # Test old-style parameters
-        old_params = {
-            'task': 'kmc',
-            'v': 5e12,
-            'equ_pass': 1,
-            'kmc_pass': 10,
-            'supercell_shape': [2, 1, 1],
-            'fitting_results': 'test.json',
-            'fitting_results_site': 'test.json',
-            'lce_fname': 'test.json',
-            'lce_site_fname': 'test.json',
-            'template_structure_fname': 'test.cif',
-            'event_fname': 'test.json',
-            'event_kernel': 'test.csv',  # Old parameter name
-            'initial_state': 'test.json',
-            'temperature': 298.0,
-            'dimension': 3,
-            'q': 1.0,
-            'elem_hop_distance': 3.5,
-            'mobile_ion_specie': 'Na'
-        }
-        
-        # Should work with old parameters
-        inputset = InputSet(old_params)
-        inputset.parameter_checker()
-        
-        assert inputset.event_kernel == 'test.csv'
-        assert inputset.temperature == 298.0
-        assert inputset.v == 5e12
-        
-        print("✓ InputSet compatibility maintained")
+
     
     def test_parameter_migration(self):
-        """Test migration from old to new parameter names."""
+        """Test that clean API works properly."""
         
-        # Test that both old and new parameter names work
-        config = SimulationConfig(
+        # Test clean API parameter usage
+        system = SystemConfig(
+            structure_file="test.cif",
+            supercell_shape=(2, 2, 2),
+            mobile_ion_specie="Li"
+        )
+        runtime = RuntimeConfig(
             name="Migration_Test",
             temperature=300.0,
             attempt_frequency=1e13,
             equilibration_passes=5,
             kmc_passes=25,
-            supercell_shape=[1, 1, 1],
-            mobile_ion_specie="Li",
-            event_dependencies="new_style.csv",  # New parameter name
-            random_seed=123  # New parameter
+            random_seed=123  # Random seed parameter
         )
+        config = SimulationConfig(system_config=system, runtime_config=runtime)
         
         # Test the to_dict method for migration
         config_dict = config.to_dict()
         
-        # Should contain both old and new parameter names for compatibility
-        assert 'event_dependencies' in config_dict
-        assert 'event_kernel' in config_dict  # Compatibility maintained
-        assert config_dict['event_dependencies'] == config_dict['event_kernel']
-        
         # Test that parameters are correctly set
         assert config_dict['temperature'] == 300.0
-        assert config_dict['v'] == 1e13
-        assert config_dict['equ_pass'] == 5
-        assert config_dict['kmc_pass'] == 25
+        assert config_dict['equ_pass'] == 5  # Legacy key name in to_dict
+        assert config_dict['kmc_pass'] == 25  # Legacy key name in to_dict
         assert config_dict['mobile_ion_specie'] == "Li"
         assert config_dict['random_seed'] == 123
+        assert config_dict['supercell_shape'] == [2, 2, 2]  # Converted to list
         
         print("✓ Phase 4: Parameter migration working correctly")
 
@@ -360,7 +346,7 @@ class TestOccupationManagement:
         initial_occ = [1, -1, 1, -1]  # Sites 0,2 occupied, sites 1,3 vacant
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         # Test initial state
@@ -394,7 +380,7 @@ class TestOccupationManagement:
         initial_occ = [1, -1, 1, -1]
         
         state = SimulationState(
-            initial_occ=initial_occ,
+            occupations=initial_occ,
         )
         
         # State should manage its own occupations

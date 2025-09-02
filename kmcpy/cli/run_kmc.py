@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-from kmcpy.io import InputSet
-from kmcpy.simulation.kmc import KMC
+import warnings
+from kmcpy.io.config_io import SimulationConfigIO  # Use modern IO system
+from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.kmc import KMC
 import kmcpy
 import argparse
 
@@ -19,21 +21,19 @@ def main()->None:
             parameters are read from this file.
         --supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
-        --fitting_results (str): Path to the JSON file containing the fitting results for E_kra.
+        --fitting_results_file (str): Path to the JSON file containing the fitting results for E_kra.
             Required if input file is not provided.
-        --fitting_results_site (str): Path to the JSON file containing the fitting results for site energy difference.
+        --fitting_results_site_file (str): Path to the JSON file containing the fitting results for site energy difference.
             Required if input file is not provided.
-        --lce_fname (str): Path to the JSON file containing the Local Cluster Expansion (LCE) model.
+        --cluster_expansion_file (str): Path to the JSON file containing the Local Cluster Expansion (LCE) model.
             Required if input file is not provided.
-        --lce_site_fname (str): Path to the JSON file containing the site LCE model for computing site energy differences.
+        --cluster_expansion_site_file (str): Path to the JSON file containing the site LCE model for computing site energy differences.
             Required if input file is not provided.
-        --template_structure_fname (str): Path to the CIF file of the template structure (with all sites filled).
+        --structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
-        --event_fname (str): Path to the JSON file containing the list of events.
+        --event_file (str): Path to the JSON file containing the list of events.
             Required if input file is not provided.
-        --event_dependencies (str): Path to the event dependencies file.
-            Required if input file is not provided.
-        -v, --v (float, optional): Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
+        --attempt_frequency (float, optional): Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
         --temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
         --convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell.
             Defaults to False.
@@ -48,16 +48,15 @@ def main()->None:
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--input", type=str, help="Path to the input JSON/YAML file for kMC simulation. If provided, all other parameters are read from this file.")
-    # Always show all arguments in help
+    # Always show all arguments in help - using modern parameter names
     parser.add_argument("--supercell_shape", type=str, help='Shape of the supercell as a list of integers (e.g., [2, 2, 2]). This should be consistent with events.')
-    parser.add_argument("--fitting_results", type=str, help='Path to the JSON file containing the fitting results for E_kra.')
-    parser.add_argument("--fitting_results_site", type=str, help='Path to the JSON file containing the fitting results for site energy difference.')
-    parser.add_argument("--lce_fname", type=str, help='Path to the JSON file containing the Local Cluster Expansion (LCE) model.')
-    parser.add_argument("--lce_site_fname", type=str, help='Path to the JSON file containing the site LCE model for computing site energy differences.')
-    parser.add_argument("--template_structure_fname", type=str, help='Path to the CIF file of the template structure (with all sites filled).')
-    parser.add_argument("--event_fname", type=str, help='Path to the JSON file containing the list of events.')
-    parser.add_argument("--event_dependencies", type=str, help='Path to the event dependencies file.')
-    parser.add_argument("-v", "--v", type=float, default=1e13, help='Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.')
+    parser.add_argument("--fitting_results_file", type=str, help='Path to the JSON file containing the fitting results for E_kra.')
+    parser.add_argument("--fitting_results_site_file", type=str, help='Path to the JSON file containing the fitting results for site energy difference.')
+    parser.add_argument("--cluster_expansion_file", type=str, help='Path to the JSON file containing the Local Cluster Expansion (LCE) model.')
+    parser.add_argument("--cluster_expansion_site_file", type=str, help='Path to the JSON file containing the site LCE model for computing site energy differences.')
+    parser.add_argument("--structure_file", type=str, help='Path to the CIF file of the template structure (with all sites filled).')
+    parser.add_argument("--event_file", type=str, help='Path to the JSON file containing the list of events.')
+    parser.add_argument("--attempt_frequency", type=float, default=1e13, help='Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.')
     parser.add_argument("--temperature", type=float, default=300, help='Simulation temperature in Kelvin. Defaults to 300 K.')
     parser.add_argument("--convert_to_primitive_cell", action='store_true', help='Whether to convert the structure to its primitive cell (default: False).')
     parser.add_argument("--immutable_sites", type=str, default="[]", help='List of sites to be treated as immutable and removed from the simulation (as a JSON string, default: []).')
@@ -79,22 +78,45 @@ def run_kmc(args)-> None:
     Returns:
         None
     """
-
+    config = None
+    
+    print("Starting KMC simulation...")
+    
     if args.input:
-        if args.input.endswith(".yaml") or args.input.endswith(".yml"):
-            inputset = InputSet.from_yaml(args.input)
-        else:
-            inputset = InputSet.from_json(args.input)
+        # Load modern SimulationConfig format only
+        try:
+            print(f"Loading configuration from {args.input}")
+            from kmcpy.io.config_io import SimulationConfigIO
+            raw_data = SimulationConfigIO._load_yaml_section(args.input, "kmc", "default")
+            config = SimulationConfig.from_dict(raw_data)
+            print(f"✓ Configuration loaded: {config.runtime_config.name}")
+        except Exception as e:
+            # Provide clear error message for legacy formats
+            raise ValueError(
+                f"Unable to load configuration from {args.input}. "
+                f"Legacy InputSet format is no longer supported. "
+                f"Please convert your configuration to the modern SimulationConfig format. "
+                f"Use SimulationConfigIO to create new configuration files. "
+                f"Original error: {e}"
+            )
     else:
         # Build a dictionary from the argparse Namespace, excluding None values and 'input'
         input_dict = {k: v for k, v in vars(args).items() if k != "input" and v is not None}
-        inputset = InputSet.from_dict(input_dict)
+        config = SimulationConfig(**input_dict)
 
-    # initialize global occupation and conditions
-    kmc = KMC.from_inputset(inputset = inputset)
+    print("Configuration loaded, initializing KMC...")
+    print(f"  Structure file: {config.system_config.structure_file}")
+    print(f"  Temperature: {config.runtime_config.temperature} K")
+    
+    # initialize global occupation and conditions using modern API
+    kmc = KMC.from_config(config)
+    print("KMC initialized, starting simulation...")
 
-    # run kmc
-    kmc.run(inputset = inputset)
+    # run kmc with config
+    tracker = kmc.run(config)
+    
+    # Optionally save results
+    print("KMC simulation completed successfully!")
 
 
 if __name__ == "__main__":

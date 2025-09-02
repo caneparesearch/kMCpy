@@ -1,0 +1,16 @@
+# Example: LCE Model Only
+# This shows how to use just the model section
+
+model:
+  type: lce
+  lce:
+    center_frac_coord: [0.5, 0.5, 0.5]
+    mobile_ion_identifier_type: "specie"
+    mobile_ion_specie_identifier: "Na"
+    cutoff_cluster: 5.0
+    cutoff_region: 10.0
+    template_structure_fname: "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
+    is_write_basis: true
+    species_to_be_removed: ["O"]
+    convert_to_primitive_cell: false
+    exclude_site_with_identifier: ["Zr"]

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import json
 import logging
-from kmcpy.io import convert
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -55,6 +54,17 @@ class BaseModel(ABC):
         """
         raise NotImplementedError("Subclasses must implement this method.")
     
+    @abstractmethod
+    def build(self, *args, **kwargs):
+        """
+        Build the model based on the provided parameters.
+        This method must be implemented by subclasses.
+        
+        Returns:
+            None
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+    
     def as_dict(self):
         """
         Convert the model object to a dictionary representation.
@@ -69,6 +79,7 @@ class BaseModel(ABC):
         raise NotImplementedError("Subclasses must implement this method.")
     
     def to_json(self, fname):
+        from kmcpy.io import convert
         """
         Save the model object to a JSON file.
         """

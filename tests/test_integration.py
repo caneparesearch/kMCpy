@@ -9,12 +9,12 @@ sys.path.insert(0, '..')
 
 def test_simulation_condition_integration():
     """Test that SimulationCondition integration works properly."""
-    from kmcpy.simulation.condition import (
+    from kmcpy.simulator.condition import (
         SimulationCondition, 
         SimulationConfig,
     )
     from tests.test_utils import create_nasicon_config, create_temperature_series
-    from kmcpy.simulation.kmc import KMC
+    from kmcpy.simulator.kmc import KMC
     
     print("✓ SimulationCondition imports successful")
     
@@ -45,6 +45,7 @@ def test_simulation_condition_integration():
     
     # Test SimulationConfig (merged with KMC functionality)
     kmc_condition = SimulationConfig(
+        structure_file="test.cif",  # Required parameter
         name="KMC_Test",
         temperature=573.0,
         attempt_frequency=1e13,
@@ -63,6 +64,7 @@ def test_simulation_condition_integration():
     
     # Test SimulationConfig creation
     config = SimulationConfig(
+        structure_file="fake.cif",  # Required parameter with correct name
         name="Test_Config",
         temperature=500.0,
         attempt_frequency=1e13,
@@ -72,26 +74,23 @@ def test_simulation_condition_integration():
         elementary_hop_distance=2.0,
         mobile_ion_charge=1.0,
         mobile_ion_specie="Na",
-        supercell_shape=[2, 2, 2],
-        initial_occ=[1, -1, 1, -1, 1, -1, 1, -1],
+        supercell_shape=(2, 2, 2),  # Use tuple
         
-        # File paths (these would be real in practice)
-        fitting_results="fake.json",
-        fitting_results_site="fake.json",
-        lce_fname="fake.json",
-        lce_site_fname="fake.json",
-        template_structure_fname="fake.cif",
-        event_fname="fake.json",
+        # File paths with correct parameter names
+        fitting_results_file="fake.json",
+        fitting_results_site_file="fake.json",
+        cluster_expansion_file="fake.json",
+        cluster_expansion_site_file="fake.json",
+        event_file="fake.json",
         event_dependencies="fake.csv"
     )
     
     assert config.name == "Test_Config"
     assert config.temperature == 500.0
-    assert len(config.initial_occ) == 8
     print("✓ SimulationConfig creation works")
     
-    # Test parameter modification
-    modified_config = config.copy_with_changes(
+    # Test parameter modification using the new API
+    modified_config = config.with_runtime_changes(
         temperature=600.0,
         name="Modified_Config"
     )
@@ -149,10 +148,11 @@ def test_simulation_condition_integration():
 
 def test_parameter_serialization():
     """Test parameter serialization and deserialization."""
-    from kmcpy.simulation.condition import SimulationConfig
+    from kmcpy.simulator.condition import SimulationConfig
     
     # Create a config
     config = SimulationConfig(
+        structure_file="fake.cif",  # Required parameter with correct name
         name="Serialization_Test",
         temperature=450.0,
         attempt_frequency=1e13,
@@ -162,47 +162,38 @@ def test_parameter_serialization():
         elementary_hop_distance=2.0,
         mobile_ion_charge=1.0,
         mobile_ion_specie="Na",
-        supercell_shape=[2, 2, 2],
-        initial_occ=[1, -1, 1, -1],
+        supercell_shape=(2, 2, 2),  # Use tuple instead of list
         
-        # File paths
-        fitting_results="fake.json",
-        fitting_results_site="fake.json",
-        lce_fname="fake.json",
-        lce_site_fname="fake.json",
-        template_structure_fname="fake.cif",
-        event_fname="fake.json",
+        # File paths with correct parameter names
+        fitting_results_file="fake.json",
+        fitting_results_site_file="fake.json",
+        cluster_expansion_file="fake.json",
+        cluster_expansion_site_file="fake.json",
+        event_file="fake.json",
         event_dependencies="fake.csv"
     )
     
     # Test serialization
-    regular_dict = config.to_dict()
-    dataclass_dict = config.to_dataclass_dict()
+    config_dict = config.to_dict()
     
-    # Check that dictionaries contain expected keys
-    assert 'name' in regular_dict
-    assert 'temperature' in regular_dict
-    assert 'v' in regular_dict  # Should map attempt_frequency to v
-    assert 'equ_pass' in regular_dict  # Should map equilibration_passes to equ_pass
-    assert 'kmc_pass' in regular_dict  # Should map kmc_passes to kmc_pass
+    # Check that dictionary contains expected keys (using legacy key names from RuntimeConfig.to_dict)
+    assert 'name' in config_dict
+    assert 'temperature' in config_dict
+    assert 'equ_pass' in config_dict  # Legacy key name from RuntimeConfig.to_dict
+    assert 'kmc_pass' in config_dict  # Legacy key name from RuntimeConfig.to_dict
+    assert 'structure_file' in config_dict  # Clean key from SystemConfig.to_dict
     
-    assert 'name' in dataclass_dict
-    assert 'temperature' in dataclass_dict
-    assert 'attempt_frequency' in dataclass_dict  # Should keep original field name
-    assert 'equilibration_passes' in dataclass_dict  # Should keep original field name
-    assert 'kmc_passes' in dataclass_dict  # Should keep original field name
-    
-    # Test parameter mapping
-    assert regular_dict['v'] == config.attempt_frequency
-    assert regular_dict['equ_pass'] == config.equilibration_passes
-    assert regular_dict['kmc_pass'] == config.kmc_passes
-    assert regular_dict['elem_hop_distance'] == config.elementary_hop_distance
-    assert regular_dict['q'] == config.mobile_ion_charge
+    # Test parameter mapping - use the actual dict we created
+    assert config_dict['equ_pass'] == config.equilibration_passes
+    assert config_dict['kmc_pass'] == config.kmc_passes
+    # These are system parameters and use clean names
+    assert config_dict['elementary_hop_distance'] == config.elementary_hop_distance
+    assert config_dict['mobile_ion_charge'] == config.mobile_ion_charge
     
     print("✓ Parameter serialization works correctly")
     
-    # Test that we can recreate config from dataclass dict
-    new_config = SimulationConfig(**dataclass_dict)
+    # Test that we can recreate config from from_dict
+    new_config = SimulationConfig.from_dict(config_dict)
     assert new_config.name == config.name
     assert new_config.temperature == config.temperature
     assert new_config.attempt_frequency == config.attempt_frequency

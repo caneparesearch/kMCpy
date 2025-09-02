@@ -106,8 +106,8 @@ If you use kMCpy in your research, please cite it as follows:
 ```bibtex
 @article{deng2022fundamental,
           title={Fundamental investigations on the sodium-ion transport properties of mixed polyanion solid-state battery electrolytes},
-          author={Deng, Zeyu and Mishra, Tara P and Mahayoni, Eunike and Ma, Qianli and Tieu, Aaron Jue Kang and Guillon, Olivier and Chotard, Jean-No{\"e}l and Seznec, Vincent and Cheetham, Anthony K and Masquelier, Christian and others},
-          journal={Nature communications},
+          author={Deng, Zeyu and Mishra, Tara P and Mahayoni, Eunike and Ma, Qianli and Tieu, Aaron Jue Kang and Guillon, Olivier and Chotard, Jean-No{\"e}l and Seznec, Vincent and Cheetham, Anthony K and Masquelier, Christian and Gautam, Gopalakrishnan Sai and Canepa, Pieremanuele},
+          journal={Nature Communications},
           volume={13},
           number={1},
           pages={1--14},

@@ -1,7 +1,7 @@
 import unittest
 import pytest
 import os
-from kmcpy.simulation.condition import (
+from kmcpy.simulator.condition import (
     SimulationConfig,
 )
 
@@ -21,32 +21,32 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
         SimulationConfig: Test configuration object
     """
     if use_real_files:
-        # Use real test files
-        return SimulationConfig(
+        # Use real test files - Create model-based SimulationConfig using the create() method
+        config = SimulationConfig.create(
+            structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+            cluster_expansion_file=f"{file_path}/input/lce.json",
+            fitting_results_file=f"{file_path}/input/fitting_results.json",
+            cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+            fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+            event_file=f"{file_path}/input/events.json",
+            initial_state_file=f"{file_path}/input/initial_state.json",
+            mobile_ion_specie="Na",
+            temperature=873.0,
             name=name,
-            temperature=573.0,
             attempt_frequency=1e13,
             equilibration_passes=10,  # Small for testing
             kmc_passes=50,  # Small for testing
             dimension=3,
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
-            mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_state=f"{file_path}/input/initial_state.json",  # Use initial_state file
-            immutable_sites=["Zr", "O"],  # Add immutable sites
-            # Real test file paths
-            fitting_results=f"{file_path}/fitting_results.json",
-            fitting_results_site=f"{file_path}/fitting_results.json",  # Use same for testing
-            lce_fname=f"{file_path}/lce.json",
-            lce_site_fname=f"{file_path}/lce.json",  # Use same for testing
-            template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-            event_fname=f"{file_path}/events.json",
-            event_dependencies=f"{file_path}/event_dependencies.csv",
+            supercell_shape=(2, 1, 1),  # Use tuple
+            immutable_sites=("Zr", "O"),  # Use tuple
         )
+        return config
     else:
         # Use fake paths for testing parameter handling
         return SimulationConfig(
+            structure_file="fake_structure.cif",  # Required parameter
             name=name,
             temperature=573.0,
             attempt_frequency=1e13,
@@ -56,17 +56,12 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
-            supercell_shape=[2, 1, 1],
-            initial_occ=[1, -1, 1, -1],
-            immutable_sites=["Zr", "O"],  # Add immutable sites
-            # Fake file paths
-            fitting_results="fake.json",
-            fitting_results_site="fake.json",
-            lce_fname="fake.json",
-            lce_site_fname="fake.json",
-            template_structure_fname="fake.cif",
-            event_fname="fake.json",
-            event_dependencies="fake.csv",
+            supercell_shape=(2, 1, 1),  # Use tuple
+            immutable_sites=("Zr", "O"),  # Use tuple
+            # Fake file paths with correct names
+            fitting_results_file="fake_fitting.json",
+            cluster_expansion_file="fake_lce.json",
+            event_file="fake_events.json",
         )
 
 
@@ -149,7 +144,7 @@ class TestNASICONbulk(unittest.TestCase):
     def test_generate_events(self):
         mobile_ion_identifier_type = "label"
         mobile_ion_identifiers = ("Na1", "Na2")
-        template_structure_fname = (
+        structure_file = (
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
         )
         local_env_cutoff_dict = {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
@@ -157,7 +152,7 @@ class TestNASICONbulk(unittest.TestCase):
 
         generator = EventGenerator()
         generator.generate_events(
-            template_structure_fname=template_structure_fname,
+            structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
@@ -168,12 +163,12 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=False,
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
-            event_fname=f"{file_path}/events.json",
-            event_dependencies_fname=f"{file_path}/event_dependencies.csv",
+            event_file=f"{file_path}/events.json",
+            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         reference_local_env_dict = generator.generate_events(
-            template_structure_fname=template_structure_fname,
+            structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
@@ -184,8 +179,8 @@ class TestNASICONbulk(unittest.TestCase):
             convert_to_primitive_cell=True,
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
-            event_fname=f"{file_path}/events.json",
-            event_dependencies_fname=f"{file_path}/event_dependencies.csv",
+            event_file=f"{file_path}/events.json",
+            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         print("reference_local_env_dict:", reference_local_env_dict)
@@ -196,16 +191,20 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("third")
     def test_generate_local_cluster_exapnsion(self):
-        from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
-
+        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+        from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+        from kmcpy.external.structure import StructureKMCpy
         mobile_ion_identifier_type = "label"
-        mobile_ion_specie_1_identifier = "Na1"
-        a = LocalClusterExpansion(
+        mobile_ion_specie_identifier = "Na1"
+        structure = StructureKMCpy.from_cif(filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True)
+        local_lattice_structure = LocalLatticeStructure(template_structure=structure,center=0, cutoff=4.0,specie_site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"},
+                                     basis_type = "chebyshev", is_write_basis=True, exclude_species=["O2-", "O", "Zr4+", "Zr"])
+        a = LocalClusterExpansion()
+        a.build(local_lattice_structure=local_lattice_structure,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_1_identifier=mobile_ion_specie_1_identifier,
+            mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],
             cutoff_region=4,
-            template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             convert_to_primitive_cell=True,
         )
         a.to_json(f"{file_path}/lce.json")
@@ -232,23 +231,41 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("kmc_original")
     def test_kmc_main_function(self):
-        """Original KMC test using InputSet approach (for reference)."""
-        from kmcpy.io import InputSet
-        from kmcpy.simulation.kmc import KMC
+        """KMC test using modern SimulationConfig approach."""
+        from kmcpy.simulator.config import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
         original_cwd = os.getcwd()
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
-            inputset = InputSet.from_json(f"{file_path}/input/kmc_input.json")
+            
+            # Create SimulationConfig from the same parameters as the old kmc_input.json
+            config = SimulationConfig.create(
+                structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+                cluster_expansion_file=f"{file_path}/input/lce.json",
+                fitting_results_file=f"{file_path}/input/fitting_results.json",
+                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                event_file=f"{file_path}/input/events.json",
+                initial_state_file=f"{file_path}/input/initial_state.json",
+                mobile_ion_specie="Na",  # Fixed parameter name
+                temperature=298,
+                attempt_frequency=5e12,
+                equilibration_passes=1,
+                kmc_passes=100,
+                supercell_shape=(2, 1, 1),
+                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+                convert_to_primitive_cell=True,
+                elementary_hop_distance=3.47782,  # Same as original kmc_input.json
+                random_seed=12345,
+                name="NASICON_Test"
+            )
 
-            print(inputset._parameters.keys())
-            print(inputset._parameters["initial_state"])
+            kmc = KMC.from_config(config)
 
-            kmc = KMC.from_inputset(inputset)
-
-            kmc_tracker = kmc.run(inputset)
+            kmc_tracker = kmc.run(config)
 
             print(kmc_tracker.return_current_info())
             self.assertTrue(
@@ -280,8 +297,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Modernized KMC test using SimulationCondition approach."""
         print("Testing modernized KMC workflow with SimulationCondition")
 
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.simulator.config import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -289,30 +306,26 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create modern SimulationConfig (equivalent to the JSON file)
-            config = SimulationConfig(
-                name="NASICON_Modernized_Test",
+            # Create modern SimulationConfig using the create() method
+            config = SimulationConfig.create(
+                structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+                cluster_expansion_file=f"{file_path}/input/lce.json",
+                fitting_results_file=f"{file_path}/input/fitting_results.json",
+                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                event_file=f"{file_path}/input/events.json",
+                initial_state_file=f"{file_path}/input/initial_state.json",
+                mobile_ion_specie="Na",
                 temperature=298.0,
                 attempt_frequency=5e12,
                 equilibration_passes=1,
                 kmc_passes=100,
-                dimension=3,
-                elementary_hop_distance=3.47782,
-                mobile_ion_charge=1.0,
-                mobile_ion_specie="Na",
-                supercell_shape=[2, 1, 1],
-                initial_state=f"{file_path}/input/initial_state.json",
-                immutable_sites=["Zr", "O", "Zr4+", "O2-"],
-                random_seed=12345,
+                supercell_shape=(2, 1, 1),
+                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
                 convert_to_primitive_cell=True,
-                # File paths
-                fitting_results=f"{file_path}/input/fitting_results.json",
-                fitting_results_site=f"{file_path}/input/fitting_results_site.json",
-                lce_fname=f"{file_path}/input/lce.json",
-                lce_site_fname=f"{file_path}/input/lce_site.json",
-                template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                event_fname=f"{file_path}/input/events.json",
-                event_dependencies=f"{file_path}/input/event_dependencies.csv",
+                elementary_hop_distance=3.47782,  # Same as original kmc_input.json
+                random_seed=12345,
+                name="NASICON_Modernized_Test"
             )
 
             # Modern workflow
@@ -380,8 +393,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Test SimulationCondition integration with NASICON test files."""
         print("Testing SimulationCondition with NASICON files")
 
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.simulator.condition import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
 
         # Check if required files exist
         required_files = [
@@ -422,17 +435,6 @@ class TestNASICONbulk(unittest.TestCase):
         self.assertTrue(hasattr(KMC, "from_config"))
         self.assertTrue(hasattr(KMC, "run"))
         print("✓ KMC integration methods exist")
-
-        # Test InputSet conversion
-        try:
-            inputset = config.to_inputset()
-            self.assertEqual(inputset.temperature, config.temperature)
-            self.assertEqual(inputset.v, config.attempt_frequency)
-            print("✓ InputSet conversion works")
-        except Exception as e:
-            print(f"⚠ InputSet conversion failed (expected with real files): {e}")
-            # This is expected to fail with real files due to complex structure requirements
-            # The important thing is that the config validation and KMC integration methods work
 
         # Test that we can create KMC instance (may fail due to file format issues)
         try:
@@ -492,13 +494,12 @@ class TestNASICONbulk(unittest.TestCase):
         print("✅ Parameter studies test completed")
 
     @pytest.mark.order("kmc_comparison")
-    def test_kmc_simulation_condition_vs_inputset(self):
-        """Test that KMC with SimulationCondition produces same results as InputSet approach."""
-        print("Testing KMC SimulationCondition vs InputSet comparison")
+    def test_kmc_simulation_config_validation(self):
+        """Test that KMC with SimulationConfig produces expected results."""
+        print("Testing KMC SimulationConfig validation")
 
-        from kmcpy.io import InputSet
-        from kmcpy.simulation.kmc import KMC
-        from kmcpy.simulation.condition import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
+        from kmcpy.simulator.config import SimulationConfig
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -506,210 +507,65 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # ========== Test 1: Original InputSet approach ==========
-            print("Running original InputSet approach...")
-            inputset = InputSet.from_json(f"{file_path}/input/kmc_input.json")
-            kmc_original = KMC.from_inputset(inputset)
-            kmc_tracker_original = kmc_original.run(inputset)
-            original_results = kmc_tracker_original.return_current_info()
-            print(f"Original InputSet results: {original_results}")
+            # ========== Test: SimulationConfig approach ==========
+            print("Running SimulationConfig approach...")
 
-            # ========== Test 2: SimulationCondition approach ==========
-            print("Running SimulationCondition approach...")
-
-            # Create SimulationConfig with exact same parameters as kmc_input.json
-            config = SimulationConfig(
+            # Create SimulationConfig with the same parameters as the old kmc_input.json
+            config = SimulationConfig.create(
+                structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+                cluster_expansion_file=f"{file_path}/input/lce.json",
+                fitting_results_file=f"{file_path}/input/fitting_results.json",
+                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                event_file=f"{file_path}/input/events.json",
+                # Note: initial_state_file is not supported in the clean API
+                mobile_ion_specie="Na",
+                temperature=298.0,
+                attempt_frequency=5e12,
+                equilibration_passes=1,
+                kmc_passes=100,
+                supercell_shape=(2, 1, 1),
+                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+                convert_to_primitive_cell=True,
+                elementary_hop_distance=3.47782,
+                random_seed=12345,
                 name="NASICON_KMC_Test",
-                temperature=298.0,  # Same as JSON
-                attempt_frequency=5e12,  # Same as JSON (v = 5000000000000)
-                equilibration_passes=1,  # Same as JSON (equ_pass = 1)
-                kmc_passes=100,  # Same as JSON (kmc_pass = 100)
-                dimension=3,  # Same as JSON
-                elementary_hop_distance=3.47782,  # Same as JSON (elem_hop_distance)
-                mobile_ion_charge=1.0,  # Same as JSON (q = 1.0)
-                mobile_ion_specie="Na",  # Same as JSON
-                supercell_shape=[2, 1, 1],  # Same as JSON
-                initial_state=f"{file_path}/input/initial_state.json",  # Same as JSON
-                immutable_sites=["Zr", "O", "Zr4+", "O2-"],  # Same as JSON
-                random_seed=12345,  # Same as JSON
-                convert_to_primitive_cell=True,  # Same as JSON
-                # File paths (using absolute paths from tests directory)
-                fitting_results=f"{file_path}/input/fitting_results.json",
-                fitting_results_site=f"{file_path}/input/fitting_results_site.json",
-                lce_fname=f"{file_path}/input/lce.json",
-                lce_site_fname=f"{file_path}/input/lce_site.json",
-                template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                event_fname=f"{file_path}/input/events.json",
-                event_dependencies=f"{file_path}/input/event_dependencies.csv",
+                initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
-            # Test that config conversion to InputSet works
-            inputset_from_config = config.to_inputset()
-            print("✓ Successfully created InputSet from SimulationConfig")
-
-            # Test KMC with SimulationCondition using regular run method
+            # Test KMC with SimulationConfig
             kmc_simulation = KMC.from_config(config)
-            kmc_tracker_simulation = kmc_simulation.run(inputset_from_config)
+            kmc_tracker_simulation = kmc_simulation.run(config)
             simulation_results = kmc_tracker_simulation.return_current_info()
-            print(f"SimulationCondition results: {simulation_results}")
+            print(f"SimulationConfig results: {simulation_results}")
 
-            # ========== Compare Results ==========
-            print("Comparing results...")
+            # ========== Validate Results ==========
+            print("Validating results...")
 
-            # Results should be identical since we're using the same parameters and random seed
+            # Validate that we get reasonable results (these are the expected values from the original test)
+            expected_results = np.array([
+                1.1193006038758543e-06,
+                307.37444494263616,
+                1.4630573145769372e-08,
+                4.5768825621743376e-09,
+                1.1823906621661553,
+                0.312830024946617,
+                0.21998150220477225,
+            ])
+            
+            # Results should be close to expected values (allowing for some numerical variation)
             self.assertTrue(
                 np.allclose(
-                    np.array(original_results),
                     np.array(simulation_results),
-                    rtol=1e-10,  # Very strict tolerance since results should be identical
-                    atol=1e-10,
+                    expected_results,
+                    rtol=0.01,
+                    atol=0.01,
                 ),
-                f"Results differ: InputSet={original_results}, SimulationCondition={simulation_results}",
+                f"SimulationConfig results don't match expected: {simulation_results} vs {expected_results}",
             )
 
-            # Also test that both match the expected reference values
-            expected_results = np.array(
-                [
-                    1.1193006038758543e-06,
-                    307.37444494263616,
-                    1.4630573145769372e-08,
-                    4.5768825621743376e-09,
-                    1.1823906621661553,
-                    0.312830024946617,
-                    0.21998150220477225,
-                ]
-            )
-
-            self.assertTrue(
-                np.allclose(np.array(original_results), expected_results, rtol=0.01, atol=0.01),
-                f"Original results don't match expected: {original_results} vs {expected_results}",
-            )
-
-            self.assertTrue(
-                np.allclose(
-                    np.array(simulation_results), expected_results, rtol=0.01, atol=0.01
-                ),
-                f"SimulationCondition results don't match expected: {simulation_results} vs {expected_results}",
-            )
-
-            print("✅ Both approaches produce identical results!")
-            print("✅ Both approaches match expected reference values!")
-
-        finally:
-            os.chdir(original_cwd)
-
-    @pytest.mark.order("parameter_matching")
-    def test_simulation_condition_parameter_matching(self):
-        """Test that SimulationCondition parameters match InputSet parameters."""
-        print("Testing SimulationCondition parameter matching with InputSet")
-
-        from kmcpy.io import InputSet
-        from kmcpy.simulation.condition import SimulationConfig
-        import numpy as np
-
-        # Change to tests directory temporarily to make relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-            # Load original InputSet
-            inputset = InputSet.from_json(f"{file_path}/input/kmc_input.json")
-
-            # Create SimulationConfig with exact same parameters
-            config = SimulationConfig(
-                name="NASICON_Parameter_Test",
-                temperature=298.0,  # Same as JSON
-                attempt_frequency=5e12,  # Same as JSON (v = 5000000000000)
-                equilibration_passes=1,  # Same as JSON (equ_pass = 1)
-                kmc_passes=100,  # Same as JSON (kmc_pass = 100)
-                dimension=3,  # Same as JSON
-                elementary_hop_distance=3.47782,  # Same as JSON (elem_hop_distance)
-                mobile_ion_charge=1.0,  # Same as JSON (q = 1.0)
-                mobile_ion_specie="Na",  # Same as JSON
-                supercell_shape=[2, 1, 1],  # Same as JSON
-                initial_state=f"{file_path}/input/initial_state.json",  # Same as JSON
-                immutable_sites=["Zr", "O", "Zr4+", "O2-"],  # Same as JSON
-                random_seed=12345,  # Same as JSON
-                convert_to_primitive_cell=True,  # Same as JSON
-                # File paths (using absolute paths from tests directory)
-                fitting_results=f"{file_path}/input/fitting_results.json",
-                fitting_results_site=f"{file_path}/input/fitting_results_site.json",
-                lce_fname=f"{file_path}/input/lce.json",
-                lce_site_fname=f"{file_path}/input/lce_site.json",
-                template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                event_fname=f"{file_path}/input/events.json",
-                event_dependencies=f"{file_path}/input/event_dependencies.csv",
-            )
-
-            # Convert SimulationConfig to InputSet
-            inputset_from_config = config.to_inputset()
-
-            # Compare key parameters
-            print("Comparing key parameters...")
-
-            # Temperature
-            self.assertEqual(inputset.temperature, inputset_from_config.temperature)
-            print(
-                f"✓ Temperature: {inputset.temperature} == {inputset_from_config.temperature}"
-            )
-
-            # Attempt frequency
-            self.assertEqual(inputset.v, inputset_from_config.v)
-            print(f"✓ Attempt frequency: {inputset.v} == {inputset_from_config.v}")
-
-            # Passes
-            self.assertEqual(inputset.equ_pass, inputset_from_config.equ_pass)
-            self.assertEqual(inputset.kmc_pass, inputset_from_config.kmc_pass)
-            print(f"✓ Passes: equ={inputset.equ_pass}, kmc={inputset.kmc_pass}")
-
-            # Dimension
-            self.assertEqual(inputset.dimension, inputset_from_config.dimension)
-            print(f"✓ Dimension: {inputset.dimension}")
-
-            # Elementary hop distance
-            self.assertEqual(
-                inputset.elem_hop_distance, inputset_from_config.elem_hop_distance
-            )
-            print(
-                f"✓ Elementary hop distance: {inputset.elem_hop_distance}"
-            )
-
-            # Mobile ion charge
-            self.assertEqual(inputset.q, inputset_from_config.q)
-            print(f"✓ Mobile ion charge: {inputset.q}")
-
-            # Mobile ion species
-            self.assertEqual(
-                inputset.mobile_ion_specie, inputset_from_config.mobile_ion_specie
-            )
-            print(f"✓ Mobile ion species: {inputset.mobile_ion_specie}")
-
-            # Supercell shape
-            self.assertEqual(
-                inputset.supercell_shape, inputset_from_config.supercell_shape
-            )
-            print(f"✓ Supercell shape: {inputset.supercell_shape}")
-
-            # Random seed
-            self.assertEqual(inputset.random_seed, inputset_from_config.random_seed)
-            print(f"✓ Random seed: {inputset.random_seed}")
-
-            # Immutable sites
-            self.assertEqual(
-                inputset.immutable_sites, inputset_from_config.immutable_sites
-            )
-            print(f"✓ Immutable sites: {inputset.immutable_sites}")
-
-            # Convert to primitive cell
-            self.assertEqual(
-                inputset.convert_to_primitive_cell,
-                inputset_from_config.convert_to_primitive_cell,
-            )
-            print(
-                f"✓ Convert to primitive cell: {inputset.convert_to_primitive_cell}"
-            )
-
-            print("✅ All parameters match between InputSet and SimulationCondition!")
+            print("✓ SimulationConfig produces expected results")
+            print("✅ SimulationConfig validation test completed")
 
         finally:
             os.chdir(original_cwd)
@@ -719,8 +575,8 @@ class TestNASICONbulk(unittest.TestCase):
         """Test complete KMC workflow using SimulationCondition approach."""
         print("Testing complete KMC workflow with SimulationCondition")
 
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.kmc import KMC
+        from kmcpy.simulator.config import SimulationConfig
+        from kmcpy.simulator.kmc import KMC
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -728,30 +584,27 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create SimulationConfig with the same parameters as the working test
-            config = SimulationConfig(
-                name="NASICON_SimulationCondition_Test",
+            # Create SimulationConfig using the create() method
+            config = SimulationConfig.create(
+                structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+                cluster_expansion_file=f"{file_path}/input/lce.json",
+                fitting_results_file=f"{file_path}/input/fitting_results.json",
+                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
+                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                event_file=f"{file_path}/input/events.json",
+                # Note: initial_state_file is not supported in the clean API
+                mobile_ion_specie="Na",
                 temperature=298.0,
                 attempt_frequency=5e12,
                 equilibration_passes=1,
                 kmc_passes=100,
-                dimension=3,
-                elementary_hop_distance=3.47782,
-                mobile_ion_charge=1.0,
-                mobile_ion_specie="Na",
-                supercell_shape=[2, 1, 1],
-                initial_state=f"{file_path}/input/initial_state.json",
-                immutable_sites=["Zr", "O", "Zr4+", "O2-"],
-                random_seed=12345,
+                supercell_shape=(2, 1, 1),
+                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
                 convert_to_primitive_cell=True,
-                # File paths
-                fitting_results=f"{file_path}/input/fitting_results.json",
-                fitting_results_site=f"{file_path}/input/fitting_results_site.json",
-                lce_fname=f"{file_path}/input/lce.json",
-                lce_site_fname=f"{file_path}/input/lce_site.json",
-                template_structure_fname=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                event_fname=f"{file_path}/input/events.json",
-                event_dependencies=f"{file_path}/input/event_dependencies.csv",
+                elementary_hop_distance=3.47782,
+                random_seed=12345,
+                name="NASICON_SimulationCondition_Test",
+                initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
             print("✓ SimulationConfig created with test parameters")
@@ -788,7 +641,7 @@ class TestNASICONbulk(unittest.TestCase):
             print("\nTesting parameter study capabilities...")
 
             # Create a modified configuration with different temperature
-            high_temp_config = config.copy_with_changes(
+            high_temp_config = config.with_runtime_changes(
                 temperature=400.0, name="NASICON_HighTemp_Test"
             )
 
@@ -801,10 +654,9 @@ class TestNASICONbulk(unittest.TestCase):
             print("✓ Configuration modification for parameter studies works")
 
             # Test 5: Show serialization capabilities
-            config_dict = config.to_dataclass_dict()
+            config_dict = config.to_dict()
             self.assertIn("temperature", config_dict)
-            self.assertIn("attempt_frequency", config_dict)
-            self.assertIn("kmc_passes", config_dict)
+            self.assertIn("kmc_pass", config_dict)  # kmc_passes stored as 'kmc_pass'
 
             print("✓ Configuration serialization works")
 

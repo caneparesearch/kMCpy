@@ -3,13 +3,14 @@
 Example program to demonstrate Gooey's presentation of subparsers
 """
 import os
+import warnings
 import numpy as np
 from gooey import Gooey, GooeyParser
-from kmcpy.simulation.kmc import KMC
+from kmcpy.simulator.kmc import KMC
+from kmcpy.simulator.config import SimulationConfig
 from kmcpy.event.event_generator import EventGenerator
-from kmcpy.model.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 import kmcpy._version
-from kmcpy.io import InputSet
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))
 def main():
@@ -36,7 +37,7 @@ def main():
     lce_parser.add_argument(
         "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
     )
-    lce_parser.add_argument("mobile_ion_specie_1_identifier", default="Na1")
+    lce_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     lce_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
     lce_parser.add_argument("species_to_be_removed", default="Zr4+,O2-,O,Zr")
     lce_parser.add_argument("cutoff_region", default=4.0)
@@ -65,7 +66,7 @@ def main():
     event_parser.add_argument(
         "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
     )
-    event_parser.add_argument("mobile_ion_specie_1_identifier", default="Na1")
+    event_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     event_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
     event_parser.add_argument(
         "local_env_cutoff_dict", default="Na+,Na+,4.0;Na+,Si4+,4.0"
@@ -149,7 +150,7 @@ def main():
     )
 
     # simulation condition
-    kmc_parser.add_argument("v", default=5000000000000, type=int)
+    kmc_parser.add_argument("attempt_frequency", default=5000000000000, type=float)
     kmc_parser.add_argument("kmc_pass", default=100, type=int)
     kmc_parser.add_argument("T", default=298, type=int)
     kmc_parser.add_argument("q", default=1.0, type=float)
@@ -162,7 +163,7 @@ def main():
     # no need to change?
     kmc_parser.add_argument("--structure_idx", default=1, type=int)
     kmc_parser.add_argument("--comp", default=1, type=int)
-    kmc_parser.add_argument("equ_pass", default=1, type=int)
+    kmc_parser.add_argument("equilibriation_pass", default=1, type=int)
 
     args = parser.parse_args()
 
@@ -222,11 +223,33 @@ def main():
         os.chdir(args.work_dir)
         print(vars(args))
 
-        inputset = InputSet.from_dict(args.__dict__)
-        kmc = KMC.from_inputset(inputset = inputset)
+        # Convert GUI args to SimulationConfig using clean parameter names
+        config_params = {}
+        
+        # Map legacy GUI parameters to clean ones if needed
+        args_dict = args.__dict__
+        legacy_mapping = {
+            'lce_fname': 'cluster_expansion_file',
+            'lce_site_fname': 'cluster_expansion_site_file', 
+            'template_structure_fname': 'structure_file',
+            'event_fname': 'event_file',
+            'fitting_results': 'fitting_results_file',
+            'fitting_results_site': 'fitting_results_site_file',
+            'v': 'attempt_frequency'
+        }
+        
+        for key, value in args_dict.items():
+            if key in legacy_mapping:
+                config_params[legacy_mapping[key]] = value
+            else:
+                config_params[key] = value
+        
+        # Create clean SimulationConfig
+        config = SimulationConfig(**config_params)
+        kmc = KMC.from_config(config)
 
         # run kmc
-        kmc.run(inputset)
+        kmc.run(config)
 
     if args.command == "fitLCEmodel":
         from kmcpy.fitting import Fitting

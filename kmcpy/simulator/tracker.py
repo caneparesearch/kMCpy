@@ -7,14 +7,14 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.io import convert, InputSet, Results
+from kmcpy.io.io import convert, Results
 import logging
 from kmcpy.external.structure import StructureKMCpy
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from kmcpy.simulation.condition import SimulationConfig
-    from kmcpy.simulation.state import SimulationState
+    from kmcpy.simulator.condition import SimulationConfig
+    from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__) 
 
@@ -148,31 +148,6 @@ class Tracker:
         return self.config.mobile_ion_specie
 
     @classmethod
-    def from_inputset(cls, inputset: InputSet, structure: StructureKMCpy, occ_initial: list) -> "Tracker":
-        """
-        Create a Tracker object from an InputSet object.
-        
-        This method maintains backward compatibility by converting InputSet to SimulationConfig.
-
-        Args:
-            inputset (InputSet): An InputSet object containing the necessary parameters for Tracker initialization.
-            structure (StructureKMCpy): A StructureKMCpy object containing the structure information.
-            occ_initial (list): Initial occupation list for the mobile ion specie.
-            
-        Returns:
-            Tracker: An instance of the Tracker class initialized with parameters from the InputSet.
-        """
-        # Convert InputSet to SimulationConfig for clean architecture
-        from kmcpy.simulation.condition import SimulationConfig
-        from kmcpy.simulation.state import SimulationState
-        config = SimulationConfig.from_inputset(inputset)
-        
-        # Create SimulationState with initial occupation
-        initial_state = SimulationState(initial_occ=occ_initial)
-        
-        return cls(config=config, structure=structure, initial_state=initial_state)
-    
-    @classmethod
     def from_config(cls, config: "SimulationConfig", structure: StructureKMCpy, occ_initial: list) -> "Tracker":
         """
         Create a Tracker object from a SimulationConfig object.
@@ -188,8 +163,8 @@ class Tracker:
             Tracker: An instance of the Tracker class.
         """
         # Create SimulationState with initial occupation
-        from kmcpy.simulation.state import SimulationState
-        initial_state = SimulationState(initial_occ=occ_initial)
+        from kmcpy.simulator.state import SimulationState
+        initial_state = SimulationState(occupations=occ_initial)
         
         return cls(config=config, structure=structure, initial_state=initial_state)
 
@@ -269,6 +244,7 @@ class Tracker:
             )
         else:
             logger.error("Proposed a wrong event! Please check the code!")
+            return  # Return early to avoid using undefined specie_to_diff
         self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
         self.hop_counter[specie_to_diff] += 1
         self.state.time += dt
@@ -339,11 +315,12 @@ class Tracker:
         Returns:
             float: The mean correlation factor for the tracked hops.
         """
+        
+        hop_counter_safe = np.where(self.hop_counter == 0, 1, self.hop_counter)
         corr_factor = np.linalg.norm(self.displacement, axis=1) ** 2 / (
-            self.hop_counter * self.elem_hop_distance**2
+            hop_counter_safe * self.elem_hop_distance**2
         )
-
-        corr_factor = np.nan_to_num(corr_factor, nan=0)
+        corr_factor[self.hop_counter == 0] = 0  # Set correlation factor to 0 where hop_counter was zero
 
         return np.mean(corr_factor)
 

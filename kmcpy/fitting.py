@@ -4,7 +4,7 @@ This module provides the Fitting class for generating and storing fitting result
 """
 
 import json
-from kmcpy.io import convert
+from kmcpy.io.io import convert
 import logging
 
 logger = logging.getLogger(__name__) 
@@ -118,7 +118,7 @@ class Fitting:
         import numpy as np
         import pandas as pd
 
-        logger.info(f"Loading E_KRA from {ekra_fname} ...")
+        logger.info(f"Loading vaekra_fnamelues from {ekra_fname} ...")
         e_kra = np.loadtxt(ekra_fname)
         weight = np.loadtxt(weight_fname)
         weight_copy = copy(weight)
