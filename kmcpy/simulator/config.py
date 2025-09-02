@@ -284,11 +284,8 @@ class SimulationConfig:
             raw_data = SimulationConfigIO._load_yaml(filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
-        
-        # Convert legacy parameter names
-        data = SimulationConfigIO._convert_legacy_parameters(raw_data)
-        
-        return cls.from_dict(data)
+                
+        return cls.from_dict(raw_data)
     
     @classmethod
     def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "SimulationConfig":
@@ -308,18 +305,14 @@ class SimulationConfig:
         Example:
             # Load from simple section
             config = SimulationConfig.from_yaml_section("workflow.yaml", "kmc")
-            
-            # Load from registry-style section  
+            # Load from registry-style section
             config = SimulationConfig.from_yaml_section("workflow.yaml", "kmc", "diffusion")
         """
         from kmcpy.io.config_io import SimulationConfigIO
         
         raw_data = SimulationConfigIO._load_yaml_section(filepath, section, task_type)
-        
-        # Convert legacy parameter names
-        data = SimulationConfigIO._convert_legacy_parameters(raw_data)
-        
-        return cls.from_dict(data)
+    
+        return cls.from_dict(raw_data)
     
     def save(self, filepath: str, **kwargs) -> None:
         """

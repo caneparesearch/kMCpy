@@ -376,11 +376,10 @@ class SimulationConfigIO:
                 select_sites=select_sites_for_occupation
             )
         
-        # Always create a SimulationState (even if we have to use empty occupations)
         if initial_occ is not None:
             simulation_state = SimulationState(occupations=initial_occ)
         else:
-            # Create with empty occupations - this will be populated during structure loading
-            simulation_state = SimulationState(occupations=[])
+            # We cannot proceed without an initial occupation
+            raise ValueError("Initial occupations could not be determined.")
         
         return structure, model, event_lib, simulation_state

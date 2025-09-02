@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import warnings
-from kmcpy.io import SimulationConfigIO  # Use modern IO system
+from kmcpy.io.config_io import SimulationConfigIO  # Use modern IO system
 from kmcpy.simulator.config import SimulationConfig
 from kmcpy.simulator.kmc import KMC
 import kmcpy
@@ -80,10 +80,16 @@ def run_kmc(args)-> None:
     """
     config = None
     
+    print("Starting KMC simulation...")
+    
     if args.input:
         # Load modern SimulationConfig format only
         try:
-            config = SimulationConfigIO.read(args.input)
+            print(f"Loading configuration from {args.input}")
+            from kmcpy.io.config_io import SimulationConfigIO
+            raw_data = SimulationConfigIO._load_yaml_section(args.input, "kmc", "default")
+            config = SimulationConfig.from_dict(raw_data)
+            print(f"✓ Configuration loaded: {config.runtime_config.name}")
         except Exception as e:
             # Provide clear error message for legacy formats
             raise ValueError(
@@ -98,8 +104,13 @@ def run_kmc(args)-> None:
         input_dict = {k: v for k, v in vars(args).items() if k != "input" and v is not None}
         config = SimulationConfig(**input_dict)
 
+    print("Configuration loaded, initializing KMC...")
+    print(f"  Structure file: {config.system_config.structure_file}")
+    print(f"  Temperature: {config.runtime_config.temperature} K")
+    
     # initialize global occupation and conditions using modern API
     kmc = KMC.from_config(config)
+    print("KMC initialized, starting simulation...")
 
     # run kmc with config
     tracker = kmc.run(config)

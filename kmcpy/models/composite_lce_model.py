@@ -174,9 +174,9 @@ class CompositeLCEModel(CompositeModel):
             np.ndarray: The occupation vector for the given structure.
         """
         if use_model == 'site_model' and self.site_model:
-            return self.site_model.get_occ_from_structure(structure)
+            return self.site_model.local_lattice_structure.get_occ_from_structure(structure)
         elif use_model == 'kra_model' and self.kra_model:
-            return self.kra_model.get_occ_from_structure(structure)
+            return self.kra_model.local_lattice_structure.get_occ_from_structure(structure)
         else:
             raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
     

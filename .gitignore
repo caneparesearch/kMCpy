@@ -218,3 +218,5 @@ local_env.xyz
 .gitignore
 event_dependencies.csv
 events.json
+
+example/*.csv

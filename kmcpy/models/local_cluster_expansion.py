@@ -2,16 +2,10 @@
 """
 This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
-from typing import Literal
 from itertools import combinations
-from pymatgen.symmetry.analyzer import PointGroupAnalyzer
-from pymatgen.core.structure import Molecule
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
-from kmcpy.event.event_generator import find_atom_indices
-from pymatgen.core.periodic_table import DummySpecies
-from pymatgen.core.sites import PeriodicSite
 import logging
 from kmcpy.models.model import BaseModel
 from copy import deepcopy
@@ -34,9 +28,6 @@ class LocalClusterExpansion(BaseModel):
     def __init__(self):
         """
         Initialization of the LocalClusterExpansion object.
-        
-        Args:
-            template_structure (StructureKMCpy): The template structure with all sites filled.
         """
         self.name = "LocalClusterExpansion"
 
@@ -199,7 +190,7 @@ class LocalClusterExpansion(BaseModel):
     def get_corr_from_structure(self, structure: StructureKMCpy, tol=1e-2, angle_tol=5):
         '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
         '''
-        occ = self.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
+        occ = self.local_lattice_structure.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
         corr = np.empty(shape=len(self.basis.basis_function))
         _calc_corr(corr, occ, self.cluster_site_indices)
         return corr
@@ -292,7 +283,7 @@ class LocalClusterExpansion(BaseModel):
         return result
 
     def compute_probability(self, *args, **kwargs):
-        raise NotImplementedError("You cannot compute probability from a single LCE model, try CompositeLCEModel.")
+        raise NotImplementedError("You cannot compute probability from a single LCE model, you should use CompositeLCEModel.")
     
     def set_parameters(self, parameters):
         """
@@ -391,39 +382,3 @@ def _calc_corr(corr, occ_latt, cluster_site_indices):
                 corr_cluster *= occ_latt[occ_site]
             corr[i] += corr_cluster
         i += 1
-
-def get_local_env_structure(
-    structure,
-    center_site,
-    cutoff=4,
-    is_write_basis=False,
-    exclude_species=["Li"]):  # return a molecule structure centeret center_site
-    local_env_structure = [
-        s[0] for s in structure.get_sites_in_sphere(center_site.coords, cutoff)
-    ]
-    local_env_list_sorted = sorted(
-        sorted(local_env_structure, key=lambda x: x.coords[0]),
-        key=lambda x: x.specie,
-    )
-    local_env_list_sorted_involved = []
-    for site in local_env_list_sorted:
-        excluded = False
-        for exclude_specie in exclude_species:
-            if exclude_specie in site.species:
-                excluded = True
-        if not excluded:
-            local_env_list_sorted_involved.append(site)
-
-    local_env_structure = Molecule.from_sites(local_env_list_sorted_involved)
-    local_env_structure.translate_sites(
-        np.arange(0, len(local_env_structure), 1).tolist(), -1 * center_site.coords
-    )
-    if is_write_basis:
-        logger.info("Local environment: ")
-        logger.info(local_env_structure)
-        local_env_structure.to(fmt="xyz", filename="local_env.xyz")
-        logger.info(
-        "The point group of local environment is: %s",
-        PointGroupAnalyzer(local_env_structure).sch_symbol,
-        )
-    return local_env_structure
