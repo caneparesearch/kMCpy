@@ -11,7 +11,7 @@ pip install kmcpy
 > For example, using `venv`:
 > ```shell
 > python -m venv kmcpy-env
-> source kmcpy-env/bin/activate  # On Windows use `kmcpy-env\Scripts
+> source kmcpy-env/bin/activate  # On Windows use `kmcpy-env\Scripts\activate`
 > ```
 > Then you can install kMCpy in the virtual environment using `pip install kmcpy`.
 > To deactivate the virtual environment, you can use the command `deactivate`.
