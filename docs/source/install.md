@@ -1,11 +1,22 @@
 # Installation
 
-## Method 1: Install using `pip`
+## Method 1: Install using `pip` in a virtual environment (recommended)
 You can quickly install the latest version of kMCpy through [PyPI](https://pypi.org/project/kmcpy/) to your environment.
 
 ```shell
 pip install kmcpy
 ```
+> **⚠️ Virtual Environment**  
+> It is highly recommended to install kMCpy in a virtual environment to avoid dependency conflicts with other packages. You can use [uv](https://docs.astral.sh/uv/getting-started/installation/) or [venv](https://docs.python.org/3/library/venv.html) or [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to create a virtual environment.
+> For example, using `venv`:
+> ```shell
+> python -m venv kmcpy-env
+> source kmcpy-env/bin/activate  # On Windows use `kmcpy-env\Scripts
+> ```
+> Then you can install kMCpy in the virtual environment using `pip install kmcpy`.
+> To deactivate the virtual environment, you can use the command `deactivate`.
+> For `conda`, you should also use `pip install kmcpy` to install `kMCpy` after activating the conda environment.
+> For `uv`, you can use `uv pip install kmcpy` to install `kMCpy` after creating and activating the virtual environment.
 
 ## Method 2: Install from source using `pip`
 
