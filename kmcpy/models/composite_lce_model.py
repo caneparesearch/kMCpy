@@ -10,7 +10,7 @@ Author: Zeyu Deng
 """
 
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import os
@@ -20,6 +20,9 @@ from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
 from kmcpy.simulator.condition import SimulationCondition
 from kmcpy.simulator.state import SimulationState
+
+if TYPE_CHECKING:
+    from kmcpy.simulator.config import SimulationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +36,11 @@ class CompositeLCEModel(CompositeModel):
     patterns where the model is separated from the structure and calculation context.
     
     The composite model provides:
+    
     - compute(): compute transition probability from an event
     
-    Example:
+    Example::
+    
         # Create individual LCE models with parameters
         site_model = LocalClusterExpansion(...)
         site_model.load_parameters_from_file("site_parameters.json")
@@ -94,12 +99,13 @@ class CompositeLCEModel(CompositeModel):
         Compute the transition probability for a given event using the composite LCE model.
 
         This method calculates the transition probability for a migration event by:
+        
         - Computing the site energy (e_site) using the site LocalClusterExpansion model and its stored parameters.
         - Computing the barrier energy (e_kra) using the barrier LocalClusterExpansion model and its stored parameters.
         - Determining the direction of the event from the occupation vector in the SimulationState.
         - Calculating the effective barrier as: e_barrier = e_kra + direction * e_site / 2
         - Using the Arrhenius equation to compute the probability:
-              probability = |direction| * v * exp(-e_barrier / (k * T))
+          probability = abs(direction) * v * exp(-e_barrier / (k * T))
 
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.

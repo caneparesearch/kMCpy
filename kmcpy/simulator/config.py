@@ -2,26 +2,15 @@
 Clean simulation configuration classes with clear separation of concerns.
 
 Architecture:
-- SystemConfig: Physical system definition (        # Parameter routing tables - ONLY clean parameter names, no legacy support
-        system_param_names = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
-        }
-        
-        runtime_param_names = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
-        }
-        
-        # Handle parameter aliases for commonly confused names
-        parameter_aliases = {
-            'mobile_species': 'mobile_ion_specie',  # Common alias
-            'initial_state_file': None,  # This should be handled differently, ignore for now
-        } RuntimeConfig: Simulation runtime parameters (immutable) 
+
+- SystemConfig: Physical system definition (immutable)
+- RuntimeConfig: Simulation runtime parameters (immutable) 
 - SimulationConfig: Complete simulation setup (immutable)
 - SimulationState: Mutable state during execution
+
+This module provides the parameter routing and configuration management for
+kinetic Monte Carlo simulations. It handles both system parameters (what you're
+simulating) and runtime parameters (how you run the simulation).
 """
 
 from typing import Dict, Any, Optional, List
@@ -208,7 +197,8 @@ class SimulationConfig:
         """
         Alternative factory method for cleaner API.
         
-        Examples:
+        Examples::
+        
             config = SimulationConfig.create(
                 structure_file="test.cif",
                 temperature=400.0,

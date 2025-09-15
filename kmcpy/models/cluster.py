@@ -10,6 +10,33 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 
 
 class Orbit:  # orbit is a collection of symmetry equivalent clusters
+    """
+    Represents an orbit, which is a collection of symmetry equivalent clusters.
+
+    Attributes:
+        clusters (list): List of clusters belonging to this orbit.
+        multiplicity (int): Number of clusters in the orbit.
+
+    Methods:
+        attach_cluster(cluster):
+            Adds a cluster to the orbit and increments the multiplicity.
+
+        get_cluster_function(occupancy):
+            Calculates the orbit's cluster function as the average of the cluster functions
+            of all clusters in the orbit, given an occupancy.
+
+        __str__():
+            Returns a string representation of the orbit, listing all clusters and their properties.
+
+        to_xyz(fname):
+            Writes the representative cluster's structure to an XYZ file.
+
+        show_representative_cluster():
+            Logs information about the representative cluster in the orbit.
+
+        as_dict():
+            Serializes the orbit to a dictionary format, including all clusters and multiplicity.
+    """
     def __init__(self):
         self.clusters = []
         self.multiplicity = 0
@@ -68,6 +95,32 @@ class Orbit:  # orbit is a collection of symmetry equivalent clusters
         return d
 
 class Cluster:
+    """
+    Represents a cluster of atomic sites in a structure, characterized by its type, geometry, and symmetry.
+
+    Args:
+        site_indices (list[int]): Indices of the sites forming the cluster.
+        sites (list[Site]): List of site objects representing the atomic positions.
+
+    Attributes:
+        site_indices (list[int]): Indices of the sites forming the cluster.
+        type (str): Type of the cluster ("point", "pair", "triplet", "quadruplet").
+        structure (Molecule): Molecule object constructed from the provided sites.
+        sym (str): Schoenflies symbol representing the point group symmetry of the cluster.
+        max_length (float): Maximum bond distance within the cluster (0 for "point" clusters).
+        min_length (float): Minimum bond distance within the cluster (0 for "point" clusters).
+        bond_distances (list[float] or np.ndarray): Sorted list/array of bond distances between sites in the cluster.
+
+    Methods:
+        __eq__(other): Compares two clusters for equality based on type, composition, and bond distances.
+        get_site(): Returns the sites corresponding to the cluster indices.
+        get_bond_distances(): Computes and returns the maximum, minimum, and all bond distances within the cluster.
+        get_cluster_function(occupation): Calculates the cluster function value for a given occupation vector.
+        to_xyz(fname): Exports the cluster structure to an XYZ file.
+        __str__(): Returns a string representation of the cluster with detailed information.
+        as_dict(): Serializes the cluster to a dictionary format.
+
+    """
     def __init__(self, site_indices, sites):
         cluster_type = {1: "point", 2: "pair", 3: "triplet", 4: "quadruplet"}
         self.site_indices = site_indices

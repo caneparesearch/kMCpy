@@ -227,12 +227,9 @@ class KMC:
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
-
-        Returns:
-            kmcpy.tracker.Tracker: Tracker object containing simulation results.
             
-        Example:
-            ```python
+        Example::
+        
             # Using SimulationConfig
             config = SimulationConfig.create(name="Test", temperature=400.0, ...)
             tracker = kmc.run(config)
@@ -241,7 +238,6 @@ class KMC:
             # 1. Create KMC and run in one step
             kmc = KMC.from_config(config)
             tracker = kmc.run(config)
-            ```
         """
         # Set label from config if not provided
         if label is None:

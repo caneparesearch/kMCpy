@@ -6,10 +6,13 @@ These classes are internal implementation details and should not be used directl
 All user interactions should go through SimulationConfig methods.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 import json
 import logging
 from pathlib import Path
+
+if TYPE_CHECKING:
+    from kmcpy.simulator.config import SimulationConfig
 
 logger = logging.getLogger(__name__)
 
