@@ -1,7 +1,7 @@
-fitter
+lattice_structure
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.structure.lattice_structure
     :members:
     :inherited-members:
                   

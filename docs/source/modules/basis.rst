@@ -1,7 +1,7 @@
-fitter
+basis
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.structure.basis
     :members:
     :inherited-members:
                   

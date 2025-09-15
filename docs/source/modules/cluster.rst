@@ -1,7 +1,7 @@
-fitter
+cluster
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.models.cluster
     :members:
     :inherited-members:
                   

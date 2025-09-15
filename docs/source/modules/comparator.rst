@@ -1,7 +1,7 @@
-fitter
+comparator
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.structure.comparator
     :members:
     :inherited-members:
                   

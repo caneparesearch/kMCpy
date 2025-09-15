@@ -1,7 +1,7 @@
-fitter
+state
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.simulator.state
     :members:
     :inherited-members:
                   

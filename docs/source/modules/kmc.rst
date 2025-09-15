@@ -1,7 +1,7 @@
 kmc
 =========================
 
-.. automodule:: kmcpy.kmc
+.. automodule:: kmcpy.simulator.kmc
     :members:
     :inherited-members:
                   

@@ -1,7 +1,7 @@
-fitter
+data_loader
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.io.data_loader
     :members:
     :inherited-members:
                   

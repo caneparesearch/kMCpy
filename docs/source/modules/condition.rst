@@ -1,7 +1,7 @@
-fitter
+condition
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.simulator.condition
     :members:
     :inherited-members:
                   

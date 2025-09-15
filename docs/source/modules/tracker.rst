@@ -1,7 +1,7 @@
 tracker
 =========================
 
-.. automodule:: kmcpy.tracker
+.. automodule:: kmcpy.simulator.tracker
     :members:
     :inherited-members:
                   

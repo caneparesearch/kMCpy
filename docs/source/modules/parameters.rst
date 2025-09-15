@@ -1,7 +1,7 @@
-fitter
+parameters
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.models.parameters
     :members:
     :inherited-members:
                   

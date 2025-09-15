@@ -1,7 +1,7 @@
-fitter
+modern_event_generator
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.event.modern_event_generator
     :members:
     :inherited-members:
                   

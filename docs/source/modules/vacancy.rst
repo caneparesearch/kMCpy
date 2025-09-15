@@ -1,7 +1,7 @@
-fitter
+vacancy
 =========================
 
-.. automodule:: kmcpy.models.fitting.fitter
+.. automodule:: kmcpy.structure.vacancy
     :members:
     :inherited-members:
                   
