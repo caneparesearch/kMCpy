@@ -349,7 +349,7 @@ class NeighborInfoMatcher:
                     + " please check if the rtol or atol is too small"
                 )
 
-        # logger.warning(str(sorted_neighbor_sequence_dict))
+        # logger.info(str(sorted_neighbor_sequence_dict))
 
         sorted_neighbor_sequence_list = []
 
@@ -382,7 +382,7 @@ class NeighborInfoMatcher:
                     closest_smilarity_score = this_smilarity_score
                     closest_sequence = re_sorted_neighbors_list
 
-            logger.warning(
+            logger.info(
                 "the closest neighbor_info identified. Total difference"
                 + str(closest_smilarity_score)
             )
@@ -405,7 +405,7 @@ class NeighborInfoMatcher:
                 *sorted_neighbor_sequence_list
             ):
 
-                # logger.warning(str(possible_complete_sequence))
+                # logger.info(str(possible_complete_sequence))
 
                 re_sorted_neighbors_list = []
 
@@ -431,7 +431,7 @@ class NeighborInfoMatcher:
                             )
                         )
                     )
-                    logger.warning("The differece matrix is : \n")
+                    logger.info("The differece matrix is : \n")
                     logger.info(
                         str(
                             self.build_distance_matrix_from_getnninfo_output(
@@ -717,11 +717,11 @@ class EventGenerator:
 
         primitive_cell.remove_species(species_to_be_removed)
 
-        logger.warning(
+        logger.info(
             "primitive cell composition after adding oxidation state and removing uninvolved species: "
         )
         logger.info(str(primitive_cell.composition))
-        logger.warning("building migrating_ion index list")
+        logger.info("building migrating_ion index list")
 
         migrating_ion_indices = find_atom_indices(
             primitive_cell,
@@ -804,7 +804,7 @@ class EventGenerator:
                     primitive_cell[migrating_ion_index].properties["local_index"]
                 ] = this_nninfo.neighbor_sequence
 
-                logger.warning(
+                logger.info(
                     "a new type of local environment is recognized with the species "
                     + str(this_nninfo.neighbor_species)
                     + " \nthe distance matrix are \n"
@@ -834,7 +834,7 @@ class EventGenerator:
 
             neighbor_has_been_found += 1
 
-            logger.warning(
+            logger.info(
                 str(neighbor_has_been_found)
                 + " out of "
                 + str(len(migrating_ion_indices))
@@ -842,7 +842,7 @@ class EventGenerator:
             )
 
         supercell = primitive_cell.make_kmc_supercell(supercell_shape)
-        logger.warning("supercell is created")
+        logger.info("supercell is created")
         logger.info(str(supercell))
 
         supercell_migrating_ion_indices = find_atom_indices(
@@ -1036,10 +1036,10 @@ def find_atom_indices(
             'unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] '
         )
 
-    logger.warning("please check if these are mobile_ion_specie_1:")
+    logger.info("please check if these are mobile_ion_specie_1:")
     for i in mobile_ion_specie_1_indices:
 
-        logger.warning(str(structure[i]))
+        logger.info(str(structure[i]))
 
     return mobile_ion_specie_1_indices
 
