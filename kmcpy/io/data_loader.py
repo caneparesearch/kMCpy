@@ -9,6 +9,7 @@ import json
 import numpy as np
 from typing import List, Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 import logging
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from kmcpy.structure.basis import Occupation
@@ -21,14 +22,13 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 @dataclass
 class NEBEntry:
     """
-    Data class to hold structure information for fitting.
-    
+    Represents an entry for Nudged Elastic Band (NEB) calculations, storing structural and property data.
     Attributes:
-        local_lattice_structure (LocalLatticeStructure): Structure model of NEB calculation
-        property_value (float): Property value for this structure (e.g. E_KRA or E_site)
-        occupation (Occupation): Occupation vector for the structure, defaults to None
-        correlation (Optional[List[float]]): Correlation vector for the structure, defaults to None
-        metadata (Dict): Additional metadata for the structure, defaults to None
+        local_lattice_structure (LocalLatticeStructure): The local lattice structure associated with this entry.
+        property_value (float): The property value (e.g., energy) associated with this entry.
+        occupation (Occupation, optional): The occupation vector for the structure. Defaults to None.
+        correlation (List[float], optional): The correlation vector for the structure. Defaults to None.
+        metadata (Dict, optional): Additional metadata for the entry. Defaults to None.
     """
     local_lattice_structure: LocalLatticeStructure
     property_value: float
@@ -60,16 +60,20 @@ class NEBEntry:
             logger.error(f"Failed to compute occupation and correlation vectors: {e}")
             raise
 
-class DataLoader:
+class DataLoader(ABC):
     """
-    Base class for data loaders.
+    Base class for data loading operations.
+    
+    This class provides a template for loading data from various sources.
+    Subclasses should implement the `add` method to handle specific data loading logic.
     """
     def __init__(self):
         pass
     
-    def add(self):
-        """Add data from the source."""
-        raise NotImplementedError("Subclasses should implement this method.")
+    @abstractmethod
+    def add(self, *args, **kwargs):
+        """Add data from the source. Must be implemented by subclasses."""
+        pass
     
     def __len__(self) -> int:
         """Return the number of loaded entries."""
@@ -77,10 +81,13 @@ class DataLoader:
 
 class NEBDataLoader(DataLoader):
     """
-    Data loader for handling databases of structures from NEB calculations.
-    
-    This class manages loading structures, energies, and computing correlation
-    matrices for Local Cluster Expansion model fitting.
+    A data loader class for managing and validating databases of structures from NEB (Nudged Elastic Band) calculations,
+    intended for Local Cluster Expansion model fitting. This class provides methods to add NEBEntry objects with
+    consistency checks, compute occupation and correlation matrices, retrieve property values, and serialize the dataset
+    to JSON format.
+    Attributes:
+        neb_entries (List[NEBEntry]): List of NEBEntry objects loaded into the data loader.
+        model_name (str): Name of the Local Cluster Expansion model associated with the data.
     """
     
     def __init__(self):

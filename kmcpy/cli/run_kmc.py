@@ -10,35 +10,40 @@ import argparse
 def main()->None:
     """
     Entry point for the kMCpy command-line interface to run kinetic Monte Carlo (kMC) simulations.
+    
     This function parses command-line arguments for running a kMC simulation using kMCpy. It supports
     two modes of input:
-      1. Providing a single JSON/YAML file containing all simulation parameters.
-      2. Providing individual arguments for each required parameter.
+    
+    1. Providing a single JSON/YAML file containing all simulation parameters.
+    2. Providing individual arguments for each required parameter.
+    
     If a JSON/YAML input file is provided, all other parameters are read from this file. Otherwise, the user
     must specify all required arguments individually.
-    Command-line Arguments:
+    
+    Args:
         input (str, optional): Path to the input JSON/YAML file for kMC simulation. If provided, all other
             parameters are read from this file.
-        --supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
+        supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
-        --fitting_results_file (str): Path to the JSON file containing the fitting results for E_kra.
+        fitting_results_file (str): Path to the JSON file containing the fitting results for E_kra.
             Required if input file is not provided.
-        --fitting_results_site_file (str): Path to the JSON file containing the fitting results for site energy difference.
+        fitting_results_site_file (str): Path to the JSON file containing the fitting results for site energy difference.
             Required if input file is not provided.
-        --cluster_expansion_file (str): Path to the JSON file containing the Local Cluster Expansion (LCE) model.
+        cluster_expansion_file (str): Path to the JSON file containing the Local Cluster Expansion (LCE) model.
             Required if input file is not provided.
-        --cluster_expansion_site_file (str): Path to the JSON file containing the site LCE model for computing site energy differences.
+        cluster_expansion_site_file (str): Path to the JSON file containing the site LCE model for computing site energy differences.
             Required if input file is not provided.
-        --structure_file (str): Path to the CIF file of the template structure (with all sites filled).
+        structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
-        --event_file (str): Path to the JSON file containing the list of events.
+        event_file (str): Path to the JSON file containing the list of events.
             Required if input file is not provided.
-        --attempt_frequency (float, optional): Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
-        --temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
-        --convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell.
+        attempt_frequency (float, optional): Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
+        temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
+        convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell.
             Defaults to False.
-        --immutable_sites (str, optional): List of sites to be treated as immutable and removed from the simulation
+        immutable_sites (str, optional): List of sites to be treated as immutable and removed from the simulation
             (as a JSON string, default: []).
+    
     Returns:
         None
     """

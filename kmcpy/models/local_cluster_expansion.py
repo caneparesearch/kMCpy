@@ -3,6 +3,7 @@
 This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
 from itertools import combinations
+from typing import TYPE_CHECKING
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
@@ -11,7 +12,11 @@ from kmcpy.models.model import BaseModel
 from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import SimulationState
+from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 import numba as nb
+
+if TYPE_CHECKING:
+    from kmcpy.simulator.config import SimulationConfig
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -23,7 +28,6 @@ class LocalClusterExpansion(BaseModel):
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-    from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
     def __init__(self):
         """

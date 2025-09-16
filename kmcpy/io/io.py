@@ -32,68 +32,41 @@ def convert(o):
         return int(o)
     raise TypeError
 
-
-def _load_occ(
-    fname: str,
-    shape: list,
-    select_sites: list
-):
-    """load occupation data
-
-    Args:
-        fname (str): initial occupation (json format) that also includes immutable site (for example, Zr, O in NASICON). E.g.: "./initial_state.json".
-        shape (list): supercell shape. E.g.: [2,1,1].
-        select_sites (list): all the sites included in kinetic monte carlo process, i.e., this is the list include only the indices of Na, Si, P (no Zr and O) in the Na1+xZr2P3-xSixO12. E.g.: [0,1,2,3,4,5,6,7,32,33,34,35,36,37].
-
-    Raises:
-        ValueError:
-
-    Returns:
-        chebyshev occupation: list of 1 and -1 states, the initial occupation data of sites included in KMC, for example, Na, Si, P initial states in NZSP
-    """
-    with open(fname, "r") as f:
-
-        # read the occupation from json
-        occupation_raw_data = np.array(json.load(f)["occupation"])
-
-        # check if the occupation is compatible with the shape.
-        # for example. if there is 20 occupation data and supercell is [3,1,1], it is incompatible because 20/3 is not integer
-        if len(occupation_raw_data) % (shape[0] * shape[1] * shape[2]) != 0:
-            logger.error(
-                f"The length of occupation data {len(occupation_raw_data)} is incompatible with the supercell shape, please check the {fname} "
-            )
-            raise ValueError(
-                f"The length of occupation data {len(occupation_raw_data)} is incompatible with the supercell shape,please check the {fname} "
-            )
-
-        # this is the total sites
-        site_nums = int(len(occupation_raw_data) / (shape[0] * shape[1] * shape[2]))
-
-        # this is the dimension of global occupation array
-        convert_to_dimension = (site_nums, shape[0], shape[1], shape[2])
-
-        occupation = occupation_raw_data.reshape(convert_to_dimension)[
-            select_sites
-        ].flatten(
-            "C"
-        )  # the global occupation array in the format of (site,x,y,z). Now it only contain the selected sites.
-
-        occupation_chebyshev = np.where(
-            occupation == 0, -1, occupation
-        )  # replace 0 with -1 for Chebyshev basis
-
-        logger.debug(f"Selected sites are {select_sites}")
-        logger.debug(
-            f"Converting the occupation raw data to dimension: {convert_to_dimension}"
-        )
-        logger.debug(f"Occupation (chebyshev basis after removing immutable sites): {occupation_chebyshev}")
-
-        return occupation_chebyshev
-
-
 class Results:
     """
-    Class to store and manipulate results from the Tracker.
+    Results class for storing and manipulating simulation results from the Tracker.
+
+    Attributes
+    ----------
+    data : dict
+        Dictionary containing lists for each tracked property:
+        - "time": Simulation time steps.
+        - "D_J": Jump diffusion coefficients.
+        - "D_tracer": Tracer diffusion coefficients.
+        - "conductivity": Ionic conductivities.
+        - "f": Correlation factors.
+        - "H_R": Haven ratios.
+        - "msd": Mean squared displacements.
+
+    Methods
+    -------
+    add(time, D_J, D_tracer, conductivity, f, H_R, msd)
+        Add a new set of results to the data.
+
+    to_dataframe()
+        Convert the stored results to a pandas DataFrame.
+
+    merge(other)
+        Merge results from another Results instance into this one.
+
+    clear()
+        Clear all stored results.
+
+    __getitem__(key)
+        Get the list of values for a given property.
+
+    __setitem__(key, value)
+        Set the list of values for a given property.
     """
     def __init__(self):
         self.data = {

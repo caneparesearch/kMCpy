@@ -1,11 +1,21 @@
 #!pythonw
-"""
-Example program to demonstrate Gooey's presentation of subparsers
-"""
 import os
-import warnings
 import numpy as np
-from gooey import Gooey, GooeyParser
+
+try:
+    from gooey import Gooey, GooeyParser
+    HAS_GOOEY = True
+except ImportError:
+    HAS_GOOEY = False
+    # Create dummy decorators for when gooey is not available
+    def Gooey(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    
+    import argparse
+    GooeyParser = argparse.ArgumentParser
+
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import SimulationConfig
 from kmcpy.event.event_generator import EventGenerator
@@ -14,6 +24,33 @@ import kmcpy._version
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))
 def main():
+    """
+    Entry point for the kmcpy GUI wrapper CLI.
+    
+    This function sets up a Gooey-based command-line interface for various kmcpy tasks,
+    including local cluster expansion generation, event generation, model fitting, and
+    kinetic Monte Carlo (KMC) simulation. It parses user input, processes arguments,
+    and dispatches to the appropriate functionality based on the selected subcommand.
+    
+    Subcommands:
+        - LocalClusterExpansion: Generates files required for local cluster expansion.
+        - GenerateEvents: Generates events and related files for simulations.
+        - fitLCEmodel: Fits the local cluster expansion model using provided data.
+        - KMCSimulation: Runs a kinetic Monte Carlo simulation using specified input files.
+    
+    The function handles argument parsing, input validation, and conversion of GUI-friendly
+    arguments to internal representations. It also manages file paths, working directories,
+    and invokes the relevant kmcpy modules for each subcommand.
+    
+    Raises:
+        SystemExit: If argument parsing fails or required arguments are missing.
+    """
+    if not HAS_GOOEY:
+        raise ImportError(
+            "Gooey is not installed. To use the GUI, install kmcpy with GUI dependencies:\n"
+            "pip install kmcpy[gui]"
+        )
+    
     settings_msg = "kmcpy version " + kmcpy._version.__version__
     parser = GooeyParser(description=settings_msg)
 

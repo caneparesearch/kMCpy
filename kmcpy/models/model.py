@@ -1,3 +1,6 @@
+"""
+Base model classes used across kMCpy.
+"""
 from abc import ABC, abstractmethod
 import json
 import logging
@@ -7,8 +10,14 @@ logging.getLogger('pymatgen').setLevel(logging.WARNING)
 
 class BaseModel(ABC):
     """
-    Base class for models in kmcpy. This class is intended to be inherited by other model classes.
-    It provides a common interface for serialization and deserialization of model objects.
+    Base class for models in kmcpy.
+    
+    This abstract class provides a common interface for model objects,
+    including serialization, deserialization, and computation methods. Subclasses must implement all
+    abstract methods to define specific model behavior.
+    
+    Attributes:
+        name (str, optional): Name of the model instance.
     """
     def __init__(self, *args, **kwargs):
         """
@@ -65,6 +74,7 @@ class BaseModel(ABC):
         """
         raise NotImplementedError("Subclasses must implement this method.")
     
+    @abstractmethod
     def as_dict(self):
         """
         Convert the model object to a dictionary representation.
@@ -72,6 +82,7 @@ class BaseModel(ABC):
         raise NotImplementedError("Subclasses must implement this method.")
 
     @classmethod
+    @abstractmethod
     def from_json(cls, fname):
         """
         Load a model object from a JSON file.
@@ -93,6 +104,24 @@ class BaseModel(ABC):
 
 
 class CompositeModel(BaseModel):
+    """
+    CompositeModel is an abstract base class for combining multiple models into a single composite model.
+    
+    This class provides a framework for managing a collection of models and defines abstract methods 
+    that must be implemented by subclasses to perform computations, probability calculations, and 
+    serialization/deserialization.
+    
+    Args:
+        models (list): A list of model instances to be combined in the composite model.
+        *args: Variable length argument list passed to the BaseModel.
+        **kwargs: Arbitrary keyword arguments passed to the BaseModel.
+    
+    Attributes:
+        models (list): The list of models included in the composite model.
+    
+    Note:
+        Subclasses must implement the abstract methods to provide specific functionality for computation and serialization.
+    """
     def __init__(self, models, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.models = models
@@ -102,7 +131,7 @@ class CompositeModel(BaseModel):
 
     def __repr__(self):
         return f"CompositeModel(models={self.models}, weights={self.weights})"
-    
+   
     @abstractmethod
     def compute(self, *args, **kwargs):
         """

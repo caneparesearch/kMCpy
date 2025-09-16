@@ -2,7 +2,7 @@ API Reference Documentation
 ===========================
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 4
     :caption: Contents:
 
     gui_wrapper.rst

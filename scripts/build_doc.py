@@ -60,7 +60,7 @@ with open(api_doc_path + "api.rst", "w+") as api_file:
 ===========================
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 4
     :caption: Contents:
 
 """

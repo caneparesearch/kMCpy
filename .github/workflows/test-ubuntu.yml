@@ -5,7 +5,7 @@ on:
     workflow_dispatch:
 
 jobs:
-    test:
+    test-dev:
         runs-on: ubuntu-latest
         strategy:
             max-parallel: 5
@@ -26,3 +26,49 @@ jobs:
             
             - name: Run tests
               run: pytest
+
+    test-pip:
+        runs-on: ubuntu-latest
+        strategy:
+            max-parallel: 5
+            matrix:
+                python-version: [3.11, 3.12, 3.13]
+
+        steps:
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install from PyPI
+              run: |
+                  pip install --upgrade pip
+                  pip install kmcpy
+            
+            - name: Test import
+              run: python -c "import kmcpy; print('kmcpy imported successfully')"
+
+    test-conda:
+        runs-on: ubuntu-latest
+        strategy:
+            max-parallel: 5
+            matrix:
+                python-version: [3.11, 3.12, 3.13]
+
+        steps:
+            - name: Set up Miniconda
+              uses: conda-incubator/setup-miniconda@v3
+              with:
+                  auto-update-conda: true
+                  python-version: ${{ matrix.python-version }}
+                  channels: conda-forge,defaults
+
+            - name: Install from PyPI using conda
+              run: |
+                  pip install --upgrade pip
+                  pip install kmcpy
+              shell: bash -el {0}
+            
+            - name: Test import
+              run: python -c "import kmcpy; print('kmcpy imported successfully')"
+              shell: bash -el {0}
