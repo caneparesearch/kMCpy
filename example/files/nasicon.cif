@@ -1,31 +1,8 @@
 
-#(C) 2021 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
-data_15546-ICSD
-_database_code_ICSD 15546
-_audit_creation_date 1981-12-31
-_chemical_name_common 'Sodium zirconium silicate *'
+data_nasicon
 _chemical_formula_structural 'Na4 Zr2 Si3 O12'
 _chemical_formula_sum 'Na4 O12 Si3 Zr2'
 _chemical_name_structure_type Na4Zr2(SiO4)3
-_exptl_crystal_density_diffrn 3.38
-_diffrn_ambient_temperature 573.
-_citation_title 'Crystal structure and ionic conductivity in Na4 Zr2 Si3 O12'
-loop_
-_citation_id
-_citation_journal_full
-_citation_year
-_citation_journal_volume
-_citation_page_first
-_citation_page_last
-_citation_journal_id_ASTM
-primary 'Journal of Solid State Chemistry' 1981 39 219 229 JSSCBI
-loop_
-_citation_author_citation_id
-_citation_author_name
-primary 'Duc Tran Qui'
-primary 'Capponi, J.J.'
-primary 'Joubert, J.C.'
-primary 'Shannon, R.D.'
 _cell_length_a 9.1863(5)
 _cell_length_b 9.1863
 _cell_length_c 22.181(2)
