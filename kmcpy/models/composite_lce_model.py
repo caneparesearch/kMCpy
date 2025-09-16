@@ -105,7 +105,7 @@ class CompositeLCEModel(CompositeModel):
         - Determining the direction of the event from the occupation vector in the SimulationState.
         - Calculating the effective barrier as: e_barrier = e_kra + direction * e_site / 2
         - Using the Arrhenius equation to compute the probability:
-          probability = abs(direction) * v * exp(-e_barrier / (k * T))
+          probability = abs(direction) * v * np.exp(-e_barrier / (k * temperature))
 
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.
