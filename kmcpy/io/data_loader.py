@@ -81,7 +81,6 @@ class DataLoader(ABC):
 
 class NEBDataLoader(DataLoader):
     """
-    NEBDataLoader(DataLoader)
     A data loader class for managing and validating databases of structures from NEB (Nudged Elastic Band) calculations,
     intended for Local Cluster Expansion model fitting. This class provides methods to add NEBEntry objects with
     consistency checks, compute occupation and correlation matrices, retrieve property values, and serialize the dataset
