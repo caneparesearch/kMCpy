@@ -9,7 +9,6 @@ API Reference Documentation
     run_kmc.rst
     event.rst
     event_generator.rst
-    modern_event_generator.rst
     basis.rst
     comparator.rst
     lattice_structure.rst

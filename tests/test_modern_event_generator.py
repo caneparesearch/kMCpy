@@ -134,7 +134,7 @@ class TestEventGeneratorModernMethod:
         
         # Test the method (may not complete successfully due to dependencies)
         try:
-            results = generator.generate_events_modern(
+            results = generator.generate_events(
                 structure_file=structure_file,
                 mobile_species=["Na"],
                 local_env_cutoff=3.0,

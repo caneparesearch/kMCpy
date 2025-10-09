@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import os
 
-from kmcpy.models.model import CompositeModel
+from kmcpy.models.base import CompositeModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
 from kmcpy.simulator.condition import SimulationCondition
