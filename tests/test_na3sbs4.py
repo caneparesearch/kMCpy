@@ -19,7 +19,7 @@ class TestNa3SbS4(unittest.TestCase):
         local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
         from kmcpy.event import EventGenerator
 
-        reference_local_env_dict = EventGenerator().generate_events(
+        reference_local_env_dict = EventGenerator().generate_events_legacy(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
