@@ -89,5 +89,5 @@ traitlets==5.14.3
 typing-extensions==4.14.0
 tzdata==2025.2
 uncertainties==3.2.3
-urllib3==2.5.0
+urllib3==2.6.3
 webencodings==0.5.1
