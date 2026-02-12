@@ -33,11 +33,11 @@ classifiers = [ # Standard PyPI classifiers, helps users find your package
 # Core runtime dependencies
 dependencies = [
     "glob2>=0.7",
-    "joblib>=1.5.1",
-    "numba>=0.61.2",
-    "pymatgen>=2025.5.2",
-    "pyyaml>=6.0.2",
-    "scikit-learn>=1.6.1",
+    "joblib>=1.5.3",
+    "numba>=0.63.1",
+    "pymatgen>=2025.10.7",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.8.0",
 ]
 
 [project.urls]
@@ -49,8 +49,8 @@ Documentation = "https://kmcpy.readthedocs.io/"
 # Optional dependencies (extras)
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0", 
-    "pytest-cov", 
+    "pytest>=9.0", 
+    "pytest-cov>=7.0", 
 ]
 doc = [
     "sphinx>=7.0",
