@@ -87,123 +87,92 @@ class LatticeStructure(ABC):
         Returns:
             Occupation: The occupation object for the structure with proper basis.
         """
-        # # 1. Find the supercell matrix
+        # 1. Determine supercell matrix if not provided
         if sc_matrix is None:
-            # Try to detect supercell relationship by comparing lattice vectors
-            sc_matrix = self._detect_supercell_matrix(structure, tol)
-            if sc_matrix is None:
-                # Fall back to StructureMatcher
-                sc_matcher = StructureMatcher(ltol=tol, stol=tol, angle_tol=angle_tol, 
-                                               primitive_cell=False, allow_subset=True,
-                                               comparator=SupercellComparator(), 
-                                               attempt_supercell=True)
-                match = sc_matcher.fit(self.template_structure, structure)
+            # Attempt to automatically detect supercell matrix
+            # Compare lattice vectors to determine the supercell transformation
+            template_lattice = self.template_structure.lattice.matrix
+            structure_lattice = structure.lattice.matrix
 
-                if match:
-                    logger.debug("Structures match geometrically (possibly supercell).")
-                    try:
-                        mapping = sc_matcher.get_mapping(self.template_structure, structure)
-                        sc_matrix = sc_matcher.get_supercell_matrix(self.template_structure, structure)
-                        # mapping[i] = index of site in input corresponding to template i
-                    except ValueError:
-                        # Fallback: try the reverse mapping
-                        logger.debug("Trying reverse mapping...")
-                        try:
-                            mapping = sc_matcher.get_mapping(structure, self.template_structure)
-                            sc_matrix = sc_matcher.get_supercell_matrix(structure, self.template_structure)
-                            if sc_matrix is not None:
-                                sc_matrix = np.linalg.inv(sc_matrix)  # Invert for correct direction
-                        except ValueError:
-                            # Last fallback: use identity matrix
-                            logger.warning("Could not determine supercell matrix, using identity")
-                            sc_matrix = np.eye(3)
-                            mapping = None
+            # Try to solve: structure_lattice = sc_matrix @ template_lattice
+            try:
+                sc_matrix_candidate = structure_lattice @ np.linalg.inv(template_lattice)
+
+                # Round to nearest integers (supercell matrix should be integer)
+                sc_matrix = np.round(sc_matrix_candidate).astype(int)
+
+                # Validate that this is a good supercell matrix
+                # Use stricter tolerance for automatic detection
+                reconstructed = sc_matrix @ template_lattice
+                strict_tol = min(tol, 0.01)  # Use at most 1% tolerance for supercell detection
+                if not np.allclose(reconstructed, structure_lattice, rtol=strict_tol, atol=strict_tol):
+                    logger.debug("Could not find integer supercell matrix, structures may be incompatible")
+                    raise ValueError("No mapping found: cannot find valid supercell transformation")
                 else:
-                    # Check for vacancy case: same lattice parameters but different number of sites
-                    if (np.allclose(structure.lattice.matrix, self.template_structure.lattice.matrix, atol=tol) and
-                        len(structure) < len(self.template_structure)):
-                        logger.debug("Same lattice with fewer sites, likely vacancy case, using identity matrix")
-                        sc_matrix = np.eye(3)
-                    elif (np.allclose(structure.lattice.abc, self.template_structure.lattice.abc, atol=tol) and
-                          np.allclose(structure.lattice.angles, self.template_structure.lattice.angles, atol=angle_tol) and
-                          len(structure) < len(self.template_structure)):
-                        logger.debug("Similar lattice with fewer sites, likely vacancy case, using identity matrix")
-                        sc_matrix = np.eye(3)
-                    else:
-                        raise ValueError("Input structure does not match the template structure or its supercell.")
-        logger.debug(f"Supercell matrix:\n {sc_matrix}")
-        # 2. Create the ideal supercell from the template
+                    logger.debug(f"Detected supercell matrix:\n{sc_matrix}")
+            except np.linalg.LinAlgError:
+                logger.debug("Singular matrix encountered")
+                raise ValueError("No mapping found: lattice matrices are incompatible")
+
+        logger.debug(f"Using supercell matrix:\n {sc_matrix}")
+        
+        # 2. Create the supercell template
         supercell_template = self.template_structure.copy()
         supercell_template.make_supercell(sc_matrix)
-        logger.debug(f"Supercell template structure:\n {supercell_template}")
-
-        # 3. Find the mapping from the supercell template to the input structure
-        site_matcher = StructureMatcher(ltol=tol, stol=tol, angle_tol=angle_tol, 
-                                        primitive_cell=False, allow_subset=True,
-                                        scale=False)
+        logger.debug(f"Supercell template has {len(supercell_template)} sites")
+        logger.debug(f"Input structure has {len(structure)} sites")
         
-        """
-        mapping is a numpy array such that self.template_structure.sites[mapping] is within matching
-        tolerance of structure.sites or None if no such mapping is possible
-        """
-        # Try to get mapping - input structure might be subset of supercell (has vacancies)
-        # or supercell might be subset of input structure
-        mapping = None
-        try:
-            # First try: supercell template is superset, input structure is subset (has vacancies)
-            mapping = site_matcher.get_mapping(superset=supercell_template, subset=structure) 
-            logger.debug(f"StructureMatcher mapping: template_structure[{mapping}] matches structure[{np.arange(len(structure))}]")
-            
-            # Validate the mapping - sometimes StructureMatcher gives suboptimal results
-            manual_mapping = self._find_site_mapping_manual(supercell_template, structure, tol)
-            logger.debug(f"Manual mapping: {manual_mapping}")
-            
-            # Check if manual mapping is better (has more exact matches)
-            if manual_mapping is not None:
-                manual_distances = []
-                struct_distances = []
-                
-                for i, (manual_idx, struct_idx) in enumerate(zip(manual_mapping, mapping)):
-                    if manual_idx is not None:
-                        manual_dist = np.linalg.norm(structure[i].frac_coords - supercell_template[manual_idx].frac_coords)
-                        manual_distances.append(manual_dist)
-                    if struct_idx is not None:
-                        struct_dist = np.linalg.norm(structure[i].frac_coords - supercell_template[struct_idx].frac_coords)
-                        struct_distances.append(struct_dist)
-                
-                # Use manual mapping if it has better (smaller) average distance
-                if manual_distances and struct_distances:
-                    manual_avg = np.mean(manual_distances)
-                    struct_avg = np.mean(struct_distances) 
-                    logger.debug(f"Manual mapping avg distance: {manual_avg}, StructureMatcher avg distance: {struct_avg}")
-                    
-                    if manual_avg < struct_avg:
-                        logger.debug("Using manual mapping (better distances)")
-                        mapping = manual_mapping
-            
-            # 4. Create the occupation vector based on the mapping
-            # Initialize occupation vector with all sites vacant
-            occ_data = np.full(len(supercell_template), self.basis.vacant_value, 
-                              dtype=type(self.basis.vacant_value))
-            # For each site in the input structure, set the occupation at the mapped index
-            occ_data[mapping] = self.basis.occupied_value 
-            
-        except ValueError:
-            # Second try: input structure is superset, supercell template is subset
-            try:
-                reverse_mapping = site_matcher.get_mapping(superset=structure, subset=supercell_template)
-                logger.debug(f"structure[{reverse_mapping}] matches template_structure[{np.arange(len(supercell_template))}]")
-                
-                # For this case, we create occ based on supercell template size 
-                # and mark occupied sites based on reverse mapping
-                occ_data = np.full(len(supercell_template), self.basis.occupied_value, 
-                                  dtype=type(self.basis.occupied_value))
-                
-            except ValueError as e:
-                logger.error(f"Could not establish mapping in either direction: {e}")
-                raise ValueError("Could not establish site mapping between the structure and the template supercell.")
+        # Initialize all sites as mismatch (vacant - no atom present)
+        occ_data = np.full(len(supercell_template), self.basis.mismatch_value,
+                          dtype=type(self.basis.mismatch_value))
 
-        # Return Occupation object instead of raw numpy array
+        # Handle empty structure case (all sites are vacant)
+        if len(structure) == 0:
+            logger.debug("Empty structure - all sites are vacant")
+            return Occupation(occ_data, basis=self.basis, validate=False)
+        
+        # 3. Set up StructureMatcher with OrderDisorderElementComparator for vacancy handling
+        from pymatgen.analysis.structure_matcher import OrderDisorderElementComparator
+        matcher = StructureMatcher(ltol=tol, stol=tol, angle_tol=angle_tol,
+                                 primitive_cell=False, allow_subset=True,
+                                 scale=True,
+                                 comparator=OrderDisorderElementComparator())
+        
+        # 4. Validate structure compatibility
+        # Check lattice compatibility
+        if not np.allclose(supercell_template.lattice.matrix, structure.lattice.matrix,
+                          rtol=tol, atol=tol):
+            logger.debug("Lattice mismatch detected")
+            raise ValueError("No mapping found: lattice parameters don't match within tolerance")
+
+        # 4.5. Use distance-based mapping to find which template sites correspond to structure sites
+        # For each structure site, find the nearest template site
+        from scipy.spatial.distance import cdist
+        template_coords = supercell_template.frac_coords
+        structure_coords = structure.frac_coords
+
+        # distances[i, j] = distance from template site i to structure site j
+        distances = cdist(template_coords, structure_coords, metric='euclidean')
+
+        # For each structure site j, find the closest template site
+        # This gives us which template sites are occupied
+        template_site_indices = np.argmin(distances, axis=0)
+
+        # Validate that all mappings are within tolerance
+        min_distances = np.min(distances, axis=0)
+        if np.any(min_distances > tol):
+            logger.debug(f"Some sites exceed tolerance: max distance = {np.max(min_distances)}")
+            raise ValueError(f"No mapping found: some atoms are too far from template sites (max distance: {np.max(min_distances):.4f}, tolerance: {tol})")
+
+        logger.debug(f"Structure sites map to template sites: {template_site_indices}")
+
+        # 5. Create occupation vector
+        # Sites that have a structure atom (are in template_site_indices) should be match (occupied)
+        occ_data[template_site_indices] = self.basis.match_value
+        
+        logger.debug(f"Occupation vector: {occ_data}")
+        
+        # Return Occupation object
         return Occupation(occ_data, basis=self.basis, validate=False)
         
     def get_structure_from_occ(self, occ: Occupation, sc_matrix=np.eye(3)) -> Structure:
@@ -214,98 +183,63 @@ class LatticeStructure(ABC):
             sc_matrix: Supercell matrix for creating the supercell
             
         Returns:
-            Structure: pymatgen Structure with species assigned based on occupation
+            Structure: pymatgen Structure with species assigned based on match/mismatch
         '''
-        supercell_template = self.template_structure.copy()
-        supercell_template.make_supercell(sc_matrix)
         
-        if len(occ) != len(supercell_template):
-            raise ValueError(f"Occupation array length {len(occ)} does not match template structure length {len(supercell_template)}!")
+        supercell_lattice_structure = self.copy()
+        supercell_lattice_structure.make_supercell(sc_matrix)
+        
+        if len(occ) != len(supercell_lattice_structure.template_structure):
+            raise ValueError(f"Occupation array length {len(occ)} does not match template structure length {len(supercell_lattice_structure.template_structure)}!")
         
         # Create a new structure based on the template
-        new_structure = supercell_template.copy()
+        new_lattice_structure = supercell_lattice_structure.copy()
         
         # Iterate through the sites and set species based on occupation
-        for i, site in enumerate(new_structure):
+        for i, site in enumerate(new_lattice_structure.template_structure):
             occ_value = occ[i]  # Get occupation value at site i
-            
-            if self.basis.is_occupied(occ_value):
-                # If occupied, set to the first allowed species for this site
-                site.species = self.allowed_species[i][0]
-            elif self.basis.is_vacant(occ_value):
-                # If vacant, set to the second allowed species (vacancy)
+            if occ_value == self.basis.mismatch_value:
+                # If mismatch, set to the second allowed species for this site
                 site.species = self.allowed_species[i][1]
-                if isinstance(self.allowed_species[i][1], Vacancy):
-                    # If it's a vacancy, we should remove the site
-                    # Note: This needs to be done carefully to avoid index issues
-                    pass  # Handle vacancy removal in a separate step
+            elif occ_value == self.basis.match_value:
+                # If match, set to the first allowed species (template)
+                site.species = self.allowed_species[i][0]
+                # if isinstance(self.allowed_species[i][0], Vacancy):
+                #     # If it's a vacancy, we should remove the site
+                #     # Note: This needs to be done carefully to avoid index issues
+                #     pass  # Handle vacancy removal in a separate step
         
         # Remove vacancy sites in reverse order to avoid index shifting issues
         vacancy_indices = []
-        for i, site in enumerate(new_structure):
+        for i, site in enumerate(new_lattice_structure.template_structure):
             if isinstance(site.species, Vacancy):
                 vacancy_indices.append(i)
         
         # Remove vacancy sites from the end to avoid index issues
         for i in reversed(vacancy_indices):
-            new_structure.remove_sites([i])
-            
-        return new_structure
+            new_lattice_structure.template_structure.remove_sites([i])
 
-    def _find_site_mapping_manual(self, supercell_template, structure, tol=0.1):
-        """
-        Manually find the mapping from supercell template sites to input structure sites.
-        This is a fallback when StructureMatcher gives incorrect results.
-        
-        Returns:
-            np.array: mapping such that supercell_template.sites[mapping[i]] matches structure.sites[i]
-                     or None if no match within tolerance
-        """
-        mapping = []
-        
-        for input_site in structure:
-            best_match = None
-            best_distance = float('inf')
-            
-            for j, template_site in enumerate(supercell_template):
-                # Calculate distance in fractional coordinates
-                distance = np.linalg.norm(input_site.frac_coords - template_site.frac_coords)
-                
-                if distance < best_distance and distance <= tol:
-                    best_distance = distance
-                    best_match = j
-                    
-            mapping.append(best_match)
-            
-        return np.array(mapping)
+        return new_lattice_structure.template_structure
 
-    def _detect_supercell_matrix(self, structure, tol=0.1):
-        """
-        Detect supercell matrix by comparing lattice vectors.
-        This is a simple approach that works for basic supercell relationships.
-        """
-        template_matrix = self.template_structure.lattice.matrix
-        structure_matrix = structure.lattice.matrix
+    def copy(self):
+        '''Create a copy of the LatticeStructure'''
+        return LatticeStructure(self.template_structure.copy(),
+                                self.specie_site_mapping.copy(),
+                                self.basis_type)
+    
+    def make_supercell(self, sc_matrix: np.ndarray):
+        '''Create a supercell of the template structure'''
+        self.template_structure.make_supercell(sc_matrix)
+        # Update allowed_species accordingly
+        original_allowed_species = self.allowed_species.copy()
+        self.allowed_species = []
+        for i in range(sc_matrix[0,0]):
+            for j in range(sc_matrix[1,1]):
+                for k in range(sc_matrix[2,2]):
+                    self.allowed_species.extend(original_allowed_species)
+        if len(self.allowed_species) != len(self.template_structure):
+            raise ValueError(f"After supercell, species length {len(self.allowed_species)} does not match template structure length {len(self.template_structure)}!")
         
-        # Try to find integer matrix M such that structure_matrix = M * template_matrix
-        try:
-            # Calculate the transformation matrix
-            inv_template = np.linalg.inv(template_matrix)
-            transformation = structure_matrix @ inv_template
-            
-            # Check if transformation is close to integer matrix
-            rounded_transform = np.round(transformation)
-            if np.allclose(transformation, rounded_transform, atol=tol):
-                # Check if this gives a reasonable supercell
-                det = np.linalg.det(rounded_transform)
-                if det > 0 and det == int(det):
-                    logger.debug(f"Detected supercell matrix:\n{rounded_transform}")
-                    return rounded_transform
-        except np.linalg.LinAlgError:
-            logger.debug("Could not invert template lattice matrix")
-            
-        return None
-
     def __str__(self):
         return f"""LatticeStructure with {len(self.template_structure)} sites
         Template structure:\n {self.template_structure}

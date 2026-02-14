@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional
 import json
 import numpy as np
 
-from ..event.event import Event
+from ..event.base import Event
 
 
 class SimulationState:

@@ -8,7 +8,7 @@ from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import logging
-from kmcpy.models.model import BaseModel
+from kmcpy.models.base import BaseModel
 from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import SimulationState

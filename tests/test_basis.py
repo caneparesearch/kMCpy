@@ -86,11 +86,11 @@ class TestChebyshevBasis:
         """Test conversion to/from occupation basis."""
         basis = ChebyshevBasis()
         # To occupation
-        assert basis.to_occupation(-1) == 0  # vacant -> 0
-        assert basis.to_occupation(1) == 1   # occupied -> 1
+        assert basis.to_occupation(-1) == 0  # -1 (vacant) -> 0 (vacant)
+        assert basis.to_occupation(1) == 1   # 1 (occupied) -> 1 (occupied)
         # From occupation
-        assert basis.from_occupation(0) == -1  # 0 -> vacant
-        assert basis.from_occupation(1) == 1   # 1 -> occupied
+        assert basis.from_occupation(0) == -1  # 0 (vacant) -> -1 (vacant)
+        assert basis.from_occupation(1) == 1   # 1 (occupied) -> 1 (occupied)
 
 
 class TestOccupation:

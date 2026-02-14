@@ -29,14 +29,14 @@ class BasisFunction(ABC):
     
     @property
     @abstractmethod
-    def vacant_value(self) -> Union[int, float]:
-        """Value representing a vacant site."""
+    def match_value(self) -> Union[int, float]:
+        """Value representing specie matches template structure."""
         pass
     
     @property
     @abstractmethod  
-    def occupied_value(self) -> Union[int, float]:
-        """Value representing an occupied site."""
+    def mismatch_value(self) -> Union[int, float]:
+        """Value representing specie doesn't match template structure."""
         pass
     
     @property
@@ -51,35 +51,19 @@ class BasisFunction(ABC):
         """List defining the basis function values."""
         pass
     
-    @abstractmethod
-    def is_occupied(self, value: Union[int, float]) -> bool:
-        """Check if a value represents an occupied site."""
-        pass
-    
-    @abstractmethod
-    def is_vacant(self, value: Union[int, float]) -> bool:
-        """Check if a value represents a vacant site."""
-        pass
-    
-    @abstractmethod
-    def flip_value(self, value: Union[int, float]) -> Union[int, float]:
-        """Flip between occupied and vacant."""
-        pass
+    def flip(self, value: Union[int, float]) -> Union[int, float]:
+        """Flip between match and mismatch values."""
+        return self.mismatch_value if value == self.match_value else self.match_value
     
     def convert_to(self, value: Union[int, float], target_basis: 'BasisFunction') -> Union[int, float]:
-        """
-        Convert a value to another basis function.
-        
-        Default implementation assumes binary occupation states.
-        Override for more complex conversions.
-        """
-        if self.is_occupied(value):
-            return target_basis.occupied_value
+        """Convert a value to another basis function."""
+        if value == self.mismatch_value:
+            return target_basis.mismatch_value
         else:
-            return target_basis.vacant_value
+            return target_basis.match_value
     
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(vacant={self.vacant_value}, occupied={self.occupied_value})"
+        return f"{self.__class__.__name__}(match={self.match_value}, mismatch={self.mismatch_value})"
 
 
 def register_basis(name: str):
@@ -100,47 +84,66 @@ class OccupationBasis(BasisFunction):
     """
     Occupation basis function that maps between binary occupation states.
     Uses [0, 1] representation for site occupancy.
-    
+
     In occupation basis:
-    - 0 = vacant site (same as template)
-    - 1 = occupied site (different from template)
+    - 0 = vacant (no atom present)
+    - 1 = occupied (atom present)
+
+    This is the most intuitive binary representation.
     """
-    
+
+    @property
+    def match_value(self) -> int:
+        """Value when site matches template (has atom = occupied)."""
+        return 1
+
+    @property
+    def mismatch_value(self) -> int:
+        """Value when site doesn't match template (no atom = vacant)."""
+        return 0
+
+    # Physical interpretation properties
     @property
     def vacant_value(self) -> int:
+        """Value representing vacant site (no atom)."""
         return 0
-    
+
     @property
     def occupied_value(self) -> int:
+        """Value representing occupied site (atom present)."""
         return 1
-    
+
     @property
     def valid_values(self) -> set:
         return {0, 1}
-    
+
     @property
     def basis_function(self) -> List[int]:
         return [0, 1]
-    
-    def is_occupied(self, value: int) -> bool:
-        """Check if a value represents an occupied site."""
-        return value == self.occupied_value
-    
-    def is_vacant(self, value: int) -> bool:
-        """Check if a value represents a vacant site."""
-        return value == self.vacant_value
-    
-    def flip_value(self, value: int) -> int:
-        """Flip between occupied and vacant."""
+
+    def flip(self, value: int) -> int:
+        """Flip between match and mismatch."""
         return 1 - value
-    
+
+    def flip_value(self, value: int) -> int:
+        """Alias for flip for backward compatibility."""
+        return self.flip(value)
+
+    def is_occupied(self, value: int) -> bool:
+        """Check if value represents occupied state."""
+        return value == self.occupied_value
+
+    def is_vacant(self, value: int) -> bool:
+        """Check if value represents vacant state."""
+        return value == self.vacant_value
+
     def to_chebyshev(self, value: int) -> int:
-        """Convert occupation value to Chebyshev representation."""
-        return -1 if value == 0 else 1
-    
+        """Convert occupation value to Chebyshev basis."""
+        return -1 if value == self.vacant_value else 1
+
     def from_chebyshev(self, value: int) -> int:
-        """Convert Chebyshev value to occupation representation."""
-        return 0 if value == -1 else 1
+        """Convert Chebyshev value to occupation basis."""
+        return self.vacant_value if value == -1 else self.occupied_value
 
 
 @register_basis('chebyshev')
@@ -148,47 +151,78 @@ class ChebyshevBasis(BasisFunction):
     """
     Chebyshev basis function that maps between [-1, +1] representation.
     Often used in cluster expansion for better numerical properties.
-    
+
     In Chebyshev basis:
-    - -1 = vacant site (same as template)
-    - +1 = occupied site (different from template)
+    - -1 = vacant (no atom present)
+    - +1 = occupied (atom present)
+
+    This is the standard convention in cluster expansion where:
+    - The reference state (vacant) is mapped to -1
+    - The occupied state (diffusing atom) is mapped to +1
     """
-    
+
     @property
-    def vacant_value(self) -> int:
+    def match_value(self) -> int:
+        """Value when site matches template (has atom = occupied)."""
+        return 1
+
+    @property
+    def mismatch_value(self) -> int:
+        """Value when site doesn't match template (no atom = vacant)."""
         return -1
-    
+
+    # Physical interpretation properties
     @property
     def occupied_value(self) -> int:
+        """Value representing occupied site (atom present)."""
         return 1
-    
+
+    @property
+    def vacant_value(self) -> int:
+        """Value representing vacant site (no atom)."""
+        return -1
+
     @property
     def valid_values(self) -> set:
         return {-1, 1}
-    
+
     @property
     def basis_function(self) -> List[int]:
         return [-1, 1]
-    
-    def is_occupied(self, value: int) -> bool:
-        """Check if a value represents an occupied site."""
-        return value == self.occupied_value
-    
-    def is_vacant(self, value: int) -> bool:
-        """Check if a value represents a vacant site."""
-        return value == self.vacant_value
-    
-    def flip_value(self, value: int) -> int:
-        """Flip between occupied and vacant."""
+
+    def flip(self, value: int) -> int:
+        """Flip between match and mismatch."""
         return -value
-    
+
+    def flip_value(self, value: int) -> int:
+        """Alias for flip for backward compatibility."""
+        return self.flip(value)
+
+    def is_occupied(self, value: int) -> bool:
+        """Check if value represents occupied state."""
+        return value == self.occupied_value
+
+    def is_vacant(self, value: int) -> bool:
+        """Check if value represents vacant state."""
+        return value == self.vacant_value
+
     def to_occupation(self, value: int) -> int:
-        """Convert Chebyshev value to occupation representation."""
-        return 0 if value == -1 else 1
-    
+        """
+        Convert Chebyshev value to occupation basis.
+
+        Chebyshev: -1 (vacant), +1 (occupied)
+        Occupation: 0 (vacant), 1 (occupied)
+        """
+        return 1 if value == self.occupied_value else 0
+
     def from_occupation(self, value: int) -> int:
-        """Convert occupation value to Chebyshev representation."""
-        return -1 if value == 0 else 1
+        """
+        Convert occupation value to Chebyshev basis.
+
+        Occupation: 0 (vacant), 1 (occupied)
+        Chebyshev: -1 (vacant), +1 (occupied)
+        """
+        return self.occupied_value if value == 1 else self.vacant_value
 
 
 def get_basis(name: str) -> BasisFunction:
@@ -220,7 +254,7 @@ class Occupation:
     Features:
     - Automatic validation of occupation values using basis classes
     - Basis conversion between any registered basis types
-    - Common operations like counting occupied/vacant sites  
+    - Common operations like counting match/mismatch sites  
     - Immutable and mutable variants
     - Efficient numpy operations under the hood
     - Extensible via basis function registry
@@ -248,7 +282,7 @@ class Occupation:
         else:
             raise ValueError(f"Invalid basis type. Must be string or BasisFunction instance")
         
-        self._data = np.array(data, dtype=type(self._basis_obj.vacant_value))
+        self._data = np.array(data, dtype=type(self._basis_obj.match_value))
         
         if validate:
             self._validate()
@@ -366,21 +400,38 @@ class Occupation:
         return f"{self._basis_name.title()} occupation: {self.values}"
     
     # Convenience methods for common operations using basis objects
+    def count_mismatch(self) -> int:
+        """Count sites with mismatch (specie doesn't match template)."""
+        return int(np.sum(self._data == self._basis_obj.mismatch_value))
+
+    def count_match(self) -> int:
+        """Count sites with match (specie matches template)."""
+        return int(np.sum(self._data == self._basis_obj.match_value))
+
+    # Physical occupation counts (use basis object's definitions)
     def count_occupied(self) -> int:
-        """Count occupied sites using basis object."""
-        return int(np.sum([self._basis_obj.is_occupied(val) for val in self._data]))
-    
+        """Count sites with occupied state."""
+        return int(np.sum(self._data == self._basis_obj.occupied_value))
+
     def count_vacant(self) -> int:
-        """Count vacant sites using basis object."""
-        return int(np.sum([self._basis_obj.is_vacant(val) for val in self._data]))
-    
+        """Count sites with vacant state."""
+        return int(np.sum(self._data == self._basis_obj.vacant_value))
+
+    def get_mismatch_indices(self) -> List[int]:
+        """Get indices of sites with mismatch (specie doesn't match template)."""
+        return np.where(self._data == self._basis_obj.mismatch_value)[0].tolist()
+
+    def get_match_indices(self) -> List[int]:
+        """Get indices of sites with match (specie matches template)."""
+        return np.where(self._data == self._basis_obj.match_value)[0].tolist()
+
     def get_occupied_indices(self) -> List[int]:
         """Get indices of occupied sites."""
-        return [i for i, val in enumerate(self._data) if self._basis_obj.is_occupied(val)]
-    
+        return np.where(self._data == self._basis_obj.occupied_value)[0].tolist()
+
     def get_vacant_indices(self) -> List[int]:
         """Get indices of vacant sites."""
-        return [i for i, val in enumerate(self._data) if self._basis_obj.is_vacant(val)]
+        return np.where(self._data == self._basis_obj.vacant_value)[0].tolist()
     
     def flip(self, indices: Union[int, List[int]]) -> 'Occupation':
         """
@@ -397,7 +448,11 @@ class Occupation:
             indices = [indices]
         
         for idx in indices:
-            new_data[idx] = self._basis_obj.flip_value(new_data[idx])
+            # Use flip_value if available (for custom flip logic), otherwise use flip
+            if hasattr(self._basis_obj, 'flip_value'):
+                new_data[idx] = self._basis_obj.flip_value(new_data[idx])
+            else:
+                new_data[idx] = self._basis_obj.flip(new_data[idx])
                 
         return Occupation(new_data, basis=self._basis_obj, validate=False)
     
@@ -412,7 +467,11 @@ class Occupation:
             indices = [indices]
         
         for idx in indices:
-            self._data[idx] = self._basis_obj.flip_value(self._data[idx])
+            # Use flip_value if available (for custom flip logic), otherwise use flip
+            if hasattr(self._basis_obj, 'flip_value'):
+                self._data[idx] = self._basis_obj.flip_value(self._data[idx])
+            else:
+                self._data[idx] = self._basis_obj.flip(self._data[idx])
     
     def to_basis(self, target_basis: Union[str, BasisFunction]) -> 'Occupation':
         """
@@ -444,12 +503,12 @@ class Occupation:
     @classmethod
     def zeros(cls, n_sites: int, basis: Union[str, BasisFunction] = 'chebyshev') -> 'Occupation':
         """
-        Create Occupation with all sites vacant using appropriate basis.
-        
+        Create Occupation with all sites vacant (no atoms).
+
         Args:
             n_sites: Number of sites
             basis: Basis function or name
-            
+
         Returns:
             Occupation object with all sites vacant
         """
@@ -457,19 +516,20 @@ class Occupation:
             basis_obj = get_basis(basis)
         else:
             basis_obj = basis
-            
+
+        # Use vacant_value from basis object
         data = np.full(n_sites, basis_obj.vacant_value, dtype=type(basis_obj.vacant_value))
         return cls(data, basis=basis_obj, validate=False)
-    
-    @classmethod  
+
+    @classmethod
     def ones(cls, n_sites: int, basis: Union[str, BasisFunction] = 'chebyshev') -> 'Occupation':
         """
-        Create Occupation with all sites occupied using appropriate basis.
-        
+        Create Occupation with all sites occupied (atoms present).
+
         Args:
             n_sites: Number of sites
             basis: Basis function or name
-            
+
         Returns:
             Occupation object with all sites occupied
         """
@@ -477,35 +537,37 @@ class Occupation:
             basis_obj = get_basis(basis)
         else:
             basis_obj = basis
-            
+
+        # Use occupied_value from basis object
         data = np.full(n_sites, basis_obj.occupied_value, dtype=type(basis_obj.occupied_value))
         return cls(data, basis=basis_obj, validate=False)
     
     @classmethod
-    def random(cls, n_sites: int, basis: Union[str, BasisFunction] = 'chebyshev', 
+    def random(cls, n_sites: int, basis: Union[str, BasisFunction] = 'chebyshev',
                fill_fraction: float = 0.5, seed: int = None) -> 'Occupation':
         """
         Create random Occupation using appropriate basis values.
-        
+
         Args:
             n_sites: Number of sites
             basis: Basis function or name
-            fill_fraction: Fraction of sites to occupy (0.0 to 1.0)
+            fill_fraction: Fraction of sites to be occupied (atoms present) (0.0 to 1.0)
             seed: Random seed for reproducibility
-            
+
         Returns:
             Random Occupation object
         """
         if seed is not None:
             np.random.seed(seed)
-        
-        # Generate random boolean array
+
+        # Generate random boolean array for occupied sites
         occupied = np.random.random(n_sites) < fill_fraction
-        
+
         if isinstance(basis, str):
             basis_obj = get_basis(basis)
         else:
             basis_obj = basis
-            
+
+        # Use occupied_value and vacant_value from basis object
         data = np.where(occupied, basis_obj.occupied_value, basis_obj.vacant_value)
         return cls(data, basis=basis_obj, validate=False)

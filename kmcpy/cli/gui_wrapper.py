@@ -18,7 +18,7 @@ except ImportError:
 
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import SimulationConfig
-from kmcpy.event.event_generator import EventGenerator
+from kmcpy.event.generators import EventGenerator
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 import kmcpy._version
 

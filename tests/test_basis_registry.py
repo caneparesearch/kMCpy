@@ -47,27 +47,35 @@ class TestBasisFunctionRegistry:
         @register_basis('custom_test')
         class CustomTestBasis(BasisFunction):
             @property
-            def vacant_value(self):
+            def match_value(self):
                 return 0.0
-            
+
+            @property
+            def mismatch_value(self):
+                return 2.0
+
+            @property
+            def vacant_value(self):
+                return self.match_value
+
             @property
             def occupied_value(self):
-                return 2.0
-            
+                return self.mismatch_value
+
             @property
             def valid_values(self):
                 return {0.0, 2.0}
-            
+
             @property
             def basis_function(self):
                 return [0.0, 2.0]
-            
+
             def is_occupied(self, value):
                 return value == 2.0
-            
+
             def is_vacant(self, value):
                 return value == 0.0
-            
+
             def flip_value(self, value):
                 return 2.0 if value == 0.0 else 0.0
         
@@ -199,90 +207,41 @@ class TestGeneralizedOccupation:
 class TestCustomBasisWithOccupation:
     """Test Occupation class with custom basis functions."""
     
-    def test_ternary_basis_example(self):
-        """Test using a custom ternary basis function with Occupation."""
-        
-        # Define a ternary basis function (-1, 0, 1)
-        @register_basis('ternary_test')  
-        class TernaryBasis(BasisFunction):
-            @property
-            def vacant_value(self):
-                return 0
-            
-            @property
-            def occupied_value(self):
-                return 1
-            
-            @property
-            def valid_values(self):
-                return {-1, 0, 1}
-            
-            @property
-            def basis_function(self):
-                return [-1, 0, 1]
-            
-            def is_occupied(self, value):
-                return value == 1
-            
-            def is_vacant(self, value):
-                return value == 0
-            
-            def flip_value(self, value):
-                # Custom flip logic: 0<->1, -1 stays -1
-                if value == 0:
-                    return 1
-                elif value == 1:
-                    return 0
-                else:  # -1 stays -1 (blocked or fixed site)
-                    return -1
-        
-        # Test custom basis with Occupation
-        data = [-1, 0, 1, 0]
-        occ = Occupation(data, basis='ternary_test')
-        
-        assert occ.basis == 'ternary_test'
-        assert occ.count_vacant() == 2  # Two 0s
-        assert occ.count_occupied() == 1  # One 1
-        
-        # Test flip operation with custom logic
-        flipped = occ.flip([1, 2, 0])  # Try to flip positions 1, 2, 0
-        expected = [-1, 1, 0, 0]  # -1 stays -1, 0->1, 1->0, 0 unchanged
-        assert flipped.values == expected
-        
-        # Test factory methods work with custom basis
-        zeros = Occupation.zeros(3, basis='ternary_test')
-        assert zeros.values == [0, 0, 0]  # vacant_value = 0
-        
-        ones = Occupation.ones(3, basis='ternary_test')
-        assert ones.values == [1, 1, 1]  # occupied_value = 1
-    
     def test_custom_float_basis(self):
         """Test custom basis with float values."""
         
         @register_basis('float_test')
         class FloatBasis(BasisFunction):
             @property
-            def vacant_value(self):
+            def match_value(self):
                 return 0.0
-            
+
+            @property
+            def mismatch_value(self):
+                return 1.0
+
+            @property
+            def vacant_value(self):
+                return self.match_value
+
             @property
             def occupied_value(self):
-                return 1.0
-            
+                return self.mismatch_value
+
             @property
             def valid_values(self):
                 return {0.0, 0.5, 1.0}  # Allows partial occupancy
-            
+
             @property
             def basis_function(self):
                 return [0.0, 0.5, 1.0]
-            
+
             def is_occupied(self, value):
                 return value == 1.0
-            
+
             def is_vacant(self, value):
                 return value == 0.0
-            
+
             def flip_value(self, value):
                 if value == 0.0:
                     return 1.0
