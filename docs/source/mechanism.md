@@ -1,6 +1,6 @@
-# Mechanism and Theory
+# Theory
 
-This section provides a detailed explanation of the mechanisms and methods implemented in kMCpy.
+This section provides a detailed explanation of the theoretical foundations and methods implemented in kMCpy.
 
 ## Overview
 
@@ -18,33 +18,27 @@ Kinetic Monte Carlo (kMC) is a stochastic simulation method used to model the ti
 
 ### Rejection-Free Algorithm
 
-kMCpy uses a **rejection-free** (also called "first-reaction") algorithm, which is more efficient than rejection-based methods:
+kMCpy uses a **rejection-free** algorithm (also called "n-fold way" or "Bortz-Kalos-Lebowitz (BKL) algorithm"), which is more efficient than rejection-based methods:
 
 1. **Calculate rates**: For each possible event *i*, compute the rate *r<sub>i</sub>* using transition state theory:
 
-   ```
-   r_i = ν exp(-E_b / k_B T)
-   ```
+   $$r_i = \nu \exp\left(-\frac{E_b}{k_B T}\right)$$
 
    where:
-   - *ν* is the attempt frequency (typically 10<sup>12</sup> - 10<sup>13</sup> Hz)
-   - *E<sub>b</sub>* is the migration barrier
-   - *k<sub>B</sub>* is Boltzmann's constant
-   - *T* is temperature
+   - $\nu$ is the attempt frequency (typically 10<sup>12</sup> - 10<sup>13</sup> Hz)
+   - $E_b$ is the migration barrier
+   - $k_B$ is Boltzmann's constant
+   - $T$ is temperature
 
 2. **Select event**: Choose an event *j* with probability proportional to its rate:
 
-   ```
-   P_j = r_j / Σr_i
-   ```
+   $$P_j = \frac{r_j}{\sum_i r_i}$$
 
 3. **Advance time**: Update the simulation time by:
 
-   ```
-   Δt = -ln(u) / Σr_i
-   ```
+   $$\Delta t = \frac{-\ln(u)}{\sum_i r_i}$$
 
-   where *u* is a uniform random number in (0, 1)
+   where $u$ is a uniform random number in (0, 1)
 
 4. **Execute event**: Update the system state by performing the selected hop
 
@@ -70,15 +64,13 @@ The LCE model predicts migration barriers on-the-fly during kMC simulations, eli
 
 The LCE model expresses the migration barrier as a function of the local environment around the migrating ion:
 
-```
-E_b = E_0 + Σ α_i f_i(σ)
-```
+$$E_b = E_0 + \sum_i \alpha_i f_i(\sigma)$$
 
 where:
-- *E<sub>0</sub>* is the base barrier (empty cluster contribution)
-- *α<sub>i</sub>* are fitted expansion coefficients
-- *f<sub>i</sub>(σ)* are basis functions describing the local environment
-- *σ* is the occupation state of neighboring sites
+- $E_0$ is the base barrier (empty cluster contribution)
+- $\alpha_i$ are fitted expansion coefficients
+- $f_i(\sigma)$ are basis functions describing the local environment
+- $\sigma$ is the occupation state of neighboring sites
 
 ### Basis Functions
 
@@ -103,7 +95,7 @@ The fitting process:
 
 1. **Generate training data**: Compute barriers for diverse local configurations
 2. **Build correlation matrix**: Evaluate basis functions for each training sample
-3. **Fit coefficients**: Use ridge regression (L2 regularization) to obtain *α<sub>i</sub>*
+3. **Fit coefficients**: Use ridge regression (L2 regularization) to obtain $\alpha_i$
 4. **Validate**: Check RMSE and leave-one-out cross-validation (LOOCV) score
 
 ### Site Energy Model
@@ -121,38 +113,31 @@ In addition to migration barriers, kMCpy can include a **site energy** LCE model
 From a kMC trajectory, kMCpy extracts:
 
 1. **Mean Squared Displacement (MSD)**:
-   ```
-   MSD(t) = ⟨|r_i(t) - r_i(0)|²⟩
-   ```
+   $$\text{MSD}(t) = \langle |r_i(t) - r_i(0)|^2 \rangle$$
 
-2. **Tracer Diffusivity** (*D*<sub>tracer</sub>):
-   ```
-   D_tracer = lim[t→∞] MSD(t) / (6t)
-   ```
-   Measures self-diffusion of individual ions
+2. **Tracer Diffusivity** ($D_{\text{tracer}}$):
+   $$D_{\text{tracer}} = \lim_{t\to\infty} \frac{\text{MSD}(t)}{6t}$$
+   
+   Measures self-diffusion of individual ions, tracking each ion's displacement independently. This quantity is also called the "self-diffusivity" and describes how fast a tagged particle diffuses through the lattice.
 
-3. **Jump Diffusivity** (*D*<sub>J</sub>):
-   ```
-   D_J = lim[t→∞] ⟨Δr_cm²⟩ / (6t)
-   ```
-   Measures collective center-of-mass motion
+3. **Jump Diffusivity** ($D_J$):
+   $$D_J = \lim_{t\to\infty} \frac{\langle \Delta r_{\text{cm}}^2 \rangle}{6t}$$
+   
+   Measures collective center-of-mass motion of all mobile ions. Unlike tracer diffusivity, jump diffusivity accounts for correlations between ion movements and is directly related to ionic conductivity through the Nernst-Einstein relation.
 
-4. **Haven Ratio** (*H<sub>R</sub>*):
-   ```
-   H_R = D_J / D_tracer
-   ```
-   Quantifies correlation effects (*H<sub>R</sub>* = 1 means uncorrelated motion)
+4. **Haven Ratio** ($H_R$):
+   $$H_R = \frac{D_J}{D_{\text{tracer}}}$$
+   
+   Quantifies correlation effects ($H_R = 1$ means uncorrelated motion). Values $H_R < 1$ indicate that ions move in a correlated manner, which is common in materials with strong ion-ion interactions.
 
-5. **Ionic Conductivity** (σ):
-   ```
-   σ = (n q² / k_B T) D_J
-   ```
-   where *n* is carrier concentration and *q* is charge
+5. **Ionic Conductivity** ($\sigma$):
+   $$\sigma = \frac{n q^2}{k_B T} D_J$$
+   
+   where $n$ is carrier concentration and $q$ is charge
 
-6. **Correlation Factor** (*f*):
-   ```
-   f = D_tracer / D_random
-   ```
+6. **Correlation Factor** ($f$):
+   $$f = \frac{D_{\text{tracer}}}{D_{\text{random}}}$$
+   
    Compares actual diffusion to random walk
 
 ### Convergence
@@ -161,7 +146,7 @@ Reliable transport properties require:
 - Sufficient **equilibration passes** to reach steady state
 - Many **production passes** for statistical averaging
 - Large enough **supercell** to minimize finite-size effects
-- Long enough **time** for the diffusive regime (MSD ∝ *t*)
+- Long enough **time** for the diffusive regime ($\text{MSD} \propto t$)
 
 ## Workflow Summary
 
@@ -200,5 +185,4 @@ For detailed theoretical background and validation, please see:
 
 - **kMCpy methodology**: [Deng et al., *Comp. Mater. Sci.* **229**, 112394 (2023)](https://doi.org/10.1016/j.commatsci.2023.112394)
 - **Application to NASICON**: [Deng et al., *Nat. Commun.* **13**, 4470 (2022)](https://doi.org/10.1038/s41467-022-32190-7)
-- **Kinetic Monte Carlo review**: [Voter, *Phys. Rev. B* **57**, 13985 (1998)](https://doi.org/10.1103/PhysRevB.57.R13985)
-- **Cluster expansion methods**: [Sanchez et al., *Physica A* **128**, 334 (1984)](https://doi.org/10.1016/0378-4371(84)90096-7)
+- **First-principles methods for ion transport**: [van der Ven et al., *Chem. Rev.* **120**, 6977-7019 (2020)](https://doi.org/10.1021/acs.chemrev.9b00601)
