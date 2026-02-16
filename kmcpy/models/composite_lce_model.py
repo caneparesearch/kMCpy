@@ -92,6 +92,35 @@ class CompositeLCEModel(CompositeModel):
         """
         raise NotImplementedError("CompositeLCEModel does not support direct compute method. Use compute_probability instead.")
 
+    def fit(
+        self,
+        kra_fit_kwargs: dict,
+        site_fit_kwargs: Optional[dict] = None,
+    ) -> dict:
+        """
+        Fit component models and apply fitted parameters to attached submodels.
+
+        Args:
+            kra_fit_kwargs: Keyword arguments for fitting the KRA LocalClusterExpansion.
+            site_fit_kwargs: Keyword arguments for fitting the site LocalClusterExpansion.
+                If None, site fitting is skipped.
+
+        Returns:
+            dict: Mapping of component name to fitter result tuple
+                ``(model_parameters, y_pred, y_true)``.
+        """
+        kra_fit_result = LocalClusterExpansion().fit(**kra_fit_kwargs)
+        results = {"kra": kra_fit_result}
+        if site_fit_kwargs is not None:
+            results["site"] = LocalClusterExpansion().fit(**site_fit_kwargs)
+
+        if self.kra_model is not None:
+            self.kra_model.set_parameters(results["kra"][0])
+        if self.site_model is not None and "site" in results:
+            self.site_model.set_parameters(results["site"][0])
+
+        return results
+
     def compute_probability(self, event: Event, 
                 simulation_condition: SimulationCondition,
                 simulation_state:SimulationState) -> float:

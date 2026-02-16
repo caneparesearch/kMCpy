@@ -339,10 +339,20 @@ def main():
         kmc.run(config)
 
     if args.command == "fitLCEmodel":
-        from kmcpy.fitting import Fitting
+        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 
         os.chdir(args.work_dir)
-        y_pred, y_true = Fitting().fit(**vars(args))
+        _, y_pred, y_true = LocalClusterExpansion().fit(
+            alpha=args.alpha,
+            max_iter=args.max_iter,
+            ekra_fname=args.ekra_fname,
+            keci_fname=args.keci_fname,
+            weight_fname=args.weight_fname,
+            corr_fname=args.corr_fname,
+            fit_results_fname=args.fit_results_fname,
+            lce_params_fname=None,
+            lce_params_history_fname=None,
+        )
         print("fitting", y_pred, y_true)
 
 

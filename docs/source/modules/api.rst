@@ -11,7 +11,6 @@ API Reference Documentation
     io.rst
     serialization.rst
     fitter.rst
-    fitting.rst
     local_cluster_expansion.rst
     cluster.rst
     parameters.rst

@@ -212,12 +212,10 @@ class TestNASICONbulk(unittest.TestCase):
         self.assertEqual(1, 1)
 
     def test_fitting(self):
-        from kmcpy.fitting import Fitting
+        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
         import numpy as np
 
-        local_cluster_expansion_fit = Fitting()
-
-        y_pred, y_true = local_cluster_expansion_fit.fit(
+        _, y_pred, y_true = LocalClusterExpansion().fit(
             alpha=1.5,
             max_iter=1000000,
             ekra_fname=f"{file_path}/fitting/local_cluster_expansion/e_kra.txt",
@@ -225,6 +223,8 @@ class TestNASICONbulk(unittest.TestCase):
             weight_fname=f"{file_path}/fitting/local_cluster_expansion/weight.txt",
             corr_fname=f"{file_path}/fitting/local_cluster_expansion/correlation_matrix.txt",
             fit_results_fname=f"{file_path}/fitting_results.json",
+            lce_params_fname=None,
+            lce_params_history_fname=None,
         )
         print("fitting", y_pred, y_true)
         self.assertTrue(np.allclose(y_pred, y_true, rtol=0.3, atol=10.0))

@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 import json
 import logging
 
+from kmcpy.models.fitting.registry import get_fitter_for_model
+
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
 
@@ -19,11 +21,31 @@ class BaseModel(ABC):
     Attributes:
         name (str, optional): Name of the model instance.
     """
+    fitter_class = None
+
     def __init__(self, *args, **kwargs):
         """
         Initialize the BaseModel. This method can be overridden by subclasses to handle specific initialization.
         """
         self.name = kwargs.get("name", None)
+
+    @classmethod
+    def get_fitter_class(cls):
+        """Return fitter implementation for this model class."""
+        fitter_class = get_fitter_for_model(cls)
+        if fitter_class is not None:
+            return fitter_class
+        if cls.fitter_class is not None:
+            return cls.fitter_class
+        raise NotImplementedError(
+            f"{cls.__name__} does not define a fitter_class and has no fitter "
+            "registered in kmcpy.models.fitting.registry."
+        )
+
+    def fit(self, *args, **kwargs):
+        """Fit model parameters using the model-specific fitter implementation."""
+        fitter = self.__class__.get_fitter_class()()
+        return fitter.fit(*args, **kwargs)
 
     @abstractmethod
     def __str__(self):
