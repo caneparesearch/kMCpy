@@ -11,17 +11,16 @@ import json
 import logging
 from pathlib import Path
 
+from kmcpy.io.registry import MODEL_CLASS_REGISTRY
+from kmcpy.io.serialization import to_json_compatible
+
 if TYPE_CHECKING:
     from kmcpy.simulator.config import SimulationConfig
 
 logger = logging.getLogger(__name__)
 
-# Model registry mapping model type strings to model classes
-MODEL_REGISTRY = {
-    "composite_lce": "kmcpy.models.composite_lce_model.CompositeLCEModel",
-    "lce": "kmcpy.models.local_cluster_expansion.LocalClusterExpansion",
-    "local_cluster_expansion": "kmcpy.models.local_cluster_expansion.LocalClusterExpansion",
-}
+# Backward-compatible alias used throughout this module.
+MODEL_REGISTRY = MODEL_CLASS_REGISTRY
 
 
 class SimulationConfigIO:
@@ -190,18 +189,7 @@ class SimulationConfigIO:
     @staticmethod
     def _json_serializer(obj):
         """Custom JSON serializer for numpy types and other objects."""
-        import numpy as np
-        
-        if isinstance(obj, (np.int64, np.int32)):
-            return int(obj)
-        elif isinstance(obj, (np.float64, np.float32)):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif hasattr(obj, '__dict__'):
-            return obj.__dict__
-        
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+        return to_json_compatible(obj)
     
     @staticmethod
     def _detect_file_format(filepath: str) -> str:

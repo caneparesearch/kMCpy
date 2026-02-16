@@ -1312,21 +1312,6 @@ class ModernEventGenerator:
                 return i
         return None
     
-    def _get_local_environment_indices(
-        self, supercell: Structure, central_site_idx: int, cutoff: float = 4.0
-    ) -> List[int]:
-        """Get indices of sites in the local environment of a central site."""
-        central_site = supercell[central_site_idx]
-        neighbors = supercell.get_neighbors(central_site, cutoff)
-        
-        env_indices = []
-        for neighbor in neighbors:
-            neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
-            if neighbor_idx is not None:
-                env_indices.append(neighbor_idx)
-        
-        return env_indices
-    
     def _save_results(
         self,
         event_lib: EventLib,

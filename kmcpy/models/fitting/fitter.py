@@ -103,7 +103,7 @@ class LCEFitter(BaseFitter):
             keci_fname (str, optional): File name for KECI storage. Defaults to 'keci.txt'.
             weight_fname (str, optional): File name for weight storage. Defaults to 'weight.txt'.
             corr_fname (str, optional): File name for correlation matrix storage. Defaults to 'correlation_matrix.txt'.
-            lce_params_fname (str, optional): File name for LCE parameters storage. Defaults to 'lce_params.json'.
+            lce_params_fname (str, optional): File name for LCE parameters storage. If None, skip saving.
             lce_params_history_fname (str, optional): File name for LCE parameters history storage. Defaults to 'lce_params_history.json'.
 
         Returns:
@@ -180,8 +180,9 @@ class LCEFitter(BaseFitter):
             rmse=rmse,
             loocv=loocv,
         )
-        logger.info(f"Saving LCE model parameters to {lce_params_fname} ...")
-        lce_model_params.to(lce_params_fname)
+        if lce_params_fname:
+            logger.info(f"Saving LCE model parameters to {lce_params_fname} ...")
+            lce_model_params.to(lce_params_fname)
 
         if lce_params_history_fname:
             try:
@@ -202,4 +203,3 @@ class LCEFitter(BaseFitter):
                 logger.error(f"Error saving LCE model parameters history: {e}")
                 raise e
         return lce_model_params, y_pred, y_true
-

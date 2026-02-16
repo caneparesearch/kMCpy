@@ -3,34 +3,19 @@
 This module provides utilities for handling KMC simulation I/O operations.
 """
 
-import numpy as np
-import json
-from kmcpy.external.structure import StructureKMCpy
 import logging
 import pandas as pd
-import warnings
+
+from kmcpy.io.registry import MODEL_TASK_REGISTRY
+from kmcpy.io.serialization import to_json_compatible
 
 logger = logging.getLogger(__name__)
 
-# Model registry for extensible model types
-MODEL_REGISTRY = {
-    "lce": "lce",  # Maps model type to task type for backward compatibility
-    "composite_lce": "lce"  # CompositeLCEModel still uses lce task type
-}
-
-# Task registry for different simulation types
-TASK_REGISTRY = {
-    "kmc": "kmc",
-    "model": "lce", 
-    "generate_event": "generate_event"
-} 
+# Backward-compatible alias for existing code importing MODEL_REGISTRY.
+MODEL_REGISTRY = MODEL_TASK_REGISTRY
 
 def convert(o):
-    if isinstance(o, np.int64):
-        return int(o)
-    elif isinstance(o, np.int32):
-        return int(o)
-    raise TypeError
+    return to_json_compatible(o)
 
 class Results:
     """

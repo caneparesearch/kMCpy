@@ -260,28 +260,53 @@ def main():
         os.chdir(args.work_dir)
         print(vars(args))
 
-        # Convert GUI args to SimulationConfig using clean parameter names
-        config_params = {}
-        
-        # Map legacy GUI parameters to clean ones if needed
-        args_dict = args.__dict__
+        # Convert GUI args to SimulationConfig using modern parameter names.
         legacy_mapping = {
-            'lce_fname': 'cluster_expansion_file',
-            'lce_site_fname': 'cluster_expansion_site_file', 
-            'template_structure_fname': 'structure_file',
-            'event_fname': 'event_file',
-            'fitting_results': 'fitting_results_file',
-            'fitting_results_site': 'fitting_results_site_file',
-            'v': 'attempt_frequency'
+            "fitting_results": "fitting_results_file",
+            "fitting_results_site": "fitting_results_site_file",
+            "lce_fname": "cluster_expansion_file",
+            "lce_site_fname": "cluster_expansion_site_file",
+            "prim_fname": "structure_file",
+            "event_fname": "event_file",
+            "initial_state": "initial_state_file",
+            "kmc_pass": "kmc_passes",
+            "T": "temperature",
+            "q": "mobile_ion_charge",
+            "elem_hop_distance": "elementary_hop_distance",
+            "equilibriation_pass": "equilibration_passes",
         }
-        
-        for key, value in args_dict.items():
-            if key in legacy_mapping:
-                config_params[legacy_mapping[key]] = value
-            else:
-                config_params[key] = value
-        
-        # Create clean SimulationConfig
+        valid_config_keys = {
+            "structure_file",
+            "supercell_shape",
+            "dimension",
+            "mobile_ion_specie",
+            "mobile_ion_charge",
+            "elementary_hop_distance",
+            "model_type",
+            "cluster_expansion_file",
+            "cluster_expansion_site_file",
+            "fitting_results_file",
+            "fitting_results_site_file",
+            "event_file",
+            "event_dependencies",
+            "immutable_sites",
+            "convert_to_primitive_cell",
+            "initial_state_file",
+            "initial_occupations",
+            "temperature",
+            "attempt_frequency",
+            "equilibration_passes",
+            "kmc_passes",
+            "random_seed",
+            "name",
+        }
+
+        config_params = {}
+        for key, value in vars(args).items():
+            mapped_key = legacy_mapping.get(key, key)
+            if mapped_key in valid_config_keys and value is not None:
+                config_params[mapped_key] = value
+
         config = SimulationConfig(**config_params)
         kmc = KMC.from_config(config)
 
@@ -292,7 +317,7 @@ def main():
         from kmcpy.fitting import Fitting
 
         os.chdir(args.work_dir)
-        y_pred, y_true = Fitting.fit(**vars(args))
+        y_pred, y_true = Fitting().fit(**vars(args))
         print("fitting", y_pred, y_true)
 
 
