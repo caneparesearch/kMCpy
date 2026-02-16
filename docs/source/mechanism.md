@@ -128,7 +128,7 @@ From a kMC trajectory, kMCpy extracts:
 4. **Haven Ratio** ($H_R$):
    $$H_R = \frac{D_J}{D_{\text{tracer}}}$$
    
-   Quantifies correlation effects ($H_R = 1$ means uncorrelated motion). Values $H_R < 1$ indicate that ions move in a correlated manner, which is common in materials with strong ion-ion interactions.
+   Quantifies correlation effects ($H_R = 1$ means uncorrelated motion). Values $H_R < 1$ indicate that ions move in a correlated manner, which is common in materials with strong ion-ion interactions. Values $H_R > 1$ can occur in vacancy-mediated diffusion or when ions move in an anti-correlated fashion.
 
 5. **Ionic Conductivity** ($\sigma$):
    $$\sigma = \frac{n q^2}{k_B T} D_J$$
