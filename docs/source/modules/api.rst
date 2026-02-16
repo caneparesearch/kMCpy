@@ -17,6 +17,7 @@ API Reference Documentation
     data_loader.rst
     config_io.rst
     io_registry.rst
+    io.rst
     serialization.rst
     vacancy.rst
     local_environment_comparator.rst
@@ -27,6 +28,7 @@ API Reference Documentation
     fitter.rst
     registry.rst
     base.rst
+    model.rst
     parameters.rst
     local_cluster_expansion.rst
     cluster.rst
