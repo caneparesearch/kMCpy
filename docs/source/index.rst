@@ -29,6 +29,7 @@ This code was recently employed to investigate `the transport properties of Na-i
    :hidden:
 
    install
+   mechanism
    tutorial
    modules/api
    about
