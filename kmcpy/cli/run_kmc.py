@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import warnings
-from kmcpy.io.config_io import SimulationConfigIO  # Use modern IO system
+from kmcpy.io.config_io import SimulationConfigIO
 from kmcpy.simulator.config import SimulationConfig
 from kmcpy.simulator.kmc import KMC
 import kmcpy
@@ -91,7 +90,6 @@ def run_kmc(args)-> None:
         # Load modern SimulationConfig format only
         try:
             print(f"Loading configuration from {args.input}")
-            from kmcpy.io.config_io import SimulationConfigIO
             raw_data = SimulationConfigIO._load_yaml_section(args.input, "kmc", "default")
             config = SimulationConfig.from_dict(raw_data)
             print(f"✓ Configuration loaded: {config.runtime_config.name}")

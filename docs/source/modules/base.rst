@@ -1,7 +1,7 @@
-event_generator
+base
 =========================
 
-.. automodule:: kmcpy.event.event_generator
+.. automodule:: kmcpy.models.base
     :members:
     :inherited-members:
                   

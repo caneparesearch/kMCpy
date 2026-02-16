@@ -248,10 +248,35 @@ def main():
             args.events_output_dir, args.event_dependencies_fname
         )
 
+        if isinstance(args.find_nearest_if_fail, str):
+            args.find_nearest_if_fail = args.find_nearest_if_fail.lower() in {
+                "1",
+                "true",
+                "yes",
+                "y",
+            }
+
         print((vars(args)))
 
         generator = EventGenerator()
-        generator.generate_events(**vars(args))
+        generator.generate_events(
+            structure_file=args.prim_cif_name,
+            convert_to_primitive_cell=args.convert_to_primitive_cell,
+            local_env_cutoff_dict=args.local_env_cutoff_dict,
+            mobile_ion_identifier_type=args.mobile_ion_identifier_type,
+            mobile_ion_identifiers=(
+                args.mobile_ion_specie_identifier,
+                args.mobile_ion_specie_2_identifier,
+            ),
+            species_to_be_removed=args.species_to_be_removed,
+            distance_matrix_rtol=args.distance_matrix_rtol,
+            distance_matrix_atol=args.distance_matrix_atol,
+            find_nearest_if_fail=args.find_nearest_if_fail,
+            export_local_env_structure=args.export_local_env_structure,
+            supercell_shape=args.supercell_shape,
+            event_file=args.event_fname,
+            event_dependencies_file=args.event_dependencies_fname,
+        )
 
     if args.command == "KMCSimulation":
 
@@ -260,28 +285,53 @@ def main():
         os.chdir(args.work_dir)
         print(vars(args))
 
-        # Convert GUI args to SimulationConfig using clean parameter names
-        config_params = {}
-        
-        # Map legacy GUI parameters to clean ones if needed
-        args_dict = args.__dict__
+        # Convert GUI args to SimulationConfig using modern parameter names.
         legacy_mapping = {
-            'lce_fname': 'cluster_expansion_file',
-            'lce_site_fname': 'cluster_expansion_site_file', 
-            'template_structure_fname': 'structure_file',
-            'event_fname': 'event_file',
-            'fitting_results': 'fitting_results_file',
-            'fitting_results_site': 'fitting_results_site_file',
-            'v': 'attempt_frequency'
+            "fitting_results": "fitting_results_file",
+            "fitting_results_site": "fitting_results_site_file",
+            "lce_fname": "cluster_expansion_file",
+            "lce_site_fname": "cluster_expansion_site_file",
+            "prim_fname": "structure_file",
+            "event_fname": "event_file",
+            "initial_state": "initial_state_file",
+            "kmc_pass": "kmc_passes",
+            "T": "temperature",
+            "q": "mobile_ion_charge",
+            "elem_hop_distance": "elementary_hop_distance",
+            "equilibriation_pass": "equilibration_passes",
         }
-        
-        for key, value in args_dict.items():
-            if key in legacy_mapping:
-                config_params[legacy_mapping[key]] = value
-            else:
-                config_params[key] = value
-        
-        # Create clean SimulationConfig
+        valid_config_keys = {
+            "structure_file",
+            "supercell_shape",
+            "dimension",
+            "mobile_ion_specie",
+            "mobile_ion_charge",
+            "elementary_hop_distance",
+            "model_type",
+            "cluster_expansion_file",
+            "cluster_expansion_site_file",
+            "fitting_results_file",
+            "fitting_results_site_file",
+            "event_file",
+            "event_dependencies",
+            "immutable_sites",
+            "convert_to_primitive_cell",
+            "initial_state_file",
+            "initial_occupations",
+            "temperature",
+            "attempt_frequency",
+            "equilibration_passes",
+            "kmc_passes",
+            "random_seed",
+            "name",
+        }
+
+        config_params = {}
+        for key, value in vars(args).items():
+            mapped_key = legacy_mapping.get(key, key)
+            if mapped_key in valid_config_keys and value is not None:
+                config_params[mapped_key] = value
+
         config = SimulationConfig(**config_params)
         kmc = KMC.from_config(config)
 
@@ -289,10 +339,20 @@ def main():
         kmc.run(config)
 
     if args.command == "fitLCEmodel":
-        from kmcpy.fitting import Fitting
+        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 
         os.chdir(args.work_dir)
-        y_pred, y_true = Fitting.fit(**vars(args))
+        _, y_pred, y_true = LocalClusterExpansion().fit(
+            alpha=args.alpha,
+            max_iter=args.max_iter,
+            ekra_fname=args.ekra_fname,
+            keci_fname=args.keci_fname,
+            weight_fname=args.weight_fname,
+            corr_fname=args.corr_fname,
+            fit_results_fname=args.fit_results_fname,
+            lce_params_fname=None,
+            lce_params_history_fname=None,
+        )
         print("fitting", y_pred, y_true)
 
 

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.io.io import convert, Results
+from kmcpy.io import convert
 import logging
 from kmcpy.external.structure import StructureKMCpy
 from typing import TYPE_CHECKING, Optional
@@ -17,6 +17,31 @@ if TYPE_CHECKING:
     from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__) 
+
+RESULT_FIELDS = (
+    "time",
+    "D_J",
+    "D_tracer",
+    "conductivity",
+    "f",
+    "H_R",
+    "msd",
+)
+
+
+def _create_result_store() -> dict:
+    return {field: [] for field in RESULT_FIELDS}
+
+
+def _append_result(store: dict, time, D_J, D_tracer, conductivity, f, H_R, msd) -> None:
+    store["time"].append(time)
+    store["D_J"].append(D_J)
+    store["D_tracer"].append(D_tracer)
+    store["conductivity"].append(conductivity)
+    store["f"].append(f)
+    store["H_R"].append(H_R)
+    store["msd"].append(msd)
+
 
 class Tracker:
     """
@@ -55,8 +80,8 @@ class Tracker:
         initial_occ = initial_state.occupations if initial_state else occ_initial
         self._initialize_mobile_ion_tracking(initial_occ)
         
-        # Results storage (only responsibility of Tracker)
-        self.results = Results()
+        # Results storage (owned by Tracker).
+        self.results = _create_result_store()
         self.current_pass = 0
         
         logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
@@ -169,29 +194,30 @@ class Tracker:
         return cls(config=config, structure=structure, initial_state=initial_state)
 
 
-    def update(self, event, current_occ, dt)->None:  # this should be called after update() of KMC run
+    def update(self, event, current_occ, dt)->None:
         """
-        Update the tracker state after a KMC event.
+        Update tracker observables for a proposed kMC event.
 
-        This method should be called after the KMC run's update() method. It updates the positions, occupation, displacement,
-        hop counters, and simulation time for mobile ions based on the provided event and current occupation.
+        This method should be called with the pre-event occupation snapshot.
+        Tracker updates trajectory observables (positions, displacements, hops),
+        while simulation time/step are owned by KMC via SimulationState.
 
         Args:
             event: An object representing the KMC event, containing indices and properties of the mobile ions involved.
             current_occ (np.ndarray): The current occupation array indicating the occupation state of each site.
-            dt (float): The time increment to add to the simulation time.
+            dt (float): Time increment for this event (kept for API compatibility).
 
         Side Effects:
             - Updates the internal state of the tracker, including:
                 - `mobile_ion_specie_locations`: The indices of the mobile ions after the event.
                 - `displacement`: The cumulative displacement of each mobile ion.
                 - `hop_counter`: The number of hops performed by each mobile ion.
-                - `time`: The current simulation time.
             - Logs detailed debug information if the logger is set to DEBUG level.
 
         Raises:
             Logs an error if the event direction cannot be determined (i.e., if the event is invalid).
         """
+        _ = dt
         mobile_ion_specie_1_coord = copy(
             self.frac_coords[event.mobile_ion_indices[0]]
         )
@@ -247,7 +273,7 @@ class Tracker:
             return  # Return early to avoid using undefined specie_to_diff
         self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
         self.hop_counter[specie_to_diff] += 1
-        self.state.time += dt
+        # Time progression is handled by KMC.update(...) through SimulationState.
         logger.debug('------------------------ Tracker Update End --------------------')
         # self.frac_na_at_na1.append(np.count_nonzero(self.mobile_ion_specie_location < self.n_mobile_ion_specie_site/4)/self.n_mobile_ion_specie)
 
@@ -449,7 +475,7 @@ class Tracker:
             table_str = "\n" + pd.DataFrame(summary_data, columns=["Property", "Value"]).to_string(index=False)
             logger.debug('Tracker Summary:%s', table_str)
 
-        self.results.add(copy(self.time), D_J, D_tracer, conductivity, f, H_R, msd)
+        _append_result(self.results, copy(self.time), D_J, D_tracer, conductivity, f, H_R, msd)
 
     def write_results(self, current_occupation:list, label:str = None)-> None:
         """
@@ -487,7 +513,7 @@ class Tracker:
             results_file = f"results_{label}.csv.gz"
         else:
             results_file = "results.csv.gz"
-        self.results.to_dataframe().to_csv(results_file, compression="gzip", index=False)
+        pd.DataFrame(self.results).to_csv(results_file, compression="gzip", index=False)
 
     def as_dict(self)-> dict:
         d = {

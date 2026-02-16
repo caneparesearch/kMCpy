@@ -3,16 +3,17 @@
 This module provides tools for generating and matching local atomic environments and events for kinetic Monte Carlo (kMC) simulations, particularly for ionic diffusion in crystalline solids. It includes utilities for neighbor environment matching, event generation, and supercell normalization, with support for structures parsed by pymatgen.
 """
 
-import numpy as np
 import itertools
+import json
 import logging
-from pymatgen.util.coord import get_angle
-from typing import Dict, List, Optional, Union
-from pathlib import Path
+from collections.abc import Iterable
+from typing import Any, Dict, List, Optional, Tuple
 
-from pymatgen.core import Structure
-from kmcpy.structure import LatticeStructure, LocalLatticeStructure
-from kmcpy.event import Event, EventLib
+import numpy as np
+from pymatgen.util.coord import get_angle
+
+from kmcpy.event.base import Event, EventLib
+from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
 logger = logging.getLogger(__name__) 
 
@@ -453,293 +454,338 @@ class NeighborInfoMatcher:
 
 
 class EventGenerator:
-    """EventGenerator is a class for generating events from a structure. It is used to generate events for kinetic Monte Carlo simulations. The events are generated based on the local environment of the mobile ions in the structure. The events are stored in a json file and a csv file.
+    """
+    Generate migration events by combining point+cutoff environment detection with
+    primitive-template expansion into a supercell.
+
+    This keeps neighbor searches in the primitive cell only, then maps pre-ordered
+    templates to each supercell image via dictionary lookups for performance.
     """
 
     def __init__(self):
-        self.lattice_structure = None
-        self.local_environments = {}
+        self.reference_local_env_dict: Dict = {}
+        self.local_env_info_dict: Dict[int, List[Dict]] = {}
+
+    @staticmethod
+    def _to_identifier_list(identifier: Any) -> List[str]:
+        if isinstance(identifier, str):
+            return [identifier]
+        if isinstance(identifier, Iterable):
+            return [str(value) for value in identifier]
+        return [str(identifier)]
+
+    @classmethod
+    def _site_matches_species_identifier(cls, site, identifier: Any) -> bool:
+        candidate_tokens = set()
+
+        species_string = getattr(site, "species_string", None)
+        if species_string is not None:
+            candidate_tokens.add(str(species_string))
+
+        specie = getattr(site, "specie", None)
+        if specie is not None:
+            candidate_tokens.add(str(specie))
+            symbol = getattr(specie, "symbol", None)
+            if symbol is not None:
+                candidate_tokens.add(str(symbol))
+            element = getattr(specie, "element", None)
+            if element is not None:
+                candidate_tokens.add(str(element))
+
+        for specie_obj in getattr(site, "species", {}).keys():
+            candidate_tokens.add(str(specie_obj))
+            symbol = getattr(specie_obj, "symbol", None)
+            if symbol is not None:
+                candidate_tokens.add(str(symbol))
+            element = getattr(specie_obj, "element", None)
+            if element is not None:
+                candidate_tokens.add(str(element))
+
+        identifier_tokens = set(cls._to_identifier_list(identifier))
+        return not candidate_tokens.isdisjoint(identifier_tokens)
+
+    @classmethod
+    def _site_matches_label_identifier(cls, site, identifier: Any) -> bool:
+        site_label = site.properties.get("label")
+        return str(site_label) in set(cls._to_identifier_list(identifier))
+
+    @classmethod
+    def _build_uniform_cutoff_dict(
+        cls,
+        structure,
+        mobile_species: List[str],
+        local_env_cutoff: float,
+    ) -> Dict[Tuple[str, str], float]:
+        all_species = sorted({site.species_string for site in structure})
+        mobile_species_in_structure = sorted(
+            {
+                site.species_string
+                for site in structure
+                if cls._site_matches_species_identifier(site, mobile_species)
+            }
+        )
+        if not mobile_species_in_structure:
+            raise ValueError(
+                f"No mobile species found in structure for requested mobile_species={mobile_species}"
+            )
+
+        cutoff_dict: Dict[Tuple[str, str], float] = {}
+        for mobile_sp in mobile_species_in_structure:
+            for neighbor_sp in all_species:
+                cutoff_dict[(mobile_sp, neighbor_sp)] = float(local_env_cutoff)
+        return cutoff_dict
+
+    def _normalize_generate_events_inputs(
+        self,
+        mobile_ion_identifier_type: str,
+        mobile_ion_identifiers,
+        species_to_be_removed: Optional[List[str]],
+        distance_matrix_rtol: float,
+        distance_matrix_atol: float,
+        supercell_shape: Optional[List[int]],
+        local_env_cutoff_dict: Optional[Dict[Tuple[str, str], float]],
+        mobile_species: Optional[List[str]],
+        mobile_site_mapping: Optional[Dict],
+        local_env_cutoff: Optional[float],
+        exclude_species: Optional[List[str]],
+        rtol: Optional[float],
+        atol: Optional[float],
+    ):
+        new_style_requested = any(
+            value is not None
+            for value in (
+                mobile_species,
+                mobile_site_mapping,
+                local_env_cutoff,
+                exclude_species,
+                rtol,
+                atol,
+            )
+        )
+
+        if rtol is not None:
+            distance_matrix_rtol = rtol
+        if atol is not None:
+            distance_matrix_atol = atol
+
+        if supercell_shape is None:
+            supercell_shape = [2, 1, 1]
+
+        if new_style_requested:
+            if mobile_species is None:
+                mobile_species = []
+                if mobile_site_mapping:
+                    for key, value in mobile_site_mapping.items():
+                        values = value if isinstance(value, list) else [value]
+                        value_tokens = {str(v) for v in values}
+                        if "X" in value_tokens:
+                            mobile_species.append(str(key))
+                if not mobile_species:
+                    mobile_species = ["Na"]
+
+            if species_to_be_removed is None:
+                species_to_be_removed = list(exclude_species or [])
+            elif exclude_species:
+                species_to_be_removed = list(
+                    dict.fromkeys(list(species_to_be_removed) + list(exclude_species))
+                )
+
+            if (
+                mobile_ion_identifier_type == "label"
+                and mobile_ion_identifiers == ("Na1", "Na2")
+            ):
+                mobile_ion_identifier_type = "specie"
+                mobile_ion_identifiers = (mobile_species, mobile_species)
+
+            if local_env_cutoff is None and local_env_cutoff_dict is None:
+                local_env_cutoff = 4.0
+
+        else:
+            if species_to_be_removed is None:
+                species_to_be_removed = ["O2-", "O"]
+            if local_env_cutoff_dict is None:
+                local_env_cutoff_dict = {("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0}
+
+        return (
+            new_style_requested,
+            mobile_ion_identifier_type,
+            mobile_ion_identifiers,
+            species_to_be_removed,
+            distance_matrix_rtol,
+            distance_matrix_atol,
+            supercell_shape,
+            local_env_cutoff_dict,
+            mobile_species,
+            local_env_cutoff,
+        )
+
+    def _match_or_register_local_environment(
+        self,
+        primitive_cell,
+        migrating_ion_index: int,
+        unsorted_neighbor_sequence: List[Dict],
+        reference_local_env_dict: Dict,
+        local_env_info_dict: Dict[int, List[Dict]],
+        distance_matrix_rtol: float,
+        distance_matrix_atol: float,
+        find_nearest_if_fail: bool,
+    ):
+        """Register a new local environment type or match to an existing reference."""
+        this_nninfo = NeighborInfoMatcher.from_neighbor_sequences(
+            unsorted_neighbor_sequence
+        )
+        local_index = primitive_cell[migrating_ion_index].properties["local_index"]
+
+        if this_nninfo.neighbor_species not in reference_local_env_dict:
+            reference_local_env_dict[this_nninfo.neighbor_species] = this_nninfo
+            local_env_info_dict[local_index] = this_nninfo.neighbor_sequence
+            return True, this_nninfo
+
+        sorted_neighbor_sequence = reference_local_env_dict[
+            this_nninfo.neighbor_species
+        ].brutal_match(
+            this_nninfo.neighbor_sequence,
+            rtol=distance_matrix_rtol,
+            atol=distance_matrix_atol,
+            find_nearest_if_fail=find_nearest_if_fail,
+        )
+        local_env_info_dict[local_index] = sorted_neighbor_sequence
+        return False, this_nninfo
+
+    def _export_reference_local_environment(
+        self,
+        structure_cls,
+        primitive_cell,
+        migrating_ion_index: int,
+        unsorted_neighbor_sequence: List[Dict],
+        reference_local_env_type: int,
+    ) -> int:
+        """Export one reference local environment to CIF for inspection."""
+        reference_local_env_sites = [primitive_cell[migrating_ion_index]]
+        reference_local_env_sites.extend(
+            [neighbor["site"] for neighbor in unsorted_neighbor_sequence]
+        )
+
+        reference_local_env_structure = structure_cls.from_sites(
+            sites=reference_local_env_sites
+        )
+        reference_local_env_structure.to(
+            fmt="cif",
+            filename=f"{reference_local_env_type}th_reference_local_env.cif",
+        )
+        logger.info(
+            "%sth type of reference local_env structure cif file is created. please check",
+            reference_local_env_type + 1,
+        )
+        return reference_local_env_type + 1
+
+    def _is_valid_target_site(
+        self,
+        site,
+        mobile_ion_identifier_type: str,
+        target_identifier: Any,
+    ) -> bool:
+        if mobile_ion_identifier_type == "specie":
+            return self._site_matches_species_identifier(site, target_identifier)
+        if mobile_ion_identifier_type == "label":
+            return self._site_matches_label_identifier(site, target_identifier)
+        raise ValueError(
+            'unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] '
+        )
 
     def generate_events(
         self,
-        structure_file="210.cif",
-        mobile_species=["Na"],
-        mobile_site_mapping=None,
-        local_env_cutoff=4.0,
-        exclude_species=None,
-        supercell_shape=[2, 1, 1],
-        event_file="events.json",
-        event_dependencies_file="event_dependencies.csv",
-        rtol=1e-3,
-        atol=1e-3
-    ):
+        structure_file: str = "210.cif",
+        convert_to_primitive_cell: bool = False,
+        local_env_cutoff_dict: Optional[Dict[Tuple[str, str], float]] = None,
+        mobile_ion_identifier_type: str = "label",
+        mobile_ion_identifiers: Tuple[str, str] = ("Na1", "Na2"),
+        species_to_be_removed: Optional[List[str]] = None,
+        distance_matrix_rtol: float = 0.01,
+        distance_matrix_atol: float = 0.01,
+        find_nearest_if_fail: bool = True,
+        export_local_env_structure: bool = False,
+        supercell_shape: Optional[List[int]] = None,
+        event_file: str = "events.json",
+        event_dependencies_file: str = "event_dependencies.csv",
+        mobile_species: Optional[List[str]] = None,
+        mobile_site_mapping: Optional[Dict] = None,
+        local_env_cutoff: Optional[float] = None,
+        exclude_species: Optional[List[str]] = None,
+        rtol: Optional[float] = None,
+        atol: Optional[float] = None,
+    ) -> Dict:
         """
-        Modern event generation using LatticeStructure and LocalLatticeStructure.
+        Generate migration events and event dependencies from a CIF structure.
 
-        This method provides a cleaner, more maintainable approach.
-        For legacy functionality, use generate_events_legacy().
+        Event generation always follows the performant primitive-template -> supercell
+        expansion workflow.
 
-        Args:
-            structure_file (str): Path to structure file (CIF, POSCAR, etc.)
-            mobile_species (list): List of mobile species (e.g., ["Na", "Li"])
-            mobile_site_mapping (dict): Mapping of species to possible occupants
-            local_env_cutoff (float): Cutoff distance for local environment
-            exclude_species (list): Species to exclude from analysis
-            supercell_shape (list): Shape of supercell [nx, ny, nz]
-            event_file (str): Output events file name
-            event_dependencies_file (str): Output dependencies file name
-            rtol (float): Relative tolerance for matching
-            atol (float): Absolute tolerance for matching
+        This method accepts both:
+        1. The legacy argument style (label/specie identifiers and cutoff dict).
+        2. The newer argument style (mobile_species/local_env_cutoff/exclude_species/rtol/atol).
 
-        Returns:
-            dict: Dictionary containing reference local environments
+        New-style arguments are normalized into the same internal legacy backend.
         """
-        import json
-        from pymatgen.core import Structure
-        from kmcpy.structure import LatticeStructure, LocalLatticeStructure
-        from kmcpy.event import Event, EventLib
+        from kmcpy.external.local_env import CutOffDictNNKMCpy
+        from kmcpy.external.structure import StructureKMCpy
         from kmcpy.io import convert
         import kmcpy
 
-        logger.info(kmcpy.get_logo())
-        logger.info("Using modern event generation with LatticeStructure framework")
-
-        # Step 1: Load structure
-        structure = Structure.from_file(structure_file)
-        if exclude_species:
-            structure.remove_species(exclude_species)
-        
-        logger.info(f"Loaded structure with composition: {structure.composition}")
-
-        # Step 2: Create LatticeStructure with appropriate site mapping
-        if mobile_site_mapping is None:
-            mobile_site_mapping = {}
-            for species in mobile_species:
-                mobile_site_mapping[species] = [species, "X"]  # X = vacancy
-            # Add immobile species
-            for site in structure:
-                species_str = site.species_string
-                if species_str not in mobile_site_mapping:
-                    mobile_site_mapping[species_str] = [species_str]
-
-        self.lattice_structure = LatticeStructure(
-            template_structure=structure,
-            specie_site_mapping=mobile_site_mapping,
-            basis_type='occupation'
+        (
+            new_style_requested,
+            mobile_ion_identifier_type,
+            mobile_ion_identifiers,
+            species_to_be_removed,
+            distance_matrix_rtol,
+            distance_matrix_atol,
+            supercell_shape,
+            local_env_cutoff_dict,
+            mobile_species,
+            local_env_cutoff,
+        ) = self._normalize_generate_events_inputs(
+            mobile_ion_identifier_type=mobile_ion_identifier_type,
+            mobile_ion_identifiers=mobile_ion_identifiers,
+            species_to_be_removed=species_to_be_removed,
+            distance_matrix_rtol=distance_matrix_rtol,
+            distance_matrix_atol=distance_matrix_atol,
+            supercell_shape=supercell_shape,
+            local_env_cutoff_dict=local_env_cutoff_dict,
+            mobile_species=mobile_species,
+            mobile_site_mapping=mobile_site_mapping,
+            local_env_cutoff=local_env_cutoff,
+            exclude_species=exclude_species,
+            rtol=rtol,
+            atol=atol,
         )
 
-        # Step 3: Find mobile sites
-        mobile_sites = []
-        for i, site in enumerate(structure):
-            if site.species_string in mobile_species:
-                mobile_sites.append(i)
-
-        logger.info(f"Found {len(mobile_sites)} mobile sites")
-
-        # Step 4: Generate and classify local environments
-        reference_local_envs = {}
-        
-        for site_idx in mobile_sites:
-            # Create LocalLatticeStructure for this site
-            local_env = LocalLatticeStructure(
-                template_structure=structure,
-                center=site_idx,
-                cutoff=local_env_cutoff,
-                specie_site_mapping=mobile_site_mapping,
-                exclude_species=exclude_species
+        if len(mobile_ion_identifiers) != 2:
+            raise ValueError(
+                "mobile_ion_identifiers must contain two identifiers: (initial, target)."
             )
-            
-            # Create environment signature
-            env_signature = self._create_environment_signature(local_env)
-            
-            if env_signature not in reference_local_envs:
-                reference_local_envs[env_signature] = {
-                    'local_env': local_env,
-                    'sites': []
-                }
-                logger.info(f"New local environment type: {env_signature}")
-            
-            reference_local_envs[env_signature]['sites'].append(site_idx)
-            self.local_environments[site_idx] = env_signature
-
-        # Step 5: Create supercell
-        supercell = structure.copy()
-        supercell.make_supercell(supercell_shape)
-        logger.info(f"Created supercell with {len(supercell)} sites")
-
-        # Step 6: Generate events
-        events = []
-        event_lib = EventLib()
-
-        # Find mobile sites in supercell
-        mobile_sites_sc = []
-        for i, site in enumerate(supercell):
-            if site.species_string in mobile_species:
-                mobile_sites_sc.append(i)
-
-        logger.info(f"Generating events from {len(mobile_sites_sc)} mobile sites in supercell...")
-
-        for site_idx in mobile_sites_sc:
-            site = supercell[site_idx]
-            neighbors = supercell.get_neighbors(site, local_env_cutoff * 1.5)
-            
-            # Get local environment indices
-            local_env_indices = self._get_local_environment_indices_supercell(
-                supercell, site_idx, local_env_cutoff
-            )
-            
-            for neighbor in neighbors:
-                neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
-                
-                if (neighbor_idx is not None and 
-                    neighbor.species_string in mobile_species and
-                    neighbor_idx != site_idx):
-                    
-                    # Create event
-                    event = Event(
-                        mobile_ion_indices=(site_idx, neighbor_idx),
-                        local_env_indices=tuple(local_env_indices)
-                    )
-                    events.append(event)
-                    event_lib.add_event(event)
-
-        if len(events) == 0:
-            raise ValueError("No events generated. Check input parameters.")
-
-        # Step 7: Generate dependencies and save
-        logger.info("Generating event dependencies...")
-        event_lib.generate_event_dependencies()
-        
-        # Save events
-        events_dict = [event.as_dict() for event in events]
-        with open(event_file, "w") as f:
-            json.dump(events_dict, f, indent=4, default=convert)
-        logger.info(f"Saved {len(events)} events to {event_file}")
-        
-        # Save dependencies
-        event_lib.save_event_dependencies_to_file(event_dependencies_file)
-        logger.info(f"Saved dependencies to {event_dependencies_file}")
-        
-        # Log statistics
-        stats = event_lib.get_dependency_statistics()
-        logger.info(f"Generated {len(event_lib)} events with dependency statistics: {stats}")
-
-        return reference_local_envs
-
-    def generate_events_modern(self, *args, **kwargs):
-        """
-        Alias for generate_events method for backward compatibility.
-
-        This method is provided for compatibility with code expecting the
-        generate_events_modern name. It simply delegates to generate_events.
-
-        Returns:
-            dict: Dictionary containing reference local environments
-        """
-        return self.generate_events(*args, **kwargs)
-
-    def _create_environment_signature(self, local_env):
-        """Create a unique signature for a local environment type."""
-        species_count = {}
-        for site in local_env.structure:
-            species = site.species_string
-            species_count[species] = species_count.get(species, 0) + 1
-        
-        signature_parts = []
-        for species, count in sorted(species_count.items()):
-            signature_parts.append(f"{species}:{count}")
-        
-        return "_".join(signature_parts)
-
-    def _find_site_index_in_supercell(self, supercell, target_site):
-        """Find the index of a target site in the supercell."""
-        import numpy as np
-        for i, site in enumerate(supercell):
-            if np.allclose(site.frac_coords, target_site.frac_coords, atol=1e-4):
-                return i
-        return None
-
-    def _get_local_environment_indices_supercell(self, supercell, central_site_idx, cutoff):
-        """Get indices of sites in the local environment."""
-        central_site = supercell[central_site_idx]
-        neighbors = supercell.get_neighbors(central_site, cutoff)
-        
-        env_indices = []
-        for neighbor in neighbors:
-            neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
-            if neighbor_idx is not None:
-                env_indices.append(neighbor_idx)
-        
-        return env_indices
-
-    def generate_events_legacy(
-        self,
-        structure_file="210.cif",
-        convert_to_primitive_cell=False,
-        local_env_cutoff_dict={("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0},
-        mobile_ion_identifier_type="label",
-        mobile_ion_identifiers=("Na1", "Na2"),
-        species_to_be_removed=["O2-", "O"],
-        distance_matrix_rtol=0.01,
-        distance_matrix_atol=0.01,
-        find_nearest_if_fail=True,
-        export_local_env_structure=True,
-        supercell_shape=[2, 1, 1],
-        event_file="events.json",
-        event_dependencies_file="event_dependencies.csv",
-    ):
-        """
-        220603 XIE WEIHANG
-        3rd version of generate events, using the x coordinate and label as the default sorting criteria for neighbors in local environment therefore should behave similar as generate_events1. Comparing generate_events1, this implementation accelerate the speed of finding neighbors and add the capability of looking for various kind of mobile_ion_specie_1s (not only Na1 in generate_events1). In addtion, generate events3 is also capable of identifying various kind of local environment, which can be used in grain boundary models. Although the _generate_event_kernal is not yet capable of identifying different types of environment. The speed is improved a lot comparing with version2
-
-        Args:
-            structure_file (str, optional): the file name of primitive cell of KMC model. Strictly limited to cif file because only cif parser is capable of taking label information of site. This cif file should include all possible site i.e., no vacancy. For example when dealing with NaSICON The input cif file must be a fully occupied composition, which includes all possible Na sites N4ZSP; the varied Na-Vacancy should only be tuned by occupation list.
-            convert_to_primitive_cell (bool, optional): whether convert to primitive cell. For rhombohedral, if convert_to_primitive_cell, will use the rhombohedral primitive cell, otherwise use the hexagonal primitive cell. Defaults to False.
-            local_env_cutoff_dict (dict, optional): cutoff dictionary for finding the local environment. This will be passed to local_env.cutoffdictNN`. Defaults to {("Li+","Cl-"):4.0,("Li+","Li+"):3.0}.
-            mobile_ion_identifier_type (str, optional): atom identifier type, choose from ["specie", "label"].. Defaults to "specie".
-            mobile_ion_identifiers (tuple, optional): A tuple containing the identifiers for the two mobile ion species involved in an event. Defaults to ("Na1", "Na2").
-            species_to_be_removed (list, optional): list of species to be removed, those species are not involved in the KMC calculation. Defaults to ["O2-","O"].
-            distance_matrix_rtol (float, optional): r tolerance of distance matrix for determining whether the sequence of neighbors are correctly sorted in local envrionment. For grain boundary model, please allow the rtol up to 0.2~0.4, for bulk model, be very strict to 0.01 or smaller. Smaller rtol will also increase the speed for searching neighbors. Defaults to 0.01.
-            distance_matrix_atol (float, optional): absolute tolerance , . Defaults to 0.01.
-            find_nearest_if_fail (bool, optional): if fail to sort the neighbor with given rtolerance and atolerance, find the best sorting that have most similar distance matrix? This should be False for bull model because if fail to find the sorting ,there must be something wrong. For grain boundary , better set this to True because they have various coordination type. Defaults to True.
-            export_local_env_structure (bool, optional): whether to export the local environment structure to cif file. If set to true, for each representatibe local environment structure, a cif file will be generated for further investigation. This is for debug purpose. Once confirming that the code is doing correct thing, it's better to turn off this feature. Defaults to True.
-            supercell_shape (list, optional): shape of supercell passed to the kmc_build_supercell function, array type that can be 1D or 2D. Defaults to [2,1,1].
-            event_file (str, optional): file name for the events json file. Defaults to "events.json".
-            event_dependencies_file (str, optional): file name for event dependencies matrix. Defaults to 'event_dependencies.csv'.
-
-        Raises:
-            NotImplementedError: the atom identifier type=list is not yet implemented
-            ValueError: unrecognized atom identifier type
-            ValueError: if no events are generated, there might be something wrong with cif file? or atom identifier?
-
-        Returns:
-            nothing: nothing is returned
-        """
-
-        # --------------
-        import json
-        from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.external.local_env import CutOffDictNNKMCpy
-
-        from kmcpy.io import convert
-        from kmcpy.event import Event
-        import kmcpy
 
         logger.info(kmcpy.get_logo())
-
-        # generate primitive cell
         primitive_cell = StructureKMCpy.from_cif(
             structure_file, primitive=convert_to_primitive_cell
         )
-        # primitive_cell.add_oxidation_state_by_element({"Na":1,"O":-2,"P":5,"Si":4,"V":2.5})
         primitive_cell.add_oxidation_state_by_guess()
+        if species_to_be_removed:
+            primitive_cell.remove_species(species_to_be_removed)
 
-        primitive_cell.remove_species(species_to_be_removed)
+        if local_env_cutoff_dict is None:
+            if new_style_requested:
+                local_env_cutoff_dict = self._build_uniform_cutoff_dict(
+                    structure=primitive_cell,
+                    mobile_species=mobile_species or ["Na"],
+                    local_env_cutoff=local_env_cutoff or 4.0,
+                )
+            else:
+                local_env_cutoff_dict = {("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0}
 
         logger.info(
-            "primitive cell composition after adding oxidation state and removing uninvolved species: "
+            "primitive cell composition after adding oxidation state and removing uninvolved species: %s",
+            primitive_cell.composition,
         )
-        logger.info(str(primitive_cell.composition))
         logger.info("building migrating_ion index list")
 
         migrating_ion_indices = find_atom_indices(
@@ -748,116 +794,51 @@ class EventGenerator:
             atom_identifier=mobile_ion_identifiers[0],
         )
 
-        # --------
-
         local_env_finder = CutOffDictNNKMCpy(local_env_cutoff_dict)
+        reference_local_env_dict: Dict = {}
+        local_env_info_dict: Dict[int, List[Dict]] = {}
 
-        reference_local_env_dict = {}
-        """this is aimed for grain boundary model. For bulk model, there should be only one type of reference local environment. i.e., len(reference_local_env_dict)=1
-
-        The key is a tuple type: For NaSICON, there is only one type of local environment: 6 Na2 and 6 Si. The tuple is in the format of (('Na+', 6), ('Si4+', 6)) . The key is a NeighborInfoMatcher as the reference local environment.
-        """
-
-        local_env_info_dict = {}
-        """add summary to be done
-
-        """
+        logger.info("start finding the neighboring sequence of migrating_ions")
+        logger.info("total number of migrating_ions:%s", len(migrating_ion_indices))
 
         reference_local_env_type = 0
-
-        logger.info(
-            "start finding the neighboring sequence of migrating_ions"
-        )
-        logger.info(
-            "total number of migrating_ions:" + str(len(migrating_ion_indices))
-        )
-
-        neighbor_has_been_found = 0
-
-        for migrating_ion_index in migrating_ion_indices:
-
-            unsorted_neighbor_sequences = sorted(
-                sorted(
-                    local_env_finder.get_nn_info(primitive_cell, migrating_ion_index),
-                    key=lambda x: x["site"].coords[0],
-                ),
-                key=lambda x: x["site"].specie,
+        for index, migrating_ion_index in enumerate(migrating_ion_indices, start=1):
+            unsorted_neighbor_sequences = (
+                LocalLatticeStructure.ordered_neighbor_info_from_finder(
+                    primitive_cell, migrating_ion_index, local_env_finder
+                )
             )
 
-            this_nninfo = NeighborInfoMatcher.from_neighbor_sequences(
-                unsorted_neighbor_sequences
+            is_new_type, this_nninfo = self._match_or_register_local_environment(
+                primitive_cell=primitive_cell,
+                migrating_ion_index=migrating_ion_index,
+                unsorted_neighbor_sequence=unsorted_neighbor_sequences,
+                reference_local_env_dict=reference_local_env_dict,
+                local_env_info_dict=local_env_info_dict,
+                distance_matrix_rtol=distance_matrix_rtol,
+                distance_matrix_atol=distance_matrix_atol,
+                find_nearest_if_fail=find_nearest_if_fail,
             )
 
-            # print(this_nninfo.build_angle_matrix_from_getnninfo_output(primitive_cell,unsorted_neighbor_sequences))
-
-            if this_nninfo.neighbor_species not in reference_local_env_dict:
-
-                # then take this as the reference neighbor info sequence
-
-                if export_local_env_structure:
-
-                    reference_local_env_sites = [primitive_cell[migrating_ion_index]]
-
-                    for i in unsorted_neighbor_sequences:
-                        reference_local_env_sites.append(i["site"])
-                    
-                    reference_local_env_structure = StructureKMCpy.from_sites(
-                        sites=reference_local_env_sites
-                    )
-
-                    reference_local_env_structure.to(
-                        fmt="cif",
-                        filename=str(reference_local_env_type)
-                        + "th_reference_local_env.cif",
-                    )
-                    reference_local_env_type += 1
-
-                    logger.info(
-                        str(reference_local_env_type)
-                        + "th type of reference local_env structure cif file is created. please check"
-                    )
-
-                reference_local_env_dict[this_nninfo.neighbor_species] = this_nninfo
-
-                local_env_info_dict[
-                    primitive_cell[migrating_ion_index].properties["local_index"]
-                ] = this_nninfo.neighbor_sequence
-
-                logger.info(
-                    "a new type of local environment is recognized with the species "
-                    + str(this_nninfo.neighbor_species)
-                    + " \nthe distance matrix are \n"
-                    + str(this_nninfo.distance_matrix)
+            if is_new_type and export_local_env_structure:
+                reference_local_env_type = self._export_reference_local_environment(
+                    StructureKMCpy,
+                    primitive_cell,
+                    migrating_ion_index,
+                    unsorted_neighbor_sequences,
+                    reference_local_env_type,
                 )
-
-            else:
-                logger.info(
-                    "a local environment is created with the species "
-                    + str(this_nninfo.neighbor_species)
-                    + " \nthe distance matrix are \n"
-                    + str(this_nninfo.distance_matrix)
-                )
-
-                sorted_neighbor_sequence = reference_local_env_dict[
-                    this_nninfo.neighbor_species
-                ].brutal_match(
-                    this_nninfo.neighbor_sequence,
-                    rtol=distance_matrix_rtol,
-                    atol=distance_matrix_atol,
-                    find_nearest_if_fail=find_nearest_if_fail,
-                )
-
-                local_env_info_dict[
-                    primitive_cell[migrating_ion_index].properties["local_index"]
-                ] = sorted_neighbor_sequence
-
-            neighbor_has_been_found += 1
 
             logger.info(
-                str(neighbor_has_been_found)
-                + " out of "
-                + str(len(migrating_ion_indices))
-                + " neighboring sequence has been found"
+                "local environment %s with species %s has distance matrix:\n%s",
+                "registered" if is_new_type else "matched",
+                this_nninfo.neighbor_species,
+                this_nninfo.distance_matrix,
+            )
+            logger.info(
+                "%s out of %s neighboring sequence has been found",
+                index,
+                len(migrating_ion_indices),
             )
 
         supercell = primitive_cell.make_kmc_supercell(supercell_shape)
@@ -869,522 +850,82 @@ class EventGenerator:
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             atom_identifier=mobile_ion_identifiers[0],
         )
+        indices_dict_from_identifier = supercell.kmc_build_dict(skip_check=False)
 
-        events = []
-        events_dict = []
-
-        indices_dict_from_identifier = supercell.kmc_build_dict(
-            skip_check=False
-        )  # a dictionary. Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
-
+        events: List[Event] = []
         for supercell_migrating_ion_index in supercell_migrating_ion_indices:
-
-            # for migrating_ions of newly generated supercell, find the neighbors
-
             supercell_tuple = supercell[supercell_migrating_ion_index].properties[
                 "supercell"
             ]
-
             local_index_of_this_migrating_ion = supercell[
                 supercell_migrating_ion_index
             ].properties["local_index"]
 
-            local_env_info = []  # list of integer / indices of local environment
-
+            local_env_info: List[int] = []
             for neighbor_site_in_primitive_cell in local_env_info_dict[
                 local_index_of_this_migrating_ion
             ]:
-                """
-
-                 local_env_info_dict[local_index_of_this_migrating_ion]
-
-                In primitive cell, the migrating_ion has 1 unique identifier: The "local index inside the primitive cell"
-
-                In supercell, the migrating_ion has an additional unique identifier: "supercell_tuple"
-
-                However, as long as the "local index inside the primitive cell" is the same,
-                no matter which supercell this migrating_ion belongs to,
-                the sequence of "local index" of its neighbor sites are the same.
-                For example, In primitive cell, migrating_ion with index 1 has neighbor arranged in 1,3,2,4,6,5,
-                then for every migrating_ion with index 1 in supercell, the neighbor is arranged in 1,3,2,4,6,5
-
-                In the loop. I'm mapping the sequence in primitive cell to supercell!
-
-                In order to accelerate the speed
-
-                use the dictionary to store the index of atoms
-
-                indices_dict_from_identifier is a dictionary by pymatgen_structure.kmc_build_dict(). Key is the tuple with format of ([supercell[0],supercell[1],supercell[2],label,local_index]) that contains the information of supercell, local index (index in primitive cell), Value is the corresponding global site index.  This hash dict for acceleration purpose
-
-                This loop build the local_env_info list, [supercell_neighbor_index1, supercell_neighbor_index2, .....]
-
-                """
-
                 normalized_supercell_tuple = normalize_supercell_tuple(
                     site_belongs_to_supercell=supercell_tuple,
                     image_of_site=neighbor_site_in_primitive_cell["image"],
                     supercell_shape=supercell_shape,
                 )
-
-                tuple_key_of_such_neighbor_site = supercell.site_index_vector(
+                tuple_key_of_neighbor_site = supercell.site_index_vector(
                     local_index=neighbor_site_in_primitive_cell["local_index"],
                     label=neighbor_site_in_primitive_cell["label"],
                     supercell=normalized_supercell_tuple,
                 )
-
                 local_env_info.append(
-                    indices_dict_from_identifier[tuple_key_of_such_neighbor_site]
+                    indices_dict_from_identifier[tuple_key_of_neighbor_site]
                 )
 
-            for local_env in local_env_info:
-                # generate event
-                """
-                generally use the mobile_ion_identifier_type="label", to see the Na1 and Na2 of nasicon.
-
-                specie is suitable for grain boundary model. Generally don't use it
-
-
-                """
-                if mobile_ion_identifier_type == "specie":
-
-                    if mobile_ion_identifiers[1] in supercell[local_env].species:
-                        # initialize the event using the new Event constructor
-                        this_event = Event(
-                            mobile_ion_indices=(supercell_migrating_ion_index, local_env),
-                            local_env_indices=local_env_info,
+            local_env_indices = tuple(local_env_info)
+            for target_site_index in local_env_info:
+                if self._is_valid_target_site(
+                    supercell[target_site_index],
+                    mobile_ion_identifier_type,
+                    mobile_ion_identifiers[1],
+                ):
+                    events.append(
+                        Event(
+                            mobile_ion_indices=(
+                                supercell_migrating_ion_index,
+                                target_site_index,
+                            ),
+                            local_env_indices=local_env_indices,
                         )
-                        events.append(this_event)
-
-                elif mobile_ion_identifier_type == "label":
-
-                    if (
-                        supercell[local_env].properties["label"]
-                        == mobile_ion_identifiers[1]
-                    ):
-                        # or for understanding, if any site in local environment, its label== "Na2"
-                        # initialize the event using the new Event constructor
-                        this_event = Event(
-                            mobile_ion_indices=(supercell_migrating_ion_index, local_env),
-                            local_env_indices=local_env_info,
-                        )
-                        events.append(this_event)
-
-                elif mobile_ion_identifier_type == "list":
-                    raise NotImplementedError()
-                    # "potentially implement this for grain boundary model"
-
-                else:
-                    raise ValueError(
-                        'unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] '
                     )
 
-        if len(events) == 0:
+        if not events:
             raise ValueError(
                 "There is no event generated. This is probably caused by wrong input parameters."
             )
 
-        # Generate events and create EventLib
-        from kmcpy.event import EventLib
-        
         event_lib = EventLib()
         events_dict = []
-
         for event in events:
             event_lib.add_event(event)
             events_dict.append(event.as_dict())
 
-        logger.info(f"Saving: {event_file}")
+        logger.info("Saving: %s", event_file)
         with open(event_file, "w") as fhandle:
-            jsonStr = json.dumps(events_dict, indent=4, default=convert)
-            fhandle.write(jsonStr)
+            json.dump(events_dict, fhandle, indent=4, default=convert)
 
-        # Generate event dependencies using EventLib
         logger.info("Generating event dependency matrix...")
         event_lib.generate_event_dependencies()
-        
-        # Save event dependencies to file for backward compatibility
         event_lib.save_event_dependencies_to_file(filename=event_dependencies_file)
-        logger.info(f"Event dependencies saved to: {event_dependencies_file}")
+        logger.info("Event dependencies saved to: %s", event_dependencies_file)
 
-        # Display dependency statistics
         stats = event_lib.get_dependency_statistics()
-        logger.info(f"Generated {len(event_lib)} events with dependency statistics: {stats}")
+        logger.info(
+            "Generated %s events with dependency statistics: %s",
+            len(event_lib),
+            stats,
+        )
 
+        self.reference_local_env_dict = reference_local_env_dict
+        self.local_env_info_dict = local_env_info_dict
         return reference_local_env_dict
-
-class ModernEventGenerator:
-    """
-    A modern, streamlined EventGenerator that uses LatticeStructure and LocalLatticeStructure
-    to generate events for kinetic Monte Carlo simulations. It's still under testing.
-    
-    This implementation is cleaner and more maintainable compared to the legacy version,
-    while preserving the critical neighbor sequence matching functionality using NeighborInfoMatcher.
-    """
-    
-    def __init__(self):
-        """Initialize the ModernEventGenerator."""
-        self.lattice_structure = None
-        self.local_environments = {}
-        self.reference_local_envs = {}
-        self.neighbor_matchers = {}  # Store NeighborInfoMatcher objects for consistent ordering
-        
-    def generate_events(
-        self,
-        structure: Union[str, Structure],
-        mobile_species: List[str] = ["Na"],
-        mobile_site_mapping: Optional[Dict] = None,
-        local_env_cutoff: float = 4.0,
-        exclude_species: Optional[List[str]] = None,
-        supercell_matrix: Optional[np.ndarray] = None,
-        distance_matrix_rtol: float = 1e-3,
-        distance_matrix_atol: float = 1e-3,
-        find_nearest_if_fail: bool = True,
-        output_dir: str = ".",
-        event_filename: str = "events.json",
-        dependencies_filename: str = "event_dependencies.csv"
-    ) -> EventLib:
-        """
-        Generate events using modern structure classes with proper neighbor sequence matching.
-        
-        Args:
-            structure: Input structure file path or pymatgen Structure
-            mobile_species: List of mobile species (e.g., ["Na", "Li"])
-            mobile_site_mapping: Mapping of species to possible occupants
-            local_env_cutoff: Cutoff distance for local environment analysis
-            exclude_species: Species to exclude from analysis
-            supercell_matrix: Supercell transformation matrix
-            distance_matrix_rtol: Relative tolerance for distance matrix matching
-            distance_matrix_atol: Absolute tolerance for distance matrix matching
-            find_nearest_if_fail: Find nearest match if exact match fails
-            output_dir: Directory to save output files
-            event_filename: Name of events output file
-            dependencies_filename: Name of dependencies output file
-            
-        Returns:
-            EventLib: Generated events with dependencies
-        """
-        logger.info("Starting modern event generation with neighbor sequence matching...")
-        
-        # Step 1: Load and prepare structure
-        structure = self._load_structure(structure)
-        if exclude_species:
-            structure.remove_species(exclude_species)
-            
-        # Step 2: Create LatticeStructure
-        self.lattice_structure = self._create_lattice_structure(
-            structure, mobile_species, mobile_site_mapping
-        )
-        
-        # Step 3: Find mobile sites
-        mobile_sites = self._find_mobile_sites(structure, mobile_species)
-        
-        # Step 4: Generate local environments with neighbor sequence matching
-        self._generate_local_environments_with_matching(
-            structure, mobile_sites, local_env_cutoff, 
-            distance_matrix_rtol, distance_matrix_atol, find_nearest_if_fail
-        )
-        
-        # Step 5: Create supercell
-        if supercell_matrix is None:
-            supercell_matrix = np.array([[2, 0, 0], [0, 2, 0], [0, 0, 1]])
-        supercell = structure.copy()
-        supercell.make_supercell(supercell_matrix)
-        
-        # Step 6: Generate events
-        events = self._generate_events_from_supercell(supercell, mobile_species)
-        
-        # Step 7: Create EventLib and generate dependencies
-        event_lib = EventLib()
-        for event in events:
-            event_lib.add_event(event)
-            
-        event_lib.generate_event_dependencies()
-        
-        # Step 8: Save results
-        self._save_results(
-            event_lib, output_dir, event_filename, dependencies_filename
-        )
-        
-        logger.info(f"Generated {len(event_lib)} events successfully")
-        return event_lib
-    
-    def _load_structure(self, structure: Union[str, Structure]) -> Structure:
-        """Load structure from file or return existing Structure object."""
-        if isinstance(structure, str):
-            return Structure.from_file(structure)
-        return structure.copy()
-    
-    def _create_lattice_structure(
-        self,
-        structure: Structure,
-        mobile_species: List[str],
-        mobile_site_mapping: Optional[Dict] = None
-    ) -> LatticeStructure:
-        """Create LatticeStructure with appropriate site mapping."""
-        if mobile_site_mapping is None:
-            # Create default mapping where mobile species can be vacant
-            mobile_site_mapping = {}
-            for species in mobile_species:
-                mobile_site_mapping[species] = [species, "X"]  # X represents vacancy
-                
-            # Add immobile species (they can only be themselves)
-            for site in structure:
-                species_str = site.species_string
-                if species_str not in mobile_site_mapping:
-                    mobile_site_mapping[species_str] = [species_str]
-        
-        return LatticeStructure(
-            template_structure=structure,
-            specie_site_mapping=mobile_site_mapping,
-            basis_type='occupation'
-        )
-    
-    def _find_mobile_sites(
-        self, structure: Structure, mobile_species: List[str]
-    ) -> List[int]:
-        """Find indices of mobile sites in the structure."""
-        mobile_sites = []
-        for i, site in enumerate(structure):
-            if site.species_string in mobile_species:
-                mobile_sites.append(i)
-        return mobile_sites
-    
-    def _generate_local_environments_with_matching(
-        self,
-        structure: Structure,
-        mobile_sites: List[int],
-        cutoff: float,
-        rtol: float,
-        atol: float,
-        find_nearest_if_fail: bool = True
-    ):
-        """
-        Generate and classify local environments with proper neighbor sequence matching.
-        
-        This method uses the integrated LocalEnvironmentComparator to ensure that neighbor 
-        sequences are consistently ordered according to distance matrices.
-        """
-        logger.info(f"Analyzing local environments for {len(mobile_sites)} mobile sites with integrated matching...")
-        
-        reference_environments = {}  # signature -> reference LocalLatticeStructure
-        
-        for site_idx in mobile_sites:
-            # Create LocalLatticeStructure for this site
-            local_env = LocalLatticeStructure(
-                template_structure=structure,
-                center=site_idx,
-                cutoff=cutoff,
-                specie_site_mapping=self.lattice_structure.specie_site_mapping
-            )
-            
-            # Get environment signature using the integrated comparator
-            env_signature = local_env.get_environment_signature()
-            
-            if env_signature not in reference_environments:
-                # This is a new type of local environment - use as reference
-                reference_environments[env_signature] = local_env
-                self.reference_local_envs[env_signature] = {
-                    'local_env': local_env,
-                    'sites': [site_idx]
-                }
-                logger.info(f"New local environment type discovered: {env_signature}")
-                
-                # Store the original (reference) environment
-                self.local_environments[site_idx] = local_env
-                
-            else:
-                # Match this environment to the reference
-                reference_env = reference_environments[env_signature]
-                
-                try:
-                    matched_env = local_env.match_with_reference(
-                        reference_env, rtol=rtol, atol=atol, find_nearest_if_fail=find_nearest_if_fail
-                    )
-                    self.local_environments[site_idx] = matched_env
-                    self.reference_local_envs[env_signature]['sites'].append(site_idx)
-                    logger.debug(f"Matched environment for site {site_idx} to reference {env_signature}")
-                    
-                except ValueError as e:
-                    logger.warning(f"Could not match environment for site {site_idx}: {e}")
-                    # Fall back to using the unmatched environment
-                    self.local_environments[site_idx] = local_env
-                    
-        logger.info(f"Processed {len(mobile_sites)} local environments with {len(reference_environments)} unique types")
-    
-    def _create_environment_signature(self, local_env: LocalLatticeStructure) -> str:
-        """Create a unique signature for a local environment type."""
-        # Count species in the local environment
-        species_count = {}
-        for site in local_env.structure:
-            species = site.species_string
-            species_count[species] = species_count.get(species, 0) + 1
-        
-        # Create sorted signature
-        signature_parts = []
-        for species, count in sorted(species_count.items()):
-            signature_parts.append(f"{species}:{count}")
-        
-        return "_".join(signature_parts)
-    
-    def _generate_events_from_supercell(
-        self, supercell: Structure, mobile_species: List[str]
-    ) -> List[Event]:
-        """
-        Generate events by analyzing the supercell with proper neighbor sequence mapping.
-        
-        This method ensures that local environment indices are consistently ordered
-        according to the reference distance matrices established during local environment analysis.
-        """
-        events = []
-        logger.info("Generating events from supercell with consistent neighbor ordering...")
-        
-        # Find mobile sites in supercell
-        mobile_sites_sc = self._find_mobile_sites(supercell, mobile_species)
-        
-        for site_idx in mobile_sites_sc:
-            # Get the local environment type for the corresponding primitive cell site
-            # This is a simplified mapping - in a full implementation, you'd need to 
-            # map supercell sites back to primitive cell sites to get the environment type
-            
-            # Get local environment indices with consistent ordering
-            local_env_indices = self._get_consistent_local_environment_indices(
-                supercell, site_idx
-            )
-            
-            # Generate events with neighbors
-            site = supercell[site_idx]
-            neighbors = supercell.get_neighbors(site, 6.0)  # Reasonable cutoff
-            
-            for neighbor in neighbors:
-                neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
-                
-                # Check if neighbor is also a mobile species site
-                if (neighbor_idx is not None and 
-                    neighbor.species_string in mobile_species and
-                    neighbor_idx != site_idx):
-                    
-                    # Create event with consistently ordered local environment
-                    event = Event(
-                        mobile_ion_indices=(site_idx, neighbor_idx),
-                        local_env_indices=tuple(local_env_indices)
-                    )
-                    events.append(event)
-        
-        return events
-    
-    def _get_consistent_local_environment_indices(
-        self, supercell: Structure, central_site_idx: int, cutoff: float = 4.0
-    ) -> List[int]:
-        """
-        Get indices of sites in the local environment with consistent ordering.
-        
-        This method attempts to maintain the same neighbor ordering as established
-        in the primitive cell analysis. In a full implementation, this would use
-        the stored NeighborInfoMatcher objects to ensure consistent ordering.
-        """
-        central_site = supercell[central_site_idx]
-        neighbors = supercell.get_neighbors(central_site, cutoff)
-        
-        env_indices = []
-        for neighbor in neighbors:
-            neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
-            if neighbor_idx is not None:
-                env_indices.append(neighbor_idx)
-        
-        # Sort by species first, then by coordinate (simplified ordering)
-        # In a full implementation, this would use the distance matrix matching
-        neighbor_data = []
-        for idx in env_indices:
-            site = supercell[idx]
-            neighbor_data.append((idx, site.species_string, site.frac_coords[0]))
-        
-        # Sort by species, then by x-coordinate (mimicking original approach)
-        neighbor_data.sort(key=lambda x: (x[1], x[2]))
-        
-        return [data[0] for data in neighbor_data]
-    
-    def _find_site_index_in_supercell(
-        self, supercell: Structure, target_site
-    ) -> Optional[int]:
-        """Find the index of a target site in the supercell."""
-        for i, site in enumerate(supercell):
-            if np.allclose(site.frac_coords, target_site.frac_coords, atol=1e-4):
-                return i
-        return None
-    
-    def _get_local_environment_indices(
-        self, supercell: Structure, central_site_idx: int, cutoff: float = 4.0
-    ) -> List[int]:
-        """Get indices of sites in the local environment of a central site."""
-        central_site = supercell[central_site_idx]
-        neighbors = supercell.get_neighbors(central_site, cutoff)
-        
-        env_indices = []
-        for neighbor in neighbors:
-            neighbor_idx = self._find_site_index_in_supercell(supercell, neighbor)
-            if neighbor_idx is not None:
-                env_indices.append(neighbor_idx)
-        
-        return env_indices
-    
-    def _save_results(
-        self,
-        event_lib: EventLib,
-        output_dir: str,
-        event_filename: str,
-        dependencies_filename: str
-    ):
-        """Save the generated events and dependencies to files."""
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        # Save events
-        events_file = output_path / event_filename
-        event_lib.to_json(str(events_file))
-        
-        # Save dependencies
-        deps_file = output_path / dependencies_filename
-        event_lib.save_event_dependencies_to_file(str(deps_file))
-        
-        logger.info(f"Results saved to {output_path}")
-
-
-    def get_neighbor_matching_info(self) -> Dict:
-        """
-        Get information about the neighbor matching performed during local environment analysis.
-        
-        Returns:
-            Dict: Information about neighbor matchers and distance matrices
-        """
-        info = {
-            'num_environment_types': len(self.neighbor_matchers),
-            'environment_signatures': list(self.neighbor_matchers.keys()),
-            'distance_matrices': {},
-            'neighbor_species': {}
-        }
-        
-        for env_sig, matcher in self.neighbor_matchers.items():
-            info['distance_matrices'][env_sig] = matcher.distance_matrix.tolist()
-            info['neighbor_species'][env_sig] = matcher.neighbor_species
-        
-        return info
-    
-    def validate_neighbor_consistency(self) -> bool:
-        """
-        Validate that neighbor sequences are consistently ordered.
-        
-        Returns:
-            bool: True if all neighbor sequences are consistent with reference templates
-        """
-        for env_sig, env_data in self.reference_local_envs.items():
-            if 'neighbor_matcher' not in env_data:
-                continue
-                
-            reference_matrix = env_data['neighbor_matcher'].distance_matrix
-            logger.info(f"Environment {env_sig}: Reference distance matrix shape: {reference_matrix.shape}")
-        
-        logger.info("Neighbor consistency validation completed")
-        return True
 
 
     
@@ -1412,13 +953,17 @@ def find_atom_indices(
     mobile_ion_specie_1_indices = []
     if mobile_ion_identifier_type == "specie":
         for i in range(0, len(structure)):
-            if atom_identifier in structure[i].species:
+            if EventGenerator._site_matches_species_identifier(
+                structure[i], atom_identifier
+            ):
                 mobile_ion_specie_1_indices.append(i)
 
     elif mobile_ion_identifier_type == "label":
 
         for i in range(0, len(structure)):
-            if structure[i].properties["label"] == atom_identifier:
+            if EventGenerator._site_matches_label_identifier(
+                structure[i], atom_identifier
+            ):
                 mobile_ion_specie_1_indices.append(i)
 
     # elif mobile_ion_identifier_type=="list":

@@ -6,7 +6,6 @@ This test verifies that the neighbor sequence matching functionality is properly
 integrated into the structure classes.
 """
 
-import numpy as np
 import pytest
 from pymatgen.core import Structure, Lattice
 
@@ -80,59 +79,6 @@ def test_local_environment_comparator_integration():
         pytest.fail(f"Integration test failed: {e}")
 
 
-def test_modern_event_generator_with_comparator():
-    """Test ModernEventGenerator with the integrated comparator."""
-    
-    print("\nTesting ModernEventGenerator with integrated comparator...")
-    
-    try:
-        from kmcpy.event import ModernEventGenerator
-        
-        # Create test structure
-        lattice = Lattice.cubic(6.0)
-        species = ["Na", "Na", "Cl", "Cl", "Cl", "Cl"]
-        coords = [[0, 0, 0], [0.5, 0.5, 0.5], [0.25, 0.25, 0.25], [0.75, 0.75, 0.75], [0.25, 0.75, 0.25], [0.75, 0.25, 0.75]]
-        structure = Structure(lattice, species, coords)
-        
-        # Test modern generator
-        generator = ModernEventGenerator()
-        
-        # Try to generate events
-        try:
-            event_lib = generator.generate_events(
-                structure=structure,
-                mobile_species=["Na"],
-                local_env_cutoff=3.0,
-                supercell_matrix=np.array([[2, 0, 0], [0, 2, 0], [0, 0, 1]]),
-                distance_matrix_rtol=1e-2,
-                distance_matrix_atol=1e-2
-            )
-            
-            print(f"✓ Generated {len(event_lib)} events with integrated comparator")
-            
-            # Check that local environments were properly created
-            if hasattr(generator, 'local_environments') and generator.local_environments:
-                print(f"✓ Created {len(generator.local_environments)} local environments")
-            
-            if hasattr(generator, 'reference_local_envs') and generator.reference_local_envs:
-                print(f"✓ Identified {len(generator.reference_local_envs)} reference environment types")
-            
-            # Test passed successfully
-            
-        except Exception as e:
-            print(f"⚠ Event generation failed but integration may still work: {e}")
-            # Check if the basic structure was created
-            if hasattr(generator, 'lattice_structure') and generator.lattice_structure:
-                print("✓ LatticeStructure was created successfully")
-                # Test passed with basic functionality
-            else:
-                pytest.fail(f"Event generation and basic structure creation both failed: {e}")
-    
-    except Exception as e:
-        print(f"✗ ModernEventGenerator test failed: {e}")
-        pytest.fail(f"ModernEventGenerator test failed: {e}")
-
-
 def test_comparator_functionality():
     """Test basic LocalEnvironmentComparator functionality."""
     
@@ -191,14 +137,7 @@ if __name__ == "__main__":
     except Exception:
         print("✗ test_local_environment_comparator_integration failed")
         
-    try:
-        test_modern_event_generator_with_comparator()
-        print("✓ test_modern_event_generator_with_comparator passed")
-        passed += 1
-    except Exception:
-        print("✗ test_modern_event_generator_with_comparator failed")
-    
-    total = 3
+    total = 2
     
     # Summary
     print(f"\n{'='*50}")
@@ -209,7 +148,6 @@ if __name__ == "__main__":
         print("\nKey achievements:")
         print("  • LocalEnvironmentComparator successfully integrates with LocalLatticeStructure")
         print("  • Neighbor sequence matching is now built into the structure classes") 
-        print("  • ModernEventGenerator uses the integrated approach")
         print("  • Clean separation of concerns between structure analysis and event generation")
     else:
         print("⚠ Some tests failed - this may be expected due to complex dependencies")

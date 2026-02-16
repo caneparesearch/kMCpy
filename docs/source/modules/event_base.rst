@@ -1,7 +1,6 @@
-fitting
+event.base
 =========================
 
-.. automodule:: kmcpy.fitting
+.. automodule:: kmcpy.event.base
     :members:
     :inherited-members:
-                  

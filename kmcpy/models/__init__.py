@@ -10,6 +10,7 @@ from .local_cluster_expansion import LocalClusterExpansion
 from .cluster import Orbit, Cluster
 from .composite_lce_model import CompositeLCEModel
 from .fitting.fitter import BaseFitter, LCEFitter
+from .fitting.registry import register_fitter, get_fitter_for_model
 
 __all__ = [
     'BaseModel',
@@ -18,5 +19,7 @@ __all__ = [
     'Orbit',
     'Cluster',
     'BaseFitter',
-    'LCEFitter'
+    'LCEFitter',
+    'register_fitter',
+    'get_fitter_for_model',
 ]

@@ -9,6 +9,8 @@ import numpy as np
 import json
 import logging
 from kmcpy.models.base import BaseModel
+from kmcpy.models.fitting.fitter import LCEFitter
+from kmcpy.models.fitting.registry import register_fitter
 from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import SimulationState
@@ -28,7 +30,6 @@ class LocalClusterExpansion(BaseModel):
     cutoff_cluster is the cutoff for pairs and triplet
     cutoff_region is the cutoff for generating local cluster region
     """
-
     def __init__(self):
         """
         Initialization of the LocalClusterExpansion object.
@@ -370,6 +371,9 @@ class LocalClusterExpansion(BaseModel):
             "center_site": self.center_site.as_dict(),
             "migration_unit_structure": self.local_env_structure.as_dict()
         }
+
+
+register_fitter(LocalClusterExpansion, LCEFitter)
 
 @nb.njit
 def _calc_corr(corr, occ_latt, cluster_site_indices):
