@@ -5,29 +5,29 @@ API Reference Documentation
     :maxdepth: 4
     :caption: Contents:
 
-    config_io.rst
-    registry.rst
-    data_loader.rst
-    io.rst
-    serialization.rst
-    fitter.rst
-    local_cluster_expansion.rst
-    cluster.rst
-    parameters.rst
-    composite_lce_model.rst
-    model.rst
-    base.rst
-    generators.rst
     gui_wrapper.rst
     run_kmc.rst
+    base.rst
+    generators.rst
+    tracker.rst
+    condition.rst
+    state.rst
     config.rst
     kmc.rst
-    condition.rst
-    tracker.rst
-    state.rst
-    basis.rst
-    comparator.rst
-    lattice_structure.rst
+    data_loader.rst
+    config_io.rst
+    registry.rst
+    serialization.rst
     vacancy.rst
-    local_lattice_structure.rst
     local_environment_comparator.rst
+    comparator.rst
+    local_lattice_structure.rst
+    lattice_structure.rst
+    basis.rst
+    fitter.rst
+    registry.rst
+    base.rst
+    parameters.rst
+    local_cluster_expansion.rst
+    cluster.rst
+    composite_lce_model.rst
