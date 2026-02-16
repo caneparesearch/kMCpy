@@ -27,7 +27,7 @@ kMCpy uses a **rejection-free** (also called "first-reaction") algorithm, which 
    ```
 
    where:
-   - *ν* is the attempt frequency (typically 10¹² - 10¹³ Hz)
+   - *ν* is the attempt frequency (typically 10^12 - 10^13 Hz)
    - *E<sub>b</sub>* is the migration barrier
    - *k<sub>B</sub>* is Boltzmann's constant
    - *T* is temperature
@@ -103,7 +103,7 @@ The fitting process:
 
 1. **Generate training data**: Compute barriers for diverse local configurations
 2. **Build correlation matrix**: Evaluate basis functions for each training sample
-3. **Fit coefficients**: Use ridge regression (L2 regularization) to obtain α<sub>i</sub>
+3. **Fit coefficients**: Use ridge regression (L2 regularization) to obtain *α<sub>i</sub>*
 4. **Validate**: Check RMSE and leave-one-out cross-validation (LOOCV) score
 
 ### Site Energy Model
