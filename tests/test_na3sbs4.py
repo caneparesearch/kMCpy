@@ -73,7 +73,7 @@ class TestNa3SbS4(unittest.TestCase):
         finally:
             os.chdir(original_cwd)
 
-    def test_generate_local_cluster_exapnsion(self):
+    def test_generate_local_cluster_expansion(self):
         from pathlib import Path
         import os
 
