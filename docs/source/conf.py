@@ -82,7 +82,11 @@ nbsphinx_prompt_width = "0"
 master_doc = "index"
 
 
-source_suffix = [".rst", ".md"]
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+    ".ipynb": "jupyter_notebook",
+}
 
 pygments_style = "sphinx"
 pygments_dark_style = "monokai"
