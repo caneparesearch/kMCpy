@@ -88,3 +88,57 @@ def test_get_local_occupation_with_vacancy(global_lattice_model_and_env):
     ]
     
     assert local_occ.array_equal(expected_local_occ)
+
+
+def test_local_lattice_structure_does_not_mutate_input_structure():
+    """LocalLatticeStructure should not mutate the structure passed by the caller."""
+    lattice = Lattice.cubic(10.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "Cl", "Na"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+    specie_site_mapping = {"Na": ["Na", "X"], "Cl": ["Cl"]}
+
+    original_len = len(template_structure)
+    original_species = [site.species_string for site in template_structure]
+
+    LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping=specie_site_mapping,
+        center=[0, 0, 0],
+        cutoff=2.5,
+        exclude_species=["Cl"],
+    )
+
+    assert len(template_structure) == original_len
+    assert [site.species_string for site in template_structure] == original_species
+
+
+def test_sort_neighbor_info_preserves_metadata():
+    """Neighbor sorting helper should preserve metadata while applying deterministic order."""
+    lattice = Lattice.cubic(10.0)
+    structure = Structure(
+        lattice,
+        ["Na", "Cl", "Br"],
+        [[2, 0, 0], [1, 0, 0], [0, 0, 0]],
+        coords_are_cartesian=True,
+    )
+
+    unsorted_neighbors = [
+        {"site": structure[0], "image": (0, 0, 0), "local_index": 2, "label": "Na1"},
+        {"site": structure[2], "image": (1, 0, 0), "local_index": 0, "label": "Br1"},
+        {"site": structure[1], "image": (0, 1, 0), "local_index": 1, "label": "Cl1"},
+    ]
+
+    sorted_neighbors = LocalLatticeStructure.sort_neighbor_info(unsorted_neighbors)
+    expected_neighbors = sorted(
+        unsorted_neighbors, key=lambda x: (x["site"].specie, x["site"].coords[0])
+    )
+
+    assert [id(n) for n in sorted_neighbors] == [id(n) for n in expected_neighbors]
+    for neighbor in sorted_neighbors:
+        assert "label" in neighbor
+        assert "image" in neighbor
+        assert "local_index" in neighbor

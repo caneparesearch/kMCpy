@@ -248,10 +248,35 @@ def main():
             args.events_output_dir, args.event_dependencies_fname
         )
 
+        if isinstance(args.find_nearest_if_fail, str):
+            args.find_nearest_if_fail = args.find_nearest_if_fail.lower() in {
+                "1",
+                "true",
+                "yes",
+                "y",
+            }
+
         print((vars(args)))
 
         generator = EventGenerator()
-        generator.generate_events(**vars(args))
+        generator.generate_events(
+            structure_file=args.prim_cif_name,
+            convert_to_primitive_cell=args.convert_to_primitive_cell,
+            local_env_cutoff_dict=args.local_env_cutoff_dict,
+            mobile_ion_identifier_type=args.mobile_ion_identifier_type,
+            mobile_ion_identifiers=(
+                args.mobile_ion_specie_identifier,
+                args.mobile_ion_specie_2_identifier,
+            ),
+            species_to_be_removed=args.species_to_be_removed,
+            distance_matrix_rtol=args.distance_matrix_rtol,
+            distance_matrix_atol=args.distance_matrix_atol,
+            find_nearest_if_fail=args.find_nearest_if_fail,
+            export_local_env_structure=args.export_local_env_structure,
+            supercell_shape=args.supercell_shape,
+            event_file=args.event_fname,
+            event_dependencies_file=args.event_dependencies_fname,
+        )
 
     if args.command == "KMCSimulation":
 

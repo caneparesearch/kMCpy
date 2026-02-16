@@ -1,8 +1,7 @@
 from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule
 import numpy as np
 import logging
-from typing import TYPE_CHECKING, Optional, List, Dict, Any
-from abc import  abstractmethod
+from typing import TYPE_CHECKING, List, Dict, Any
 
 from kmcpy.structure.lattice_structure import LatticeStructure
 
@@ -22,14 +21,16 @@ class LocalLatticeStructure(LatticeStructure):
                  basis_type = 'chebyshev',
                  is_write_basis=False, 
                  exclude_species=None):
-        
-        super().__init__(template_structure=template_structure, specie_site_mapping=specie_site_mapping,
+        # Work on a copy so local environment construction never mutates the caller's structure.
+        working_structure = template_structure.copy()
+
+        super().__init__(template_structure=working_structure, specie_site_mapping=specie_site_mapping,
                          basis_type=basis_type)
         self.cutoff = cutoff
         self.is_write_basis = is_write_basis
 
         if isinstance(center, int):
-            self.center_site = template_structure[center]
+            self.center_site = self.template_structure[center]
         elif isinstance(center, list) or isinstance(center, tuple) or isinstance(center, np.ndarray):
             self.center_site = PeriodicSite(species=DummySpecies('X'),
                               coords=center,
@@ -38,11 +39,13 @@ class LocalLatticeStructure(LatticeStructure):
             logger.debug(f"Dummy site: {self.center_site}")
         else:
             raise ValueError("Center must be an index or a list of fractional coordinates.")
-        template_structure.remove_oxidation_states()  # Remove oxidation states if present
+        self.template_structure.remove_oxidation_states()  # Remove oxidation states if present
         if exclude_species:
-            template_structure.remove_species(exclude_species)
+            self.template_structure.remove_species(exclude_species)
 
-        local_env_sites = template_structure.get_sites_in_sphere(self.center_site.coords, cutoff, include_index=True)
+        local_env_sites = self.template_structure.get_sites_in_sphere(
+            self.center_site.coords, cutoff, include_index=True
+        )
         
         # Sort by species name
         local_env_sites.sort(key=lambda x: x[0].species_string)
@@ -67,6 +70,34 @@ class LocalLatticeStructure(LatticeStructure):
         # Initialize comparator for neighbor sequence matching
         self._comparator = None
         self._neighbor_info = None
+
+    @staticmethod
+    def sort_neighbor_info(neighbor_info: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Deterministically sort neighbor dictionaries while preserving all metadata.
+
+        The ordering matches the historical event-generator behavior:
+        species first, then x coordinate.
+        """
+        return sorted(
+            sorted(neighbor_info, key=lambda x: x["site"].coords[0]),
+            key=lambda x: x["site"].specie,
+        )
+
+    @classmethod
+    def ordered_neighbor_info_from_finder(
+        cls,
+        structure: Structure,
+        center_index: int,
+        local_env_finder,
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch near-neighbor dictionaries from a finder and return deterministic order.
+
+        This keeps keys such as image/local_index/label intact for downstream
+        primitive-to-supercell mapping.
+        """
+        return cls.sort_neighbor_info(local_env_finder.get_nn_info(structure, center_index))
     
     def get_comparator(self, rtol: float = 1e-3, atol: float = 1e-3) -> 'LocalEnvironmentComparator':
         """
@@ -192,6 +223,16 @@ class LocalLatticeStructure(LatticeStructure):
         Returns:
             LocalLatticeStructure: The created local lattice structure.
         """
-        return cls(template_structure=lattice_structure.structure, center=center, cutoff=cutoff,
-                   specie_site_mapping=specie_site_mapping, basis_type=basis_type,
-                   is_write_basis=is_write_basis, exclude_species=exclude_species)
+        return cls(
+            template_structure=lattice_structure.template_structure,
+            center=center,
+            cutoff=cutoff,
+            specie_site_mapping=(
+                specie_site_mapping
+                if specie_site_mapping is not None
+                else lattice_structure.specie_site_mapping
+            ),
+            basis_type=basis_type,
+            is_write_basis=is_write_basis,
+            exclude_species=exclude_species,
+        )

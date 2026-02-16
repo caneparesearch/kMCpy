@@ -151,7 +151,7 @@ class TestNASICONbulk(unittest.TestCase):
         from kmcpy.event import EventGenerator
 
         generator = EventGenerator()
-        generator.generate_events_legacy(
+        generator.generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -167,7 +167,7 @@ class TestNASICONbulk(unittest.TestCase):
             event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
-        reference_local_env_dict = generator.generate_events_legacy(
+        reference_local_env_dict = generator.generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,

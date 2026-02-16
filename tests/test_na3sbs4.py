@@ -19,7 +19,7 @@ class TestNa3SbS4(unittest.TestCase):
         local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
         from kmcpy.event import EventGenerator
 
-        reference_local_env_dict = EventGenerator().generate_events_legacy(
+        reference_local_env_dict = EventGenerator().generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_ion_identifier_type=mobile_ion_identifier_type,
@@ -38,6 +38,32 @@ class TestNa3SbS4(unittest.TestCase):
         self.assertEqual(
             len(reference_local_env_dict), 1
         )  # only one type of local environment should be found. If more than 1, raise error.
+
+    def test_generate_events_with_new_style_arguments(self):
+        from pathlib import Path
+        import os
+        import tempfile
+
+        current_dir = Path(__file__).absolute().parent
+        os.chdir(current_dir)
+        structure_file = f"{file_path}/Na3SbS4_cubic.cif"
+
+        from kmcpy.event import EventGenerator
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            reference_local_env_dict = EventGenerator().generate_events(
+                structure_file=structure_file,
+                mobile_species=["Na"],
+                local_env_cutoff=5.0,
+                exclude_species=["S2-", "S", "Zr4+", "Zr"],
+                supercell_shape=[2, 2, 2],
+                event_file=os.path.join(tmpdir, "events.json"),
+                event_dependencies_file=os.path.join(tmpdir, "event_dependencies.csv"),
+                rtol=0.01,
+                atol=0.01,
+            )
+
+            self.assertGreaterEqual(len(reference_local_env_dict), 1)
 
     def test_generate_local_cluster_exapnsion(self):
         from pathlib import Path
