@@ -4,7 +4,7 @@ This module provides the Fitting class for generating and storing fitting result
 """
 from abc import ABC, abstractmethod
 import json
-from kmcpy.io.io import convert
+from kmcpy.io import convert
 import logging
 from kmcpy.models.parameters import LCEModelParameters, LCEModelParamHistory
 import os

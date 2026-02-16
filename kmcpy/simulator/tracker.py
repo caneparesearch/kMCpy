@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from copy import copy
 import json
-from kmcpy.io.io import convert, Results
+from kmcpy.io import convert
 import logging
 from kmcpy.external.structure import StructureKMCpy
 from typing import TYPE_CHECKING, Optional
@@ -17,6 +17,31 @@ if TYPE_CHECKING:
     from kmcpy.simulator.state import SimulationState
 
 logger = logging.getLogger(__name__) 
+
+RESULT_FIELDS = (
+    "time",
+    "D_J",
+    "D_tracer",
+    "conductivity",
+    "f",
+    "H_R",
+    "msd",
+)
+
+
+def _create_result_store() -> dict:
+    return {field: [] for field in RESULT_FIELDS}
+
+
+def _append_result(store: dict, time, D_J, D_tracer, conductivity, f, H_R, msd) -> None:
+    store["time"].append(time)
+    store["D_J"].append(D_J)
+    store["D_tracer"].append(D_tracer)
+    store["conductivity"].append(conductivity)
+    store["f"].append(f)
+    store["H_R"].append(H_R)
+    store["msd"].append(msd)
+
 
 class Tracker:
     """
@@ -55,8 +80,8 @@ class Tracker:
         initial_occ = initial_state.occupations if initial_state else occ_initial
         self._initialize_mobile_ion_tracking(initial_occ)
         
-        # Results storage (only responsibility of Tracker)
-        self.results = Results()
+        # Results storage (owned by Tracker).
+        self.results = _create_result_store()
         self.current_pass = 0
         
         logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
@@ -450,7 +475,7 @@ class Tracker:
             table_str = "\n" + pd.DataFrame(summary_data, columns=["Property", "Value"]).to_string(index=False)
             logger.debug('Tracker Summary:%s', table_str)
 
-        self.results.add(copy(self.time), D_J, D_tracer, conductivity, f, H_R, msd)
+        _append_result(self.results, copy(self.time), D_J, D_tracer, conductivity, f, H_R, msd)
 
     def write_results(self, current_occupation:list, label:str = None)-> None:
         """
@@ -488,7 +513,7 @@ class Tracker:
             results_file = f"results_{label}.csv.gz"
         else:
             results_file = "results.csv.gz"
-        self.results.to_dataframe().to_csv(results_file, compression="gzip", index=False)
+        pd.DataFrame(self.results).to_csv(results_file, compression="gzip", index=False)
 
     def as_dict(self)-> dict:
         d = {

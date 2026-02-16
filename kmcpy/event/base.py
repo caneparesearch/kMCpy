@@ -10,7 +10,7 @@ the local environment indices. All energy calculations are now handled by the mo
 import numpy as np
 import numba as nb
 import json
-from kmcpy.io.io import convert
+from kmcpy.io import convert
 import logging
 from abc import ABC
 from numba.typed import List

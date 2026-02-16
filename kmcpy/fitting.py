@@ -11,7 +11,7 @@ import logging
 
 import pandas as pd
 
-from kmcpy.io.io import convert
+from kmcpy.io import convert
 from kmcpy.models.fitting.fitter import LCEFitter
 
 logger = logging.getLogger(__name__)

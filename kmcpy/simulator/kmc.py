@@ -11,7 +11,7 @@ import numpy as np
 import json
 from kmcpy.simulator.tracker import Tracker
 from kmcpy.event import Event, EventLib
-from kmcpy.io.io import convert
+from kmcpy.io import convert
 import logging
 import kmcpy
 from typing import TYPE_CHECKING

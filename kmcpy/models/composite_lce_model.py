@@ -211,7 +211,7 @@ class CompositeLCEModel(CompositeModel):
         """
         Create a CompositeLCEModel from a dictionary.
         """
-        from kmcpy.io.io import convert
+        from kmcpy.io import convert
         site_model = convert(d["site_model"]) if d.get("site_model") else None
         kra_model = convert(d["kra_model"]) if d.get("kra_model") else None
         return cls(site_model=site_model, kra_model=kra_model, name=d.get("name"))
