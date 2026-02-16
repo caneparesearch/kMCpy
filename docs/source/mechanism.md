@@ -48,11 +48,11 @@ Computing migration barriers for every possible local configuration in a crystal
 
 ### Model Formulation
 
-The LCE model expresses the migration barrier as a weighted sum of basis functions that describe the local environment:
+The LCE model expresses the migration barrier as a sum of basis functions that describe the local environment:
 
-$$E_b = E_0 + \sum_i w_i \alpha_i f_i(\sigma)$$
+$$E_b = E_0 + \sum_i \alpha_i f_i(\sigma)$$
 
-where $E_0$ is the base barrier for an empty cluster, $w_i$ are cluster weights that account for symmetry and multiplicity, $\alpha_i$ are fitted expansion coefficients, $f_i(\sigma)$ are basis functions evaluated on the local environment, and $\sigma$ represents the occupation state of neighboring sites.
+where $E_0$ is the base barrier for an empty cluster, $\alpha_i$ are fitted expansion coefficients, $f_i(\sigma)$ are basis functions evaluated on the local environment, and $\sigma$ represents the occupation state of neighboring sites. The basis functions sum over all symmetry-equivalent configurations within each cluster orbit.
 
 ### Basis Functions
 
