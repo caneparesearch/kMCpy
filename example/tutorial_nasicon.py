@@ -161,7 +161,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
         kmc_passes=args.kmc_passes,
         supercell_shape=args.supercell_shape,
         immutable_sites=("Zr", "O", "Zr4+", "O2-"),
-        convert_to_primitive_cell=True,
+        convert_to_primitive_cell=False,
         mobile_ion_charge=1.0,
         elementary_hop_distance=3.47782,
         dimension=3,
