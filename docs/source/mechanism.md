@@ -75,7 +75,7 @@ The fitting procedure involves:
 3. Using ridge regression (L2 regularization) to fit the coefficients $\alpha_i$ while avoiding overfitting.
 4. Validating the model by checking the root mean squared error (RMSE) and leave-one-out cross-validation (LOOCV) score.
 
-### Site Energy and Barrier Contributions
+### Model
 
 kMCpy uses a composite model that combines two LCE components: one for migration barriers (E_KRA) and one for site energy differences. This separation is important because the rate of an ion hop depends both on the barrier height and on the relative stability of the initial and final sites.
 
