@@ -27,7 +27,7 @@ kMCpy uses a **rejection-free** (also called "first-reaction") algorithm, which 
    ```
 
    where:
-   - *ν* is the attempt frequency (typically 10^12 - 10^13 Hz)
+   - *ν* is the attempt frequency (typically 10<sup>12</sup> - 10<sup>13</sup> Hz)
    - *E<sub>b</sub>* is the migration barrier
    - *k<sub>B</sub>* is Boltzmann's constant
    - *T* is temperature
