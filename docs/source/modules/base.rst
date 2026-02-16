@@ -1,7 +1,7 @@
-modern_event_generator
+base
 =========================
 
-.. automodule:: kmcpy.event.modern_event_generator
+.. automodule:: kmcpy.event.base
     :members:
     :inherited-members:
                   
