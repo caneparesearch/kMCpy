@@ -175,6 +175,10 @@ class LocalClusterExpansion(BaseModel):
             from numba.typed import List
             converted_list = List([List(List(int(k) for k in j) for j in i) for i in obj.cluster_site_indices])
             obj.cluster_site_indices = converted_list
+
+        # Legacy JSON fixtures may not include `name`; keep serialization robust.
+        if not getattr(obj, "name", None):
+            obj.name = cls.__name__
         
         return obj
 
