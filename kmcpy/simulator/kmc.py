@@ -267,7 +267,8 @@ class KMC:
         for _ in np.arange(config.equilibration_passes):
             for _ in np.arange(pass_length):
                 event, dt = self.propose(self.event_lib.events)
-                self.update(event)
+                # Keep equilibration out of production time accounting.
+                self.update(event, dt=0.0)
 
         logger.info("Start running kMC ...")
 
@@ -284,10 +285,11 @@ class KMC:
             for _ in np.arange(pass_length):
                 event, dt = self.propose(self.event_lib.events)
                 
-                # Standard workflow - let Tracker handle mobile ion tracking
-                final_occupations = self.simulation_state.occupations
-                tracker.update(event, final_occupations, dt)
-                self.update(event)
+                # Tracker observes the pre-event occupation snapshot.
+                current_occupations = self.simulation_state.occupations
+                tracker.update(event, current_occupations, dt)
+                # KMC is the single owner of mutable simulation state updates.
+                self.update(event, dt=dt)
             
             tracker.update_current_pass(current_pass)
             tracker.compute_properties()
