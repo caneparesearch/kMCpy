@@ -7,7 +7,7 @@ API Reference Documentation
 
     gui_wrapper.rst
     run_kmc.rst
-    base.rst
+    event_base.rst
     generators.rst
     tracker.rst
     condition.rst
@@ -16,7 +16,7 @@ API Reference Documentation
     kmc.rst
     data_loader.rst
     config_io.rst
-    registry.rst
+    io_registry.rst
     serialization.rst
     vacancy.rst
     local_environment_comparator.rst
