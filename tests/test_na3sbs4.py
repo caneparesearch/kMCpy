@@ -11,33 +11,37 @@ class TestNa3SbS4(unittest.TestCase):
         import os
 
         current_dir = Path(__file__).absolute().parent
-        os.chdir(current_dir)
-        mobile_ion_identifier_type = "label"
-        mobile_ion_specie_identifier = "Na1"
-        mobile_ion_specie_2_identifier = "Na1"
-        structure_file = f"{file_path}/Na3SbS4_cubic.cif"
-        local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
-        from kmcpy.event import EventGenerator
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(current_dir)
+            mobile_ion_identifier_type = "label"
+            mobile_ion_specie_identifier = "Na1"
+            mobile_ion_specie_2_identifier = "Na1"
+            structure_file = f"{file_path}/Na3SbS4_cubic.cif"
+            local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
+            from kmcpy.event import EventGenerator
 
-        reference_local_env_dict = EventGenerator().generate_events(
-            structure_file=structure_file,
-            local_env_cutoff_dict=local_env_cutoff_dict,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_identifiers=("Na1", "Na1"),
-            species_to_be_removed=["S2-", "S", "Zr4+", "Zr"],
-            distance_matrix_rtol=0.01,
-            distance_matrix_atol=0.01,
-            find_nearest_if_fail=False,
-            convert_to_primitive_cell=False,
-            export_local_env_structure=True,
-            supercell_shape=[3, 3, 3],
-            event_file=f"{file_path}/events.json",
-            event_dependencies_file=f"{file_path}/event_dependencies.csv",
-        )
+            reference_local_env_dict = EventGenerator().generate_events(
+                structure_file=structure_file,
+                local_env_cutoff_dict=local_env_cutoff_dict,
+                mobile_ion_identifier_type=mobile_ion_identifier_type,
+                mobile_ion_identifiers=("Na1", "Na1"),
+                species_to_be_removed=["S2-", "S", "Zr4+", "Zr"],
+                distance_matrix_rtol=0.01,
+                distance_matrix_atol=0.01,
+                find_nearest_if_fail=False,
+                convert_to_primitive_cell=False,
+                export_local_env_structure=True,
+                supercell_shape=[3, 3, 3],
+                event_file=f"{file_path}/events.json",
+                event_dependencies_file=f"{file_path}/event_dependencies.csv",
+            )
 
-        self.assertEqual(
-            len(reference_local_env_dict), 1
-        )  # only one type of local environment should be found. If more than 1, raise error.
+            self.assertEqual(
+                len(reference_local_env_dict), 1
+            )  # only one type of local environment should be found. If more than 1, raise error.
+        finally:
+            os.chdir(original_cwd)
 
     def test_generate_events_with_new_style_arguments(self):
         from pathlib import Path
@@ -45,58 +49,66 @@ class TestNa3SbS4(unittest.TestCase):
         import tempfile
 
         current_dir = Path(__file__).absolute().parent
-        os.chdir(current_dir)
-        structure_file = f"{file_path}/Na3SbS4_cubic.cif"
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(current_dir)
+            structure_file = f"{file_path}/Na3SbS4_cubic.cif"
 
-        from kmcpy.event import EventGenerator
+            from kmcpy.event import EventGenerator
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            reference_local_env_dict = EventGenerator().generate_events(
-                structure_file=structure_file,
-                mobile_species=["Na"],
-                local_env_cutoff=5.0,
-                exclude_species=["S2-", "S", "Zr4+", "Zr"],
-                supercell_shape=[2, 2, 2],
-                event_file=os.path.join(tmpdir, "events.json"),
-                event_dependencies_file=os.path.join(tmpdir, "event_dependencies.csv"),
-                rtol=0.01,
-                atol=0.01,
-            )
+            with tempfile.TemporaryDirectory() as tmpdir:
+                reference_local_env_dict = EventGenerator().generate_events(
+                    structure_file=structure_file,
+                    mobile_species=["Na"],
+                    local_env_cutoff=5.0,
+                    exclude_species=["S2-", "S", "Zr4+", "Zr"],
+                    supercell_shape=[2, 2, 2],
+                    event_file=os.path.join(tmpdir, "events.json"),
+                    event_dependencies_file=os.path.join(tmpdir, "event_dependencies.csv"),
+                    rtol=0.01,
+                    atol=0.01,
+                )
 
-            self.assertGreaterEqual(len(reference_local_env_dict), 1)
+                self.assertGreaterEqual(len(reference_local_env_dict), 1)
+        finally:
+            os.chdir(original_cwd)
 
-    def test_generate_local_cluster_exapnsion(self):
+    def test_generate_local_cluster_expansion(self):
         from pathlib import Path
         import os
 
         current_dir = Path(__file__).absolute().parent
-        os.chdir(current_dir)
-        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-        from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-        from kmcpy.external.structure import StructureKMCpy
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(current_dir)
+            from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+            from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+            from kmcpy.external.structure import StructureKMCpy
 
-        mobile_ion_identifier_type = "label"
-        mobile_ion_specie_identifier = "Na1"
-        structure = StructureKMCpy.from_cif(
-            filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
-        )
-        a = LocalClusterExpansion()
-        local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
-                                     specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
-                                     basis_type="chebyshev")
-        a.build(
-            local_lattice_structure=local_lattice_structure,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_identifier=mobile_ion_specie_identifier,
-            cutoff_cluster=[6, 6, 0],
-            cutoff_region=5,
-            template_structure_fname=f"{file_path}/Na3SbS4_cubic.cif",  # LCE still uses legacy param name
-            convert_to_primitive_cell=True,
-            is_write_basis=True,
-            species_to_be_removed=["S2-", "S"],
-        )
-        # Basic test - should verify object creation
-        self.assertEqual(1, 1)
+            mobile_ion_identifier_type = "label"
+            mobile_ion_specie_identifier = "Na1"
+            structure = StructureKMCpy.from_cif(
+                filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
+            )
+            a = LocalClusterExpansion()
+            local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
+                                         specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
+                                         basis_type="chebyshev")
+            a.build(
+                local_lattice_structure=local_lattice_structure,
+                mobile_ion_identifier_type=mobile_ion_identifier_type,
+                mobile_ion_specie_identifier=mobile_ion_specie_identifier,
+                cutoff_cluster=[6, 6, 0],
+                cutoff_region=5,
+                template_structure_fname=f"{file_path}/Na3SbS4_cubic.cif",  # LCE still uses legacy param name
+                convert_to_primitive_cell=True,
+                is_write_basis=True,
+                species_to_be_removed=["S2-", "S"],
+            )
+            # Basic test - should verify object creation
+            self.assertEqual(1, 1)
+        finally:
+            os.chdir(original_cwd)
 
     def test_simulation_config_basic(self):
         """Test basic SimulationConfig functionality for Na3SbS4."""
