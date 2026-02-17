@@ -25,7 +25,7 @@ jupyter-client==8.8.0
 jupyter-core==5.9.1
 jupyterlab-pygments==0.3.0
 kiwisolver==1.4.9
-kmcpy==0.2.3
+kmcpy==0.2.4
 llvmlite==0.46.0
 markdown-it-py==4.0.0
 markupsafe==3.0.3
