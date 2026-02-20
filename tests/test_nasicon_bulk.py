@@ -1,7 +1,7 @@
 import unittest
 import pytest
 import os
-from kmcpy.simulator.condition import (
+from kmcpy.simulator.config import (
     SimulationConfig,
 )
 
@@ -294,8 +294,8 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("kmc_modernized")
     def test_kmc_main_function_modernized(self):
-        """Modernized KMC test using SimulationCondition approach."""
-        print("Testing modernized KMC workflow with SimulationCondition")
+        """Modernized KMC test using SimulationConfig approach."""
+        print("Testing modernized KMC workflow with SimulationConfig")
 
         from kmcpy.simulator.config import SimulationConfig
         from kmcpy.simulator.kmc import KMC
@@ -333,7 +333,7 @@ class TestNASICONbulk(unittest.TestCase):
             kmc_tracker = kmc.run(config)
 
             print(
-                f"Modern SimulationCondition results: {kmc_tracker.return_current_info()}"
+                f"Modern SimulationConfig results: {kmc_tracker.return_current_info()}"
             )
 
             # Should produce identical results to the original test
@@ -356,7 +356,7 @@ class TestNASICONbulk(unittest.TestCase):
                 )
             )
 
-            print("✅ Modern SimulationCondition approach produces identical results!")
+            print("✅ Modern SimulationConfig approach produces identical results!")
 
         finally:
             os.chdir(original_cwd)
@@ -388,12 +388,11 @@ class TestNASICONbulk(unittest.TestCase):
                 print(i, occ1[i], occ2[i])
         self.assertTrue(np.allclose(occ1[0], occ2[0], rtol=0.001, atol=0.001))
 
-    @pytest.mark.order("simulation_condition_basic")
-    def test_simulation_condition_with_nasicon(self):
-        """Test SimulationCondition integration with NASICON test files."""
-        print("Testing SimulationCondition with NASICON files")
+    @pytest.mark.order("simulation_config_basic")
+    def test_simulation_config_with_nasicon(self):
+        """Test SimulationConfig integration with NASICON test files."""
+        print("Testing SimulationConfig with NASICON files")
 
-        from kmcpy.simulator.condition import SimulationConfig
         from kmcpy.simulator.kmc import KMC
 
         # Check if required files exist
@@ -446,12 +445,12 @@ class TestNASICONbulk(unittest.TestCase):
                 f"⚠ KMC instance creation failed (expected with test files): {type(e).__name__}"
             )
 
-        print("✅ SimulationCondition NASICON integration test completed")
+        print("✅ SimulationConfig NASICON integration test completed")
 
-    @pytest.mark.order("simulation_condition_parameters")
-    def test_simulation_condition_parameter_studies(self):
-        """Test SimulationCondition parameter study capabilities."""
-        print("Testing SimulationCondition parameter studies")
+    @pytest.mark.order("simulation_config_parameters")
+    def test_simulation_config_parameter_studies(self):
+        """Test SimulationConfig parameter study capabilities."""
+        print("Testing SimulationConfig parameter studies")
 
         from tests.test_utils import create_temperature_series
 
@@ -571,9 +570,9 @@ class TestNASICONbulk(unittest.TestCase):
             os.chdir(original_cwd)
 
     @pytest.mark.order("kmc_workflow")
-    def test_kmc_simulation_condition_workflow(self):
-        """Test complete KMC workflow using SimulationCondition approach."""
-        print("Testing complete KMC workflow with SimulationCondition")
+    def test_kmc_simulation_config_workflow(self):
+        """Test complete KMC workflow using SimulationConfig approach."""
+        print("Testing complete KMC workflow with SimulationConfig")
 
         from kmcpy.simulator.config import SimulationConfig
         from kmcpy.simulator.kmc import KMC
@@ -603,7 +602,7 @@ class TestNASICONbulk(unittest.TestCase):
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,
                 random_seed=12345,
-                name="NASICON_SimulationCondition_Test",
+                name="NASICON_SimulationConfig_Test",
                 initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
@@ -617,7 +616,7 @@ class TestNASICONbulk(unittest.TestCase):
             print("Running KMC simulation using run method...")
             tracker = kmc.run(config)
             results = tracker.return_current_info()
-            print(f"✓ SimulationCondition results: {results}")
+            print(f"✓ SimulationConfig results: {results}")
 
             # Test 3: Verify results match expected values (same as original test)
             expected_results = np.array(
@@ -634,7 +633,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             self.assertTrue(
                 np.allclose(np.array(results), expected_results, rtol=0.01, atol=0.01),
-                f"SimulationCondition results don't match expected: {results} vs {expected_results}",
+                f"SimulationConfig results don't match expected: {results} vs {expected_results}",
             )
 
             # Test 4: Demonstrate configuration modification for parameter studies
@@ -656,13 +655,13 @@ class TestNASICONbulk(unittest.TestCase):
             # Test 5: Show serialization capabilities
             config_dict = config.to_dict()
             self.assertIn("temperature", config_dict)
-            self.assertIn("kmc_pass", config_dict)  # kmc_passes stored as 'kmc_pass'
+            self.assertIn("kmc_passes", config_dict)
 
             print("✓ Configuration serialization works")
 
-            print("\n✅ Complete SimulationCondition workflow test passed!")
+            print("\n✅ Complete SimulationConfig workflow test passed!")
             print(
-                "✅ SimulationCondition system is working correctly and produces expected results!"
+                "✅ SimulationConfig system is working correctly and produces expected results!"
             )
 
         finally:

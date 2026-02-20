@@ -150,11 +150,10 @@ class TestNa3SbS4(unittest.TestCase):
         config_dict = config.to_dict()
         self.assertIn('name', config_dict)
         self.assertIn('temperature', config_dict)
-        # Note: to_dict() uses legacy key names
-        self.assertIn('equ_pass', config_dict)  # maps from equilibration_passes
-        self.assertIn('kmc_pass', config_dict)  # maps from kmc_passes
-        self.assertEqual(config_dict['equ_pass'], 100)
-        self.assertEqual(config_dict['kmc_pass'], 500)
+        self.assertIn('equilibration_passes', config_dict)
+        self.assertIn('kmc_passes', config_dict)
+        self.assertEqual(config_dict['equilibration_passes'], 100)
+        self.assertEqual(config_dict['kmc_passes'], 500)
         
         # Test property access
         self.assertEqual(config.name, "Na3SbS4_Test")

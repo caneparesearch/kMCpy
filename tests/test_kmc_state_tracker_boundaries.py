@@ -73,12 +73,14 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     class FakeTracker:
         last_instance = None
 
-        def __init__(self, config, structure, initial_state, **kwargs):
+        def __init__(self, config, structure, initial_state):
             self.config = config
             self.structure = structure
             self.state = initial_state
             self.observed_times = []
             self.received_dts = []
+            self.attachments = {}
+            self.property_enabled = {}
             FakeTracker.last_instance = self
 
         def update(self, event, current_occ, dt):
@@ -88,7 +90,27 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
         def update_current_pass(self, current_pass):
             self.current_pass = current_pass
 
-        def compute_properties(self):
+        def set_global_property_frequency(self, interval=None, time_interval=None):
+            self.interval = interval
+            self.time_interval = time_interval
+
+        def set_property_enabled(self, name, enabled):
+            self.property_enabled[name] = enabled
+
+        def attach(self, func, interval=None, time_interval=None, name=None, store=True, max_records=None, on_error=None, enabled=True):
+            callback_name = name or getattr(func, "__name__", "attached_property")
+            self.attachments[callback_name] = {
+                "func": func,
+                "interval": interval,
+                "time_interval": time_interval,
+                "store": store,
+                "max_records": max_records,
+                "on_error": on_error,
+                "enabled": enabled,
+            }
+            return callback_name
+
+        def sample_properties(self, step, sim_time):
             return None
 
         def show_current_info(self):
@@ -147,13 +169,13 @@ def test_tracker_custom_property_step_interval():
     def custom_prop(sim_state, step, sim_time):
         return {"step": step, "time": sim_time, "sites": len(sim_state.occupations)}
 
-    tracker.register_property(custom_prop, name="custom", interval=2)
+    tracker.attach(custom_prop, name="custom", interval=2)
     for step in range(1, 6):
         state.step = step
         state.time = step * 0.1
-        tracker.maybe_compute_properties(step=step, sim_time=state.time)
+        tracker.sample_properties(step=step, sim_time=state.time)
 
-    records = tracker.get_custom_results("custom")
+    records = tracker.get_property_records("custom")
     assert [record["step"] for record in records] == [2, 4]
     assert records[-1]["value"]["sites"] == 3
 
@@ -163,7 +185,7 @@ def test_tracker_custom_property_time_interval():
     tracker, state = _make_tracker()
     tracker.set_global_property_frequency(interval=100, time_interval=None)
 
-    tracker.register_property(
+    tracker.attach(
         lambda sim_state, step, sim_time: (step, sim_time, sim_state.step),
         name="time_prop",
         time_interval=1.0,
@@ -171,21 +193,21 @@ def test_tracker_custom_property_time_interval():
     for step in range(1, 7):
         state.step = step
         state.time = step * 0.4
-        tracker.maybe_compute_properties(step=step, sim_time=state.time)
+        tracker.sample_properties(step=step, sim_time=state.time)
 
-    records = tracker.get_custom_results("time_prop")
+    records = tracker.get_property_records("time_prop")
     assert [record["step"] for record in records] == [3, 6]
 
 
 @pytest.mark.unit
 def test_tracker_builtin_disable_emits_nan():
     tracker, state = _make_tracker()
-    tracker.disable_builtin_property("msd")
+    tracker.set_property_enabled("msd", False)
     tracker.set_global_property_frequency(interval=1, time_interval=None)
 
     state.step = 1
     state.time = 1.0
-    tracker.maybe_compute_properties(step=1, sim_time=1.0)
+    tracker.sample_properties(step=1, sim_time=1.0)
 
     assert np.isnan(tracker.results["msd"][-1])
     assert "msd" in tracker.results
@@ -205,7 +227,7 @@ def test_tracker_callback_error_handling():
         called["count"] += 1
         return True
 
-    tracker.register_property(
+    tracker.attach(
         bad_callback,
         name="recoverable",
         interval=1,
@@ -213,14 +235,14 @@ def test_tracker_callback_error_handling():
     )
     state.step = 1
     state.time = 1.0
-    tracker.maybe_compute_properties(step=1, sim_time=1.0)
+    tracker.sample_properties(step=1, sim_time=1.0)
     assert called["count"] == 1
 
-    tracker.register_property(bad_callback, name="fatal", interval=1)
+    tracker.attach(bad_callback, name="fatal", interval=1)
     state.step = 2
     state.time = 2.0
     with pytest.raises(CallbackExecutionError):
-        tracker.maybe_compute_properties(step=2, sim_time=2.0)
+        tracker.sample_properties(step=2, sim_time=2.0)
 
 
 @pytest.mark.unit
@@ -228,10 +250,10 @@ def test_tracker_write_results_includes_custom_records(tmp_path):
     tracker, state = _make_tracker()
     tracker.set_global_property_frequency(interval=1, time_interval=None)
 
-    tracker.register_property(lambda *_: {"a": 1, "b": [1, 2]}, name="custom", interval=1)
+    tracker.attach(lambda *_: {"a": 1, "b": [1, 2]}, name="custom", interval=1)
     state.step = 1
     state.time = 1.0
-    tracker.maybe_compute_properties(step=1, sim_time=1.0)
+    tracker.sample_properties(step=1, sim_time=1.0)
 
     old_cwd = Path.cwd()
     try:
@@ -240,7 +262,7 @@ def test_tracker_write_results_includes_custom_records(tmp_path):
     finally:
         os.chdir(old_cwd)
 
-    output_file = tmp_path / "custom_results_unit.json.gz"
+    output_file = tmp_path / "properties_unit.json.gz"
     assert output_file.exists()
     with gzip.open(output_file, "rt", encoding="utf-8") as fhandle:
         payload = json.load(fhandle)
@@ -263,8 +285,8 @@ def test_kmc_attachment_management():
     kmc.set_property_frequency(interval=5, time_interval=None)
     assert kmc._property_frequency_interval == 5
 
-    kmc.disable_property("msd")
-    assert "msd" in kmc.list_builtin_properties()
+    kmc.set_property_enabled("msd", False)
+    assert kmc._property_enabled["msd"] is False
 
     kmc.detach("p1")
     assert kmc.list_attachments() == []

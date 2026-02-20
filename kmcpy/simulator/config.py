@@ -35,7 +35,7 @@ class SystemConfig:
     elementary_hop_distance: float = 1.0
     
     # Model configuration
-    model_type: str = "composite_lce"  # Default to composite_lce for backward compatibility
+    model_type: str = "composite_lce"
     cluster_expansion_file: str = ""
     cluster_expansion_site_file: Optional[str] = None
     fitting_results_file: str = ""
@@ -109,13 +109,14 @@ class RuntimeConfig:
             raise ValueError("KMC passes must be positive")
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary with legacy key names."""
+        """Convert to dictionary."""
         return {
-            'temperature': self.temperature,
-            'equ_pass': self.equilibration_passes,
-            'kmc_pass': self.kmc_passes,
-            'random_seed': self.random_seed,
-            'name': self.name
+            "temperature": self.temperature,
+            "attempt_frequency": self.attempt_frequency,
+            "equilibration_passes": self.equilibration_passes,
+            "kmc_passes": self.kmc_passes,
+            "random_seed": self.random_seed,
+            "name": self.name,
         }
 
 
@@ -227,7 +228,8 @@ class SimulationConfig:
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
             'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
             'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
+            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
+            'initial_state_file', 'initial_occupations'
         }
         
         # RuntimeConfig parameter names

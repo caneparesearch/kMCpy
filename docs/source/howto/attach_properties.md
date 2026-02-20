@@ -51,17 +51,17 @@ kmc.attach(other_property, time_interval=1e-8)
 Built-ins are enabled by default and written to `results_<label>.csv.gz`:
 
 - `msd`
-- `D_J`
-- `D_tracer`
+- `jump_diffusivity`
+- `tracer_diffusivity`
 - `conductivity`
-- `H_R`
-- `f`
+- `havens_ratio`
+- `correlation_factor`
 
 Disable/enable built-ins individually:
 
 ```python
-kmc.disable_property("conductivity")
-kmc.enable_property("conductivity")
+kmc.set_property_enabled("conductivity", False)
+kmc.set_property_enabled("conductivity", True)
 ```
 
 Disabled built-ins remain in the legacy CSV schema with `NaN` values.
@@ -83,12 +83,12 @@ kmc.attach(calc_occupation, interval=100, on_error=on_error)
 ## Output files
 
 - Built-in properties: `results_<label>.csv.gz` (legacy format)
-- Custom callback records: `custom_results_<label>.json.gz`
+- Attached callback records: `properties_<label>.json.gz`
 
 Retrieve custom records from the returned tracker object:
 
 ```python
-records = tracker.get_custom_results("calc_occupation")
+records = tracker.get_property_records("calc_occupation")
 ```
 
 ## API reference

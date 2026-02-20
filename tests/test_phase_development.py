@@ -12,7 +12,6 @@ from pathlib import Path
 from pymatgen.core import Structure, Lattice, Element, Species
 from pymatgen.core.sites import PeriodicSite
 
-from kmcpy.simulator.condition import SimulationCondition
 from kmcpy.simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
 from kmcpy.simulator.state import SimulationState
 from kmcpy.simulator.tracker import Tracker
@@ -328,8 +327,8 @@ class TestPhase4InputSetMigration:
         
         # Test that parameters are correctly set
         assert config_dict['temperature'] == 300.0
-        assert config_dict['equ_pass'] == 5  # Legacy key name in to_dict
-        assert config_dict['kmc_pass'] == 25  # Legacy key name in to_dict
+        assert config_dict['equilibration_passes'] == 5
+        assert config_dict['kmc_passes'] == 25
         assert config_dict['mobile_ion_specie'] == "Li"
         assert config_dict['random_seed'] == 123
         assert config_dict['supercell_shape'] == [2, 2, 2]  # Converted to list

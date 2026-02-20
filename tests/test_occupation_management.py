@@ -1,284 +1,150 @@
-"""
-Tests for occupation management in SimulationState.
+"""Tests for occupation/state management with strict config and state APIs."""
 
-This module tests the occupation management functionality that was originally
-in the root-level test_occupation_management.py file.
-"""
-
-import pytest
-import tempfile
-import os
 import numpy as np
-from pymatgen.core import Structure, Lattice, Element
-from pymatgen.core.sites import PeriodicSite
+import pytest
+from pymatgen.core import Lattice, Structure
 
-from kmcpy.simulator.condition import SimulationCondition
+from kmcpy.simulator.config import RuntimeConfig, SimulationConfig, SystemConfig
+from kmcpy.simulator.state import SimulationState
+
+
+class DummyEvent:
+    """Minimal event-like object for SimulationState tests."""
+
+    def __init__(self, from_site: int, to_site: int):
+        """Create a dummy migration event."""
+        self.mobile_ion_indices = (from_site, to_site)
 
 
 class TestOccupationManagement:
-    """Test class for occupation management in SimulationState."""
-    
+    """Validate strict runtime/config/state behavior for occupation handling."""
+
     @pytest.fixture
-    def simulation_condition(self):
-        """Create a basic SimulationCondition for testing."""
-        return SimulationCondition(
+    def runtime_config(self):
+        """Create a basic runtime config for testing."""
+        return RuntimeConfig(
             name="test_occupation_management",
             temperature=300.0,
             attempt_frequency=1e13,
-            random_seed=42
+            random_seed=42,
+            equilibration_passes=10,
+            kmc_passes=20,
         )
-    
+
+    @pytest.fixture
+    def simulation_config(self, runtime_config):
+        """Create a complete simulation config for testing."""
+        system_config = SystemConfig(
+            structure_file="test_structure.cif",
+            mobile_ion_specie="Na",
+            dimension=3,
+            supercell_shape=(1, 1, 1),
+            elementary_hop_distance=2.5,
+            mobile_ion_charge=1.0,
+            event_file="test_events.json",
+        )
+        return SimulationConfig(system_config=system_config, runtime_config=runtime_config)
+
     @pytest.fixture
     def test_structure(self):
-        """Create a test Structure object using pymatgen for occupation testing."""
-        # Create a simple cubic structure similar to NASICON
+        """Create a simple test structure for occupation checks."""
         lattice = Lattice.cubic(5.0)
         species = ["Na", "Zr", "Si", "O"]
         coords = [
-            [0.0, 0.0, 0.0],  # Na at origin
-            [0.5, 0.5, 0.5],  # Zr at center
-            [0.25, 0.25, 0.25],  # Si 
-            [0.75, 0.75, 0.75]   # O
+            [0.0, 0.0, 0.0],
+            [0.5, 0.5, 0.5],
+            [0.25, 0.25, 0.25],
+            [0.75, 0.75, 0.75],
         ]
-        structure = Structure(lattice, species, coords)
-        return structure
-    
-    @pytest.fixture
-    def mobile_sites(self, test_structure):
-        """Create mobile sites (Na sites) for occupation testing."""
-        # Extract Na sites from the structure
-        na_sites = []
-        for i, site in enumerate(test_structure):
-            if site.species_string == "Na":
-                na_sites.append(i)
-        return na_sites
-    
+        return Structure(lattice, species, coords)
+
     @pytest.fixture
     def occupation_vector(self, test_structure):
-        """Create an occupation vector for testing."""
-        # Create a simple occupation vector: Na occupied, others empty
+        """Create an occupation vector aligned with the structure."""
         occupation = np.zeros(len(test_structure), dtype=int)
         for i, site in enumerate(test_structure):
             if site.species_string == "Na":
-                occupation[i] = 1  # Occupied
+                occupation[i] = -1
             else:
-                occupation[i] = 0  # Empty (immutable sites)
+                occupation[i] = 1
         return occupation
-    
-    def test_occupation_initialization(self, simulation_condition):
-        """Test that occupation management is properly initialized."""
-        # Test that the simulation condition creates properly
-        assert simulation_condition.name == "test_occupation_management"
-        assert simulation_condition.temperature == 300.0
-        assert simulation_condition.attempt_frequency == 1e13
-        assert simulation_condition.random_seed == 42
-    
-    def test_occupation_consistency(self, simulation_condition, test_structure, occupation_vector):
-        """Test that occupation states remain consistent."""
-        # This test verifies that the occupation management maintains
-        # consistent states throughout the simulation
-        
-        # Test that the simulation condition maintains internal consistency
-        assert hasattr(simulation_condition, 'name')
-        assert hasattr(simulation_condition, 'temperature')
-        assert hasattr(simulation_condition, 'attempt_frequency')
-        assert hasattr(simulation_condition, 'random_seed')
-        
-        # Test that the state is consistent
-        assert simulation_condition.name == "test_occupation_management"
-        assert simulation_condition.temperature > 0
-        assert simulation_condition.attempt_frequency > 0
-        
-        # Test structure consistency
+
+    def test_runtime_config_initialization(self, runtime_config):
+        """Test runtime config initialization and field access."""
+        assert runtime_config.name == "test_occupation_management"
+        assert runtime_config.temperature == 300.0
+        assert runtime_config.attempt_frequency == 1e13
+        assert runtime_config.random_seed == 42
+
+    def test_runtime_config_validation(self):
+        """Test runtime parameter validation."""
+        with pytest.raises(ValueError, match="Temperature must be positive"):
+            RuntimeConfig(temperature=-100.0)
+
+        with pytest.raises(ValueError, match="Attempt frequency must be positive"):
+            RuntimeConfig(attempt_frequency=-1e13)
+
+    def test_simulation_config_access(self, simulation_config):
+        """Test convenient SimulationConfig accessors."""
+        assert simulation_config.temperature == 300.0
+        assert simulation_config.attempt_frequency == 1e13
+        assert simulation_config.mobile_ion_specie == "Na"
+        assert simulation_config.dimension == 3
+
+    def test_occupation_consistency(self, test_structure, occupation_vector):
+        """Test that occupation vectors remain structure-consistent."""
         assert len(test_structure) == len(occupation_vector)
         assert test_structure.num_sites > 0
-        
-        # Test occupation vector consistency
-        assert np.sum(occupation_vector) > 0  # At least one site occupied
-        assert len(occupation_vector) == len(test_structure)
-    
-    def test_occupation_state_tracking(self, simulation_condition, test_structure, mobile_sites):
-        """Test that occupation states are properly tracked."""
-        # Test that occupation states are tracked properly during simulation
-        
-        # Test the to_dict method which is used for state tracking
-        state_dict = simulation_condition.to_dict()
-        
-        assert 'name' in state_dict
-        assert 'temperature' in state_dict
-        assert 'attempt_frequency' in state_dict 
-        assert 'random_seed' in state_dict
-        
-        # Test that values are preserved
-        assert state_dict['name'] == "test_occupation_management"
-        assert state_dict['temperature'] == 300.0
-        assert state_dict['attempt_frequency'] == 1e13
-        assert state_dict['random_seed'] == 42
-        
-        # Test mobile sites tracking
-        assert len(mobile_sites) > 0
-        assert all(isinstance(site_idx, (int, np.integer)) for site_idx in mobile_sites)
-        
-        # Test that mobile sites are within structure bounds
-        for site_idx in mobile_sites:
-            assert 0 <= site_idx < len(test_structure)
-            assert test_structure[site_idx].species_string == "Na"
-    
-    def test_occupation_parameter_validation(self, simulation_condition):
-        """Test that occupation-related parameters are properly validated."""
-        # Test parameter validation
-        assert simulation_condition.temperature == 300.0
-        assert simulation_condition.attempt_frequency == 1e13
-        
-        # Test that invalid parameters raise appropriate errors
-        with pytest.raises(ValueError, match="Temperature must be positive"):
-            SimulationCondition(
-                name="test_invalid",
-                temperature=-100.0,  # Invalid temperature
-                attempt_frequency=1e13,
-                random_seed=42
-            )
-        
-        with pytest.raises(ValueError, match="Attempt frequency must be positive"):
-            SimulationCondition(
-                name="test_invalid",
-                temperature=300.0,
-                attempt_frequency=-1e13,  # Invalid attempt frequency
-                random_seed=42
-            )
-    
-    def test_occupation_file_handling(self, simulation_condition, test_structure):
-        """Test that occupation data files are handled properly."""
-        # Test that the condition string representation works
-        condition_str = simulation_condition.get_condition()
-        assert "test_occupation_management" in condition_str
-        assert "T=300.0K" in condition_str
-        assert "f=10000000000000.0Hz" in condition_str or "f=1e+13Hz" in condition_str
-        
-        # Test dataclass dict conversion
-        dataclass_dict = simulation_condition.to_dataclass_dict()
-        assert dataclass_dict['name'] == "test_occupation_management"
-        assert dataclass_dict['temperature'] == 300.0
-        assert dataclass_dict['attempt_frequency'] == 1e13
-        assert dataclass_dict['random_seed'] == 42
-        
-        # Test structure file handling capabilities
-        assert test_structure.lattice.volume > 0
-        assert test_structure.is_valid()
-        
-        # Test that structure can be serialized/deserialized
-        structure_dict = test_structure.as_dict()
-        assert 'lattice' in structure_dict
-        assert 'sites' in structure_dict
-        
-        # Test structure reconstruction
-        reconstructed = Structure.from_dict(structure_dict)
-        assert reconstructed.lattice.volume == test_structure.lattice.volume
-        assert len(reconstructed) == len(test_structure)
-    
-    def test_occupation_memory_management(self, simulation_condition, test_structure):
-        """Test that occupation data doesn't cause memory leaks."""
-        # Test memory management for occupation data
-        # This is a placeholder for more comprehensive memory testing
-        
-        # Basic test that objects can be created and destroyed
-        temp_condition = SimulationCondition(
-            name="temp_test",
-            temperature=350.0,
-            attempt_frequency=1e12,
-            random_seed=123
-        )
-        
-        # Create temporary structure and occupation data
-        temp_structure = test_structure.copy()
-        temp_occupation = np.ones(len(temp_structure), dtype=int)
-        
-        # Test that objects can be garbage collected
-        del temp_condition
-        del temp_structure
-        del temp_occupation
-        
-        # Original objects should still be accessible
-        assert simulation_condition.temperature == 300.0
-        assert simulation_condition.name == "test_occupation_management"
-        assert test_structure.num_sites > 0
-        assert test_structure.is_valid()
-    
-    def test_occupation_serialization(self, simulation_condition, test_structure, occupation_vector):
-        """Test that occupation data can be serialized and deserialized."""
-        # Test serialization of occupation-related data
-        
-        # Test using the built-in to_dict method
-        params = simulation_condition.to_dict()
-        
-        # Test that all parameters are serializable
-        import json
-        serialized = json.dumps(params)
-        deserialized = json.loads(serialized)
-        
-        assert deserialized['name'] == "test_occupation_management"
-        assert deserialized['temperature'] == 300.0
-        assert deserialized['attempt_frequency'] == 1e13
-        assert deserialized['random_seed'] == 42
-        
-        # Test dataclass dict serialization
-        dataclass_params = simulation_condition.to_dataclass_dict()
-        serialized_dc = json.dumps(dataclass_params)
-        deserialized_dc = json.loads(serialized_dc)
-        
-        assert deserialized_dc['name'] == "test_occupation_management"
-        assert deserialized_dc['temperature'] == 300.0
-        assert deserialized_dc['attempt_frequency'] == 1e13
-        assert deserialized_dc['random_seed'] == 42
-        
-        # Test structure serialization
-        structure_dict = test_structure.as_dict()
-        structure_json = json.dumps(structure_dict)
-        structure_restored = json.loads(structure_json)
-        
-        # Test occupation vector serialization
-        occupation_list = occupation_vector.tolist()
-        occupation_json = json.dumps(occupation_list)
-        occupation_restored = json.loads(occupation_json)
-        
-        assert len(occupation_restored) == len(occupation_vector)
-        assert np.array_equal(occupation_restored, occupation_vector)
-    
+        assert np.sum(occupation_vector == -1) > 0
+
+    def test_simulation_state_tracking(self, occupation_vector):
+        """Test mutable simulation state tracking for occupation, time, and step."""
+        state = SimulationState(occupations=occupation_vector.tolist())
+
+        assert state.time == 0.0
+        assert state.step == 0
+        assert len(state.occupations) == len(occupation_vector)
+
+        state.time = 1.25
+        state.step = 7
+
+        assert state.time == 1.25
+        assert state.step == 7
+
+    def test_simulation_state_apply_event(self):
+        """Test state updates through the strict core apply_event API."""
+        state = SimulationState(occupations=[-1, 1, 1, 1])
+        event = DummyEvent(from_site=0, to_site=1)
+
+        state.apply_event(event, dt=0.2)
+
+        assert state.occupations == [1, -1, 1, 1]
+        assert state.step == 1
+        assert state.time == pytest.approx(0.2)
+
+    def test_simulation_state_serialization(self, occupation_vector):
+        """Test strict dict serialization for core mutable state only."""
+        state = SimulationState(occupations=occupation_vector.tolist(), time=2.0, step=3)
+
+        data = state.as_dict()
+        restored = SimulationState.from_dict(data)
+
+        assert restored.occupations == state.occupations
+        assert restored.time == state.time
+        assert restored.step == state.step
+
     @pytest.mark.integration
-    def test_occupation_integration_with_kmc(self, simulation_condition, test_structure, occupation_vector):
-        """Test that occupation management integrates properly with KMC."""
-        # Integration test for occupation management with KMC
-        
-        # Test that the simulation condition can be used in KMC context
-        assert simulation_condition.temperature > 0
-        assert simulation_condition.attempt_frequency > 0
-        assert simulation_condition.random_seed is not None
-        
-        # Test that the condition can be converted to the format expected by KMC
-        kmc_dict = simulation_condition.to_dict()
-        assert 'temperature' in kmc_dict
-        assert 'attempt_frequency' in kmc_dict
-        assert 'random_seed' in kmc_dict
-        
-        # Test that the condition string can be used for logging/debugging
-        condition_str = simulation_condition.get_condition()
-        assert isinstance(condition_str, str)
-        assert len(condition_str) > 0
-        
-        # Test integration with pymatgen structures
-        assert test_structure.is_valid()
-        assert len(occupation_vector) == len(test_structure)
-        
-        # Test that occupation states are consistent with structure
-        for i, site in enumerate(test_structure):
-            if site.species_string == "Na":
-                # Mobile sites should be able to have different occupation states
-                assert occupation_vector[i] in [0, 1]
-            else:
-                # Immutable sites should remain unoccupied in occupation vector
-                assert occupation_vector[i] == 0
-        
-        # Test that we can extract mobile species information
-        mobile_species = [site.species_string for site in test_structure if site.species_string == "Na"]
-        assert len(mobile_species) > 0
-        assert all(species == "Na" for species in mobile_species)
+    def test_occupation_integration_with_config_and_state(self, simulation_config, occupation_vector):
+        """Test clean integration between immutable config and mutable state."""
+        state = SimulationState(occupations=occupation_vector.tolist())
+
+        assert simulation_config.temperature > 0
+        assert simulation_config.attempt_frequency > 0
+        assert simulation_config.random_seed is not None
+
+        state.step = 1
+        state.time = 0.5
+
+        assert state.step == 1
+        assert state.time == pytest.approx(0.5)
+        assert len(state.occupations) == len(occupation_vector)

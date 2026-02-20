@@ -5,7 +5,7 @@ This module contains utility functions that are specific to testing,
 including configuration builders for specific material systems.
 """
 
-from kmcpy.simulator.condition import SimulationConfig
+from kmcpy.simulator.config import SimulationConfig
 
 
 def create_nasicon_config(
@@ -90,13 +90,12 @@ def create_test_config(
         'elementary_hop_distance': 1.0,
         'mobile_ion_charge': 1.0,
         'mobile_ion_specie': 'Li',
-        'supercell_shape': [1, 1, 1],
-        'initial_occ': [1, -1],
-        'fitting_results': 'test_fitting.json',
-        'lce_fname': 'test_lce.json',
-        'template_structure_fname': 'test_structure.cif',
-        'event_fname': 'test_events.json',
-        'event_dependencies': 'test_dependencies.csv'
+        'supercell_shape': (1, 1, 1),
+        'structure_file': 'test_structure.cif',
+        'event_file': 'test_events.json',
+        'event_dependencies': 'test_dependencies.csv',
+        'fitting_results_file': 'test_fitting.json',
+        'cluster_expansion_file': 'test_lce.json',
     }
     
     # Override with user-provided kwargs

@@ -18,11 +18,10 @@ import os
 from kmcpy.models.base import CompositeModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
-from kmcpy.simulator.condition import SimulationCondition
 from kmcpy.simulator.state import SimulationState
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ class CompositeLCEModel(CompositeModel):
         # Use the composite model with SimulationState (preferred)
         probability = composite.compute(
             event=event,
-            simulation_condition=simulation_condition,
+            runtime_config=runtime_config,
             simulation_state=simulation_state
         )
     """
@@ -121,9 +120,12 @@ class CompositeLCEModel(CompositeModel):
 
         return results
 
-    def compute_probability(self, event: Event, 
-                simulation_condition: SimulationCondition,
-                simulation_state:SimulationState) -> float:
+    def compute_probability(
+        self,
+        event: Event,
+        runtime_config: "RuntimeConfig",
+        simulation_state: SimulationState,
+    ) -> float:
         """
         Compute the transition probability for a given event using the composite LCE model.
 
@@ -138,7 +140,7 @@ class CompositeLCEModel(CompositeModel):
 
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.
-            simulation_condition (SimulationCondition): Contains attempt frequency (v) and temperature (T).
+            runtime_config (RuntimeConfig): Contains attempt frequency (v) and temperature (T).
             simulation_state (SimulationState): Contains the current occupation vector.
 
         Returns:
@@ -160,9 +162,9 @@ class CompositeLCEModel(CompositeModel):
         # Calculate effective barrier
         e_barrier = e_kra + direction * e_site / 2
         
-        # Get temperature and attempt frequency from SimulationCondition
-        temperature = simulation_condition.temperature
-        v = simulation_condition.attempt_frequency
+        # Get temperature and attempt frequency from runtime configuration
+        temperature = runtime_config.temperature
+        v = runtime_config.attempt_frequency
         
         # Compute probability using Arrhenius equation
         probability = abs(direction) * v * np.exp(-e_barrier / (k * temperature))

@@ -189,7 +189,9 @@ def run_tutorial(args: argparse.Namespace) -> None:
         os.chdir(original_cwd)
 
     print("Tutorial run complete.")
-    print("Final metrics (time, msd, D_J, D_tracer, conductivity, H_R, f):")
+    print(
+        "Final metrics (time, msd, jump_diffusivity, tracer_diffusivity, conductivity, havens_ratio, correlation_factor):"
+    )
     print(f"  {tracker.return_current_info()}")
     print("Generated outputs in:")
     print(f"  {output_dir}")

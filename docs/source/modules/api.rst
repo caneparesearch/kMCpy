@@ -10,7 +10,6 @@ API Reference Documentation
     event_base.rst
     generators.rst
     tracker.rst
-    condition.rst
     state.rst
     config.rst
     kmc.rst
