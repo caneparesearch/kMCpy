@@ -9,12 +9,16 @@ from numba import njit
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
-from kmcpy.simulator.tracker import Tracker
+from kmcpy.simulator.tracker import (
+    BUILTIN_PROPERTY_FIELDS,
+    CallbackExecutionError,
+    Tracker,
+)
 from kmcpy.event import Event, EventLib
 from kmcpy.io import convert
 import logging
 import kmcpy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import SimulationConfig
@@ -55,6 +59,8 @@ class KMC:
         """
         logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations ...")
+
+        self._ensure_property_state()
         
         # Store configuration
         self.config = config
@@ -115,6 +121,21 @@ class KMC:
         logger.info(f"Dependency matrix statistics: {stats}")
 
         logger.info("kMC initialization complete!")
+
+    def _ensure_property_state(self) -> None:
+        """Initialize KMC property attachment state if missing."""
+        if not hasattr(self, "_attached_properties"):
+            self._attached_properties: dict[str, dict[str, Any]] = {}
+        if not hasattr(self, "_property_frequency_interval"):
+            self._property_frequency_interval: Optional[int] = None
+        if not hasattr(self, "_property_frequency_time_interval"):
+            self._property_frequency_time_interval: Optional[float] = None
+        if not hasattr(self, "_builtin_property_enabled"):
+            self._builtin_property_enabled = {
+                name: True for name in BUILTIN_PROPERTY_FIELDS
+            }
+        if not hasattr(self, "_active_tracker"):
+            self._active_tracker: Optional[Tracker] = None
         
     @classmethod
     def from_config(cls, config: "SimulationConfig") -> "KMC":
@@ -150,6 +171,177 @@ class KMC:
             logger.info(self.prob_cum_list / sum(self.prob_list))
         except Exception:
             pass
+
+    @staticmethod
+    def _validate_schedule(interval: Optional[int], time_interval: Optional[float]) -> None:
+        """Validate callback scheduling parameters."""
+        if interval is not None:
+            if not isinstance(interval, int):
+                raise TypeError("interval must be an integer")
+            if interval <= 0:
+                raise ValueError("interval must be a positive integer")
+
+        if time_interval is not None and time_interval <= 0:
+            raise ValueError("time_interval must be positive")
+
+    @staticmethod
+    def _validate_max_records(max_records: Optional[int]) -> None:
+        """Validate max_records truncation parameter."""
+        if max_records is None:
+            return
+        if not isinstance(max_records, int):
+            raise TypeError("max_records must be an integer")
+        if max_records <= 0:
+            raise ValueError("max_records must be a positive integer")
+
+    def list_builtin_properties(self) -> list[str]:
+        """Return available built-in property names."""
+        return list(BUILTIN_PROPERTY_FIELDS)
+
+    def set_property_frequency(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+    ) -> None:
+        """
+        Set global sampling frequency for built-in and attached properties.
+
+        Args:
+            interval: Global event-step interval.
+            time_interval: Global simulation-time interval.
+        """
+        self._ensure_property_state()
+        self._validate_schedule(interval=interval, time_interval=time_interval)
+        self._property_frequency_interval = interval
+        self._property_frequency_time_interval = time_interval
+
+        if self._active_tracker is not None:
+            self._active_tracker.set_global_property_frequency(
+                interval=interval,
+                time_interval=time_interval,
+            )
+
+    def attach(
+        self,
+        func: Callable[["SimulationState", int, float], Any],
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        name: Optional[str] = None,
+        store: bool = True,
+        max_records: Optional[int] = None,
+        on_error: Optional[Callable[[Exception, "SimulationState", int, float], bool]] = None,
+    ) -> str:
+        """
+        Attach a custom property callback to the KMC run.
+
+        Args:
+            func: Callback with signature `(state, step, time)`.
+            interval: Event-step interval override for this callback.
+            time_interval: Simulation-time interval override for this callback.
+            name: Optional callback name; defaults to function `__name__`.
+            store: Whether callback return values should be stored.
+            max_records: Optional cap on stored record count for this callback.
+            on_error: Optional error handler. Return True to continue.
+
+        Returns:
+            str: The callback name used for registration.
+        """
+        self._ensure_property_state()
+        if not callable(func):
+            raise TypeError("func must be callable")
+        self._validate_schedule(interval=interval, time_interval=time_interval)
+        self._validate_max_records(max_records=max_records)
+
+        callback_name = name or getattr(func, "__name__", "attached_property")
+        if callback_name in BUILTIN_PROPERTY_FIELDS:
+            raise ValueError(
+                f"'{callback_name}' is reserved for built-in properties"
+            )
+        if callback_name in self._attached_properties:
+            raise ValueError(f"Callback '{callback_name}' is already attached")
+
+        attachment = {
+            "func": func,
+            "interval": interval,
+            "time_interval": time_interval,
+            "name": callback_name,
+            "store": store,
+            "max_records": max_records,
+            "on_error": on_error,
+        }
+        self._attached_properties[callback_name] = attachment
+
+        if self._active_tracker is not None:
+            self._active_tracker.register_property(**attachment)
+
+        return callback_name
+
+    def detach(self, name: str) -> None:
+        """Detach a previously attached custom property callback."""
+        self._ensure_property_state()
+        if name not in self._attached_properties:
+            raise ValueError(f"Callback '{name}' is not attached")
+        del self._attached_properties[name]
+
+        if self._active_tracker is not None:
+            self._active_tracker.unregister_property(name)
+
+    def clear_attachments(self) -> None:
+        """Remove all attached custom property callbacks."""
+        self._ensure_property_state()
+        self._attached_properties.clear()
+        if self._active_tracker is not None:
+            self._active_tracker.clear_properties()
+
+    def list_attachments(self) -> list[str]:
+        """Return names of currently attached custom property callbacks."""
+        self._ensure_property_state()
+        return list(self._attached_properties.keys())
+
+    def enable_property(self, name: str) -> None:
+        """Enable one built-in property field."""
+        self._ensure_property_state()
+        if name not in self._builtin_property_enabled:
+            raise ValueError(f"Unknown built-in property '{name}'")
+        self._builtin_property_enabled[name] = True
+        if self._active_tracker is not None:
+            self._active_tracker.enable_builtin_property(name)
+
+    def disable_property(self, name: str) -> None:
+        """Disable one built-in property field (output remains with NaN values)."""
+        self._ensure_property_state()
+        if name not in self._builtin_property_enabled:
+            raise ValueError(f"Unknown built-in property '{name}'")
+        self._builtin_property_enabled[name] = False
+        if self._active_tracker is not None:
+            self._active_tracker.disable_builtin_property(name)
+
+    def _configure_tracker_properties(self, tracker: Tracker, pass_length: int) -> None:
+        """Apply KMC-side property settings and attachments to a tracker instance."""
+        self._ensure_property_state()
+
+        global_interval = self._property_frequency_interval
+        global_time_interval = self._property_frequency_time_interval
+
+        # Preserve previous behavior: built-ins sampled once per pass by default.
+        if global_interval is None and global_time_interval is None:
+            global_interval = max(pass_length, 1)
+
+        if hasattr(tracker, "set_global_property_frequency"):
+            tracker.set_global_property_frequency(
+                interval=global_interval,
+                time_interval=global_time_interval,
+            )
+
+        for builtin_name, enabled in self._builtin_property_enabled.items():
+            if enabled and hasattr(tracker, "enable_builtin_property"):
+                tracker.enable_builtin_property(builtin_name)
+            elif not enabled and hasattr(tracker, "disable_builtin_property"):
+                tracker.disable_builtin_property(builtin_name)
+
+        for attachment in self._attached_properties.values():
+            if hasattr(tracker, "register_property"):
+                tracker.register_property(**attachment)
 
     def propose(
         self,
@@ -274,6 +466,8 @@ class KMC:
 
         # Create Tracker using clean SimulationState architecture
         tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
+        self._configure_tracker_properties(tracker=tracker, pass_length=pass_length)
+        self._active_tracker = tracker
         logger.info("Using clean SimulationState architecture")
         
         logger.info(
@@ -290,9 +484,13 @@ class KMC:
                 tracker.update(event, current_occupations, dt)
                 # KMC is the single owner of mutable simulation state updates.
                 self.update(event, dt=dt)
+                if hasattr(tracker, "maybe_compute_properties"):
+                    tracker.maybe_compute_properties(
+                        step=int(self.simulation_state.step),
+                        sim_time=float(self.simulation_state.time),
+                    )
             
             tracker.update_current_pass(current_pass)
-            tracker.compute_properties()
             tracker.show_current_info()
 
         # Use SimulationState occupations for final output

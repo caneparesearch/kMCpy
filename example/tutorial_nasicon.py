@@ -172,6 +172,14 @@ def run_tutorial(args: argparse.Namespace) -> None:
     print("Initializing KMC from generated tutorial configuration...")
     kmc = KMC.from_config(config)
 
+    # Example custom property callback: sample occupied-site fraction every 50 events.
+    def calc_occupation(state, step, sim_time):
+        _ = step, sim_time
+        occupied = sum(1 for occ in state.occupations if occ > 0)
+        return occupied / len(state.occupations)
+
+    kmc.attach(calc_occupation, interval=50, name="calc_occupation")
+
     original_cwd = Path.cwd()
     try:
         os.chdir(output_dir)
@@ -187,6 +195,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
     print(f"  {output_dir}")
     print("Look for files named like:")
     print("  results_NASICON_Tutorial.csv.gz")
+    print("  custom_results_NASICON_Tutorial.json.gz")
     print("  displacement_NASICON_Tutorial_<pass>.csv.gz")
     print("  hop_counter_NASICON_Tutorial_<pass>.csv.gz")
     print("  current_occ_NASICON_Tutorial_<pass>.csv.gz")

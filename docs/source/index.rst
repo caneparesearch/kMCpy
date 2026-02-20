@@ -31,5 +31,6 @@ This code was recently employed to investigate `the transport properties of Na-i
    install
    mechanism
    tutorial
+   howto/attach_properties
    modules/api
    about

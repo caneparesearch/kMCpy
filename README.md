@@ -104,6 +104,25 @@ python scripts/build_doc.py
 ### API usage
 You can run kMC through API. You can find more details in the `examples` directory. You can see the examples in the `examples` directory for how to use kMCpy in your own scripts. The examples cover various aspects of kMCpy, including how to build a model and use it for simulations.
 
+You can also attach custom property callbacks during a run:
+
+```python
+from kmcpy.simulator.kmc import KMC
+
+kmc = KMC.from_config(config)
+
+def custom_property(state, step, sim_time):
+    occupied = sum(1 for occ in state.occupations if occ > 0)
+    return occupied / len(state.occupations)
+
+kmc.attach(custom_property, interval=100, name="occupied_fraction")
+kmc.disable_property("conductivity")  # Optional: disable selected built-in fields
+tracker = kmc.run(config)
+
+# Stored custom callback records
+records = tracker.get_custom_results("occupied_fraction")
+```
+
 ### Command line usage
 A wrapper is provided if you want to run kMCpy through command line only. There is a wrapper script `run_kmc` that allows you to run kMCpy from the command line. You can use it to run a kMCpy simulation with a JSON/YAML input file. The input file should contain the necessary parameters for the simulation. It should be noted that you need to have all the input files that needed to run kMC.
 ```shell
