@@ -9,6 +9,8 @@
    :alt: kMCpy
    :align: center
    :class: only-dark
+
+kMCpy Documentation
 ==================================================================================
 
 
@@ -29,6 +31,7 @@ This code was recently employed to investigate `the transport properties of Na-i
    :hidden:
 
    install
+   quickstart
    mechanism
    tutorial
    howto/attach_properties
