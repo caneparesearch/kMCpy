@@ -62,11 +62,6 @@ For development (editable mode):
 pip install -e ".[dev]"
 ```
 
-To install GUI dependencies:
-```shell
-pip install -e ".[gui]"
-```
-
 #### Using UV (recommended)
 
 To install all dependencies:
@@ -80,15 +75,6 @@ uv sync --extra dev
 uv pip install -e .
 ```
 
-To install GUI dependencies:
-```shell
-uv sync --extra gui
-```
-
-> [!note] GUI
-> kMCpy provides a graphical user interface (GUI) to facilitate the setup and execution of kMC simulations. However, the current GUI is deprecated. Users are encouraged to use the command line interface (CLI) or API for running simulations.
-> The GUI is based on `wxpython`. You may need to install [GTK](https://www.gtk.org/) for `wxpython` to work properly.
-
 > [!warning] Windows users 
 > Windows users (not applicable to WSL) need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) for `pymatgen`. 
 
@@ -100,9 +86,25 @@ uv sync --extra doc
 python scripts/build_doc.py
 ```
 
+## Quickstart
+Run a minimal end-to-end simulation with bundled example files:
+
+```shell
+uv sync
+uv run python -c "from kmcpy.simulator.config import SimulationConfig; SimulationConfig.help_parameters()"
+uv run python example/minimal_example.py
+```
+
+`SimulationConfig` routes arguments into two groups:
+
+1. `system` parameters define what you simulate (structure, events, model files).
+2. `runtime` parameters define how you simulate (temperature, passes, random seed).
+
+If you pass an unknown keyword, kMCpy raises a clear error and points to `SimulationConfig.help_parameters()`.
+
 ## Run kMCpy
 ### API usage
-You can run kMC through API. You can find more details in the `examples` directory. You can see the examples in the `examples` directory for how to use kMCpy in your own scripts. The examples cover various aspects of kMCpy, including how to build a model and use it for simulations.
+You can run kMC through API. See the `example` directory for scripts and notebook workflows covering setup, event generation, and simulations.
 
 You can also attach custom property callbacks during a run:
 
@@ -133,13 +135,6 @@ To print out all arguments, you can run:
 ```shell
 run_kmc --help
 ```
-
-### GUI usage
-You can start the GUI from command line. The basic usage is as follows:
-```shell
-start_kmcpy_gui
-```
-Then  a window will pop up, allowing you to select the input file and run the simulation.
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:

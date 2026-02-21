@@ -1,7 +1,7 @@
-gui_wrapper
+built_in_properties
 =========================
 
-.. automodule:: kmcpy.cli.gui_wrapper
+.. automodule:: kmcpy.simulator.built_in_properties
     :members:
     :inherited-members:
                   

@@ -1,6 +1,7 @@
 import os
 
 api_doc_path = "docs/source/modules/"
+excluded_packages = {"gui_wrapper"}
 
 
 def write_rst_for_sphinx(
@@ -9,19 +10,36 @@ def write_rst_for_sphinx(
     module="kmcpy.external",
     package="pymatgen_cif",
 ):
-    with open(api_doc_path + filename.replace(".py", ".rst"), "w+") as rst:
-        rst.write(
-            """package
+    header = """package
 =========================
 
-.. automodule:: modulename.package
+""".replace("package", package)
+
+    if package == "config":
+        header += """Parameter discovery
+-------------------
+
+Use ``SimulationConfig.help_parameters()`` to list valid parameter names and see how
+parameters are split between ``system_config`` and ``runtime_config``.
+
+.. code-block:: python
+
+    from kmcpy.simulator.config import SimulationConfig
+
+    SimulationConfig.help_parameters()
+
+"""
+
+    with open(api_doc_path + filename.replace(".py", ".rst"), "w+") as rst:
+        rst.write(header)
+        rst.write(
+            """.. automodule:: modulename.package
     :members:
     :inherited-members:
                   """.replace(
-                "package", package
-            ).replace(
                 "modulename", module
             )
+            .replace("package", package)
         )
     return package
 
@@ -45,6 +63,9 @@ for root, dirs, files in os.walk("./kmcpy", topdown=False):
             print(root, name, " is python script")
 
             package = name.replace(".py", "")
+            if package in excluded_packages:
+                continue
+
             module_name = root.replace("./", "").replace("/", ".")
 
             write_rst_for_sphinx(
@@ -64,7 +85,9 @@ with open(api_doc_path + "api.rst", "w+") as api_file:
     :caption: Contents:
 
 """
-    for api in api_list:
+    # Keep first-seen order while removing duplicates from same package names.
+    unique_api_list = list(dict.fromkeys(api_list))
+    for api in unique_api_list:
         filestring += "    " + api + ".rst\n"
     api_file.write(filestring)
 
