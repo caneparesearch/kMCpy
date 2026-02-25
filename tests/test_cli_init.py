@@ -19,12 +19,15 @@ def test_write_template_creates_parseable_config(tmp_path: Path):
     template_text = output_file.read_text(encoding="utf-8")
     assert "structure_file" in template_text
     assert "kmc_passes" in template_text
+    assert "builtin_property_enabled" in template_text
+    assert "property_callbacks" in template_text
     assert "# ----- Runtime parameters -----" in template_text
 
     raw_data = SimulationConfigIO._load_yaml_section(str(output_file), "kmc", "default")
     config = SimulationConfig.from_dict(raw_data)
     assert config.structure_file == "path/to/structure.cif"
     assert config.kmc_passes == 10000
+    assert config.builtin_property_enabled == {}
 
 
 @pytest.mark.unit

@@ -9,8 +9,8 @@ from .api import run
 from .models import BaseModel, LocalClusterExpansion, CompositeLCEModel
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
-from .simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
-from .simulator.state import SimulationState
+from .simulator.config import Configuration, SimulationConfig, SystemConfig, RuntimeConfig
+from .simulator.state import SimulationState, State
 from .simulator.tracker import Tracker
 
 __author__ = "kMCpy Development Team"
@@ -29,9 +29,11 @@ __all__ = [
     "EventGenerator",
     "NeighborInfoMatcher",
     "SimulationConfig", 
+    "Configuration",
     "SystemConfig",
     "RuntimeConfig",
     "SimulationState",
+    "State",
     "Tracker"
 ]
 

@@ -36,10 +36,13 @@ def test_public_run_api():
 
     assert hasattr(kmcpy, "run")
     assert callable(kmcpy.run)
+    assert hasattr(kmcpy, "Configuration")
+    assert hasattr(kmcpy, "State")
 
 def test_simulation_config_classes():
     """Test that simulation config classes can be imported and instantiated."""
     from kmcpy.simulator.config import (
+        Configuration,
         RuntimeConfig,
         SimulationConfig,
         SystemConfig,
@@ -67,6 +70,7 @@ def test_simulation_config_classes():
         kmc_passes=5000,
     )
     assert simulation_config.equilibration_passes == 1000
+    assert Configuration is SimulationConfig
     
     # Test convenience functions exist
     assert callable(create_nasicon_config)
@@ -86,3 +90,10 @@ def test_kmc_simulation_config_integration():
     
     # Verify that InputSet methods have been removed (no longer supported)
     assert not hasattr(KMC, 'from_inputset'), "KMC should not have from_inputset method (InputSet deprecated)"
+
+
+def test_public_aliases():
+    from kmcpy import Configuration, SimulationConfig, State, SimulationState
+
+    assert Configuration is SimulationConfig
+    assert State is SimulationState

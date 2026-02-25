@@ -4,14 +4,14 @@ config
 Parameter discovery
 -------------------
 
-Use ``SimulationConfig.help_parameters()`` to list valid parameter names and see how
+Use ``Configuration.help_parameters()`` to list valid parameter names and see how
 parameters are split between ``system_config`` and ``runtime_config``.
 
 .. code-block:: python
 
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
-    SimulationConfig.help_parameters()
+    Configuration.help_parameters()
 
 .. automodule:: kmcpy.simulator.config
     :members:

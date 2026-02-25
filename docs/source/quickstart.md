@@ -10,10 +10,10 @@ uv sync
 
 ## 2. Discover parameter names
 
-Use `SimulationConfig.help_parameters()` to list valid keywords and see the system/runtime split:
+Use `Configuration.help_parameters()` to list valid keywords and see the system/runtime split:
 
 ```shell
-uv run python -c "from kmcpy.simulator.config import SimulationConfig; SimulationConfig.help_parameters()"
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
 ```
 
 ## 3. Run the minimal script
@@ -32,9 +32,9 @@ It writes output to `example/output/minimal/`.
 ## 4. Run with one API call
 
 ```python
-from kmcpy import SimulationConfig, run
+from kmcpy import Configuration, run
 
-config = SimulationConfig.from_file("input.yaml")
+config = Configuration.from_file("input.yaml")
 tracker = run(config)
 ```
 
@@ -53,9 +53,9 @@ run_kmc --input input_template.yaml
 API users can load the same generated file with:
 
 ```python
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 
-config = SimulationConfig.from_yaml_section("input_template.yaml", "kmc", "default")
+config = Configuration.from_yaml_section("input_template.yaml", "kmc", "default")
 ```
 
 ## Troubleshooting
@@ -65,9 +65,9 @@ config = SimulationConfig.from_yaml_section("input_template.yaml", "kmc", "defau
 If you see `Unknown parameters: [...]`, check spelling and compare against:
 
 ```python
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 
-SimulationConfig.help_parameters()
+Configuration.help_parameters()
 ```
 
 ### Missing required files

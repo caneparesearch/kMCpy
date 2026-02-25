@@ -19,7 +19,7 @@ API Reference Documentation
     config.rst
     kmc.rst
     tracker.rst
-    property_engine.rst
+    property.rst
     state.rst
     built_in_properties.rst
     high_level_api.rst

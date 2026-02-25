@@ -7,6 +7,7 @@ from copy import copy
 import gzip
 import json
 import logging
+import warnings
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import numpy as np
@@ -14,14 +15,12 @@ import pandas as pd
 
 from kmcpy.external.structure import StructureKMCpy
 from kmcpy.io.serialization import to_json_compatible
-from kmcpy.simulator.built_in_properties import (
+from kmcpy.simulator.property import (
     BUILTIN_PROPERTY_FIELDS,
-    compute_transport_properties,
-)
-from kmcpy.simulator.property_engine import (
     PropertyRecord,
     PropertySpec,
     append_record,
+    compute_transport_properties,
     should_trigger,
     validate_max_records,
     validate_schedule,
@@ -274,6 +273,28 @@ class Tracker:
         del self._properties[name]
         self._property_records.pop(name, None)
 
+    def detach_property(self, name: str) -> None:
+        """Detach a previously attached property callback."""
+        self.detach(name)
+
+    def disable_property(self, name: str) -> None:
+        """
+        Compatibility alias for old API.
+
+        - Built-ins: disable by setting enabled=False.
+        - Custom callbacks: detach from tracker.
+        """
+        warnings.warn(
+            "disable_property(...) is deprecated. "
+            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name in self._enabled_builtin_properties:
+            self.set_property_enabled(name, False)
+            return
+        self.detach(name)
+
     def clear_attachments(self) -> None:
         """Remove all user attachments while preserving built-in summary sampling."""
         self._properties = {
@@ -286,6 +307,27 @@ class Tracker:
     def list_attachments(self) -> list[str]:
         """Return names of user-attached properties."""
         return [name for name in self._properties if name != SUMMARY_PROPERTY_NAME]
+
+    def list_property_calculations(self) -> dict[str, list[str]]:
+        """Return enabled/disabled built-ins and currently attached callbacks."""
+        built_in_enabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if self._enabled_builtin_properties.get(name, True)
+        ]
+        built_in_disabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if not self._enabled_builtin_properties.get(name, True)
+        ]
+        attached_enabled = [
+            name for name in self.list_attachments() if self._properties[name].enabled
+        ]
+        attached_disabled = [
+            name for name in self.list_attachments() if not self._properties[name].enabled
+        ]
+        return {
+            "built_in_enabled": built_in_enabled,
+            "built_in_disabled": built_in_disabled,
+            "attached_enabled": attached_enabled,
+            "attached_disabled": attached_disabled,
+        }
 
     def set_property_enabled(self, name: str, enabled: bool) -> None:
         """Enable or disable a built-in summary field or an attached callback."""

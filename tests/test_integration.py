@@ -88,6 +88,15 @@ def test_parameter_serialization():
         cluster_expansion_site_file="fake.json",
         event_file="fake.json",
         event_dependencies="fake.csv",
+        property_sampling_interval=200,
+        builtin_property_enabled={"conductivity": False},
+        property_callbacks=[
+            {
+                "callable": "tests.test_kmc_state_tracker_boundaries:yaml_config_test_callback",
+                "name": "cfg_callback",
+                "interval": 50,
+            }
+        ],
     )
 
     config_dict = config.to_dict()
@@ -98,6 +107,9 @@ def test_parameter_serialization():
     assert "equilibration_passes" in config_dict
     assert "kmc_passes" in config_dict
     assert "structure_file" in config_dict
+    assert "property_sampling_interval" in config_dict
+    assert "builtin_property_enabled" in config_dict
+    assert "property_callbacks" in config_dict
 
     assert config_dict["equilibration_passes"] == config.equilibration_passes
     assert config_dict["kmc_passes"] == config.kmc_passes
@@ -110,6 +122,8 @@ def test_parameter_serialization():
     assert new_config.attempt_frequency == config.attempt_frequency
     assert new_config.equilibration_passes == config.equilibration_passes
     assert new_config.kmc_passes == config.kmc_passes
+    assert new_config.property_sampling_interval == 200
+    assert new_config.builtin_property_enabled["conductivity"] is False
 
 
 def test_eventlib_integration():

@@ -13,9 +13,27 @@ kinetic Monte Carlo simulations. It handles both system parameters (what you're
 simulating) and runtime parameters (how you run the simulation).
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
+
+
+def _validate_builtin_property_enabled(values: dict[str, bool]) -> None:
+    """Validate built-in property enable/disable map."""
+    if not isinstance(values, dict):
+        raise TypeError("builtin_property_enabled must be a dictionary")
+    for key, enabled in values.items():
+        if key not in BUILTIN_PROPERTY_FIELDS:
+            raise ValueError(
+                f"Unknown built-in property '{key}'. "
+                f"Supported: {list(BUILTIN_PROPERTY_FIELDS)}"
+            )
+        if not isinstance(enabled, bool):
+            raise TypeError(
+                f"builtin_property_enabled['{key}'] must be a boolean"
+            )
 
 
 @dataclass(frozen=True)
@@ -93,6 +111,12 @@ class RuntimeConfig:
     
     # Simulation identification
     name: str = "DefaultSimulation"
+
+    # Optional property sampling controls
+    property_sampling_interval: Optional[int] = None
+    property_sampling_time_interval: Optional[float] = None
+    builtin_property_enabled: dict[str, bool] = field(default_factory=dict)
+    property_callbacks: list[dict[str, Any]] = field(default_factory=list)
     
     def __post_init__(self):
         """Validate runtime parameters."""
@@ -107,6 +131,53 @@ class RuntimeConfig:
         
         if self.kmc_passes <= 0:
             raise ValueError("KMC passes must be positive")
+
+        validate_schedule(
+            interval=self.property_sampling_interval,
+            time_interval=self.property_sampling_time_interval,
+        )
+
+        _validate_builtin_property_enabled(self.builtin_property_enabled)
+
+        if not isinstance(self.property_callbacks, list):
+            raise TypeError("property_callbacks must be a list")
+        for callback_spec in self.property_callbacks:
+            if not isinstance(callback_spec, dict):
+                raise TypeError("Each property callback spec must be a dictionary")
+            allowed_keys = {
+                "callable",
+                "name",
+                "interval",
+                "time_interval",
+                "store",
+                "max_records",
+                "enabled",
+            }
+            unknown_keys = set(callback_spec.keys()) - allowed_keys
+            if unknown_keys:
+                raise ValueError(
+                    f"Unknown keys in property callback spec: {sorted(unknown_keys)}"
+                )
+            callable_ref = callback_spec.get("callable")
+            if not isinstance(callable_ref, str) or not callable_ref.strip():
+                raise ValueError(
+                    "Each property callback spec must include a non-empty 'callable' field"
+                )
+            validate_schedule(
+                interval=callback_spec.get("interval"),
+                time_interval=callback_spec.get("time_interval"),
+            )
+            max_records = callback_spec.get("max_records")
+            if max_records is not None:
+                if not isinstance(max_records, int):
+                    raise TypeError("property callback max_records must be an integer")
+                if max_records <= 0:
+                    raise ValueError("property callback max_records must be positive")
+            for bool_key in ("store", "enabled"):
+                if bool_key in callback_spec and not isinstance(callback_spec[bool_key], bool):
+                    raise TypeError(
+                        f"property callback '{bool_key}' must be a boolean when provided"
+                    )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -117,6 +188,10 @@ class RuntimeConfig:
             "kmc_passes": self.kmc_passes,
             "random_seed": self.random_seed,
             "name": self.name,
+            "property_sampling_interval": self.property_sampling_interval,
+            "property_sampling_time_interval": self.property_sampling_time_interval,
+            "builtin_property_enabled": dict(self.builtin_property_enabled),
+            "property_callbacks": [dict(callback) for callback in self.property_callbacks],
         }
 
 
@@ -157,7 +232,9 @@ class SimulationConfig:
         
         runtime_param_names = {
             'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
+            'random_seed', 'name', 'property_sampling_interval',
+            'property_sampling_time_interval', 'builtin_property_enabled',
+            'property_callbacks'
         }
         
         # Route parameters
@@ -172,7 +249,7 @@ class SimulationConfig:
         # Reject unknown parameters - no legacy support
         if unknown_params:
             raise ValueError(f"Unknown parameters: {list(unknown_params.keys())}. "
-                           f"Use SimulationConfig.help_parameters() to see valid parameters.")
+                           f"Use Configuration.help_parameters() to see valid parameters.")
         
         # Create or update configs
         if system_config is None:
@@ -235,7 +312,9 @@ class SimulationConfig:
         # RuntimeConfig parameter names
         runtime_param_names = {
             'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
+            'random_seed', 'name', 'property_sampling_interval',
+            'property_sampling_time_interval', 'builtin_property_enabled',
+            'property_callbacks'
         }
         
         for key, value in config_dict.items():
@@ -429,6 +508,26 @@ class SimulationConfig:
     def random_seed(self) -> Optional[int]:
         """Access random seed directly."""
         return self.runtime_config.random_seed
+
+    @property
+    def property_sampling_interval(self) -> Optional[int]:
+        """Access global property sampling step interval directly."""
+        return self.runtime_config.property_sampling_interval
+
+    @property
+    def property_sampling_time_interval(self) -> Optional[float]:
+        """Access global property sampling time interval directly."""
+        return self.runtime_config.property_sampling_time_interval
+
+    @property
+    def builtin_property_enabled(self) -> dict[str, bool]:
+        """Access built-in property enable/disable map directly."""
+        return self.runtime_config.builtin_property_enabled
+
+    @property
+    def property_callbacks(self) -> list[dict[str, Any]]:
+        """Access callback attachment specs directly."""
+        return self.runtime_config.property_callbacks
     
     # System properties
     @property
@@ -521,7 +620,7 @@ class SimulationConfig:
     @classmethod
     def help_parameters(cls):
         """Print available parameters and which config they belong to."""
-        print("SimulationConfig Parameters:\n")
+        print("Configuration (SimulationConfig) Parameters:\n")
         
         print("SYSTEM PARAMETERS (physical setup):")
         system_params = [
@@ -536,14 +635,16 @@ class SimulationConfig:
         print("\nRUNTIME PARAMETERS (simulation settings):")
         runtime_params = [
             "temperature", "attempt_frequency", "equilibration_passes", "kmc_passes",
-            "random_seed", "name"
+            "random_seed", "name", "property_sampling_interval",
+            "property_sampling_time_interval", "builtin_property_enabled",
+            "property_callbacks"
         ]
         for param in runtime_params:
             print(f"  - {param}")
         
         print("\nUsage examples:")
-        print("  config = SimulationConfig(structure_file='x.cif', temperature=400)")
-        print("  config = SimulationConfig.create(temperature=300, kmc_passes=10000)")
+        print("  config = Configuration(structure_file='x.cif', temperature=400)")
+        print("  config = Configuration.create(temperature=300, kmc_passes=10000)")
         print("  print(config.temperature)  # Direct access to any parameter")
     
     def which_config(self, parameter_name: str) -> str:
@@ -557,7 +658,9 @@ class SimulationConfig:
         
         runtime_params = {
             'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
+            'random_seed', 'name', 'property_sampling_interval',
+            'property_sampling_time_interval', 'builtin_property_enabled',
+            'property_callbacks'
         }
         
         if parameter_name in system_params:
@@ -596,3 +699,6 @@ class SimulationConfig:
 
 
 # ===== I/O HELPER CLASS =====
+
+# Backward-compatible alias; preferred public name.
+Configuration = SimulationConfig

@@ -91,16 +91,16 @@ Run a minimal end-to-end simulation with bundled example files:
 
 ```shell
 uv sync
-uv run python -c "from kmcpy.simulator.config import SimulationConfig; SimulationConfig.help_parameters()"
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
 uv run python example/minimal_example.py
 ```
 
-`SimulationConfig` routes arguments into two groups:
+`Configuration` (alias of `SimulationConfig`) routes arguments into two groups:
 
 1. `system` parameters define what you simulate (structure, events, model files).
 2. `runtime` parameters define how you simulate (temperature, passes, random seed).
 
-If you pass an unknown keyword, kMCpy raises a clear error and points to `SimulationConfig.help_parameters()`.
+If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_parameters()`.
 
 ## Run kMCpy
 ### API usage
@@ -109,9 +109,9 @@ You can run kMC through API. See the `example` directory for scripts and noteboo
 For a one-call simulation:
 
 ```python
-from kmcpy import SimulationConfig, run
+from kmcpy import Configuration, run
 
-config = SimulationConfig.from_file("input.yaml")
+config = Configuration.from_file("input.yaml")
 tracker = run(config)
 ```
 
@@ -127,11 +127,11 @@ def custom_property(state, step, sim_time):
     return occupied / len(state.occupations)
 
 kmc.attach(custom_property, interval=100, name="occupied_fraction")
-kmc.disable_property("conductivity")  # Optional: disable selected built-in fields
+kmc.set_property_enabled("conductivity", False)  # Optional: disable selected built-in fields
 tracker = kmc.run(config)
 
 # Stored custom callback records
-records = tracker.get_custom_results("occupied_fraction")
+records = tracker.get_property_records("occupied_fraction")
 ```
 
 ### Command line usage

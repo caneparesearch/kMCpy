@@ -9,12 +9,14 @@ from numba import njit
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
+import importlib
+import warnings
 from kmcpy.simulator.tracker import (
     BUILTIN_PROPERTY_FIELDS,
     CallbackExecutionError,
     Tracker,
 )
-from kmcpy.simulator.property_engine import validate_max_records, validate_schedule
+from kmcpy.simulator.property import validate_max_records, validate_schedule
 from kmcpy.event import Event, EventLib
 from kmcpy.io import convert
 import logging
@@ -113,6 +115,9 @@ class KMC:
         stats = self.event_lib.get_dependency_statistics()
         logger.info(f"Dependency matrix statistics: {stats}")
 
+        # Apply property controls provided by RuntimeConfig/YAML.
+        self._configure_properties_from_runtime_config(self.config.runtime_config)
+
         logger.info("kMC initialization complete!")
 
     def _ensure_property_state(self) -> None:
@@ -129,6 +134,53 @@ class KMC:
             }
         if not hasattr(self, "_active_tracker"):
             self._active_tracker: Optional[Tracker] = None
+
+    @staticmethod
+    def _resolve_callback_reference(callable_ref: str) -> Callable[["SimulationState", int, float], Any]:
+        """Resolve callback path strings like `module.path:func` or `module.path.func`."""
+        if ":" in callable_ref:
+            module_path, attr_path = callable_ref.split(":", 1)
+        else:
+            module_path, _, attr_path = callable_ref.rpartition(".")
+            if not module_path:
+                raise ValueError(
+                    f"Invalid callback reference '{callable_ref}'. "
+                    "Use 'package.module:function' or 'package.module.function'."
+                )
+
+        module = importlib.import_module(module_path)
+        callback_obj: Any = module
+        for attr in attr_path.split("."):
+            callback_obj = getattr(callback_obj, attr)
+
+        if not callable(callback_obj):
+            raise TypeError(f"Resolved callback '{callable_ref}' is not callable")
+        return callback_obj
+
+    def _configure_properties_from_runtime_config(self, runtime_config: Any) -> None:
+        """Apply runtime property controls from configuration."""
+        self._ensure_property_state()
+
+        interval = getattr(runtime_config, "property_sampling_interval", None)
+        time_interval = getattr(runtime_config, "property_sampling_time_interval", None)
+        if interval is not None or time_interval is not None:
+            self.set_property_frequency(interval=interval, time_interval=time_interval)
+
+        for property_name, enabled in getattr(runtime_config, "builtin_property_enabled", {}).items():
+            self.set_property_enabled(property_name, bool(enabled))
+
+        for callback_spec in getattr(runtime_config, "property_callbacks", []):
+            callback_ref = callback_spec["callable"]
+            callback_func = self._resolve_callback_reference(callback_ref)
+            self.attach(
+                callback_func,
+                interval=callback_spec.get("interval"),
+                time_interval=callback_spec.get("time_interval"),
+                name=callback_spec.get("name"),
+                store=callback_spec.get("store", True),
+                max_records=callback_spec.get("max_records"),
+                enabled=callback_spec.get("enabled", True),
+            )
         
     @classmethod
     def from_config(cls, config: "SimulationConfig") -> "KMC":
@@ -258,6 +310,28 @@ class KMC:
         if self._active_tracker is not None:
             self._active_tracker.detach(name)
 
+    def detach_property(self, name: str) -> None:
+        """Detach a custom property callback by name."""
+        self.detach(name)
+
+    def disable_property(self, name: str) -> None:
+        """
+        Compatibility alias for old API.
+
+        - Built-ins: disable by setting enabled=False.
+        - Custom callbacks: detach from run.
+        """
+        warnings.warn(
+            "disable_property(...) is deprecated. "
+            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name in BUILTIN_PROPERTY_FIELDS:
+            self.set_property_enabled(name, False)
+            return
+        self.detach(name)
+
     def clear_attachments(self) -> None:
         """Remove all attached custom property callbacks."""
         self._ensure_property_state()
@@ -274,6 +348,28 @@ class KMC:
         """Return names of currently attached custom property callbacks."""
         self._ensure_property_state()
         return list(self._attached_properties.keys())
+
+    def list_property_calculations(self) -> dict[str, list[str]]:
+        """Return enabled/disabled built-ins and currently attached callbacks."""
+        self._ensure_property_state()
+        built_in_enabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if self._property_enabled.get(name, True)
+        ]
+        built_in_disabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if not self._property_enabled.get(name, True)
+        ]
+        attached_enabled = [
+            name for name in self._attached_properties if self._property_enabled.get(name, True)
+        ]
+        attached_disabled = [
+            name for name in self._attached_properties if not self._property_enabled.get(name, True)
+        ]
+        return {
+            "built_in_enabled": built_in_enabled,
+            "built_in_disabled": built_in_disabled,
+            "attached_enabled": attached_enabled,
+            "attached_disabled": attached_disabled,
+        }
 
     def set_property_enabled(self, name: str, enabled: bool) -> None:
         """Enable or disable a built-in summary field or attached callback."""

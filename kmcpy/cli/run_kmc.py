@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from kmcpy.io.config_io import SimulationConfigIO
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 import kmcpy
 import argparse
@@ -91,7 +91,7 @@ def run_kmc(args)-> None:
         try:
             print(f"Loading configuration from {args.input}")
             raw_data = SimulationConfigIO._load_yaml_section(args.input, "kmc", "default")
-            config = SimulationConfig.from_dict(raw_data)
+            config = Configuration.from_dict(raw_data)
             print(f"✓ Configuration loaded: {config.runtime_config.name}")
         except Exception as e:
             # Provide clear error message for legacy formats
@@ -105,7 +105,7 @@ def run_kmc(args)-> None:
     else:
         # Build a dictionary from the argparse Namespace, excluding None values and 'input'
         input_dict = {k: v for k, v in vars(args).items() if k != "input" and v is not None}
-        config = SimulationConfig(**input_dict)
+        config = Configuration(**input_dict)
 
     print("Configuration loaded, initializing KMC...")
     print(f"  Structure file: {config.system_config.structure_file}")

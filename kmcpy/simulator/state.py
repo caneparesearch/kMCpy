@@ -104,3 +104,7 @@ class SimulationState:
     def __repr__(self) -> str:
         """Return compact debug representation of simulation state."""
         return f"SimulationState(time={self.time:.2e}, step={self.step}, n_sites={len(self.occupations)})"
+
+
+# Backward-compatible alias; preferred public name.
+State = SimulationState

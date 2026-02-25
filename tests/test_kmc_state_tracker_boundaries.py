@@ -12,6 +12,10 @@ from kmcpy.simulator.state import SimulationState
 from kmcpy.simulator.tracker import Tracker
 
 
+def yaml_config_test_callback(state, step, sim_time):
+    return {"step": step, "time": sim_time}
+
+
 class _DummyLattice:
     def __init__(self):
         self.matrix = np.eye(3)
@@ -281,6 +285,7 @@ def test_kmc_attachment_management():
     name = kmc.attach(custom_prop, interval=3, name="p1")
     assert name == "p1"
     assert kmc.list_attachments() == ["p1"]
+    assert kmc.list_property_calculations()["attached_enabled"] == ["p1"]
 
     kmc.set_property_frequency(interval=5, time_interval=None)
     assert kmc._property_frequency_interval == 5
@@ -288,9 +293,45 @@ def test_kmc_attachment_management():
     kmc.set_property_enabled("msd", False)
     assert kmc._property_enabled["msd"] is False
 
+    with pytest.deprecated_call():
+        kmc.disable_property("p1")
+    assert kmc.list_attachments() == []
+
+    with pytest.deprecated_call():
+        kmc.disable_property("conductivity")
+    assert kmc._property_enabled["conductivity"] is False
+
+    name = kmc.attach(custom_prop, interval=3, name="p1")
+    assert name == "p1"
     kmc.detach("p1")
     assert kmc.list_attachments() == []
 
     kmc.attach(custom_prop, interval=2, name="p2")
     kmc.clear_attachments()
     assert kmc.list_attachments() == []
+
+
+@pytest.mark.unit
+def test_kmc_runtime_property_config_application():
+    kmc = KMC.__new__(KMC)
+    kmc._ensure_property_state()
+
+    runtime_config = types.SimpleNamespace(
+        property_sampling_interval=7,
+        property_sampling_time_interval=None,
+        builtin_property_enabled={"msd": False, "conductivity": False},
+        property_callbacks=[
+            {
+                "callable": "tests.test_kmc_state_tracker_boundaries:yaml_config_test_callback",
+                "name": "cfg_callback",
+                "interval": 3,
+                "enabled": True,
+            }
+        ],
+    )
+    kmc._configure_properties_from_runtime_config(runtime_config)
+
+    assert kmc._property_frequency_interval == 7
+    assert kmc._property_enabled["msd"] is False
+    assert kmc._property_enabled["conductivity"] is False
+    assert kmc.list_attachments() == ["cfg_callback"]

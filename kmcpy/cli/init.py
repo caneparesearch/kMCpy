@@ -23,8 +23,8 @@ def build_template() -> str:
         #   3) Run: run_kmc --input input_template.yaml
         #
         # API usage:
-        #   from kmcpy.simulator.config import SimulationConfig
-        #   config = SimulationConfig.from_yaml_section("input_template.yaml", "kmc", "default")
+        #   from kmcpy.simulator.config import Configuration
+        #   config = Configuration.from_yaml_section("input_template.yaml", "kmc", "default")
 
         kmc:
           type: default
@@ -82,6 +82,27 @@ def build_template() -> str:
             random_seed: null
             # Simulation label used in outputs
             name: "DefaultSimulation"
+
+            # ----- Optional property sampling controls -----
+            # Global property sampling event-step interval (null = default once per pass)
+            property_sampling_interval: null
+            # Global property sampling time interval (null = disabled)
+            property_sampling_time_interval: null
+            # Built-in property toggles (defaults to enabled for all fields)
+            # Supported keys: msd, jump_diffusivity, tracer_diffusivity,
+            #                 conductivity, havens_ratio, correlation_factor
+            builtin_property_enabled: {}
+            # Optional custom callback definitions resolved by import path.
+            # Example:
+            # property_callbacks:
+            #   - callable: "myproject.kmc_props:calc_occupation"
+            #     name: "occupied_fraction"
+            #     interval: 100
+            #     time_interval: null
+            #     store: true
+            #     max_records: null
+            #     enabled: true
+            property_callbacks: []
         """
     )
 
