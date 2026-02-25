@@ -135,9 +135,18 @@ records = tracker.get_custom_results("occupied_fraction")
 ```
 
 ### Command line usage
-A wrapper is provided if you want to run kMCpy through command line only. There is a wrapper script `run_kmc` that allows you to run kMCpy from the command line. You can use it to run a kMCpy simulation with a JSON/YAML input file. The input file should contain the necessary parameters for the simulation. It should be noted that you need to have all the input files that needed to run kMC.
+A wrapper is provided if you want to run kMCpy from the command line.
+
+1. Generate a commented template input file:
 ```shell
-run_kmc input.json
+kmcpy init --output input_template.yaml
+```
+
+2. Edit the required file paths and simulation settings in `input_template.yaml`.
+
+3. Run the simulation:
+```shell
+run_kmc --input input_template.yaml
 ```
 
 To print out all arguments, you can run:

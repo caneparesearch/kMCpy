@@ -87,5 +87,6 @@ markers = [
 ]
 
 [project.scripts]
+kmcpy = "kmcpy.cli.main:main"
 run_kmc = "kmcpy.cli.run_kmc:main"
 start_kmcpy_gui = "kmcpy.cli.gui_wrapper:main"

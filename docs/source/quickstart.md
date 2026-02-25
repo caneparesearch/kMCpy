@@ -38,6 +38,26 @@ config = SimulationConfig.from_file("input.yaml")
 tracker = run(config)
 ```
 
+## 5. Scaffold a template YAML for CLI/API
+
+```shell
+kmcpy init --output input_template.yaml
+```
+
+Then edit the required file paths and run:
+
+```shell
+run_kmc --input input_template.yaml
+```
+
+API users can load the same generated file with:
+
+```python
+from kmcpy.simulator.config import SimulationConfig
+
+config = SimulationConfig.from_yaml_section("input_template.yaml", "kmc", "default")
+```
+
 ## Troubleshooting
 
 ### Unknown parameter error

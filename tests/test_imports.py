@@ -10,6 +10,8 @@ import pytest
     "kmcpy.event",
     "kmcpy.io",
     "kmcpy.api",
+    "kmcpy.cli.main",
+    "kmcpy.cli.init",
     "kmcpy.simulator.tracker",
 ])
 def test_module_imports(module_path):
