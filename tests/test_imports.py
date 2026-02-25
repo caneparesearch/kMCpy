@@ -9,6 +9,7 @@ import pytest
     "kmcpy.simulator.kmc",
     "kmcpy.event",
     "kmcpy.io",
+    "kmcpy.api",
     "kmcpy.simulator.tracker",
 ])
 def test_module_imports(module_path):
@@ -26,6 +27,13 @@ def test_top_level_imports(module_path):
         importlib.import_module(module_path)
     except ImportError as e:
         pytest.fail(f"Failed to import top-level {module_path}: {e}")
+
+
+def test_public_run_api():
+    import kmcpy
+
+    assert hasattr(kmcpy, "run")
+    assert callable(kmcpy.run)
 
 def test_simulation_config_classes():
     """Test that simulation config classes can be imported and instantiated."""

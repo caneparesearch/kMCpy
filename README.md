@@ -106,6 +106,15 @@ If you pass an unknown keyword, kMCpy raises a clear error and points to `Simula
 ### API usage
 You can run kMC through API. See the `example` directory for scripts and notebook workflows covering setup, event generation, and simulations.
 
+For a one-call simulation:
+
+```python
+from kmcpy import SimulationConfig, run
+
+config = SimulationConfig.from_file("input.yaml")
+tracker = run(config)
+```
+
 You can also attach custom property callbacks during a run:
 
 ```python

@@ -22,6 +22,7 @@ API Reference Documentation
     property_engine.rst
     state.rst
     built_in_properties.rst
+    high_level_api.rst
     basis.rst
     comparator.rst
     lattice_structure.rst

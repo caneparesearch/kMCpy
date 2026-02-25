@@ -7,9 +7,9 @@ import json
 import os
 from pathlib import Path
 
+from kmcpy import run
 from kmcpy.event import EventGenerator
 from kmcpy.simulator.config import SimulationConfig
-from kmcpy.simulator.kmc import KMC
 
 
 def load_initial_occupations(initial_state_file: Path) -> list[int]:
@@ -98,15 +98,13 @@ def main() -> None:
     config = build_config()
     print(f"\nRunning: {config.summary()}")
 
-    kmc = KMC.from_config(config)
-
     output_dir = Path(__file__).resolve().parent / "output" / "minimal"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     original_cwd = Path.cwd()
     try:
         os.chdir(output_dir)
-        tracker = kmc.run(config)
+        tracker = run(config)
     finally:
         os.chdir(original_cwd)
 

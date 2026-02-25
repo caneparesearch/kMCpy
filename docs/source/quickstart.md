@@ -29,6 +29,15 @@ This script uses:
 
 It writes output to `example/output/minimal/`.
 
+## 4. Run with one API call
+
+```python
+from kmcpy import SimulationConfig, run
+
+config = SimulationConfig.from_file("input.yaml")
+tracker = run(config)
+```
+
 ## Troubleshooting
 
 ### Unknown parameter error

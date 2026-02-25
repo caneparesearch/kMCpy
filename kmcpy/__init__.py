@@ -3,6 +3,7 @@ import datetime
 import logging
 
 from ._version import __version__
+from .api import run
 
 # Import main classes for convenient access
 from .models import BaseModel, LocalClusterExpansion, CompositeLCEModel
@@ -18,6 +19,7 @@ __author_email__ = "dengzeyu@gmail.com"
 # Expose the main classes and functions as the public API
 __all__ = [
     "__version__", 
+    "run",
     "get_logo",
     "BaseModel",
     "LocalClusterExpansion", 
