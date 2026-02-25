@@ -15,8 +15,11 @@ class BaseModel(ABC):
     Base class for models in kmcpy.
     
     This abstract class provides a common interface for model objects,
-    including serialization, deserialization, and computation methods. Subclasses must implement all
-    abstract methods to define specific model behavior.
+    including serialization, deserialization, and computation methods.
+
+    Constructor convention (pymatgen-style):
+    - `from_dict` and `from_file` are the primary constructors.
+    - `from_json` is retained as a compatibility alias to `from_file`.
     
     Attributes:
         name (str, optional): Name of the model instance.
@@ -105,11 +108,29 @@ class BaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def from_json(cls, fname):
+    def from_dict(cls, d):
         """
-        Load a model object from a JSON file.
+        Create a model object from a dictionary representation.
         """
         raise NotImplementedError("Subclasses must implement this method.")
+
+    @classmethod
+    @abstractmethod
+    def from_file(cls, fname):
+        """
+        Create a model object from a serialized file.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    @classmethod
+    def from_json(cls, fname):
+        """
+        Compatibility alias for JSON-backed model loading.
+
+        Notes:
+            This delegates to `from_file` to align with pymatgen-style constructors.
+        """
+        return cls.from_file(fname)
     
     def to_json(self, fname):
         from kmcpy.io import convert
@@ -178,6 +199,7 @@ class CompositeModel(BaseModel):
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
+    @classmethod
     @abstractmethod
     def from_dict(cls, d):
         """

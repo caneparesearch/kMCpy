@@ -1,9 +1,9 @@
 """
-Internal I/O utilities for SimulationConfig.
+Internal I/O utilities for Configuration.
 
 This module provides pure I/O operations for loading/saving simulation configurations.
 These classes are internal implementation details and should not be used directly by users.
-All user interactions should go through SimulationConfig methods.
+All user interactions should go through Configuration methods.
 """
 
 from typing import Dict, Any, Optional, TYPE_CHECKING
@@ -15,7 +15,7 @@ from kmcpy.io.registry import MODEL_CLASS_REGISTRY
 from kmcpy.io.serialization import to_json_compatible
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 MODEL_REGISTRY = MODEL_CLASS_REGISTRY
 
 
-class SimulationConfigIO:
+class ConfigIO:
     """
-    INTERNAL ONLY: Pure I/O utility for SimulationConfig.
+    INTERNAL ONLY: Pure I/O utility for Configuration.
     
     This class handles file operations without any business logic.
-    Users should never interact with this class directly - use SimulationConfig methods instead.
+    Users should never interact with this class directly - use Configuration methods instead.
     """
     
     @staticmethod
@@ -109,7 +109,7 @@ class SimulationConfigIO:
         Raises:
             ValueError: If section or task_type not found
         """
-        yaml_data = SimulationConfigIO._load_yaml(filepath)
+        yaml_data = ConfigIO._load_yaml(filepath)
         
         if section not in yaml_data:
             available = list(yaml_data.keys())
@@ -157,7 +157,7 @@ class SimulationConfigIO:
         
         try:
             with open(filepath, 'w') as f:
-                json.dump(data, f, indent=indent, default=SimulationConfigIO._json_serializer)
+                json.dump(data, f, indent=indent, default=ConfigIO._json_serializer)
             logger.debug(f"Saved JSON configuration to {filepath}")
         except TypeError as e:
             raise ValueError(f"Cannot serialize configuration to JSON: {e}")
@@ -212,6 +212,130 @@ class SimulationConfigIO:
             return 'unknown'
 
     @staticmethod
+    def _extract_latest_fit_parameters(fitting_results_file: str) -> dict[str, Any]:
+        """
+        Extract latest fitted parameters from a legacy fitting-results JSON file.
+
+        Selection rule:
+        1) If any entry has `time_stamp`, choose max `time_stamp`.
+        2) Otherwise choose the last entry in file order.
+        """
+        data = ConfigIO._load_json(fitting_results_file)
+        if not isinstance(data, dict) or not data:
+            raise ValueError(
+                f"Invalid fitting results format in '{fitting_results_file}': expected non-empty object"
+            )
+
+        items = list(data.items())
+        rows = [row for _, row in items if isinstance(row, dict)]
+        if not rows:
+            raise ValueError(
+                f"Invalid fitting results format in '{fitting_results_file}': no valid rows found"
+            )
+
+        rows_with_ts = [row for row in rows if row.get("time_stamp") is not None]
+        if rows_with_ts:
+            selected = max(rows_with_ts, key=lambda row: row["time_stamp"])
+        else:
+            selected = rows[-1]
+
+        if "keci" not in selected or "empty_cluster" not in selected:
+            raise ValueError(
+                f"Invalid fitting results format in '{fitting_results_file}': "
+                "missing required keys 'keci' and/or 'empty_cluster'"
+            )
+
+        return {
+            "parameters": {
+                "keci": selected["keci"],
+                "empty_cluster": selected["empty_cluster"],
+            },
+            "fit_metadata": {
+                "time_stamp": selected.get("time_stamp"),
+                "time": selected.get("time"),
+            },
+        }
+
+    @staticmethod
+    def _validate_bundle_component(name: str, component: dict[str, Any]) -> None:
+        if not isinstance(component, dict):
+            raise ValueError(f"Bundle component '{name}' must be an object")
+
+        if "lce" not in component or not isinstance(component["lce"], dict):
+            raise ValueError(f"Bundle component '{name}' must contain object key 'lce'")
+
+        parameters = component.get("parameters")
+        if not isinstance(parameters, dict):
+            raise ValueError(f"Bundle component '{name}' must contain object key 'parameters'")
+        if "keci" not in parameters or "empty_cluster" not in parameters:
+            raise ValueError(
+                f"Bundle component '{name}.parameters' must contain keys 'keci' and 'empty_cluster'"
+            )
+
+    @staticmethod
+    def _validate_model_bundle(bundle: dict[str, Any]) -> None:
+        if not isinstance(bundle, dict):
+            raise ValueError("Model bundle must be a JSON object")
+
+        if bundle.get("format") != "kmcpy.model_bundle.v1":
+            raise ValueError(
+                "Unsupported model bundle format. Expected 'kmcpy.model_bundle.v1'."
+            )
+        if bundle.get("model_type") != "composite_lce":
+            raise ValueError(
+                "Model bundle 'model_type' must be 'composite_lce' for this bundle format."
+            )
+        if "kra" not in bundle:
+            raise ValueError("Model bundle must contain required key 'kra'")
+
+        ConfigIO._validate_bundle_component("kra", bundle["kra"])
+        if "site" in bundle and bundle["site"] is not None:
+            ConfigIO._validate_bundle_component("site", bundle["site"])
+
+    @staticmethod
+    def load_model_bundle(model_file: str) -> dict[str, Any]:
+        """Load and validate a model bundle JSON."""
+        bundle = ConfigIO._load_json(model_file)
+        ConfigIO._validate_model_bundle(bundle)
+        return bundle
+
+    @staticmethod
+    def save_model_bundle(bundle: dict[str, Any], output_file: str, indent: int = 2) -> None:
+        """Validate and save a model bundle JSON."""
+        ConfigIO._validate_model_bundle(bundle)
+        ConfigIO._save_json(bundle, output_file, indent=indent)
+
+    @staticmethod
+    def build_model_bundle_from_legacy_files(
+        kra_lce: str,
+        kra_fit: str,
+        site_lce: Optional[str] = None,
+        site_fit: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Build a v1 model bundle from legacy 2-file/4-file model inputs."""
+        if (site_lce is None) ^ (site_fit is None):
+            raise ValueError("site_lce and site_fit must be provided together")
+
+        kra_component = {
+            "lce": ConfigIO._load_json(kra_lce),
+            **ConfigIO._extract_latest_fit_parameters(kra_fit),
+        }
+        bundle = {
+            "format": "kmcpy.model_bundle.v1",
+            "model_type": "composite_lce",
+            "kra": kra_component,
+        }
+
+        if site_lce is not None and site_fit is not None:
+            bundle["site"] = {
+                "lce": ConfigIO._load_json(site_lce),
+                **ConfigIO._extract_latest_fit_parameters(site_fit),
+            }
+
+        ConfigIO._validate_model_bundle(bundle)
+        return bundle
+
+    @staticmethod
     def load_occupation_data(initial_state_file: str, supercell_shape: list, select_sites: list) -> list:
         """
         Load occupation data from file, replacing deprecated InputSet.load_occ functionality.
@@ -263,7 +387,7 @@ class SimulationConfigIO:
             return occupation_chebyshev.tolist()
 
     @staticmethod
-    def _create_model_from_config(config: 'SimulationConfig'):
+    def _create_model_from_config(config: 'Configuration'):
         """
         Create model from configuration using registry pattern.
         
@@ -271,7 +395,7 @@ class SimulationConfigIO:
         config.model_type, then calls the model's from_config method.
         
         Args:
-            config: SimulationConfig containing model parameters and model_type
+            config: Configuration containing model parameters and model_type
             
         Returns:
             BaseModel: Configured model instance
@@ -304,7 +428,7 @@ class SimulationConfigIO:
             raise ValueError(f"Model class '{class_name}' does not have a 'from_config' method")
 
     @staticmethod
-    def load_simulation_components(config: 'SimulationConfig') -> tuple:
+    def load_simulation_components(config: 'Configuration') -> tuple:
         """
         Load all simulation components from config, centralizing all manual loading logic.
         
@@ -312,7 +436,7 @@ class SimulationConfigIO:
         a single entry point for loading structure, model, events, and simulation state.
         
         Args:
-            config: SimulationConfig object with all parameters
+            config: Configuration object with all parameters
             
         Returns:
             tuple: (structure, model, event_lib, simulation_state)
@@ -323,7 +447,7 @@ class SimulationConfigIO:
         """
         import numpy as np
         from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.simulator.state import SimulationState
+        from kmcpy.simulator.state import State
         
         # Load structure directly from config
         structure = StructureKMCpy.from_cif(
@@ -349,7 +473,7 @@ class SimulationConfigIO:
             structure.make_supercell(supercell_shape_matrix)
         
         # Load model using factory method (currently defaults to CompositeLCEModel)
-        model = SimulationConfigIO._create_model_from_config(config)
+        model = ConfigIO._create_model_from_config(config)
         
         # Load events using EventLib's own method
         from kmcpy.event import EventLib
@@ -361,14 +485,14 @@ class SimulationConfigIO:
             initial_occ = list(config.initial_occupations)
         elif config.initial_state_file:
             # Use centralized occupation loading method
-            initial_occ = SimulationConfigIO.load_occupation_data(
+            initial_occ = ConfigIO.load_occupation_data(
                 initial_state_file=config.initial_state_file,
                 supercell_shape=list(config.supercell_shape),
                 select_sites=select_sites_for_occupation
             )
         
         if initial_occ is not None:
-            simulation_state = SimulationState(occupations=initial_occ)
+            simulation_state = State(occupations=initial_occ)
         else:
             # We cannot proceed without an initial occupation
             raise ValueError("Initial occupations could not be determined.")

@@ -24,8 +24,8 @@ import kmcpy
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
-    from kmcpy.simulator.state import SimulationState
+    from kmcpy.simulator.config import Configuration
+    from kmcpy.simulator.state import State
     from kmcpy.models.composite_lce_model import CompositeLCEModel
 
 logger = logging.getLogger(__name__) 
@@ -43,8 +43,8 @@ class KMC:
                 structure: StructureKMCpy,
                 model: 'CompositeLCEModel',
                 event_lib: EventLib,
-                config: "SimulationConfig",
-                simulation_state: "SimulationState" = None,
+                config: "Configuration",
+                simulation_state: "State" = None,
                 **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
@@ -52,12 +52,12 @@ class KMC:
             structure (StructureKMCpy): The structure object (already processed).
             model (CompositeLCEModel): The model with all parameters loaded.
             event_lib (EventLib): The event library with all events loaded.
-            config (SimulationConfig): Configuration object containing all simulation parameters.
-            simulation_state (SimulationState, optional): SimulationState object for state management.
+            config (Configuration): Configuration object containing all simulation parameters.
+            simulation_state (State, optional): State object for state management.
             **kwargs: Additional keyword arguments.
 
         Note:
-            SimulationState is the preferred way to manage mutable simulation state.
+            State is the preferred way to manage mutable simulation state.
             The config object contains all immutable configuration parameters.
         """
         logger.info(kmcpy.get_logo())
@@ -82,12 +82,12 @@ class KMC:
         
         # Initialize occupation state from simulation_state.
         if simulation_state is not None:
-            # Use SimulationState as single source of truth
-            logger.info("Using SimulationState for occupation management")
-            logger.debug(f"SimulationState occupations length: {len(simulation_state.occupations)}")
+            # Use State as single source of truth
+            logger.info("Using State for occupation management")
+            logger.debug(f"State occupations length: {len(simulation_state.occupations)}")
             self.occ_global = simulation_state.occupations
         else:
-            raise ValueError("SimulationState must be provided for clean architecture")
+            raise ValueError("State must be provided for clean architecture")
 
         # Calculate initial probabilities from runtime configuration and state.
         logger.info("Initializing probabilities...")
@@ -136,7 +136,7 @@ class KMC:
             self._active_tracker: Optional[Tracker] = None
 
     @staticmethod
-    def _resolve_callback_reference(callable_ref: str) -> Callable[["SimulationState", int, float], Any]:
+    def _resolve_callback_reference(callable_ref: str) -> Callable[["State", int, float], Any]:
         """Resolve callback path strings like `module.path:func` or `module.path.func`."""
         if ":" in callable_ref:
             module_path, attr_path = callable_ref.split(":", 1)
@@ -183,22 +183,22 @@ class KMC:
             )
         
     @classmethod
-    def from_config(cls, config: "SimulationConfig") -> "KMC":
-        """Create KMC instance from SimulationConfig (recommended initialization method).
+    def from_config(cls, config: "Configuration") -> "KMC":
+        """Create KMC instance from Configuration (recommended initialization method).
 
-        This is the main initialization method that leverages SimulationConfigIO
+        This is the main initialization method that leverages ConfigIO
         for all component loading operations and provides a clean interface.
 
         Args:
-            config (SimulationConfig): Configuration object containing all necessary parameters.
+            config (Configuration): Configuration object containing all necessary parameters.
 
         Returns:
             KMC: An instance of the KMC class.
         """
-        # Use centralized component loading from SimulationConfigIO
-        from kmcpy.io.config_io import SimulationConfigIO
+        # Use centralized component loading from ConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
-        structure, model, event_lib, simulation_state = SimulationConfigIO.load_simulation_components(config)
+        structure, model, event_lib, simulation_state = ConfigIO.load_simulation_components(config)
         
         return cls(
             structure=structure,
@@ -243,13 +243,13 @@ class KMC:
 
     def attach(
         self,
-        func: Callable[["SimulationState", int, float], Any],
+        func: Callable[["State", int, float], Any],
         interval: Optional[int] = None,
         time_interval: Optional[float] = None,
         name: Optional[str] = None,
         store: bool = True,
         max_records: Optional[int] = None,
-        on_error: Optional[Callable[[Exception, "SimulationState", int, float], bool]] = None,
+        on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
         enabled: bool = True,
     ) -> str:
         """
@@ -429,11 +429,11 @@ class KMC:
         """
         Updates the system state and event probabilities after an event occurs.
         
-        This method delegates state management to SimulationState, following clean
+        This method delegates state management to State, following clean
         architecture principles with single responsibility and separation of concerns.
         
         This method performs the following steps:
-        1. Delegates occupation updates to SimulationState.apply_event()
+        1. Delegates occupation updates to State.apply_event()
         2. Automatically finds the event index in the event library
         3. Identifies all events that need probability updates using EventLib
         4. Recalculates probabilities for affected events
@@ -444,9 +444,9 @@ class KMC:
             dt (float, optional): Time increment for this event. Used for state tracking.
             
         Side Effects:
-            Modifies occupation state and probability lists via SimulationState delegation.
+            Modifies occupation state and probability lists via State delegation.
         """
-        # Delegate state update to SimulationState - clean architecture with single state object
+        # Delegate state update to State - clean architecture with single state object
         self.simulation_state.apply_event(event, dt)
         
         # Synchronize occupation reference for probability calculations
@@ -471,14 +471,14 @@ class KMC:
             )
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run(self, config: "SimulationConfig", label: str = None) -> Tracker:
-        """Run KMC simulation from a SimulationConfig object.
+    def run(self, config: "Configuration", label: str = None) -> Tracker:
+        """Run KMC simulation from a Configuration object.
 
         This is the main method for running KMC simulations using the modern
-        SimulationConfig format.
+        Configuration format.
 
         Args:
-            config (SimulationConfig): Configuration object containing all necessary parameters.
+            config (Configuration): Configuration object containing all necessary parameters.
             label (str, optional): Label for the simulation run. Defaults to None.
                 If None, will use config.name.
 
@@ -487,8 +487,8 @@ class KMC:
             
         Example::
         
-            # Using SimulationConfig
-            config = SimulationConfig.create(name="Test", temperature=400.0, ...)
+            # Using Configuration
+            config = Configuration.create(name="Test", temperature=400.0, ...)
             tracker = kmc.run(config)
             
             # Alternative usage patterns:
@@ -533,11 +533,11 @@ class KMC:
 
         logger.info("Start running kMC ...")
 
-        # Create Tracker using clean SimulationState architecture
+        # Create Tracker using clean State architecture
         tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
         self._configure_tracker_properties(tracker=tracker, pass_length=pass_length)
         self._active_tracker = tracker
-        logger.info("Using clean SimulationState architecture")
+        logger.info("Using clean State architecture")
         
         logger.info("Tracker summaries are reported as dynamic property tables per pass.")
 
@@ -559,7 +559,7 @@ class KMC:
             tracker.update_current_pass(current_pass)
             tracker.show_current_info()
 
-        # Use SimulationState occupations for final output
+        # Use State occupations for final output
         final_occupations = self.simulation_state.occupations
         tracker.write_results(final_occupations, label=label)
         return tracker

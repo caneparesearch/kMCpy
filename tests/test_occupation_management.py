@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 from pymatgen.core import Lattice, Structure
 
-from kmcpy.simulator.config import RuntimeConfig, SimulationConfig, SystemConfig
-from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.config import RuntimeConfig, Configuration, SystemConfig
+from kmcpy.simulator.state import State
 
 
 class DummyEvent:
-    """Minimal event-like object for SimulationState tests."""
+    """Minimal event-like object for State tests."""
 
     def __init__(self, from_site: int, to_site: int):
         """Create a dummy migration event."""
@@ -43,7 +43,7 @@ class TestOccupationManagement:
             mobile_ion_charge=1.0,
             event_file="test_events.json",
         )
-        return SimulationConfig(system_config=system_config, runtime_config=runtime_config)
+        return Configuration(system_config=system_config, runtime_config=runtime_config)
 
     @pytest.fixture
     def test_structure(self):
@@ -85,7 +85,7 @@ class TestOccupationManagement:
             RuntimeConfig(attempt_frequency=-1e13)
 
     def test_simulation_config_access(self, simulation_config):
-        """Test convenient SimulationConfig accessors."""
+        """Test convenient Configuration accessors."""
         assert simulation_config.temperature == 300.0
         assert simulation_config.attempt_frequency == 1e13
         assert simulation_config.mobile_ion_specie == "Na"
@@ -99,7 +99,7 @@ class TestOccupationManagement:
 
     def test_simulation_state_tracking(self, occupation_vector):
         """Test mutable simulation state tracking for occupation, time, and step."""
-        state = SimulationState(occupations=occupation_vector.tolist())
+        state = State(occupations=occupation_vector.tolist())
 
         assert state.time == 0.0
         assert state.step == 0
@@ -113,7 +113,7 @@ class TestOccupationManagement:
 
     def test_simulation_state_apply_event(self):
         """Test state updates through the strict core apply_event API."""
-        state = SimulationState(occupations=[-1, 1, 1, 1])
+        state = State(occupations=[-1, 1, 1, 1])
         event = DummyEvent(from_site=0, to_site=1)
 
         state.apply_event(event, dt=0.2)
@@ -124,10 +124,10 @@ class TestOccupationManagement:
 
     def test_simulation_state_serialization(self, occupation_vector):
         """Test strict dict serialization for core mutable state only."""
-        state = SimulationState(occupations=occupation_vector.tolist(), time=2.0, step=3)
+        state = State(occupations=occupation_vector.tolist(), time=2.0, step=3)
 
         data = state.as_dict()
-        restored = SimulationState.from_dict(data)
+        restored = State.from_dict(data)
 
         assert restored.occupations == state.occupations
         assert restored.time == state.time
@@ -136,7 +136,7 @@ class TestOccupationManagement:
     @pytest.mark.integration
     def test_occupation_integration_with_config_and_state(self, simulation_config, occupation_vector):
         """Test clean integration between immutable config and mutable state."""
-        state = SimulationState(occupations=occupation_vector.tolist())
+        state = State(occupations=occupation_vector.tolist())
 
         assert simulation_config.temperature > 0
         assert simulation_config.attempt_frequency > 0

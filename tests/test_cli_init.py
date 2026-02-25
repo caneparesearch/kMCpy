@@ -4,8 +4,8 @@ import pytest
 
 from kmcpy.cli.init import write_template
 from kmcpy.cli.main import main as kmcpy_main
-from kmcpy.io.config_io import SimulationConfigIO
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.io.config_io import ConfigIO
+from kmcpy.simulator.config import Configuration
 
 
 @pytest.mark.unit
@@ -18,13 +18,14 @@ def test_write_template_creates_parseable_config(tmp_path: Path):
 
     template_text = output_file.read_text(encoding="utf-8")
     assert "structure_file" in template_text
+    assert "model_file" in template_text
     assert "kmc_passes" in template_text
     assert "builtin_property_enabled" in template_text
     assert "property_callbacks" in template_text
     assert "# ----- Runtime parameters -----" in template_text
 
-    raw_data = SimulationConfigIO._load_yaml_section(str(output_file), "kmc", "default")
-    config = SimulationConfig.from_dict(raw_data)
+    raw_data = ConfigIO._load_yaml_section(str(output_file), "kmc", "default")
+    config = Configuration.from_dict(raw_data)
     assert config.structure_file == "path/to/structure.cif"
     assert config.kmc_passes == 10000
     assert config.builtin_property_enabled == {}

@@ -6,6 +6,7 @@ import argparse
 from typing import Sequence
 
 from kmcpy.cli.init import DEFAULT_TEMPLATE_FILENAME, write_template
+from kmcpy.cli.pack_model import DEFAULT_BUNDLE_FILENAME, write_model_bundle
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +34,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Overwrite output file if it already exists.",
     )
 
+    pack_parser = subparsers.add_parser(
+        "pack-model",
+        help="Pack legacy LCE + fitting files into a single model bundle JSON.",
+    )
+    pack_parser.add_argument("--kra-lce", required=True, help="Path to KRA LCE JSON file.")
+    pack_parser.add_argument("--kra-fit", required=True, help="Path to KRA fitting-results JSON file.")
+    pack_parser.add_argument("--site-lce", help="Path to site LCE JSON file (optional, paired with --site-fit).")
+    pack_parser.add_argument("--site-fit", help="Path to site fitting-results JSON file (optional, paired with --site-lce).")
+    pack_parser.add_argument(
+        "-o",
+        "--output",
+        default=DEFAULT_BUNDLE_FILENAME,
+        help=f"Output bundle JSON path (default: {DEFAULT_BUNDLE_FILENAME})",
+    )
+    pack_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Overwrite output file if it already exists.",
+    )
+
     return parser
 
 
@@ -45,6 +67,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_path = write_template(args.output, force=args.force)
         print(f"Template written to: {output_path}")
         print(f"Next step: run_kmc --input {output_path}")
+        return 0
+
+    if args.command == "pack-model":
+        output_path = write_model_bundle(
+            output=args.output,
+            kra_lce=args.kra_lce,
+            kra_fit=args.kra_fit,
+            site_lce=args.site_lce,
+            site_fit=args.site_fit,
+            force=args.force,
+        )
+        print(f"Model bundle written to: {output_path}")
         return 0
 
     parser.error(f"Unknown command: {args.command}")

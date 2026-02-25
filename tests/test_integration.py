@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""Integration tests for SimulationConfig, KMC, and EventLib APIs."""
+"""Integration tests for Configuration, KMC, and EventLib APIs."""
 
 
 def test_simulation_config_integration():
-    """Test that strict SimulationConfig integration works properly."""
-    from kmcpy.simulator.config import RuntimeConfig, SimulationConfig, SystemConfig
+    """Test that strict Configuration integration works properly."""
+    from kmcpy.simulator.config import RuntimeConfig, Configuration, SystemConfig
     from kmcpy.simulator.kmc import KMC
     from tests.test_utils import create_nasicon_config, create_temperature_series
 
@@ -24,14 +24,11 @@ def test_simulation_config_integration():
         mobile_ion_charge=1.0,
         mobile_ion_specie="Na",
         supercell_shape=(2, 2, 2),
-        fitting_results_file="fake.json",
-        fitting_results_site_file="fake.json",
-        cluster_expansion_file="fake.json",
-        cluster_expansion_site_file="fake.json",
+        model_file="fake_model.json",
         event_dependencies="fake.csv",
     )
 
-    config = SimulationConfig(system_config=system, runtime_config=runtime)
+    config = Configuration(system_config=system, runtime_config=runtime)
     assert config.name == "Runtime_Test"
     assert config.temperature == 400.0
     assert config.kmc_passes == 5000
@@ -68,9 +65,9 @@ def test_simulation_config_integration():
 
 def test_parameter_serialization():
     """Test strict parameter serialization and deserialization."""
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
-    config = SimulationConfig(
+    config = Configuration(
         structure_file="fake.cif",
         name="Serialization_Test",
         temperature=450.0,
@@ -82,10 +79,7 @@ def test_parameter_serialization():
         mobile_ion_charge=1.0,
         mobile_ion_specie="Na",
         supercell_shape=(2, 2, 2),
-        fitting_results_file="fake.json",
-        fitting_results_site_file="fake.json",
-        cluster_expansion_file="fake.json",
-        cluster_expansion_site_file="fake.json",
+        model_file="fake_model.json",
         event_file="fake.json",
         event_dependencies="fake.csv",
         property_sampling_interval=200,
@@ -116,7 +110,7 @@ def test_parameter_serialization():
     assert config_dict["elementary_hop_distance"] == config.elementary_hop_distance
     assert config_dict["mobile_ion_charge"] == config.mobile_ion_charge
 
-    new_config = SimulationConfig.from_dict(config_dict)
+    new_config = Configuration.from_dict(config_dict)
     assert new_config.name == config.name
     assert new_config.temperature == config.temperature
     assert new_config.attempt_frequency == config.attempt_frequency

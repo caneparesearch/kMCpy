@@ -76,4 +76,4 @@ If file paths are invalid, use absolute paths or run from repository root so rel
 
 ### YAML input for CLI
 
-`run_kmc` expects modern `SimulationConfig` style content. Legacy `InputSet` style files are no longer supported.
+`run_kmc` expects modern `Configuration` style content. Legacy `InputSet` style files are no longer supported.

@@ -12,6 +12,7 @@ import pytest
     "kmcpy.api",
     "kmcpy.cli.main",
     "kmcpy.cli.init",
+    "kmcpy.cli.pack_model",
     "kmcpy.simulator.tracker",
 ])
 def test_module_imports(module_path):
@@ -40,11 +41,10 @@ def test_public_run_api():
     assert hasattr(kmcpy, "State")
 
 def test_simulation_config_classes():
-    """Test that simulation config classes can be imported and instantiated."""
+    """Test that configuration classes can be imported and instantiated."""
     from kmcpy.simulator.config import (
         Configuration,
         RuntimeConfig,
-        SimulationConfig,
         SystemConfig,
     )
     from tests.test_utils import create_nasicon_config, create_temperature_series
@@ -60,7 +60,7 @@ def test_simulation_config_classes():
     )
     assert runtime_config.name == "Runtime_Test"
     
-    simulation_config = SimulationConfig(
+    simulation_config = Configuration(
         system_config=system_config,
         runtime_config=runtime_config,
         name="KMC_Test",
@@ -70,14 +70,12 @@ def test_simulation_config_classes():
         kmc_passes=5000,
     )
     assert simulation_config.equilibration_passes == 1000
-    assert Configuration is SimulationConfig
-    
     # Test convenience functions exist
     assert callable(create_nasicon_config)
     assert callable(create_temperature_series)
 
 def test_kmc_simulation_config_integration():
-    """Test that KMC class has SimulationConfig integration methods."""
+    """Test that KMC class has Configuration integration methods."""
     from kmcpy.simulator.kmc import KMC
     
     # Test that new methods exist (updated method names)
@@ -93,7 +91,7 @@ def test_kmc_simulation_config_integration():
 
 
 def test_public_aliases():
-    from kmcpy import Configuration, SimulationConfig, State, SimulationState
+    import kmcpy
 
-    assert Configuration is SimulationConfig
-    assert State is SimulationState
+    assert hasattr(kmcpy, "Configuration")
+    assert hasattr(kmcpy, "State")

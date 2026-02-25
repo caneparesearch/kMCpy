@@ -111,11 +111,11 @@ class TestNa3SbS4(unittest.TestCase):
             os.chdir(original_cwd)
 
     def test_simulation_config_basic(self):
-        """Test basic SimulationConfig functionality for Na3SbS4."""
-        from kmcpy.simulator.config import SimulationConfig
+        """Test basic Configuration functionality for Na3SbS4."""
+        from kmcpy.simulator.config import Configuration
         
         # Test basic configuration creation
-        config = SimulationConfig(
+        config = Configuration(
             structure_file="fake_structure.cif",  # Required parameter with correct name
             name="Na3SbS4_Test",
             temperature=600.0,
@@ -129,11 +129,7 @@ class TestNa3SbS4(unittest.TestCase):
             supercell_shape=(2, 2, 2),  # Use tuple
             immutable_sites=("S", "Sb"),  # Use tuple
             
-            # Use correct parameter names
-            fitting_results_file="fake_fitting.json",
-            fitting_results_site_file="fake_fitting_site.json",
-            cluster_expansion_file="fake_lce.json",
-            cluster_expansion_site_file="fake_lce_site.json",
+            model_file="fake_model.json",
             event_file="fake_events.json",
             event_dependencies="fake_dependencies.csv"
         )
@@ -168,7 +164,7 @@ class TestNa3SbS4(unittest.TestCase):
         self.assertEqual(modified_config.name, "Modified_Na3SbS4")
         self.assertEqual(modified_config.attempt_frequency, config.attempt_frequency)
         
-        print("✓ SimulationConfig basic functionality works for Na3SbS4")
+        print("✓ Configuration basic functionality works for Na3SbS4")
 
 
 if __name__ == "__main__":

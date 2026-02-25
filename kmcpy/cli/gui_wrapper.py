@@ -17,7 +17,7 @@ except ImportError:
     GooeyParser = argparse.ArgumentParser
 
 from kmcpy.simulator.kmc import KMC
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 from kmcpy.event.generators import EventGenerator
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 import kmcpy._version
@@ -285,12 +285,9 @@ def main():
         os.chdir(args.work_dir)
         print(vars(args))
 
-        # Convert GUI args to SimulationConfig using modern parameter names.
+        # Convert GUI args to Configuration using modern parameter names.
         legacy_mapping = {
-            "fitting_results": "fitting_results_file",
-            "fitting_results_site": "fitting_results_site_file",
-            "lce_fname": "cluster_expansion_file",
-            "lce_site_fname": "cluster_expansion_site_file",
+            "lce_fname": "model_file",
             "prim_fname": "structure_file",
             "event_fname": "event_file",
             "initial_state": "initial_state_file",
@@ -308,10 +305,7 @@ def main():
             "mobile_ion_charge",
             "elementary_hop_distance",
             "model_type",
-            "cluster_expansion_file",
-            "cluster_expansion_site_file",
-            "fitting_results_file",
-            "fitting_results_site_file",
+            "model_file",
             "event_file",
             "event_dependencies",
             "immutable_sites",
@@ -332,7 +326,7 @@ def main():
             if mapped_key in valid_config_keys and value is not None:
                 config_params[mapped_key] = value
 
-        config = SimulationConfig(**config_params)
+        config = Configuration(**config_params)
         kmc = KMC.from_config(config)
 
         # run kmc

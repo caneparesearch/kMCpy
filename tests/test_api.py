@@ -50,5 +50,5 @@ def test_run_wrapper_passes_none_label_by_default(monkeypatch):
 
 
 def test_run_wrapper_validates_config_type():
-    with pytest.raises(TypeError, match="SimulationConfig"):
+    with pytest.raises(TypeError, match="Configuration"):
         run(config={})

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from kmcpy.simulator.kmc import KMC, CallbackExecutionError
-from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker
 
 
@@ -45,7 +45,7 @@ def _make_tracker():
         attempt_frequency=1e13,
     )
     structure = _DummyStructure(["Na", "Na", "O"])
-    state = SimulationState(occupations=[-1, 1, 1], time=0.0, step=0)
+    state = State(occupations=[-1, 1, 1], time=0.0, step=0)
     return Tracker(config=config, structure=structure, initial_state=state), state
 
 
@@ -60,7 +60,7 @@ def test_tracker_update_does_not_advance_state_time():
         attempt_frequency=1e13,
     )
     structure = _DummyStructure(["Na", "Na", "O"])
-    state = SimulationState(occupations=[-1, 1, 1], time=0.0, step=0)
+    state = State(occupations=[-1, 1, 1], time=0.0, step=0)
     tracker = Tracker(config=config, structure=structure, initial_state=state)
     event = types.SimpleNamespace(mobile_ion_indices=(0, 1), probability=1.0)
 
@@ -129,7 +129,7 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     kmc = KMC.__new__(KMC)
     kmc.structure = _DummyStructure(["Li", "Li", "O"])
     kmc.event_lib = types.SimpleNamespace(events=[types.SimpleNamespace(mobile_ion_indices=(0, 1))])
-    kmc.simulation_state = SimulationState(occupations=[-1, 1, 1], time=0.0, step=0)
+    kmc.simulation_state = State(occupations=[-1, 1, 1], time=0.0, step=0)
 
     config = types.SimpleNamespace(
         name="unit-test",

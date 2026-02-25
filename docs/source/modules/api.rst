@@ -21,7 +21,6 @@ API Reference Documentation
     tracker.rst
     property.rst
     state.rst
-    built_in_properties.rst
     high_level_api.rst
     basis.rst
     comparator.rst

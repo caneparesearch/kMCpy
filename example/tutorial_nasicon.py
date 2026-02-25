@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from kmcpy.event import EventGenerator
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 
 
@@ -31,7 +31,7 @@ def parse_supercell_shape(value: str) -> tuple[int, int, int]:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run a tutorial kMC simulation using files in example/files"
+        description="Run a tutorial kMC simulation using files in tests/files"
     )
     parser.add_argument(
         "--output-dir",
@@ -128,12 +128,12 @@ def generate_events_if_needed(
 def run_tutorial(args: argparse.Namespace) -> None:
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parent
-    files_dir = script_dir / "files"
+    files_dir = repo_root / "tests" / "files"
 
     output_dir = resolve_output_dir(repo_root=repo_root, output_dir_arg=args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    structure_file = files_dir / "nasicon.cif"
+    structure_file = files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
     event_file = output_dir / "events.json"
     event_dependencies_file = output_dir / "event_dependencies.csv"
 
@@ -145,12 +145,9 @@ def run_tutorial(args: argparse.Namespace) -> None:
         regenerate_events=args.regenerate_events,
     )
 
-    config = SimulationConfig.create(
+    config = Configuration.create(
         structure_file=str(structure_file),
-        cluster_expansion_file=str(files_dir / "input/lce.json"),
-        fitting_results_file=str(files_dir / "input/fitting_results.json"),
-        cluster_expansion_site_file=str(files_dir / "input/lce_site.json"),
-        fitting_results_site_file=str(files_dir / "input/fitting_results_site.json"),
+        model_file=str(files_dir / "input/model.json"),
         event_file=str(event_file),
         event_dependencies=str(event_dependencies_file),
         initial_state_file=str(files_dir / "input/initial_state.json"),

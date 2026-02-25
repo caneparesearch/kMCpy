@@ -8,7 +8,7 @@ import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 
-from kmcpy.simulator.built_in_properties import compute_transport_properties
+from kmcpy.simulator.property import compute_transport_properties
 
 
 results = glob.glob("comp_0.1_1")

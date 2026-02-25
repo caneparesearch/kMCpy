@@ -5,8 +5,8 @@ Architecture:
 
 - SystemConfig: Physical system definition (immutable)
 - RuntimeConfig: Simulation runtime parameters (immutable) 
-- SimulationConfig: Complete simulation setup (immutable)
-- SimulationState: Mutable state during execution
+- Configuration: Complete simulation setup (immutable)
+- State: Mutable state during execution
 
 This module provides the parameter routing and configuration management for
 kinetic Monte Carlo simulations. It handles both system parameters (what you're
@@ -18,6 +18,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
+
+LEGACY_MODEL_PARAM_NAMES = {
+    "cluster_expansion_file",
+    "cluster_expansion_site_file",
+    "fitting_results_file",
+    "fitting_results_site_file",
+}
 
 
 def _validate_builtin_property_enabled(values: dict[str, bool]) -> None:
@@ -54,10 +61,7 @@ class SystemConfig:
     
     # Model configuration
     model_type: str = "composite_lce"
-    cluster_expansion_file: str = ""
-    cluster_expansion_site_file: Optional[str] = None
-    fitting_results_file: str = ""
-    fitting_results_site_file: Optional[str] = None
+    model_file: str = ""
     event_file: str = ""
     event_dependencies: Optional[str] = None
     
@@ -196,7 +200,7 @@ class RuntimeConfig:
 
 
 @dataclass(frozen=True)
-class SimulationConfig:
+class Configuration:
     """Complete simulation configuration combining system and runtime parameters."""
     
     system_config: SystemConfig
@@ -204,17 +208,24 @@ class SimulationConfig:
     
     def __init__(self, system_config=None, runtime_config=None, **kwargs):
         """
-        Create SimulationConfig with automatic parameter routing.
+        Create Configuration with automatic parameter routing.
         
         You can either:
-        1. Pass pre-built configs: SimulationConfig(system_config=sys, runtime_config=run)
-        2. Pass parameters directly: SimulationConfig(temperature=300, structure_file="x.cif", ...)
-        3. Mix both: SimulationConfig(system_config=sys, temperature=400)
+        1. Pass pre-built configs: Configuration(system_config=sys, runtime_config=run)
+        2. Pass parameters directly: Configuration(temperature=300, structure_file="x.cif", ...)
+        3. Mix both: Configuration(system_config=sys, temperature=400)
         
         Parameters are automatically routed to SystemConfig or RuntimeConfig based on their names.
         """
         if system_config is None and runtime_config is None and not kwargs:
             raise ValueError("Must provide either configs or parameters")
+
+        legacy_keys = sorted(set(kwargs.keys()) & LEGACY_MODEL_PARAM_NAMES)
+        if legacy_keys:
+            raise ValueError(
+                "Legacy model fields are removed: "
+                f"{legacy_keys}. Run `kmcpy pack-model` and use `model_file`."
+            )
         
         # Split kwargs into system and runtime parameters
         system_params = {}
@@ -224,8 +235,7 @@ class SimulationConfig:
         # Parameter routing tables
         system_param_names = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'model_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
             'initial_state_file', 'initial_occupations'  # Added initial state parameters
         }
@@ -277,7 +287,7 @@ class SimulationConfig:
         
         Examples::
         
-            config = SimulationConfig.create(
+            config = Configuration.create(
                 structure_file="test.cif",
                 temperature=400.0,
                 kmc_passes=50000
@@ -294,8 +304,15 @@ class SimulationConfig:
         return result
     
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> "SimulationConfig":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "Configuration":
         """Create from dictionary."""
+        legacy_keys = sorted(set(config_dict.keys()) & LEGACY_MODEL_PARAM_NAMES)
+        if legacy_keys:
+            raise ValueError(
+                "Legacy model fields are removed: "
+                f"{legacy_keys}. Run `kmcpy pack-model` and use `model_file`."
+            )
+
         # Split parameters between system and runtime configs
         system_params = {}
         runtime_params = {}
@@ -303,8 +320,7 @@ class SimulationConfig:
         # SystemConfig parameter names
         system_param_names = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'model_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
             'initial_state_file', 'initial_occupations'
         }
@@ -331,37 +347,37 @@ class SimulationConfig:
     # ===== FILE I/O METHODS =====
     
     @classmethod
-    def from_file(cls, filepath: str) -> "SimulationConfig":
+    def from_file(cls, filepath: str) -> "Configuration":
         """
-        Load SimulationConfig from file (auto-detects format from extension).
+        Load Configuration from file (auto-detects format from extension).
         
         Args:
             filepath: Path to configuration file (.json, .yaml, .yml)
             
         Returns:
-            SimulationConfig instance
+            Configuration instance
             
         Example:
-            config = SimulationConfig.from_file("simulation.yaml")
-            config = SimulationConfig.from_file("simulation.json")
+            config = Configuration.from_file("simulation.yaml")
+            config = Configuration.from_file("simulation.json")
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
-        file_format = SimulationConfigIO._detect_file_format(filepath)
+        file_format = ConfigIO._detect_file_format(filepath)
         
         if file_format == 'json':
-            raw_data = SimulationConfigIO._load_json(filepath)
+            raw_data = ConfigIO._load_json(filepath)
         elif file_format == 'yaml':
-            raw_data = SimulationConfigIO._load_yaml(filepath)
+            raw_data = ConfigIO._load_yaml(filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
                 
         return cls.from_dict(raw_data)
     
     @classmethod
-    def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "SimulationConfig":
+    def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "Configuration":
         """
-        Load SimulationConfig from specific section of YAML file.
+        Load Configuration from specific section of YAML file.
         
         Useful for multi-section YAML files that contain different configurations.
         
@@ -371,23 +387,23 @@ class SimulationConfig:
             task_type: Optional task type for registry-style sections
             
         Returns:
-            SimulationConfig instance
+            Configuration instance
             
         Example:
             # Load from simple section
-            config = SimulationConfig.from_yaml_section("workflow.yaml", "kmc")
+            config = Configuration.from_yaml_section("workflow.yaml", "kmc")
             # Load from registry-style section
-            config = SimulationConfig.from_yaml_section("workflow.yaml", "kmc", "diffusion")
+            config = Configuration.from_yaml_section("workflow.yaml", "kmc", "diffusion")
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
-        raw_data = SimulationConfigIO._load_yaml_section(filepath, section, task_type)
+        raw_data = ConfigIO._load_yaml_section(filepath, section, task_type)
     
         return cls.from_dict(raw_data)
     
     def save(self, filepath: str, **kwargs) -> None:
         """
-        Save SimulationConfig to file (auto-detects format from extension).
+        Save Configuration to file (auto-detects format from extension).
         
         Args:
             filepath: Output file path (.json, .yaml, .yml)
@@ -397,22 +413,22 @@ class SimulationConfig:
             config.save("output.yaml")
             config.save("output.json", indent=4)
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
         data = self.to_dict()
-        file_format = SimulationConfigIO._detect_file_format(filepath)
+        file_format = ConfigIO._detect_file_format(filepath)
         
         if file_format == 'json':
             indent = kwargs.get('indent', 2)
-            SimulationConfigIO._save_json(data, filepath, indent=indent)
+            ConfigIO._save_json(data, filepath, indent=indent)
         elif file_format == 'yaml':
-            SimulationConfigIO._save_yaml(data, filepath)
+            ConfigIO._save_yaml(data, filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
     
     def save_yaml_section(self, filepath: str, section: str = "kmc", task_type: str = "default") -> None:
         """
-        Save SimulationConfig as a section in YAML file.
+        Save Configuration as a section in YAML file.
         
         Creates a registry-style YAML section with type field.
         
@@ -430,13 +446,13 @@ class SimulationConfig:
             #     temperature: 300.0
             #     ...
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         import os
         
         # Load existing YAML file or create new structure
         if os.path.exists(filepath):
             try:
-                yaml_data = SimulationConfigIO._load_yaml(filepath)
+                yaml_data = ConfigIO._load_yaml(filepath)
             except:
                 yaml_data = {}
         else:
@@ -452,15 +468,15 @@ class SimulationConfig:
             task_type: config_data
         }
         
-        SimulationConfigIO._save_yaml(yaml_data, filepath)
+        ConfigIO._save_yaml(yaml_data, filepath)
     
-    def with_runtime_changes(self, **changes) -> "SimulationConfig":
+    def with_runtime_changes(self, **changes) -> "Configuration":
         """Create new config with runtime parameter changes."""
         from dataclasses import replace
         new_runtime = replace(self.runtime_config, **changes)
         return replace(self, runtime_config=new_runtime)
     
-    def with_system_changes(self, **changes) -> "SimulationConfig":
+    def with_system_changes(self, **changes) -> "Configuration":
         """Create new config with system parameter changes."""
         from dataclasses import replace
         new_system = replace(self.system_config, **changes)
@@ -556,9 +572,9 @@ class SimulationConfig:
         return self.system_config.model_type
     
     @property
-    def cluster_expansion_file(self) -> str:
-        """Access cluster expansion file directly."""
-        return self.system_config.cluster_expansion_file
+    def model_file(self) -> str:
+        """Access model file directly."""
+        return self.system_config.model_file
     
     @property
     def event_file(self) -> str:
@@ -596,21 +612,6 @@ class SimulationConfig:
         return self.system_config.initial_occupations
     
     @property
-    def fitting_results_file(self) -> str:
-        """Access fitting results file directly."""
-        return self.system_config.fitting_results_file
-    
-    @property
-    def fitting_results_site_file(self) -> Optional[str]:
-        """Access fitting results site file directly."""
-        return self.system_config.fitting_results_site_file
-    
-    @property
-    def cluster_expansion_site_file(self) -> Optional[str]:
-        """Access cluster expansion site file directly."""
-        return self.system_config.cluster_expansion_site_file
-    
-    @property
     def event_dependencies(self) -> Optional[str]:
         """Access event dependencies directly."""
         return self.system_config.event_dependencies
@@ -620,13 +621,12 @@ class SimulationConfig:
     @classmethod
     def help_parameters(cls):
         """Print available parameters and which config they belong to."""
-        print("Configuration (SimulationConfig) Parameters:\n")
+        print("Configuration Parameters:\n")
         
         print("SYSTEM PARAMETERS (physical setup):")
         system_params = [
             "structure_file", "supercell_shape", "dimension", "mobile_ion_specie",
-            "mobile_ion_charge", "elementary_hop_distance", "model_type", "cluster_expansion_file",
-            "cluster_expansion_site_file", "fitting_results_file", "fitting_results_site_file",
+            "mobile_ion_charge", "elementary_hop_distance", "model_type", "model_file",
             "event_file", "event_dependencies", "immutable_sites", "convert_to_primitive_cell"
         ]
         for param in system_params:
@@ -651,8 +651,7 @@ class SimulationConfig:
         """Show which sub-config contains a parameter."""
         system_params = {
             'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
+            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'model_file',
             'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
         }
         
@@ -679,14 +678,14 @@ class SimulationConfig:
         except Exception as e:
             raise ValueError(f"Configuration validation failed: {e}")
     
-    def copy_with_changes(self, **changes) -> "SimulationConfig":
+    def copy_with_changes(self, **changes) -> "Configuration":
         """Create a copy of this config with some parameters changed.
         
         Args:
             **changes: Parameter changes to apply
             
         Returns:
-            SimulationConfig: New config with changes applied
+            Configuration: New config with changes applied
         """
         # Get current config as dict
         current_dict = self.to_dict()
@@ -695,10 +694,4 @@ class SimulationConfig:
         current_dict.update(changes)
         
         # Create new config
-        return SimulationConfig.from_dict(current_dict)
-
-
-# ===== I/O HELPER CLASS =====
-
-# Backward-compatible alias; preferred public name.
-Configuration = SimulationConfig
+        return Configuration.from_dict(current_dict)

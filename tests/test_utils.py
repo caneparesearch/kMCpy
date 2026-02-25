@@ -5,7 +5,7 @@ This module contains utility functions that are specific to testing,
 including configuration builders for specific material systems.
 """
 
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 
 
 def create_nasicon_config(
@@ -14,11 +14,11 @@ def create_nasicon_config(
     supercell_shape: list = None,
     data_dir: str = "example",
     **kwargs
-) -> SimulationConfig:
+) -> Configuration:
     """
     Create a standard NASICON simulation configuration for testing.
     
-    This is a test utility function that creates a SimulationConfig
+    This is a test utility function that creates a Configuration
     with typical NASICON parameters. It should only be used in tests.
     
     Args:
@@ -29,7 +29,7 @@ def create_nasicon_config(
         **kwargs: Additional parameters to override defaults
     
     Returns:
-        SimulationConfig: Configured simulation setup for NASICON testing
+        Configuration: Configured simulation setup for NASICON testing
     """
     if supercell_shape is None:
         supercell_shape = [2, 2, 2]
@@ -45,11 +45,7 @@ def create_nasicon_config(
         'mobile_ion_charge': 1.0,
         'mobile_ion_specie': 'Na',
         'supercell_shape': supercell_shape,
-        # Use correct parameter names
-        'fitting_results_file': f"{data_dir}/fitting_results.json",
-        'fitting_results_site_file': f"{data_dir}/fitting_results_site.json",
-        'cluster_expansion_file': f"{data_dir}/lce.json",
-        'cluster_expansion_site_file': f"{data_dir}/lce_site.json",
+        'model_file': f"{data_dir}/model.json",
         'structure_file': f"{data_dir}/0th_reference_local_env.cif",
         'event_file': f"{data_dir}/events.json",
         'event_dependencies': f"{data_dir}/event_dependencies.csv"
@@ -58,14 +54,14 @@ def create_nasicon_config(
     # Override with user-provided kwargs
     default_config.update(kwargs)
     
-    return SimulationConfig(**default_config)
+    return Configuration(**default_config)
 
 
 def create_test_config(
     name: str = "Test_Simulation",
     temperature: float = 300.0,
     **kwargs
-) -> SimulationConfig:
+) -> Configuration:
     """
     Create a minimal test configuration with dummy file paths.
     
@@ -78,7 +74,7 @@ def create_test_config(
         **kwargs: Additional parameters to override defaults
     
     Returns:
-        SimulationConfig: Minimal test configuration
+        Configuration: Minimal test configuration
     """
     default_config = {
         'name': name,
@@ -94,21 +90,20 @@ def create_test_config(
         'structure_file': 'test_structure.cif',
         'event_file': 'test_events.json',
         'event_dependencies': 'test_dependencies.csv',
-        'fitting_results_file': 'test_fitting.json',
-        'cluster_expansion_file': 'test_lce.json',
+        'model_file': 'test_model.json',
     }
     
     # Override with user-provided kwargs
     default_config.update(kwargs)
     
-    return SimulationConfig(**default_config)
+    return Configuration(**default_config)
 
 
 def create_temperature_series(
-    base_config: SimulationConfig,
+    base_config: Configuration,
     temperatures: list,
     name_template: str = "{base_name}_T_{temp}K"
-) -> list[SimulationConfig]:
+) -> list[Configuration]:
     """
     Create a series of configurations with different temperatures.
     
@@ -120,7 +115,7 @@ def create_temperature_series(
         name_template: Template for naming each configuration
     
     Returns:
-        List of SimulationConfig objects
+        List of Configuration objects
     """
     configs = []
     

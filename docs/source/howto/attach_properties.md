@@ -27,7 +27,7 @@ def callback(state, step, sim_time):
     ...
 ```
 
-- `state`: `SimulationState` object (current mutable simulation state)
+- `state`: `State` object (current mutable simulation state)
 - `step`: production event step index
 - `sim_time`: current simulation time
 

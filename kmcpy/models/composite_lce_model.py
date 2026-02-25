@@ -9,16 +9,15 @@ composable and generic.
 Author: Zeyu Deng
 """
 
+import json
 import logging
 from typing import Optional, TYPE_CHECKING
 import numpy as np
-import pandas as pd
-import os
 
 from kmcpy.models.base import CompositeModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
-from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.state import State
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import RuntimeConfig
@@ -36,7 +35,7 @@ class CompositeLCEModel(CompositeModel):
     
     The composite model provides:
     
-    - compute(): compute transition probability from an event
+    - compute_probability(): compute transition probability from an event
     
     Example::
     
@@ -50,8 +49,8 @@ class CompositeLCEModel(CompositeModel):
         # Combine them
         composite = CompositeLCEModel(site_model, kra_model)
         
-        # Use the composite model with SimulationState (preferred)
-        probability = composite.compute(
+        # Use the composite model with State (preferred)
+        probability = composite.compute_probability(
             event=event,
             runtime_config=runtime_config,
             simulation_state=simulation_state
@@ -124,7 +123,7 @@ class CompositeLCEModel(CompositeModel):
         self,
         event: Event,
         runtime_config: "RuntimeConfig",
-        simulation_state: SimulationState,
+        simulation_state: State,
     ) -> float:
         """
         Compute the transition probability for a given event using the composite LCE model.
@@ -133,7 +132,7 @@ class CompositeLCEModel(CompositeModel):
         
         - Computing the site energy (e_site) using the site LocalClusterExpansion model and its stored parameters.
         - Computing the barrier energy (e_kra) using the barrier LocalClusterExpansion model and its stored parameters.
-        - Determining the direction of the event from the occupation vector in the SimulationState.
+        - Determining the direction of the event from the occupation vector in the State.
         - Calculating the effective barrier as: e_barrier = e_kra + direction * e_site / 2
         - Using the Arrhenius equation to compute the probability:
           probability = abs(direction) * v * np.exp(-e_barrier / (k * temperature))
@@ -141,7 +140,7 @@ class CompositeLCEModel(CompositeModel):
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.
             runtime_config (RuntimeConfig): Contains attempt frequency (v) and temperature (T).
-            simulation_state (SimulationState): Contains the current occupation vector.
+            simulation_state (State): Contains the current occupation vector.
 
         Returns:
             float: The computed transition probability for the event.
@@ -188,6 +187,59 @@ class CompositeLCEModel(CompositeModel):
             "kra_model": self.kra_model.as_dict() if self.kra_model else None,
             "name": self.name,
         }
+
+    @staticmethod
+    def _extract_parameters_for_bundle(model: LocalClusterExpansion, label: str) -> dict:
+        """Extract fitted parameters from a local model for bundle serialization."""
+        if not hasattr(model, "keci") or not hasattr(model, "empty_cluster"):
+            raise ValueError(
+                f"Cannot serialize '{label}' model to bundle: missing fitted parameters "
+                "(expected attributes 'keci' and 'empty_cluster')."
+            )
+        return {
+            "keci": model.keci,
+            "empty_cluster": model.empty_cluster,
+        }
+
+    def to_model_bundle_dict(self) -> dict:
+        """
+        Convert this composite model into a model bundle payload (kmcpy.model_bundle.v1).
+        """
+        if self.kra_model is None:
+            raise ValueError("Cannot serialize composite model: kra_model is missing")
+
+        bundle = {
+            "format": "kmcpy.model_bundle.v1",
+            "model_type": "composite_lce",
+            "kra": {
+                "lce": self.kra_model.as_dict(),
+                "parameters": self._extract_parameters_for_bundle(self.kra_model, "kra"),
+                "fit_metadata": {"time_stamp": None, "time": None},
+            },
+        }
+
+        if self.site_model is not None:
+            bundle["site"] = {
+                "lce": self.site_model.as_dict(),
+                "parameters": self._extract_parameters_for_bundle(self.site_model, "site"),
+                "fit_metadata": {"time_stamp": None, "time": None},
+            }
+
+        return bundle
+
+    def to_json(self, fname: str) -> None:
+        """
+        Save this composite model as a model bundle JSON file.
+
+        The output is directly consumable by `CompositeLCEModel.from_file(...)`
+        and by Configuration `model_file`.
+        """
+        from kmcpy.io import convert
+
+        logger.info("Saving composite model bundle to: %s", fname)
+        bundle = self.to_model_bundle_dict()
+        with open(fname, "w") as fhandle:
+            json.dump(bundle, fhandle, indent=4, default=convert)
     
     def build(self, *args, **kwargs):
         """
@@ -248,88 +300,54 @@ class CompositeLCEModel(CompositeModel):
         return cls(site_model=site_model, kra_model=kra_model, name=d.get("name"))
 
     @classmethod
-    def from_json(cls, 
-                  lce_fname: str,
-                  fitting_results: str,
-                  lce_site_fname: str = None,
-                  fitting_results_site: str = None) -> "CompositeLCEModel":
+    def from_file(cls, model_file: str) -> "CompositeLCEModel":
         """
-        Create a CompositeLCEModel from JSON files.
-        
-        This method centralizes the loading of LCE models and their parameters,
-        replacing the need for file loading logic in other modules.
+        Create a CompositeLCEModel from a bundled model file.
         
         Args:
-            lce_fname: Path to KRA LCE model JSON file
-            fitting_results: Path to KRA fitting results JSON file
-            lce_site_fname: Path to site LCE model JSON file (optional)
-            fitting_results_site: Path to site fitting results JSON file (optional)
+            model_file: Path to bundled model file (format: kmcpy.model_bundle.v1)
             
         Returns:
             CompositeLCEModel: Configured composite model with loaded parameters
         """
-        import pandas as pd
-        import os
+        from kmcpy.io.config_io import ConfigIO
         
-        logger.info(f"Loading composite model from: {lce_fname}")
+        logger.info(f"Loading composite model bundle from: {model_file}")
+        bundle = ConfigIO.load_model_bundle(model_file)
         
         # Load KRA model
-        kra_model = LocalClusterExpansion.from_json(lce_fname)
-        
-        # Load fitting results for KRA model
-        logger.info("Loading fitting results: E_kra ...")
-        fitting_results_data = (
-            pd.read_json(fitting_results, orient="index")
-            .sort_values(by=["time_stamp"], ascending=False)
-            .iloc[0]
-        )
-        kra_params = {
-            'keci': fitting_results_data.keci,
-            'empty_cluster': fitting_results_data.empty_cluster
-        }
+        kra_component = bundle["kra"]
+        kra_model = LocalClusterExpansion.from_dict(kra_component["lce"])
+        kra_params = kra_component["parameters"]
         kra_model.set_parameters(kra_params)
         
-        # Load site model if available
+        # Load optional site model
         site_model = None
-        if lce_site_fname is not None and os.path.exists(lce_site_fname):
-            logger.info(f"Loading site LCE from: {lce_site_fname}")
-            site_model = LocalClusterExpansion.from_json(lce_site_fname)
-            
-            # Load fitting results for site model if available
-            if fitting_results_site is not None and os.path.exists(fitting_results_site):
-                logger.info("Loading fitting results: site energy ...")
-                fitting_results_site_data = (
-                    pd.read_json(fitting_results_site, orient="index")
-                    .sort_values(by=["time_stamp"], ascending=False)
-                    .iloc[0]
-                )
-                site_params = {
-                    'keci': fitting_results_site_data.keci,
-                    'empty_cluster': fitting_results_site_data.empty_cluster
-                }
-                site_model.set_parameters(site_params)
-            else:
-                logger.info("No site fitting results file found - using zero site energy contributions")
-        else:
-            logger.info("No site LCE file found - using None for site model")
+        if bundle.get("site") is not None:
+            site_component = bundle["site"]
+            site_model = LocalClusterExpansion.from_dict(site_component["lce"])
+            site_params = site_component["parameters"]
+            site_model.set_parameters(site_params)
         
         # Create composite model with pre-configured models
         return cls(site_model=site_model, kra_model=kra_model)
 
     @classmethod
-    def from_config(cls, config: 'SimulationConfig') -> "CompositeLCEModel":
+    def from_json(cls, model_file: str) -> "CompositeLCEModel":
         """
-        Create a CompositeLCEModel from a SimulationConfig object.
+        Compatibility alias for JSON model loading.
+        """
+        return cls.from_file(model_file)
+
+    @classmethod
+    def from_config(cls, config: 'Configuration') -> "CompositeLCEModel":
+        """
+        Create a CompositeLCEModel from a Configuration object.
         
         Args:
-            config: SimulationConfig containing model file paths
+            config: Configuration containing `model_file` path
             
         Returns:
             CompositeLCEModel: Configured composite model with loaded parameters
         """
-        return cls.from_json(
-            lce_fname=config.cluster_expansion_file,
-            fitting_results=config.fitting_results_file,
-            lce_site_fname=config.cluster_expansion_site_file,
-            fitting_results_site=config.fitting_results_site_file
-        )
+        return cls.from_file(model_file=config.model_file)

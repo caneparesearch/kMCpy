@@ -27,8 +27,8 @@ from kmcpy.simulator.property import (
 )
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
-    from kmcpy.simulator.state import SimulationState
+    from kmcpy.simulator.config import Configuration
+    from kmcpy.simulator.state import State
 
 logger = logging.getLogger(__name__)
 
@@ -90,14 +90,14 @@ class Tracker:
 
     def __init__(
         self,
-        config: "SimulationConfig",
+        config: "Configuration",
         structure: StructureKMCpy,
-        initial_state: Optional["SimulationState"] = None,
+        initial_state: Optional["State"] = None,
     ) -> None:
         """Initialize tracker state, trajectory arrays, and built-in sampling."""
         logger.info("Initializing Tracker ...")
         if initial_state is None:
-            raise ValueError("SimulationState must be provided to Tracker")
+            raise ValueError("State must be provided to Tracker")
 
         self.config = config
         self.structure = structure
@@ -204,14 +204,14 @@ class Tracker:
     @classmethod
     def from_config(
         cls,
-        config: "SimulationConfig",
+        config: "Configuration",
         structure: StructureKMCpy,
         occ_initial: list,
     ) -> "Tracker":
         """Construct tracker from config and initial occupations."""
-        from kmcpy.simulator.state import SimulationState
+        from kmcpy.simulator.state import State
 
-        initial_state = SimulationState(occupations=occ_initial)
+        initial_state = State(occupations=occ_initial)
         return cls(config=config, structure=structure, initial_state=initial_state)
 
     def set_global_property_frequency(
@@ -226,13 +226,13 @@ class Tracker:
 
     def attach(
         self,
-        func: Callable[["SimulationState", int, float], Any],
+        func: Callable[["State", int, float], Any],
         interval: Optional[int] = None,
         time_interval: Optional[float] = None,
         name: Optional[str] = None,
         store: bool = True,
         max_records: Optional[int] = None,
-        on_error: Optional[Callable[[Exception, "SimulationState", int, float], bool]] = None,
+        on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
         enabled: bool = True,
     ) -> str:
         """Attach one property callback to this tracker."""
@@ -339,7 +339,7 @@ class Tracker:
             raise ValueError(f"Unknown property '{name}'")
         self._properties[name].enabled = bool(enabled)
 
-    def _compute_built_in_summary(self, _state: "SimulationState", _step: int, _sim_time: float) -> dict[str, float]:
+    def _compute_built_in_summary(self, _state: "State", _step: int, _sim_time: float) -> dict[str, float]:
         """Compute the built-in transport summary from current tracker state."""
         return compute_transport_properties(
             self.displacement,

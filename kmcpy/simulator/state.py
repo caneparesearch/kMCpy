@@ -8,7 +8,7 @@ from typing import Any
 from ..event.base import Event
 
 
-class SimulationState:
+class State:
     """Mutable simulation state: occupations, simulation time, and step count."""
 
     def __init__(
@@ -30,9 +30,9 @@ class SimulationState:
         self.time += dt
         self.step += 1
 
-    def copy(self) -> "SimulationState":
+    def copy(self) -> "State":
         """Return a deep copy of mutable state."""
-        return SimulationState(
+        return State(
             occupations=self.occupations,
             time=self.time,
             step=self.step,
@@ -47,7 +47,7 @@ class SimulationState:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SimulationState":
+    def from_dict(cls, data: dict[str, Any]) -> "State":
         """Create state from dictionary payload."""
         return cls(
             occupations=data["occupations"],
@@ -78,7 +78,7 @@ class SimulationState:
         raise ValueError("Checkpoint format must be .json or .h5")
 
     @classmethod
-    def load_checkpoint(cls, filepath: str) -> "SimulationState":
+    def load_checkpoint(cls, filepath: str) -> "State":
         """Restore core mutable state from a checkpoint file (.json or .h5)."""
         if filepath.endswith(".json"):
             with open(filepath, "r") as fhandle:
@@ -103,8 +103,5 @@ class SimulationState:
 
     def __repr__(self) -> str:
         """Return compact debug representation of simulation state."""
-        return f"SimulationState(time={self.time:.2e}, step={self.step}, n_sites={len(self.occupations)})"
+        return f"State(time={self.time:.2e}, step={self.step}, n_sites={len(self.occupations)})"
 
-
-# Backward-compatible alias; preferred public name.
-State = SimulationState

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from kmcpy import run
 from kmcpy.event import EventGenerator
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 
 
 def load_initial_occupations(initial_state_file: Path) -> list[int]:
@@ -46,10 +46,10 @@ def generate_events_if_needed(
     )
 
 
-def build_config() -> SimulationConfig:
-    """Create a small simulation config with bundled example files."""
+def build_config() -> Configuration:
+    """Create a small simulation config with canonical test fixture files."""
     repo_root = Path(__file__).resolve().parent.parent
-    files_dir = repo_root / "example" / "files"
+    files_dir = repo_root / "tests" / "files"
     output_dir = repo_root / "example" / "output" / "minimal"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -58,19 +58,16 @@ def build_config() -> SimulationConfig:
     event_dependencies_file = output_dir / "event_dependencies.csv"
 
     generate_events_if_needed(
-        structure_file=files_dir / "nasicon.cif",
+        structure_file=files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
         event_file=event_file,
         event_dependencies_file=event_dependencies_file,
         supercell_shape=supercell_shape,
     )
 
-    return SimulationConfig.create(
+    return Configuration.create(
         # System parameters: what to simulate.
-        structure_file=str(files_dir / "nasicon.cif"),
-        cluster_expansion_file=str(files_dir / "input" / "lce.json"),
-        fitting_results_file=str(files_dir / "input" / "fitting_results.json"),
-        cluster_expansion_site_file=str(files_dir / "input" / "lce_site.json"),
-        fitting_results_site_file=str(files_dir / "input" / "fitting_results_site.json"),
+        structure_file=str(files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),
+        model_file=str(files_dir / "input" / "model.json"),
         event_file=str(event_file),
         event_dependencies=str(event_dependencies_file),
         initial_occupations=load_initial_occupations(files_dir / "input" / "initial_state.json"),
@@ -92,8 +89,8 @@ def build_config() -> SimulationConfig:
 
 
 def main() -> None:
-    print("Available SimulationConfig keywords:")
-    SimulationConfig.help_parameters()
+    print("Available Configuration keywords:")
+    Configuration.help_parameters()
 
     config = build_config()
     print(f"\nRunning: {config.summary()}")

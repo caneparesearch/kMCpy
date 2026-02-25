@@ -23,7 +23,7 @@ def run(config: "Configuration", label: str | None = None) -> "Tracker":
     from kmcpy.simulator.kmc import KMC
 
     if not isinstance(config, Configuration):
-        raise TypeError("config must be a Configuration/SimulationConfig instance")
+        raise TypeError("config must be a Configuration instance")
 
     kmc = KMC.from_config(config)
     return kmc.run(config=config, label=label)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from kmcpy.io.config_io import SimulationConfigIO
+from kmcpy.io.config_io import ConfigIO
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 import kmcpy
@@ -24,13 +24,7 @@ def main()->None:
             parameters are read from this file.
         supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
-        fitting_results_file (str): Path to the JSON file containing the fitting results for E_kra.
-            Required if input file is not provided.
-        fitting_results_site_file (str): Path to the JSON file containing the fitting results for site energy difference.
-            Required if input file is not provided.
-        cluster_expansion_file (str): Path to the JSON file containing the Local Cluster Expansion (LCE) model.
-            Required if input file is not provided.
-        cluster_expansion_site_file (str): Path to the JSON file containing the site LCE model for computing site energy differences.
+        model_file (str): Path to bundled model JSON file (format: kmcpy.model_bundle.v1).
             Required if input file is not provided.
         structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
@@ -54,10 +48,7 @@ def main()->None:
     parser.add_argument("--input", type=str, help="Path to the input JSON/YAML file for kMC simulation. If provided, all other parameters are read from this file.")
     # Always show all arguments in help - using modern parameter names
     parser.add_argument("--supercell_shape", type=str, help='Shape of the supercell as a list of integers (e.g., [2, 2, 2]). This should be consistent with events.')
-    parser.add_argument("--fitting_results_file", type=str, help='Path to the JSON file containing the fitting results for E_kra.')
-    parser.add_argument("--fitting_results_site_file", type=str, help='Path to the JSON file containing the fitting results for site energy difference.')
-    parser.add_argument("--cluster_expansion_file", type=str, help='Path to the JSON file containing the Local Cluster Expansion (LCE) model.')
-    parser.add_argument("--cluster_expansion_site_file", type=str, help='Path to the JSON file containing the site LCE model for computing site energy differences.')
+    parser.add_argument("--model_file", type=str, help='Path to bundled model JSON file (format: kmcpy.model_bundle.v1).')
     parser.add_argument("--structure_file", type=str, help='Path to the CIF file of the template structure (with all sites filled).')
     parser.add_argument("--event_file", type=str, help='Path to the JSON file containing the list of events.')
     parser.add_argument("--attempt_frequency", type=float, default=1e13, help='Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.')
@@ -87,10 +78,10 @@ def run_kmc(args)-> None:
     print("Starting KMC simulation...")
     
     if args.input:
-        # Load modern SimulationConfig format only
+        # Load modern Configuration format only
         try:
             print(f"Loading configuration from {args.input}")
-            raw_data = SimulationConfigIO._load_yaml_section(args.input, "kmc", "default")
+            raw_data = ConfigIO._load_yaml_section(args.input, "kmc", "default")
             config = Configuration.from_dict(raw_data)
             print(f"✓ Configuration loaded: {config.runtime_config.name}")
         except Exception as e:
@@ -98,8 +89,8 @@ def run_kmc(args)-> None:
             raise ValueError(
                 f"Unable to load configuration from {args.input}. "
                 f"Legacy InputSet format is no longer supported. "
-                f"Please convert your configuration to the modern SimulationConfig format. "
-                f"Use SimulationConfigIO to create new configuration files. "
+                f"Please convert your configuration to the modern Configuration format. "
+                f"Use ConfigIO to create new configuration files. "
                 f"Original error: {e}"
             )
     else:
@@ -109,6 +100,7 @@ def run_kmc(args)-> None:
 
     print("Configuration loaded, initializing KMC...")
     print(f"  Structure file: {config.system_config.structure_file}")
+    print(f"  Model file: {config.system_config.model_file}")
     print(f"  Temperature: {config.runtime_config.temperature} K")
     
     # initialize global occupation and conditions using modern API

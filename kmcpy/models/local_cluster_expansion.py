@@ -13,12 +13,12 @@ from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.fitting.registry import register_fitter
 from copy import deepcopy
 from kmcpy.event import Event
-from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 import numba as nb
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -93,9 +93,9 @@ class LocalClusterExpansion(BaseModel):
             orbit.show_representative_cluster()
 
     @classmethod
-    def from_json(cls, filename: str):
+    def from_file(cls, filename: str):
         """
-        Load a LocalClusterExpansion object from a JSON file.
+        Load a LocalClusterExpansion object from a serialized file.
         
         Args:
             filename: Path to the JSON file containing the LocalClusterExpansion data
@@ -103,10 +103,31 @@ class LocalClusterExpansion(BaseModel):
         Returns:
             LocalClusterExpansion: The loaded LocalClusterExpansion object
         """
-        from kmcpy.models.cluster import Orbit, Cluster
         with open(filename, 'r') as f:
             data = json.load(f)
-        
+
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_json(cls, filename: str):
+        """
+        Compatibility alias for JSON model loading.
+        """
+        return cls.from_file(filename)
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """
+        Load a LocalClusterExpansion object from a dictionary payload.
+
+        Args:
+            data: Dictionary containing serialized LocalClusterExpansion data.
+
+        Returns:
+            LocalClusterExpansion: The loaded LocalClusterExpansion object
+        """
+        from kmcpy.models.cluster import Orbit, Cluster
+
         # Create a new instance without calling __init__
         obj = cls.__new__(cls)
         
@@ -184,17 +205,17 @@ class LocalClusterExpansion(BaseModel):
         return obj
 
     @classmethod
-    def from_config(cls, config: 'SimulationConfig'):
+    def from_config(cls, config: 'Configuration'):
         """
-        Create a LocalClusterExpansion from a SimulationConfig object.
+        Create a LocalClusterExpansion from a Configuration object.
         
         Args:
-            config: SimulationConfig containing cluster expansion file path
+            config: Configuration containing `model_file` path
             
         Returns:
             LocalClusterExpansion: Loaded LocalClusterExpansion instance
         """
-        return cls.from_json(config.cluster_expansion_file)
+        return cls.from_file(config.model_file)
 
     def get_corr_from_structure(self, structure: StructureKMCpy, tol=1e-2, angle_tol=5):
         '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
@@ -248,7 +269,7 @@ class LocalClusterExpansion(BaseModel):
             orbits.append(orbit)
         return orbits
 
-    def compute(self, simulation_state:SimulationState, event:Event):
+    def compute(self, simulation_state:State, event:Event):
         """
         Compute energy value using stored parameters and correlation coefficients.
         
@@ -256,7 +277,7 @@ class LocalClusterExpansion(BaseModel):
         and the predefined cluster_site_indices to compute energy values.
         
         Args:
-            simulation_state: SimulationState object containing occupation vector (preferred)
+            simulation_state: State object containing occupation vector (preferred)
             event: Event object containing mobile ion indices (required for local environment)
             
         Returns:
@@ -362,12 +383,20 @@ class LocalClusterExpansion(BaseModel):
         """
         Return a dictionary representation of the LocalClusterExpansion.
         """
+        cluster_site_indices = []
+        if hasattr(self, "cluster_site_indices"):
+            # Normalize possible numba TypedList payloads to plain nested Python lists.
+            cluster_site_indices = [
+                [[int(site_idx) for site_idx in cluster] for cluster in orbit]
+                for orbit in self.cluster_site_indices
+            ]
+
         return {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "name": self.name,
             "orbits": [orbit.as_dict() for orbit in self.orbits],
-            "cluster_site_indices": self.cluster_site_indices,
+            "cluster_site_indices": cluster_site_indices,
             "center_site": self.center_site.as_dict(),
             "migration_unit_structure": self.local_env_structure.as_dict()
         }

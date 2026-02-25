@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional
 import numpy as np
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.state import SimulationState
+    from kmcpy.simulator.state import State
 
 
 @dataclass
@@ -16,13 +16,13 @@ class PropertySpec:
     """Property callback registration metadata."""
 
     name: str
-    callback: Callable[["SimulationState", int, float], Any]
+    callback: Callable[["State", int, float], Any]
     interval: Optional[int] = None
     time_interval: Optional[float] = None
     store: bool = True
     max_records: Optional[int] = None
     enabled: bool = True
-    on_error: Optional[Callable[[Exception, "SimulationState", int, float], bool]] = None
+    on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None
     last_trigger_step: int = 0
     last_trigger_time: Optional[float] = None
 

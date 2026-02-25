@@ -2,7 +2,7 @@ import unittest
 import pytest
 import os
 from kmcpy.simulator.config import (
-    SimulationConfig,
+    Configuration,
 )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11,23 +11,20 @@ file_path = os.path.join(current_dir, "files")
 
 def create_test_simulation_config(name="Test_Config", use_real_files=True):
     """
-    Create a test SimulationConfig with appropriate file paths.
+    Create a test Configuration with appropriate file paths.
     
     Args:
         name: Name for the configuration
         use_real_files: If True, use real test files; if False, use fake paths
     
     Returns:
-        SimulationConfig: Test configuration object
+        Configuration: Test configuration object
     """
     if use_real_files:
-        # Use real test files - Create model-based SimulationConfig using the create() method
-        config = SimulationConfig.create(
+        # Use real test files - Create model-based Configuration using the create() method
+        config = Configuration.create(
             structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-            cluster_expansion_file=f"{file_path}/input/lce.json",
-            fitting_results_file=f"{file_path}/input/fitting_results.json",
-            cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
-            fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+            model_file=f"{file_path}/input/model.json",
             event_file=f"{file_path}/input/events.json",
             initial_state_file=f"{file_path}/input/initial_state.json",
             mobile_ion_specie="Na",
@@ -45,7 +42,7 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
         return config
     else:
         # Use fake paths for testing parameter handling
-        return SimulationConfig(
+        return Configuration(
             structure_file="fake_structure.cif",  # Required parameter
             name=name,
             temperature=573.0,
@@ -59,8 +56,7 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
             supercell_shape=(2, 1, 1),  # Use tuple
             immutable_sites=("Zr", "O"),  # Use tuple
             # Fake file paths with correct names
-            fitting_results_file="fake_fitting.json",
-            cluster_expansion_file="fake_lce.json",
+            model_file="fake_model.json",
             event_file="fake_events.json",
         )
 
@@ -231,8 +227,8 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("kmc_original")
     def test_kmc_main_function(self):
-        """KMC test using modern SimulationConfig approach."""
-        from kmcpy.simulator.config import SimulationConfig
+        """KMC test using modern Configuration approach."""
+        from kmcpy.simulator.config import Configuration
         from kmcpy.simulator.kmc import KMC
         import numpy as np
 
@@ -241,13 +237,10 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
             
-            # Create SimulationConfig from the same parameters as the old kmc_input.json
-            config = SimulationConfig.create(
+            # Create Configuration from the same parameters as the old kmc_input.json
+            config = Configuration.create(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                cluster_expansion_file=f"{file_path}/input/lce.json",
-                fitting_results_file=f"{file_path}/input/fitting_results.json",
-                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
-                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
                 initial_state_file=f"{file_path}/input/initial_state.json",
                 mobile_ion_specie="Na",  # Fixed parameter name
@@ -294,10 +287,10 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("kmc_modernized")
     def test_kmc_main_function_modernized(self):
-        """Modernized KMC test using SimulationConfig approach."""
-        print("Testing modernized KMC workflow with SimulationConfig")
+        """Modernized KMC test using Configuration approach."""
+        print("Testing modernized KMC workflow with Configuration")
 
-        from kmcpy.simulator.config import SimulationConfig
+        from kmcpy.simulator.config import Configuration
         from kmcpy.simulator.kmc import KMC
         import numpy as np
 
@@ -306,13 +299,10 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create modern SimulationConfig using the create() method
-            config = SimulationConfig.create(
+            # Create modern Configuration using the create() method
+            config = Configuration.create(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                cluster_expansion_file=f"{file_path}/input/lce.json",
-                fitting_results_file=f"{file_path}/input/fitting_results.json",
-                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
-                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
                 initial_state_file=f"{file_path}/input/initial_state.json",
                 mobile_ion_specie="Na",
@@ -333,7 +323,7 @@ class TestNASICONbulk(unittest.TestCase):
             kmc_tracker = kmc.run(config)
 
             print(
-                f"Modern SimulationConfig results: {kmc_tracker.return_current_info()}"
+                f"Modern Configuration results: {kmc_tracker.return_current_info()}"
             )
 
             # Should produce identical results to the original test
@@ -356,7 +346,7 @@ class TestNASICONbulk(unittest.TestCase):
                 )
             )
 
-            print("✅ Modern SimulationConfig approach produces identical results!")
+            print("✅ Modern Configuration approach produces identical results!")
 
         finally:
             os.chdir(original_cwd)
@@ -390,8 +380,8 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("simulation_config_basic")
     def test_simulation_config_with_nasicon(self):
-        """Test SimulationConfig integration with NASICON test files."""
-        print("Testing SimulationConfig with NASICON files")
+        """Test Configuration integration with NASICON test files."""
+        print("Testing Configuration with NASICON files")
 
         from kmcpy.simulator.kmc import KMC
 
@@ -408,7 +398,7 @@ class TestNASICONbulk(unittest.TestCase):
             if not check_file_exists(file):
                 self.skipTest(f"Required test file missing: {file}")
 
-        # Create SimulationConfig with test files
+        # Create Configuration with test files
         config = create_test_simulation_config(
             name="NASICON_Test_Config", use_real_files=True
         )
@@ -416,9 +406,9 @@ class TestNASICONbulk(unittest.TestCase):
         # Test configuration validation
         try:
             config.validate()
-            print("✓ SimulationConfig validation passed")
+            print("✓ Configuration validation passed")
         except Exception as e:
-            self.fail(f"SimulationConfig validation failed: {e}")
+            self.fail(f"Configuration validation failed: {e}")
 
         # Test parameter modification
         modified_config = config.copy_with_changes(
@@ -438,19 +428,19 @@ class TestNASICONbulk(unittest.TestCase):
         # Test that we can create KMC instance (may fail due to file format issues)
         try:
             kmc_instance = KMC.from_config(config)
-            print("✓ KMC instance creation from SimulationConfig works")
+            print("✓ KMC instance creation from Configuration works")
         except Exception as e:
             # This might fail due to file format issues, which is acceptable
             print(
                 f"⚠ KMC instance creation failed (expected with test files): {type(e).__name__}"
             )
 
-        print("✅ SimulationConfig NASICON integration test completed")
+        print("✅ Configuration NASICON integration test completed")
 
     @pytest.mark.order("simulation_config_parameters")
     def test_simulation_config_parameter_studies(self):
-        """Test SimulationConfig parameter study capabilities."""
-        print("Testing SimulationConfig parameter studies")
+        """Test Configuration parameter study capabilities."""
+        print("Testing Configuration parameter studies")
 
         from tests.test_utils import create_temperature_series
 
@@ -494,11 +484,11 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("kmc_comparison")
     def test_kmc_simulation_config_validation(self):
-        """Test that KMC with SimulationConfig produces expected results."""
-        print("Testing KMC SimulationConfig validation")
+        """Test that KMC with Configuration produces expected results."""
+        print("Testing KMC Configuration validation")
 
         from kmcpy.simulator.kmc import KMC
-        from kmcpy.simulator.config import SimulationConfig
+        from kmcpy.simulator.config import Configuration
         import numpy as np
 
         # Change to tests directory temporarily to make relative paths work
@@ -506,16 +496,13 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # ========== Test: SimulationConfig approach ==========
-            print("Running SimulationConfig approach...")
+            # ========== Test: Configuration approach ==========
+            print("Running Configuration approach...")
 
-            # Create SimulationConfig with the same parameters as the old kmc_input.json
-            config = SimulationConfig.create(
+            # Create Configuration with the same parameters as the old kmc_input.json
+            config = Configuration.create(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                cluster_expansion_file=f"{file_path}/input/lce.json",
-                fitting_results_file=f"{file_path}/input/fitting_results.json",
-                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
-                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
                 # Note: initial_state_file is not supported in the clean API
                 mobile_ion_specie="Na",
@@ -532,11 +519,11 @@ class TestNASICONbulk(unittest.TestCase):
                 initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
-            # Test KMC with SimulationConfig
+            # Test KMC with Configuration
             kmc_simulation = KMC.from_config(config)
             kmc_tracker_simulation = kmc_simulation.run(config)
             simulation_results = kmc_tracker_simulation.return_current_info()
-            print(f"SimulationConfig results: {simulation_results}")
+            print(f"Configuration results: {simulation_results}")
 
             # ========== Validate Results ==========
             print("Validating results...")
@@ -560,21 +547,21 @@ class TestNASICONbulk(unittest.TestCase):
                     rtol=0.01,
                     atol=0.01,
                 ),
-                f"SimulationConfig results don't match expected: {simulation_results} vs {expected_results}",
+                f"Configuration results don't match expected: {simulation_results} vs {expected_results}",
             )
 
-            print("✓ SimulationConfig produces expected results")
-            print("✅ SimulationConfig validation test completed")
+            print("✓ Configuration produces expected results")
+            print("✅ Configuration validation test completed")
 
         finally:
             os.chdir(original_cwd)
 
     @pytest.mark.order("kmc_workflow")
     def test_kmc_simulation_config_workflow(self):
-        """Test complete KMC workflow using SimulationConfig approach."""
-        print("Testing complete KMC workflow with SimulationConfig")
+        """Test complete KMC workflow using Configuration approach."""
+        print("Testing complete KMC workflow with Configuration")
 
-        from kmcpy.simulator.config import SimulationConfig
+        from kmcpy.simulator.config import Configuration
         from kmcpy.simulator.kmc import KMC
         import numpy as np
 
@@ -583,13 +570,10 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create SimulationConfig using the create() method
-            config = SimulationConfig.create(
+            # Create Configuration using the create() method
+            config = Configuration.create(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
-                cluster_expansion_file=f"{file_path}/input/lce.json",
-                fitting_results_file=f"{file_path}/input/fitting_results.json",
-                cluster_expansion_site_file=f"{file_path}/input/lce_site.json",
-                fitting_results_site_file=f"{file_path}/input/fitting_results_site.json",
+                model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
                 # Note: initial_state_file is not supported in the clean API
                 mobile_ion_specie="Na",
@@ -606,17 +590,17 @@ class TestNASICONbulk(unittest.TestCase):
                 initial_state_file=f"{file_path}/input/initial_state.json"
             )
 
-            print("✓ SimulationConfig created with test parameters")
+            print("✓ Configuration created with test parameters")
 
-            # Test 1: Create KMC from SimulationConfig
+            # Test 1: Create KMC from Configuration
             kmc = KMC.from_config(config)
-            print("✓ KMC instance created from SimulationConfig")
+            print("✓ KMC instance created from Configuration")
 
             # Test 2: Run simulation using run method (recommended approach)
             print("Running KMC simulation using run method...")
             tracker = kmc.run(config)
             results = tracker.return_current_info()
-            print(f"✓ SimulationConfig results: {results}")
+            print(f"✓ Configuration results: {results}")
 
             # Test 3: Verify results match expected values (same as original test)
             expected_results = np.array(
@@ -633,7 +617,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             self.assertTrue(
                 np.allclose(np.array(results), expected_results, rtol=0.01, atol=0.01),
-                f"SimulationConfig results don't match expected: {results} vs {expected_results}",
+                f"Configuration results don't match expected: {results} vs {expected_results}",
             )
 
             # Test 4: Demonstrate configuration modification for parameter studies
@@ -659,9 +643,9 @@ class TestNASICONbulk(unittest.TestCase):
 
             print("✓ Configuration serialization works")
 
-            print("\n✅ Complete SimulationConfig workflow test passed!")
+            print("\n✅ Complete Configuration workflow test passed!")
             print(
-                "✅ SimulationConfig system is working correctly and produces expected results!"
+                "✅ Configuration system is working correctly and produces expected results!"
             )
 
         finally:

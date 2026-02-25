@@ -1,6 +1,6 @@
 import numpy as np
 
-from kmcpy.simulator.built_in_properties import compute_transport_properties
+from kmcpy.simulator.property import compute_transport_properties
 
 
 

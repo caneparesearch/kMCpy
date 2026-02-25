@@ -1,4 +1,4 @@
-"""CLI utilities to scaffold a kMCpy SimulationConfig YAML template."""
+"""CLI utilities to scaffold a kMCpy Configuration YAML template."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ DEFAULT_TEMPLATE_FILENAME = "input_template.yaml"
 
 
 def build_template() -> str:
-    """Return a commented YAML template for ``SimulationConfig``."""
+    """Return a commented YAML template for ``Configuration``."""
     return dedent(
         """\
-        # kMCpy input template (modern SimulationConfig format)
+        # kMCpy input template (modern Configuration format)
         #
         # Usage:
         #   1) Fill the required file paths below.
@@ -34,16 +34,10 @@ def build_template() -> str:
             structure_file: "path/to/structure.cif"
             # Path to migration event library JSON
             event_file: "path/to/event.json"
-            # Path to cluster expansion model JSON
-            cluster_expansion_file: "path/to/local_cluster_expansion.json"
-            # Path to fitted barrier coefficients JSON
-            fitting_results_file: "path/to/fitting_results.json"
+            # Path to bundled model JSON (format: kmcpy.model_bundle.v1)
+            model_file: "path/to/model.json"
 
-            # ----- Optional model/system files -----
-            # Optional site-energy model JSON (set null if unused)
-            cluster_expansion_site_file: null
-            # Optional fitted site-energy coefficients JSON (set null if unused)
-            fitting_results_site_file: null
+            # ----- Optional system files -----
             # Optional dependency graph JSON for events
             event_dependencies: null
             # Optional serialized initial simulation state file
