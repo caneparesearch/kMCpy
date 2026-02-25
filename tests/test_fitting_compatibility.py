@@ -144,7 +144,11 @@ def test_base_model_fit_dispatches_via_registry():
             return {}
 
         @classmethod
-        def from_json(cls, fname):
+        def from_dict(cls, data):
+            return cls()
+
+        @classmethod
+        def from_file(cls, filename):
             return cls()
 
     class DummyFitter:
@@ -177,7 +181,11 @@ def test_base_model_fit_raises_without_registered_fitter():
             return {}
 
         @classmethod
-        def from_json(cls, fname):
+        def from_dict(cls, data):
+            return cls()
+
+        @classmethod
+        def from_file(cls, filename):
             return cls()
 
     with pytest.raises(NotImplementedError, match="has no fitter registered"):
