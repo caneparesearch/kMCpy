@@ -4,6 +4,7 @@ from pathlib import Path
 import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.tabulated_model import TabulatedModel
 from kmcpy.io.config_io import ConfigIO
 
 
@@ -81,10 +82,20 @@ def test_composite_lce_model_to_json_is_bundle_compatible(tmp_path):
     assert reloaded.kra_model is not None
 
 
+def test_tabulated_model_from_file_matches_from_json():
+    root = Path(__file__).parent / "files" / "input"
+    from_file_model = TabulatedModel.from_file(str(root / "tabulated_model_bundle.json"))
+    from_json_model = TabulatedModel.from_json(str(root / "tabulated_model_bundle.json"))
+
+    assert from_file_model.as_dict() == from_json_model.as_dict()
+    assert from_file_model.name == "TabulatedModel"
+
+
 def test_exported_concrete_models_expose_pymatgen_style_constructors():
     concrete_models = [
         model_module.LocalClusterExpansion,
         model_module.CompositeLCEModel,
+        model_module.TabulatedModel,
     ]
     for model_cls in concrete_models:
         assert callable(getattr(model_cls, "from_dict"))

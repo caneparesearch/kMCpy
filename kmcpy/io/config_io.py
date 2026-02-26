@@ -273,6 +273,37 @@ class ConfigIO:
             )
 
     @staticmethod
+    def _validate_composite_lce_bundle(bundle: dict[str, Any]) -> None:
+        if "kra" not in bundle:
+            raise ValueError("Composite model bundle must contain required key 'kra'")
+
+        ConfigIO._validate_bundle_component("kra", bundle["kra"])
+        if "site" in bundle and bundle["site"] is not None:
+            ConfigIO._validate_bundle_component("site", bundle["site"])
+
+    @staticmethod
+    def _validate_tabulated_component(component: dict[str, Any]) -> None:
+        if not isinstance(component, dict):
+            raise ValueError("Tabulated model component 'tabulated' must be an object")
+
+        entries = component.get("entries")
+        if not isinstance(entries, list) or not entries:
+            raise ValueError(
+                "Tabulated model component must contain non-empty list key 'entries'"
+            )
+
+        from kmcpy.models.tabulated_model import TabulatedModel
+
+        # Reuse model-level validation to enforce entry structure and duplicate checks.
+        TabulatedModel.from_dict(component)
+
+    @staticmethod
+    def _validate_tabulated_bundle(bundle: dict[str, Any]) -> None:
+        if "tabulated" not in bundle:
+            raise ValueError("Tabulated model bundle must contain required key 'tabulated'")
+        ConfigIO._validate_tabulated_component(bundle["tabulated"])
+
+    @staticmethod
     def _validate_model_bundle(bundle: dict[str, Any]) -> None:
         if not isinstance(bundle, dict):
             raise ValueError("Model bundle must be a JSON object")
@@ -281,16 +312,18 @@ class ConfigIO:
             raise ValueError(
                 "Unsupported model bundle format. Expected 'kmcpy.model_bundle.v1'."
             )
-        if bundle.get("model_type") != "composite_lce":
-            raise ValueError(
-                "Model bundle 'model_type' must be 'composite_lce' for this bundle format."
-            )
-        if "kra" not in bundle:
-            raise ValueError("Model bundle must contain required key 'kra'")
 
-        ConfigIO._validate_bundle_component("kra", bundle["kra"])
-        if "site" in bundle and bundle["site"] is not None:
-            ConfigIO._validate_bundle_component("site", bundle["site"])
+        model_type = bundle.get("model_type")
+        if model_type == "composite_lce":
+            ConfigIO._validate_composite_lce_bundle(bundle)
+            return
+        if model_type == "tabulated":
+            ConfigIO._validate_tabulated_bundle(bundle)
+            return
+
+        raise ValueError(
+            "Model bundle 'model_type' must be one of: ['composite_lce', 'tabulated']."
+        )
 
     @staticmethod
     def load_model_bundle(model_file: str) -> dict[str, Any]:
@@ -334,6 +367,93 @@ class ConfigIO:
 
         ConfigIO._validate_model_bundle(bundle)
         return bundle
+
+    @staticmethod
+    def build_tabulated_model_bundle(
+        entries: list[dict[str, Any]],
+        name: str = "TabulatedModel",
+        lookup_key: str = "event_local_occ_v1",
+        default_property: str = "barrier",
+        probability_mode: str = "barrier_arrhenius",
+        probability_property: str = "barrier",
+    ) -> dict[str, Any]:
+        """Build a tabulated model bundle from explicit entries."""
+        from kmcpy.models.tabulated_model import TabulatedModel
+
+        model = TabulatedModel.from_entries(
+            entries=entries,
+            name=name,
+            lookup_key=lookup_key,
+            default_property=default_property,
+            probability_mode=probability_mode,
+            probability_property=probability_property,
+        )
+        bundle = model.to_model_bundle_dict()
+        ConfigIO._validate_model_bundle(bundle)
+        return bundle
+
+    @staticmethod
+    def build_tabulated_model_bundle_from_file(
+        entries_file: str,
+        name: Optional[str] = None,
+        lookup_key: Optional[str] = None,
+        default_property: Optional[str] = None,
+        probability_mode: Optional[str] = None,
+        probability_property: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """
+        Build a tabulated model bundle from JSON file payload.
+
+        Accepted payloads:
+        - JSON list of entries
+        - JSON object with key `entries` and optional metadata
+        - Full tabulated bundle (`format/model_type/tabulated`)
+        """
+        payload = ConfigIO._load_json(entries_file)
+        if isinstance(payload, list):
+            entries = payload
+            payload_metadata: dict[str, Any] = {}
+        elif isinstance(payload, dict):
+            if (
+                payload.get("format") == "kmcpy.model_bundle.v1"
+                and payload.get("model_type") == "tabulated"
+            ):
+                payload = payload.get("tabulated")
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    "Tabulated entries file has invalid tabulated payload structure"
+                )
+            if "entries" not in payload:
+                raise ValueError(
+                    "Tabulated entries JSON object must include key 'entries'"
+                )
+            entries = payload["entries"]
+            payload_metadata = payload
+        else:
+            raise ValueError("Tabulated entries file must contain a JSON list or object")
+
+        resolved_name = name or payload_metadata.get("name", "TabulatedModel")
+        resolved_lookup_key = lookup_key or payload_metadata.get(
+            "lookup_key", "event_local_occ_v1"
+        )
+        resolved_default_property = default_property or payload_metadata.get(
+            "default_property", "barrier"
+        )
+        resolved_probability_mode = probability_mode or payload_metadata.get(
+            "probability_mode", "barrier_arrhenius"
+        )
+        resolved_probability_property = probability_property or payload_metadata.get(
+            "probability_property", "barrier"
+        )
+
+        return ConfigIO.build_tabulated_model_bundle(
+            entries=entries,
+            name=resolved_name,
+            lookup_key=resolved_lookup_key,
+            default_property=resolved_default_property,
+            probability_mode=resolved_probability_mode,
+            probability_property=resolved_probability_property,
+        )
 
     @staticmethod
     def load_occupation_data(initial_state_file: str, supercell_shape: list, select_sites: list) -> list:

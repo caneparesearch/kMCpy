@@ -6,7 +6,13 @@ from ._version import __version__
 from .api import run
 
 # Import main classes for convenient access
-from .models import BaseModel, LocalClusterExpansion, CompositeLCEModel
+from .models import (
+    BaseModel,
+    LocalClusterExpansion,
+    CompositeLCEModel,
+    TabulatedEntry,
+    TabulatedModel,
+)
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
 from .simulator.config import Configuration, SystemConfig, RuntimeConfig
@@ -23,6 +29,8 @@ __all__ = [
     "get_logo",
     "BaseModel",
     "LocalClusterExpansion", 
+    "TabulatedModel",
+    "TabulatedEntry",
     "CompositeLCEModel",
     "KMC",
     "Event",

@@ -1,0 +1,33 @@
+{
+  "format": "kmcpy.model_bundle.v1",
+  "model_type": "tabulated",
+  "tabulated": {
+    "@module": "kmcpy.models.tabulated_model",
+    "@class": "TabulatedModel",
+    "name": "TabulatedModel",
+    "lookup_key": "event_local_occ_v1",
+    "default_property": "barrier",
+    "probability_mode": "barrier_arrhenius",
+    "probability_property": "barrier",
+    "entries": [
+      {
+        "mobile_ion_indices": [0, 1],
+        "local_env_indices": [1, 2, 3],
+        "occupations": [1, -1, 1, -1],
+        "properties": {
+          "barrier": 250.0,
+          "energy": 1.2
+        }
+      },
+      {
+        "mobile_ion_indices": [0, 1],
+        "local_env_indices": [1, 2, 3],
+        "occupations": [-1, 1, 1, -1],
+        "properties": {
+          "barrier": 300.0,
+          "energy": 2.5
+        }
+      }
+    ]
+  }
+}

@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration
     from kmcpy.simulator.state import State
-    from kmcpy.models.composite_lce_model import CompositeLCEModel
+    from kmcpy.models.base import BaseModel
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
@@ -41,7 +41,7 @@ class KMC:
     """
     def __init__(self, 
                 structure: StructureKMCpy,
-                model: 'CompositeLCEModel',
+                model: 'BaseModel',
                 event_lib: EventLib,
                 config: "Configuration",
                 simulation_state: "State" = None,
@@ -50,7 +50,7 @@ class KMC:
 
         Args:
             structure (StructureKMCpy): The structure object (already processed).
-            model (CompositeLCEModel): The model with all parameters loaded.
+            model (BaseModel): The loaded model implementing compute_probability(...).
             event_lib (EventLib): The event library with all events loaded.
             config (Configuration): Configuration object containing all simulation parameters.
             simulation_state (State, optional): State object for state management.
@@ -74,7 +74,7 @@ class KMC:
         # Store the already loaded structure
         self.structure = structure
         
-        # Store the composite model (already loaded and configured)
+        # Store the pre-configured model
         self.model = model
         
         # Store the event library (already loaded)
@@ -92,7 +92,7 @@ class KMC:
         # Calculate initial probabilities from runtime configuration and state.
         logger.info("Initializing probabilities...")
         
-        # Calculate probabilities for all events using composite model
+        # Calculate probabilities for all events using configured model
         self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
         for i, event in enumerate(self.event_lib.events):
             # Update the occupation in simulation_state for each event calculation
@@ -458,12 +458,12 @@ class KMC:
         # Use EventLib to get dependent events
         events_to_be_updated = self.event_lib.get_dependent_events(event_index)
         
-        # Update probabilities for dependent events using composite model
+        # Update probabilities for dependent events using configured model
         for e_index in events_to_be_updated:
             # Use single simulation_state for probability calculations
             self.simulation_state.occupations = self.occ_global
             
-            # Recalculate probability using composite model
+            # Recalculate probability using configured model
             self.prob_list[e_index] = self.model.compute_probability(
                 event=self.event_lib.events[e_index],
                 runtime_config=self.config.runtime_config,

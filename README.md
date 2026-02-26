@@ -154,6 +154,32 @@ To print out all arguments, you can run:
 run_kmc --help
 ```
 
+## Build tabulated model files (sparse data)
+For sparse datasets, you can use `TabulatedModel` with direct event+occupation lookup.
+
+Build a model bundle via API:
+```python
+from kmcpy.io.config_io import ConfigIO
+
+bundle = ConfigIO.build_tabulated_model_bundle_from_file(
+    entries_file="tabulated_entries.json"
+)
+ConfigIO.save_model_bundle(bundle, "model.json")
+```
+
+Build via CLI:
+```shell
+kmcpy pack-tabulated-model --entries-file tabulated_entries.json --output model.json
+```
+
+Use it in simulation config:
+```yaml
+model_type: "tabulated"
+model_file: "model.json"
+```
+
+`TabulatedModel` performs exact lookup only. Unseen configurations raise an error (no extrapolation fallback).
+
 ## Citation
 If you use kMCpy in your research, please cite it as follows:
 

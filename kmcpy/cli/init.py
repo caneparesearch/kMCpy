@@ -56,7 +56,7 @@ def build_template() -> str:
             mobile_ion_charge: 1.0
             # Characteristic hop distance (Angstrom)
             elementary_hop_distance: 1.0
-            # Model selector: composite_lce / lce
+            # Model selector: composite_lce / lce / tabulated
             model_type: "composite_lce"
             # Sites to freeze (indices, labels, or species depending on workflow)
             immutable_sites: []

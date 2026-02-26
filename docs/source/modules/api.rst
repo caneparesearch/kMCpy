@@ -13,15 +13,19 @@ API Reference Documentation
     local_cluster_expansion.rst
     cluster.rst
     parameters.rst
+    tabulated_model.rst
     composite_lce_model.rst
     base.rst
+    pack_tabulated_model.rst
+    pack_model.rst
+    init.rst
+    main.rst
     run_kmc.rst
     config.rst
+    property.rst
     kmc.rst
     tracker.rst
-    property.rst
     state.rst
-    high_level_api.rst
     basis.rst
     comparator.rst
     lattice_structure.rst

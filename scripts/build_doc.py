@@ -1,7 +1,9 @@
 import os
 
 api_doc_path = "docs/source/modules/"
-excluded_packages = {"gui_wrapper"}
+# `api.rst` is the generated toctree index page; exclude module `api.py` to
+# avoid self-referential toctree entry (`api.rst` including `api.rst`).
+excluded_packages = {"gui_wrapper", "api"}
 
 
 def write_rst_for_sphinx(

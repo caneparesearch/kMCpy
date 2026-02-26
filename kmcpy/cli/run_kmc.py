@@ -24,7 +24,8 @@ def main()->None:
             parameters are read from this file.
         supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
-        model_file (str): Path to bundled model JSON file (format: kmcpy.model_bundle.v1).
+        model_file (str): Path to model JSON file.
+            For model_type=composite_lce/tabulated, use format kmcpy.model_bundle.v1.
             Required if input file is not provided.
         structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
@@ -48,7 +49,11 @@ def main()->None:
     parser.add_argument("--input", type=str, help="Path to the input JSON/YAML file for kMC simulation. If provided, all other parameters are read from this file.")
     # Always show all arguments in help - using modern parameter names
     parser.add_argument("--supercell_shape", type=str, help='Shape of the supercell as a list of integers (e.g., [2, 2, 2]). This should be consistent with events.')
-    parser.add_argument("--model_file", type=str, help='Path to bundled model JSON file (format: kmcpy.model_bundle.v1).')
+    parser.add_argument(
+        "--model_file",
+        type=str,
+        help="Path to model JSON file (for composite_lce/tabulated use kmcpy.model_bundle.v1).",
+    )
     parser.add_argument("--structure_file", type=str, help='Path to the CIF file of the template structure (with all sites filled).')
     parser.add_argument("--event_file", type=str, help='Path to the JSON file containing the list of events.')
     parser.add_argument("--attempt_frequency", type=float, default=1e13, help='Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.')
