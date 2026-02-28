@@ -63,6 +63,8 @@ class SystemConfig:
     model_type: str = "composite_lce"
     model_file: str = ""
     event_file: str = ""
+    # DEPRECATED: Event dependencies are now embedded in event_file.
+    # Kept for backward compatibility with old configs.
     event_dependencies: Optional[str] = None
     
     # System constraints

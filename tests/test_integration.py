@@ -135,4 +135,65 @@ def test_eventlib_integration():
     assert len(event_lib) > 0
     assert hasattr(event_lib, "generate_event_dependencies")
     assert hasattr(event_lib, "get_dependency_statistics")
-    assert hasattr(event_lib, "save_event_dependencies_to_file")
+
+
+def test_eventlib_bundled_format():
+    """Test EventLib bundled format with embedded dependencies."""
+    import tempfile
+    import os
+    from kmcpy.event import EventLib, Event
+
+    # Create event library with multiple events
+    event_lib = EventLib()
+    event1 = Event(mobile_ion_indices=(0, 1), local_env_indices=[2, 3, 4])
+    event2 = Event(mobile_ion_indices=(1, 2), local_env_indices=[0, 3, 5])
+    event_lib.add_event(event1)
+    event_lib.add_event(event2)
+
+    # Generate dependencies
+    event_lib.generate_event_dependencies()
+    assert event_lib.has_event_dependencies()
+
+    # Save in bundled format
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        bundled_file = f.name
+
+    try:
+        event_lib.to_json(bundled_file)
+
+        # Load back and verify deps are preserved (not regenerated)
+        loaded = EventLib.from_json(bundled_file)
+        assert len(loaded) == 2
+        assert loaded.has_event_dependencies()
+
+        # Verify structure matches
+        assert loaded.events[0].mobile_ion_indices == (0, 1)
+        assert loaded.events[1].mobile_ion_indices == (1, 2)
+    finally:
+        os.unlink(bundled_file)
+
+
+def test_eventlib_legacy_format():
+    """Test EventLib can still load legacy list-format event files."""
+    import tempfile
+    import os
+    import json
+    from kmcpy.event import EventLib
+
+    # Create legacy format file (just a list of events)
+    legacy_events = [
+        {"mobile_ion_indices": [0, 1], "local_env_indices": [2, 3, 4]},
+        {"mobile_ion_indices": [1, 2], "local_env_indices": [0, 3, 5]},
+    ]
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        legacy_file = f.name
+        json.dump(legacy_events, f)
+
+    try:
+        # Load and verify deps are regenerated
+        loaded = EventLib.from_json(legacy_file)
+        assert len(loaded) == 2
+        assert loaded.has_event_dependencies()
+    finally:
+        os.unlink(legacy_file)

@@ -38,8 +38,6 @@ def build_template() -> str:
             model_file: "path/to/model.json"
 
             # ----- Optional system files -----
-            # Optional dependency graph JSON for events
-            event_dependencies: null
             # Optional serialized initial simulation state file
             initial_state_file: null
             # Optional direct initial occupations list (used if state file is null)

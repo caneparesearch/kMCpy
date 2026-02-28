@@ -48,7 +48,6 @@ def create_nasicon_config(
         'model_file': f"{data_dir}/model.json",
         'structure_file': f"{data_dir}/0th_reference_local_env.cif",
         'event_file': f"{data_dir}/events.json",
-        'event_dependencies': f"{data_dir}/event_dependencies.csv"
     }
     
     # Override with user-provided kwargs

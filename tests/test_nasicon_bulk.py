@@ -160,7 +160,6 @@ class TestNASICONbulk(unittest.TestCase):
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
             event_file=f"{file_path}/events.json",
-            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         reference_local_env_dict = generator.generate_events(
@@ -176,7 +175,6 @@ class TestNASICONbulk(unittest.TestCase):
             export_local_env_structure=True,
             supercell_shape=[2, 1, 1],
             event_file=f"{file_path}/events.json",
-            event_dependencies_file=f"{file_path}/event_dependencies.csv",
         )
 
         print("reference_local_env_dict:", reference_local_env_dict)
@@ -391,7 +389,6 @@ class TestNASICONbulk(unittest.TestCase):
             f"{file_path}/lce.json",
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             f"{file_path}/events.json",
-            f"{file_path}/event_dependencies.csv",
         ]
 
         for file in required_files:

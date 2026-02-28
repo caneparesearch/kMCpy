@@ -707,7 +707,6 @@ class EventGenerator:
         export_local_env_structure: bool = False,
         supercell_shape: Optional[List[int]] = None,
         event_file: str = "events.json",
-        event_dependencies_file: str = "event_dependencies.csv",
         mobile_species: Optional[List[str]] = None,
         mobile_site_mapping: Optional[Dict] = None,
         local_env_cutoff: Optional[float] = None,
@@ -716,7 +715,10 @@ class EventGenerator:
         atol: Optional[float] = None,
     ) -> Dict:
         """
-        Generate migration events and event dependencies from a CIF structure.
+        Generate migration events and save as bundled event library.
+
+        Events are saved with embedded dependencies in a single JSON file.
+        The dependency matrix is computed and stored as an attribute of EventLib.
 
         Event generation always follows the performant primitive-template -> supercell
         expansion workflow.
@@ -902,19 +904,16 @@ class EventGenerator:
             )
 
         event_lib = EventLib()
-        events_dict = []
         for event in events:
             event_lib.add_event(event)
-            events_dict.append(event.as_dict())
 
-        logger.info("Saving: %s", event_file)
-        with open(event_file, "w") as fhandle:
-            json.dump(events_dict, fhandle, indent=4, default=convert)
-
+        # Generate dependencies before saving
         logger.info("Generating event dependency matrix...")
         event_lib.generate_event_dependencies()
-        event_lib.save_event_dependencies_to_file(filename=event_dependencies_file)
-        logger.info("Event dependencies saved to: %s", event_dependencies_file)
+
+        # Save in bundled format (events + dependencies in single file)
+        logger.info("Saving bundled event library to: %s", event_file)
+        event_lib.to_json(event_file)
 
         stats = event_lib.get_dependency_statistics()
         logger.info(

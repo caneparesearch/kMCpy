@@ -92,18 +92,13 @@ def resolve_output_dir(repo_root: Path, output_dir_arg: str) -> Path:
 def generate_events_if_needed(
     structure_file: Path,
     event_file: Path,
-    event_dependencies_file: Path,
     supercell_shape: tuple[int, int, int],
     regenerate_events: bool,
 ) -> None:
-    if (
-        not regenerate_events
-        and event_file.exists()
-        and event_dependencies_file.exists()
-    ):
-        print("Reusing existing event files:")
+    """Generate event library with embedded dependencies (single file)."""
+    if not regenerate_events and event_file.exists():
+        print("Reusing existing event file:")
         print(f"  {event_file}")
-        print(f"  {event_dependencies_file}")
         return
 
     print("Generating event library from example structure...")
@@ -121,7 +116,7 @@ def generate_events_if_needed(
         export_local_env_structure=False,
         supercell_shape=list(supercell_shape),
         event_file=str(event_file),
-        event_dependencies_file=str(event_dependencies_file),
+        # Dependencies are embedded in events.json - no separate file needed
     )
 
 
@@ -135,12 +130,10 @@ def run_tutorial(args: argparse.Namespace) -> None:
 
     structure_file = files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
     event_file = output_dir / "events.json"
-    event_dependencies_file = output_dir / "event_dependencies.csv"
 
     generate_events_if_needed(
         structure_file=structure_file,
         event_file=event_file,
-        event_dependencies_file=event_dependencies_file,
         supercell_shape=args.supercell_shape,
         regenerate_events=args.regenerate_events,
     )
@@ -149,7 +142,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
         structure_file=str(structure_file),
         model_file=str(files_dir / "input/model.json"),
         event_file=str(event_file),
-        event_dependencies=str(event_dependencies_file),
+        # No event_dependencies needed - embedded in events.json
         initial_state_file=str(files_dir / "input/initial_state.json"),
         mobile_ion_specie="Na",
         temperature=args.temperature,

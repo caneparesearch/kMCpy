@@ -34,7 +34,6 @@ class TestNa3SbS4(unittest.TestCase):
                 export_local_env_structure=True,
                 supercell_shape=[3, 3, 3],
                 event_file=f"{file_path}/events.json",
-                event_dependencies_file=f"{file_path}/event_dependencies.csv",
             )
 
             self.assertEqual(
@@ -64,7 +63,6 @@ class TestNa3SbS4(unittest.TestCase):
                     exclude_species=["S2-", "S", "Zr4+", "Zr"],
                     supercell_shape=[2, 2, 2],
                     event_file=os.path.join(tmpdir, "events.json"),
-                    event_dependencies_file=os.path.join(tmpdir, "event_dependencies.csv"),
                     rtol=0.01,
                     atol=0.01,
                 )
