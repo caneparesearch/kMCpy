@@ -1,148 +1,65 @@
-# Agents.md
+# CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Overview
+This repository implements kmcpy, a Python framework for kinetic Monte Carlo (kMC) simulations of ion transport in crystalline solids.  
+It provides modular components for lattice construction, event generation, and simulation control, with interfaces for machine-learning-based models and external packages.
 
-## Project Overview
+The package supports CLI execution, YAML-based configuration, and reproducible simulations for systems like NASICON-type materials.
 
-**kMCpy** (Kinetic Monte Carlo Simulation with Python) is a scientific computing package for studying ion diffusion in crystalline materials using kinetic Monte Carlo techniques. It's designed for computational materials science research, particularly for battery electrolytes and transport properties.
+## Repository Structure
+kmcpy/
+│
+├── cli/ # Command-line interface tools
+├── event/ # Event generation and dependency management
+├── external/ # Interfaces to external codes or data
+├── io/ # Input/output and serialization utilities
+├── models/ # Energy, hopping, and machine learning models
+├── simulator/ # Core kinetic Monte Carlo loop and simulation logic
+├── structure/ # Lattice and structure representation
+├── tools/ # Utility functions and post-processing
+├── fitting.py # Model fitting and regression utilities
+└── _version.py # Version information
 
-## Common Development Commands
+Other important directories:
+- `example/`: Example input files and Jupyter notebooks (`NASICON.ipynb`, YAML configs)
+- `tests/`: Comprehensive `pytest` test suite
+- `docs/`: Sphinx documentation
+- `scripts/`: Utilities for documentation and citation updates
 
-### Installation and Setup
+## Design Philosophy
+- Modular — each subpackage handles a single concern.
+- Composable — simulations are built from modular models, events, and structures.
+- Reproducible — all configurations are defined in YAML and serialized outputs.
+- Extendable — new materials, event types, or energy models can be added easily.
+- 
+## Core Logic
+| Component | Description | Key Files |
+|------------|--------------|-----------|
+| Simulator | Main event loop and time evolution | `kmcpy/simulator/` |
+| Event Management | Event generation, rate calculation, and dependency resolution | `kmcpy/event/` |
+| Structure | Lattice and site occupation representation | `kmcpy/structure/` |
+| Models | Physical and ML-based rate/energy models | `kmcpy/models/` |
+| I/O | YAML config parsing, data export | `kmcpy/io/` |
+| CLI | Entry points for running simulations from terminal | `kmcpy/cli/` |
+
+## Development Guidelines
+- Follow PEP8 and use type hints for public functions.
+- Use Google-style docstrings.
+- Run `pytest` before committing (`pytest -v --maxfail=1`).
+- Avoid modifying `kmcpy/simulator` core unless explicitly requested.
+- Use `logging` instead of `print()` for all runtime messages.
+- Maintain deterministic outputs when random seeds are used.
+
+## Environment Setup
+### Installation
 ```bash
-# Standard installation
-pip install .
-
-# Development installation (editable mode with dev dependencies)
-pip install -e ".[dev]"
-
-# Using UV (recommended package manager)
-uv sync                    # Install all dependencies
-uv sync --extra dev       # Include dev dependencies
-uv pip install -e .       # Editable installation
-
-# GUI dependencies (deprecated GUI)
-pip install -e ".[gui]"
+uv pip install -e .
 ```
-
+### Docs build
+```bash
+python scripts/build_docs.py
+```
 ### Running Tests
 ```bash
-# Run all tests
 pytest
-
-# Run specific test categories
-pytest -m unit            # Unit tests only
-pytest -m integration     # Integration tests only
-pytest -m slow            # Slow tests (use -m "not slow" to exclude)
-pytest -m nasicon         # NASICON-specific tests
-
-# Run specific test file
-pytest tests/test_modern_event_generator.py
-
-# Run with coverage
-pytest --cov=kmcpy --cov-report=html
 ```
-
-### Building Documentation
-```bash
-# Install documentation dependencies
-uv sync --extra doc
-
-# Build documentation locally
-python scripts/build_doc.py
-```
-
-### Running Simulations
-```bash
-# Command line interface
-run_kmc input.json
-run_kmc input.yaml
-run_kmc --help
-
-# Deprecated GUI
-start_kmcpy_gui
-```
-
-## Architecture Overview
-
-kMCpy follows a modular architecture with these core systems:
-
-### 1. Models System (`/kmcpy/models/`)
-- **BaseModel**: Abstract base for all models
-- **LocalClusterExpansion**: Core implementation of local cluster expansion
-- **CompositeLCEModel**: Combines multiple LCE models
-- **Fitting**: Model fitting infrastructure with LCEFitter
-
-### 2. Event System (`/kmcpy/event/`)
-- **Event**: Individual migration events with barriers and rates
-- **EventLib**: Event libraries and collections
-- **ModernEventGenerator**: Primary event generation implementation
-- **NeighborInfoMatcher**: Crystallographic neighbor identification
-
-### 3. Simulator Engine (`/kmcpy/simulator/`)
-- **KMC**: Main kinetic Monte Carlo simulation class
-- **SimulationConfig**: Configuration management (SystemConfig, RuntimeConfig)
-- **SimulationState**: State tracking during simulations
-- **Tracker**: Results collection and data export
-
-### 4. Structure System (`/kmcpy/structure/`)
-- **Basis**: Crystal structure basis and symmetry operations
-- **LatticeStructure**: Lattice geometry and periodic boundaries
-- **LocalEnvironmentComparator**: Environment matching for cluster identification
-
-### 5. I/O System (`/kmcpy/io/`)
-- **ConfigIO**: JSON/YAML configuration file handling
-- **DataLoader**: Multi-format input data loading
-- **IO**: General input/output utilities
-
-## Key Development Patterns
-
-### Testing Framework
-- Uses **pytest** with comprehensive markers: `unit`, `integration`, `slow`, `nasicon`
-- Test files follow `test_*.py` naming convention
-- Integration tests often use fixture data in `/tests/files/`
-- Import testing is crucial to prevent circular dependencies
-
-### Performance Considerations
-- **Numba** is extensively used for performance-critical code
-- All computational kernels should be Numba-compatible
-- Pay attention to type annotations for Numba optimization
-
-### Configuration System
-- JSON/YAML-based configuration files for simulations
-- Modern system uses `SimulationConfigIO` and `SimulationConfig`
-- CLI entry point is `run_kmc` script in `/kmcpy/cli/`
-
-### Data Flow
-1. **Input**: Crystal structure + migration barrier data
-2. **Model Fitting**: Train LocalClusterExpansion model
-3. **Event Generation**: Generate possible migration events
-4. **KMC Simulation**: Run rejection-free kMC algorithm
-5. **Output**: Transport properties (diffusivity, conductivity)
-
-## Module Dependencies
-
-The project has a carefully managed dependency structure:
-- `external/`: Custom structure handling and CIF parsing
-- `structure/`: Crystal structure fundamentals
-- `models/`: Model implementations (depends on structure)
-- `event/`: Event generation (depends on models and structure)
-- `simulator/`: Core simulation engine (depends on all above)
-- `io/`: Input/output handling
-- `cli/`: Command-line interfaces
-
-## Important Notes
-
-- **Python 3.11+** is required
-- **Clean design and maintainability** are priorities over compatibility
-- The GUI is **deprecated** - focus development on CLI and API
-- Performance is critical - prioritize Numba optimization, but maintain code clarity
-- Comprehensive test coverage is required for new features
-- Use `uv` for dependency management when possible
-- Avoid legacy compatibility patterns that compromise code quality
-
-## Entry Points
-
-- **CLI**: `run_kmc input.json` - Command line simulation runner
-- **API**: Import from `kmcpy` modules for programmatic use
-- **Examples**: Check `/example/` directory for usage patterns
