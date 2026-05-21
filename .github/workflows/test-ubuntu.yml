@@ -65,6 +65,7 @@ jobs:
 
             - name: Install from PyPI using conda
               run: |
+                  conda install pip
                   python -m pip install --upgrade pip
                   python -m pip install kmcpy
               shell: bash -el {0}
