@@ -165,12 +165,15 @@ def compute_transport_properties(
     ):
         havens_ratio_internal = tracer_diffusivity_internal / jump_diffusivity_internal
 
-    hop_counter_safe = np.where(hop_counter == 0, 1, hop_counter)
-    correlation_factor_internal = displacement_norm_sq / (
-        hop_counter_safe * elementary_hop_distance**2
-    )
-    correlation_factor_internal[hop_counter == 0] = 0
-    correlation_factor_internal = float(np.mean(correlation_factor_internal))
+    total_hops = float(np.sum(hop_counter))
+    if total_hops > 0:
+        active_displacement_norm_sq = displacement_norm_sq[hop_counter > 0]
+        correlation_factor_internal = float(
+            np.sum(active_displacement_norm_sq)
+            / (total_hops * elementary_hop_distance**2)
+        )
+    else:
+        correlation_factor_internal = nan
 
     return {
         "msd": msd_internal if _is_enabled(enabled, "msd") else nan,

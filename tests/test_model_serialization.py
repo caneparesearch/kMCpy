@@ -6,6 +6,8 @@ from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.tabulated_model import TabulatedModel
 from kmcpy.io.config_io import ConfigIO
+from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+from pymatgen.core import Lattice, Structure
 
 
 def test_local_cluster_expansion_from_legacy_json_sets_name():
@@ -24,6 +26,31 @@ def test_local_cluster_expansion_from_file_matches_from_json():
     from_json_model = LocalClusterExpansion.from_json(str(root / "lce.json"))
 
     assert from_file_model.as_dict() == from_json_model.as_dict()
+
+
+def test_local_cluster_expansion_serializes_ordering_convention():
+    structure = Structure(
+        Lattice.cubic(20.0),
+        ["Na", "Na", "Si"],
+        [[5, 5, 5], [6, 5, 5], [7, 5, 5]],
+        coords_are_cartesian=True,
+    )
+    local_lattice = LocalLatticeStructure(
+        template_structure=structure,
+        specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.0,
+        ordering_convention="nasicon_publication_v1",
+    )
+    model = LocalClusterExpansion()
+    model.build(local_lattice, cutoff_cluster=[3.0, 3.0, 0.0])
+
+    payload = model.as_dict()
+    reloaded = LocalClusterExpansion.from_dict(payload)
+
+    assert payload["ordering_convention"]["name"] == "nasicon_publication_v1"
+    assert "local_environment_hash" in payload
+    assert reloaded.ordering_convention.name == "nasicon_publication_v1"
 
 
 def test_composite_lce_model_as_dict_with_legacy_json_inputs():

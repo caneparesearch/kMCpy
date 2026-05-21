@@ -8,6 +8,11 @@ occupation management, basis functions, and local environment comparison.
 from .lattice_structure import LatticeStructure
 from .vacancy import Vacancy
 from .local_lattice_structure import LocalLatticeStructure
+from .local_site_ordering import (
+    LocalSiteOrderingConvention,
+    ordered_site_hash,
+    ordered_site_signature,
+)
 from .comparator import SupercellComparator
 from .local_environment_comparator import (
     LocalEnvironmentComparator,
@@ -28,6 +33,9 @@ __all__ = [
     "LatticeStructure",
     "Vacancy",
     "LocalLatticeStructure",
+    "LocalSiteOrderingConvention",
+    "ordered_site_hash",
+    "ordered_site_signature",
     "SupercellComparator",
     "LocalEnvironmentComparator",
     "create_environment_comparator",

@@ -31,5 +31,6 @@ API Reference Documentation
     lattice_structure.rst
     vacancy.rst
     local_lattice_structure.rst
+    local_site_ordering.rst
     local_environment_comparator.rst
     generators.rst

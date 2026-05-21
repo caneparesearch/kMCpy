@@ -3,6 +3,7 @@ import numpy as np
 from pymatgen.core import Structure, Lattice
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
 
 @pytest.fixture
 def global_lattice_model_and_env():
@@ -44,6 +45,60 @@ def test_local_environment_setup(global_lattice_model_and_env):
     assert local_env.structure[1].species_string == "Na"
     # Check that the global indices are correct (1 for Cl, 0 for Na)
     assert local_env.site_indices == [1, 0]
+
+
+def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_x():
+    """Publication convention should mimic the single-unit NASICON site order."""
+    lattice = Lattice.cubic(20.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "Na", "Na", "Si", "Si"],
+        [
+            [5, 5, 5],
+            [4, 5, 5],
+            [6, 5, 5],
+            [3, 5, 5],
+            [7, 5, 5],
+        ],
+        coords_are_cartesian=True,
+    )
+
+    local_env = LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.1,
+        ordering_convention="nasicon_publication_v1",
+    )
+
+    assert local_env.ordering_convention.name == "nasicon_publication_v1"
+    assert local_env.site_indices == [1, 2, 3, 4]
+    assert [site.species_string for site in local_env.structure] == [
+        "Na",
+        "Na",
+        "Si",
+        "Si",
+    ]
+    assert [round(float(site.coords[0]), 3) for site in local_env.structure] == [
+        -1.0,
+        1.0,
+        -2.0,
+        2.0,
+    ]
+
+
+def test_local_site_ordering_convention_round_trip():
+    convention = LocalSiteOrderingConvention.from_name("nasicon_publication_v1")
+
+    restored = LocalSiteOrderingConvention.resolve(convention.as_dict())
+    restored_from_name_only = LocalSiteOrderingConvention.resolve(
+        {"name": "nasicon_publication_v1"}
+    )
+
+    assert restored == convention
+    assert restored_from_name_only == convention
+    assert restored.exclude_center_site
+    assert restored.sort_keys == ("species", "cartesian_x")
 
 def test_get_local_occupation(global_lattice_model_and_env):
     """Test getting occupation for a local environment from a full structure."""

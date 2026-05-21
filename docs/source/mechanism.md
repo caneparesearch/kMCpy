@@ -64,6 +64,12 @@ kMCpy supports multiple types of basis functions to represent the local environm
 
 The basis functions encode information about which sites around the hop are occupied, how far neighboring ions are from the hopping ion, and crystallographic symmetry equivalences.
 
+### Local Site Ordering
+
+The LCE correlation vector is order-sensitive: each fitted coefficient corresponds to a specific component of the local occupation vector. kMCpy records this feature order through a local site ordering convention. The default convention preserves current kMCpy behavior, while `nasicon_publication_v1` reproduces the historical NASICON single-unit convention: use the selected Na as the geometric center, remove that center site from the occupation vector, then sort the remaining local sites by species and Cartesian `x` coordinate.
+
+Old fitted coefficients should only be reused with the same `cluster_site_indices` and ordering convention, or with an explicitly verified remapping. See the [local ordering how-to](howto/local_ordering.md) for usage.
+
 ### Training the LCE Model
 
 The expansion coefficients $\alpha_i$ are determined by fitting to training data, typically obtained from ab initio calculations such as Nudged Elastic Band (NEB) or Climbing Image NEB (CI-NEB) methods, or from empirical potentials using classical molecular dynamics.
@@ -109,19 +115,19 @@ $$D_J = \lim_{t\to\infty} \frac{\langle \Delta r_{\text{cm}}^2 \rangle}{6t}$$
 Unlike tracer diffusivity, jump diffusivity accounts for correlations between ion movements. This is the diffusivity that enters the Nernst-Einstein relation connecting diffusion to ionic conductivity. When ions move in a correlated fashion (for example, if one ion's motion tends to block another), jump diffusivity can be significantly different from tracer diffusivity.
 
 **Haven Ratio** ($H_R$) quantifies correlations:
-$$H_R = \frac{D_J}{D_{\text{tracer}}}$$
+$$H_R = \frac{D_{\text{tracer}}}{D_J}$$
 
-A value of $H_R = 1$ indicates uncorrelated motion—each ion diffuses independently. Values $H_R < 1$ indicate correlated motion, common in materials with strong ion-ion interactions where one ion's movement affects others. Values $H_R > 1$ can occur in vacancy-mediated diffusion or when ions move in an anti-correlated fashion.
+A value of $H_R = 1$ indicates uncorrelated motion. Values away from 1 indicate correlated charge and tracer transport.
 
 **Ionic Conductivity** ($\sigma$) relates diffusion to charge transport:
 $$\sigma = \frac{n q^2}{k_B T} D_J$$
 
-where $n$ is the mobile ion concentration and $q$ is the ionic charge.
+where $n$ is the mobile ion concentration and $q$ is the ionic charge. kMCpy reports conductivity in mS/cm.
 
-**Correlation Factor** ($f$) compares actual diffusion to a random walk:
-$$f = \frac{D_{\text{tracer}}}{D_{\text{random}}}$$
+**Correlation Factor** ($f$) compares the net displacement of diffusing ions to an uncorrelated random walk with the same total number of hops:
+$$f = \frac{\sum_i |\Delta R_i|^2}{a^2 \sum_i n_i}$$
 
-This factor accounts for how site-blocking and correlated motion reduce diffusivity below what would occur for a random walk on the same lattice.
+where $\Delta R_i$ connects the endpoints of ion $i$'s trajectory, $n_i$ is the number of hops made by that ion, and $a$ is the elementary hop distance. This aggregate form is equivalent to a hop-count-weighted average of the single-particle correlation factors, so ions with zero hops naturally do not contribute. The correlation factor measures correlations between successive hops of the same ion and is distinct from the Haven ratio.
 
 ### Convergence Requirements
 

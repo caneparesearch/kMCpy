@@ -15,6 +15,7 @@ from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
 import numba as nb
 
 if TYPE_CHECKING:
@@ -61,6 +62,12 @@ class LocalClusterExpansion(BaseModel):
         self.local_lattice_structure = local_lattice_structure
         self.center_site = local_lattice_structure.center_site
         self.local_env_structure = local_lattice_structure.structure
+        self.basis = local_lattice_structure.basis
+        self.ordering_convention = local_lattice_structure.ordering_convention
+        self.local_environment_signature = (
+            local_lattice_structure.get_ordered_site_signature()
+        )
+        self.local_environment_hash = local_lattice_structure.get_ordered_site_hash()
 
         # List all possible point, pair and triplet clusters
         atom_index_list = np.arange(0, len(local_lattice_structure.structure))
@@ -188,6 +195,8 @@ class LocalClusterExpansion(BaseModel):
                     # Default to ChebyshevBasis if class is not recognized
                     from kmcpy.structure.basis import ChebyshevBasis
                     obj.basis = ChebyshevBasis()
+            elif key == 'ordering_convention':
+                obj.ordering_convention = LocalSiteOrderingConvention.resolve(value)
             else:
                 # For all other attributes, set them directly
                 setattr(obj, key, value)
@@ -221,8 +230,9 @@ class LocalClusterExpansion(BaseModel):
         '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
         '''
         occ = self.local_lattice_structure.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
-        corr = np.empty(shape=len(self.basis.basis_function))
-        _calc_corr(corr, occ, self.cluster_site_indices)
+        local_occ = occ[self.local_lattice_structure.site_indices]
+        corr = np.empty(shape=len(self.cluster_site_indices))
+        _calc_corr(corr, local_occ.array, self.cluster_site_indices)
         return corr
     
     def build_clusters(self, local_env_structure, indexes, cutoff):  # return a list of Cluster
@@ -391,7 +401,7 @@ class LocalClusterExpansion(BaseModel):
                 for orbit in self.cluster_site_indices
             ]
 
-        return {
+        payload = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "name": self.name,
@@ -400,6 +410,13 @@ class LocalClusterExpansion(BaseModel):
             "center_site": self.center_site.as_dict(),
             "migration_unit_structure": self.local_env_structure.as_dict()
         }
+        if hasattr(self, "ordering_convention"):
+            payload["ordering_convention"] = self.ordering_convention.as_dict()
+        if hasattr(self, "local_environment_signature"):
+            payload["local_environment_signature"] = self.local_environment_signature
+        if hasattr(self, "local_environment_hash"):
+            payload["local_environment_hash"] = self.local_environment_hash
+        return payload
 
 
 register_fitter(LocalClusterExpansion, LCEFitter)
