@@ -73,8 +73,8 @@ class Event:
     @classmethod
     def from_dict(cls, event_dict:dict):
         """Create Event from dictionary."""
-        mobile_ion_indices = event_dict.get("mobile_ion_indices")
-        local_env_indices = event_dict.get("local_env_indices")
+        mobile_ion_indices = tuple(event_dict.get("mobile_ion_indices", ()))
+        local_env_indices = event_dict.get("local_env_indices", [])
         return cls(mobile_ion_indices, local_env_indices)
 
 
