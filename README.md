@@ -129,7 +129,7 @@ from kmcpy.simulator.kmc import KMC
 kmc = KMC.from_config(config)
 
 def custom_property(state, step, sim_time):
-    occupied = sum(1 for occ in state.occupations if occ > 0)
+    occupied = sum(1 for occ in state.occupations if occ < 0)
     return occupied / len(state.occupations)
 
 kmc.attach(custom_property, interval=100, name="occupied_fraction")

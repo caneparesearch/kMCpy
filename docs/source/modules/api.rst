@@ -10,14 +10,15 @@ API Reference Documentation
     serialization.rst
     config_io.rst
     io_registry.rst
-    registry.rst
+    models_fitting_registry.rst
     fitter.rst
     parameters.rst
     cluster.rst
     composite_lce_model.rst
     local_cluster_expansion.rst
     tabulated_model.rst
-    base.rst
+    event_base.rst
+    models_base.rst
     generators.rst
     pack_tabulated_model.rst
     init.rst

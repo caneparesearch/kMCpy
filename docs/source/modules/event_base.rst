@@ -1,5 +1,5 @@
-base
-=========================
+event_base
+==========
 
 .. automodule:: kmcpy.event.base
     :members:

@@ -9,12 +9,14 @@ excluded_packages = {"gui_wrapper", "api"}
 
 
 def write_rst_for_sphinx(
-    filename="pymatgen_cif.py",
+    rst_filename="pymatgen_cif.rst",
     api_doc_path="docs/source/modules/",
     module="kmcpy.external",
     package="pymatgen_cif",
+    title=None,
 ):
-    header = f"{package}\n{'=' * len(package)}\n\n"
+    title = title or package
+    header = f"{title}\n{'=' * len(title)}\n\n"
 
     if package == "config":
         header += """Parameter discovery
@@ -31,7 +33,7 @@ parameters are split between ``system_config`` and ``runtime_config``.
 
 """
 
-    with open(api_doc_path + filename.replace(".py", ".rst"), "w+") as rst:
+    with open(api_doc_path + rst_filename, "w+") as rst:
         rst.write(header)
         rst.write(
             """.. automodule:: modulename.package
@@ -45,7 +47,14 @@ parameters are split between ``system_config`` and ``runtime_config``.
     return package
 
 
-api_list = []
+def rst_stem_for_module(module_name, package, duplicate_packages):
+    if package not in duplicate_packages:
+        return package
+    module_suffix = module_name.replace("kmcpy.", "").replace(".", "_")
+    return f"{module_suffix}_{package}"
+
+
+module_entries = []
 
 for root, dirs, files in os.walk("./kmcpy", topdown=False):
     for name in files:
@@ -68,14 +77,33 @@ for root, dirs, files in os.walk("./kmcpy", topdown=False):
                 continue
 
             module_name = root.replace("./", "").replace("/", ".")
+            module_entries.append((module_name, package))
 
-            write_rst_for_sphinx(
-                filename=name,
-                api_doc_path=api_doc_path,
-                module=module_name,
-                package=package,
-            )
-            api_list.append(package)
+package_counts = {}
+for _, package in module_entries:
+    package_counts[package] = package_counts.get(package, 0) + 1
+
+duplicate_packages = {
+    package for package, count in package_counts.items() if count > 1
+}
+
+api_list = []
+
+for module_name, package in module_entries:
+    rst_stem = rst_stem_for_module(
+        module_name,
+        package,
+        duplicate_packages,
+    )
+
+    write_rst_for_sphinx(
+        rst_filename=f"{rst_stem}.rst",
+        api_doc_path=api_doc_path,
+        module=module_name,
+        package=package,
+        title=rst_stem,
+    )
+    api_list.append(rst_stem)
 
 with open(api_doc_path + "api.rst", "w+") as api_file:
     filestring = """API Reference Documentation
@@ -86,7 +114,7 @@ with open(api_doc_path + "api.rst", "w+") as api_file:
     :caption: Contents:
 
 """
-    # Keep first-seen order while removing duplicates from same package names.
+    # Keep first-seen order while removing any exact duplicate output pages.
     unique_api_list = list(dict.fromkeys(api_list))
     for api in unique_api_list:
         filestring += "    " + api + ".rst\n"
