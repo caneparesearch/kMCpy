@@ -124,7 +124,7 @@ def test_enumeration_excludes_species_without_renumbering_sites():
         center=0,
         cutoff=3.0,
         variable_species=["Si", "P"],
-        exclude_species=["O"],
+        exclude_species=["O2-"],
     )
 
     assert [result.label for result in results] == ["2:Si", "2:P"]

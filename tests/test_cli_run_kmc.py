@@ -38,6 +38,40 @@ def test_run_kmc_direct_args_accept_model_file(monkeypatch):
 
 
 @pytest.mark.unit
+def test_run_kmc_direct_args_parse_list_like_strings(monkeypatch):
+    captured = {}
+
+    class DummyKMC:
+        @classmethod
+        def from_config(cls, config):
+            captured["supercell_shape"] = config.system_config.supercell_shape
+            captured["immutable_sites"] = config.system_config.immutable_sites
+            return cls()
+
+        def run(self, config):
+            return {"ok": True}
+
+    monkeypatch.setattr(run_kmc_module, "KMC", DummyKMC)
+
+    args = argparse.Namespace(
+        input=None,
+        supercell_shape="[2, 1, 1]",
+        model_file="fake_model.json",
+        structure_file="fake_structure.cif",
+        event_file="fake_events.json",
+        attempt_frequency=1e13,
+        temperature=300.0,
+        convert_to_primitive_cell=False,
+        immutable_sites='["Zr4+", "O2-"]',
+    )
+
+    run_kmc_module.run_kmc(args)
+
+    assert captured["supercell_shape"] == (2, 1, 1)
+    assert captured["immutable_sites"] == ("Zr4+", "O2-")
+
+
+@pytest.mark.unit
 def test_run_kmc_cli_rejects_removed_legacy_flags(monkeypatch):
     monkeypatch.setattr(
         "sys.argv",

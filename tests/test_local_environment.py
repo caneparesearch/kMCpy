@@ -239,6 +239,32 @@ def test_local_lattice_structure_accepts_neutral_mapping_for_oxidized_template()
     ])
 
 
+def test_local_lattice_structure_excludes_oxidized_species_after_normalization():
+    lattice = Lattice.cubic(10.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "O", "Si"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+    template_structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "Si": 4})
+
+    local_lattice = LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.0,
+        exclude_species=["O2-"],
+    )
+
+    assert [site.species_string for site in local_lattice.template_structure] == [
+        "Na",
+        "Si",
+    ]
+    assert local_lattice.site_indices == [0, 1]
+    assert len(local_lattice.allowed_species) == 2
+
+
 def test_sort_neighbor_info_preserves_metadata():
     """Neighbor sorting helper should preserve metadata while applying deterministic order."""
     lattice = Lattice.cubic(10.0)
