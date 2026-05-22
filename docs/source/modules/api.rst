@@ -5,25 +5,27 @@ API Reference Documentation
     :maxdepth: 4
     :caption: Contents:
 
-    config_io.rst
-    registry.rst
+    high_level_api.rst
     data_loader.rst
     serialization.rst
+    config_io.rst
+    io_registry.rst
+    registry.rst
     fitter.rst
-    local_cluster_expansion.rst
-    cluster.rst
     parameters.rst
-    tabulated_model.rst
+    cluster.rst
     composite_lce_model.rst
+    local_cluster_expansion.rst
+    tabulated_model.rst
     base.rst
+    generators.rst
     pack_tabulated_model.rst
     init.rst
     main.rst
     run_kmc.rst
     config.rst
-    property.rst
     kmc.rst
-    tracker.rst
+    property.rst
     state.rst
     basis.rst
     comparator.rst
@@ -32,4 +34,4 @@ API Reference Documentation
     local_lattice_structure.rst
     local_site_ordering.rst
     local_environment_comparator.rst
-    generators.rst
+    tracker.rst

@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 
 api_doc_path = "docs/source/modules/"
 # `api.rst` is the generated toctree index page; exclude module `api.py` to
@@ -12,23 +14,20 @@ def write_rst_for_sphinx(
     module="kmcpy.external",
     package="pymatgen_cif",
 ):
-    header = """package
-=========================
-
-""".replace("package", package)
+    header = f"{package}\n{'=' * len(package)}\n\n"
 
     if package == "config":
         header += """Parameter discovery
 -------------------
 
-Use ``SimulationConfig.help_parameters()`` to list valid parameter names and see how
+Use ``Configuration.help_parameters()`` to list valid parameter names and see how
 parameters are split between ``system_config`` and ``runtime_config``.
 
 .. code-block:: python
 
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
-    SimulationConfig.help_parameters()
+    Configuration.help_parameters()
 
 """
 
@@ -93,5 +92,8 @@ with open(api_doc_path + "api.rst", "w+") as api_file:
         filestring += "    " + api + ".rst\n"
     api_file.write(filestring)
 
-os.chdir("docs")
-os.system("make html")
+subprocess.run(
+    [sys.executable, "-m", "sphinx", "-b", "html", "source", "build/html"],
+    cwd="docs",
+    check=True,
+)

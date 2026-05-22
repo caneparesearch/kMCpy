@@ -7,9 +7,9 @@
 </h1>
 
 [![GitHub release](https://img.shields.io/github/release/caneparesearch/kmcpy.svg)](https://GitHub.com/caneparesearch/kmcpy/releases/)
-[![Documentation Status](https://readthedocs.org/projects/kmcpy/badge/)](https://kmcpy.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/kmcpy/badge/?version=latest)](https://kmcpy.readthedocs.io/en/latest/?badge=latest)
 [![CI Status](https://github.com/caneparesearch/kmcpy/actions/workflows/test-ubuntu.yml/badge.svg)](https://github.com/caneparesearch/kmcpy/actions/workflows/test-ubuntu.yml)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/kmcpy?logo=pypi&logoColor=white&color=blue&label=PyPI)](https://pypi.org/project/kmcpy)
+[![PyPI Version](https://img.shields.io/pypi/v/kmcpy?logo=pypi&logoColor=white&color=blue&label=PyPI)](https://pypi.org/project/kmcpy)
 [![Requires Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg?logo=python&logoColor=white)](https://python.org/downloads)
 [![Paper](https://img.shields.io/badge/Comp.Mater.Sci.-2023.112394-blue?logo=elsevier&logoColor=white)](https://doi.org/10.1016/j.commatsci.2023.112394)
 
@@ -23,7 +23,9 @@ Advantages of using kMCpy:
 2.  Cross-platform compatibility, supporting Windows, macOS, and Linux.
 3.  Performance-optimized kMC routines using [Numba](https://numba.pydata.org/), resulting in significant speed improvements.
 
-> [!warning] kMCpy is under active development 
+> [!WARNING]
+> kMCpy is under active development.
+>
 > kMCpy is still under active development. While we strive to maintain backward compatibility, some changes may occur that could affect existing workflows. We recommend users to check the release notes and documentation for any updates or changes that might impact their usage.
 
 ## Installation
@@ -34,7 +36,9 @@ You can quickly install the latest version of kMCpy through [PyPI](https://pypi.
 ```shell
 pip install kmcpy
 ```
-> [!note] Virtual Environment
+> [!NOTE]
+> Virtual Environment
+>
 > It is highly recommended to install kMCpy in a virtual environment to avoid dependency conflicts with other packages. You can use [uv](https://docs.astral.sh/uv/getting-started/installation/) or [venv](https://docs.python.org/3/library/venv.html) or [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to create a virtual environment.
 > For example, using `venv`:
 > ```shell
@@ -75,7 +79,9 @@ uv sync --extra dev
 uv pip install -e .
 ```
 
-> [!warning] Windows users 
+> [!WARNING]
+> Windows users
+>
 > Windows users (not applicable to WSL) need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) for `pymatgen`. 
 
 
