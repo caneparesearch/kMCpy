@@ -19,6 +19,13 @@ from .local_environment_comparator import (
     create_environment_comparator,
     match_local_environments
 )
+from .local_environment_enumerator import (
+    LocalEnvironmentEnumeration,
+    NEBEndpointPair,
+    enumerate_local_environments,
+    enumerate_neb_endpoint_pairs,
+    generate_neb_endpoint_pair,
+)
 from .basis import (
     BasisFunction, 
     Occupation, 
@@ -40,6 +47,11 @@ __all__ = [
     "LocalEnvironmentComparator",
     "create_environment_comparator",
     "match_local_environments",
+    "LocalEnvironmentEnumeration",
+    "NEBEndpointPair",
+    "enumerate_local_environments",
+    "enumerate_neb_endpoint_pairs",
+    "generate_neb_endpoint_pair",
     "BasisFunction",
     "Occupation",
     "OccupationBasis", 

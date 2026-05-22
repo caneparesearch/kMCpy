@@ -222,7 +222,7 @@ class LatticeStructure(ABC):
         expected_element = getattr(expected, "element", expected)
         return actual_element == expected_element
         
-    def get_structure_from_occ(self, occ: Occupation, sc_matrix=np.eye(3)) -> Structure:
+    def get_structure_from_occ(self, occ: Occupation, sc_matrix=None) -> Structure:
         '''get_structure_from_occ() takes an Occupation object and returns a pymatgen Structure
         
         Args:
@@ -232,7 +232,11 @@ class LatticeStructure(ABC):
         Returns:
             Structure: pymatgen Structure with species assigned based on match/mismatch
         '''
-        
+        if sc_matrix is None:
+            sc_matrix = np.eye(3, dtype=int)
+        else:
+            sc_matrix = np.array(sc_matrix, dtype=int)
+
         supercell_lattice_structure = self.copy()
         supercell_lattice_structure.make_supercell(sc_matrix)
         
@@ -259,7 +263,7 @@ class LatticeStructure(ABC):
         # Remove vacancy sites in reverse order to avoid index shifting issues
         vacancy_indices = []
         for i, site in enumerate(new_lattice_structure.template_structure):
-            if isinstance(site.species, Vacancy):
+            if isinstance(site.specie, Vacancy) or getattr(site.specie, "symbol", None) == "X":
                 vacancy_indices.append(i)
         
         # Remove vacancy sites from the end to avoid index issues
