@@ -22,7 +22,9 @@ class LatticeStructure(ABC):
             template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
             specie_site_mapping: a dictionary mapping from species to site type (possible species), including those immutable sites, 
             e.g. {"Na":["Na","X"],"X":["Na","X"],"Sb":["Sb","W"],"W":["Sb","W"]} X is the vacancy site
-            basis_type: str, the type of basis function: 'occupation':[0,1] or 'chebyshev'[-1,+1]
+            basis_type: str, the type of basis function: 'occupation':[0,1]
+                or 'chebyshev'[-1,+1]. Chebyshev maps the first species in
+                each site mapping to -1 and missing/other allowed species to +1.
         '''
         self.template_structure = template_structure
 
@@ -118,7 +120,16 @@ class LatticeStructure(ABC):
         
         # 2. Create the supercell template
         supercell_template = self.template_structure.copy()
+        supercell_template.add_site_property(
+            "_kmcpy_template_index",
+            list(range(len(supercell_template))),
+        )
         supercell_template.make_supercell(sc_matrix)
+        template_indices = supercell_template.site_properties["_kmcpy_template_index"]
+        supercell_allowed_species = [
+            self.allowed_species[int(template_index)]
+            for template_index in template_indices
+        ]
         logger.debug(f"Supercell template has {len(supercell_template)} sites")
         logger.debug(f"Input structure has {len(structure)} sites")
         
@@ -166,14 +177,50 @@ class LatticeStructure(ABC):
 
         logger.debug(f"Structure sites map to template sites: {template_site_indices}")
 
-        # 5. Create occupation vector
-        # Sites that have a structure atom (are in template_site_indices) should be match (occupied)
-        occ_data[template_site_indices] = self.basis.match_value
+        if len(set(template_site_indices.tolist())) != len(template_site_indices):
+            raise ValueError(
+                "No mapping found: multiple atoms map to the same template site"
+            )
+
+        # 5. Create occupation vector from species at mapped sites. Missing
+        # template sites remain mismatch/vacant.
+        for structure_site_index, template_site_index in enumerate(template_site_indices):
+            template_site_index = int(template_site_index)
+            allowed_species = supercell_allowed_species[template_site_index]
+            if not allowed_species:
+                raise ValueError(
+                    f"No allowed species defined for template site {template_site_index}"
+                )
+
+            actual_species = structure[structure_site_index].specie
+            if self._species_matches(actual_species, allowed_species[0]):
+                occ_data[template_site_index] = self.basis.match_value
+            elif any(
+                self._species_matches(actual_species, allowed)
+                for allowed in allowed_species[1:]
+            ):
+                occ_data[template_site_index] = self.basis.mismatch_value
+            else:
+                raise ValueError(
+                    "No mapping found: species "
+                    f"{actual_species} is not allowed at template site "
+                    f"{template_site_index}"
+                )
         
         logger.debug(f"Occupation vector: {occ_data}")
         
         # Return Occupation object
         return Occupation(occ_data, basis=self.basis, validate=False)
+
+    @staticmethod
+    def _species_matches(actual, expected) -> bool:
+        if actual == expected:
+            return True
+        if isinstance(expected, Vacancy):
+            return isinstance(actual, Vacancy)
+        actual_element = getattr(actual, "element", actual)
+        expected_element = getattr(expected, "element", expected)
+        return actual_element == expected_element
         
     def get_structure_from_occ(self, occ: Occupation, sc_matrix=np.eye(3)) -> Structure:
         '''get_structure_from_occ() takes an Occupation object and returns a pymatgen Structure
@@ -259,4 +306,3 @@ class LatticeStructure(ABC):
             "specie_site_mapping": self.specie_site_mapping,
             "basis_type": self.basis_type
         }
-

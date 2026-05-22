@@ -30,6 +30,7 @@ class LocalLatticeStructure(LatticeStructure):
                  exclude_center_site=None):
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
+        working_structure.remove_oxidation_states()
         ordering = LocalSiteOrderingConvention.resolve(ordering_convention)
         if exclude_center_site is not None:
             ordering = ordering.with_exclude_center_site(exclude_center_site)
@@ -52,9 +53,16 @@ class LocalLatticeStructure(LatticeStructure):
             logger.debug(f"Dummy site: {self.center_site}")
         else:
             raise ValueError("Center must be an index or a list of fractional coordinates.")
-        self.template_structure.remove_oxidation_states()  # Remove oxidation states if present
+        self.exclude_species = list(exclude_species or [])
         if exclude_species:
+            keep_indices = [
+                index
+                for index, site in enumerate(self.template_structure)
+                if site.species_string not in exclude_species
+                and str(site.specie) not in exclude_species
+            ]
             self.template_structure.remove_species(exclude_species)
+            self.allowed_species = [self.allowed_species[index] for index in keep_indices]
 
         local_env_sites = self.template_structure.get_sites_in_sphere(
             self.center_site.coords, cutoff, include_index=True

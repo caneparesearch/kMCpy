@@ -19,12 +19,36 @@ from pathlib import Path
 
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
 
-LEGACY_MODEL_PARAM_NAMES = {
-    "cluster_expansion_file",
-    "cluster_expansion_site_file",
-    "fitting_results_file",
-    "fitting_results_site_file",
+SYSTEM_PARAM_NAMES = {
+    "structure_file",
+    "supercell_shape",
+    "dimension",
+    "mobile_ion_specie",
+    "mobile_ion_charge",
+    "elementary_hop_distance",
+    "model_type",
+    "model_file",
+    "event_file",
+    "immutable_sites",
+    "convert_to_primitive_cell",
+    "initial_state_file",
+    "initial_occupations",
 }
+
+RUNTIME_PARAM_NAMES = {
+    "temperature",
+    "attempt_frequency",
+    "equilibration_passes",
+    "kmc_passes",
+    "random_seed",
+    "name",
+    "property_sampling_interval",
+    "property_sampling_time_interval",
+    "builtin_property_enabled",
+    "property_callbacks",
+}
+
+CONFIG_PARAM_NAMES = SYSTEM_PARAM_NAMES | RUNTIME_PARAM_NAMES
 
 
 def _validate_builtin_property_enabled(values: dict[str, bool]) -> None:
@@ -63,10 +87,6 @@ class SystemConfig:
     model_type: str = "composite_lce"
     model_file: str = ""
     event_file: str = ""
-    # DEPRECATED: Event dependencies are now embedded in event_file.
-    # Kept for backward compatibility with old configs.
-    event_dependencies: Optional[str] = None
-    
     # System constraints
     immutable_sites: tuple = field(default_factory=tuple)
     convert_to_primitive_cell: bool = False
@@ -222,38 +242,16 @@ class Configuration:
         if system_config is None and runtime_config is None and not kwargs:
             raise ValueError("Must provide either configs or parameters")
 
-        legacy_keys = sorted(set(kwargs.keys()) & LEGACY_MODEL_PARAM_NAMES)
-        if legacy_keys:
-            raise ValueError(
-                "Legacy model fields are removed: "
-                f"{legacy_keys}. Run `kmcpy pack-model` and use `model_file`."
-            )
-        
         # Split kwargs into system and runtime parameters
         system_params = {}
         runtime_params = {}
         unknown_params = {}
         
-        # Parameter routing tables
-        system_param_names = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'model_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
-            'initial_state_file', 'initial_occupations'  # Added initial state parameters
-        }
-        
-        runtime_param_names = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name', 'property_sampling_interval',
-            'property_sampling_time_interval', 'builtin_property_enabled',
-            'property_callbacks'
-        }
-        
         # Route parameters
         for key, value in kwargs.items():
-            if key in system_param_names:
+            if key in SYSTEM_PARAM_NAMES:
                 system_params[key] = value
-            elif key in runtime_param_names:
+            elif key in RUNTIME_PARAM_NAMES:
                 runtime_params[key] = value
             else:
                 unknown_params[key] = value
@@ -308,43 +306,49 @@ class Configuration:
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "Configuration":
         """Create from dictionary."""
-        legacy_keys = sorted(set(config_dict.keys()) & LEGACY_MODEL_PARAM_NAMES)
-        if legacy_keys:
-            raise ValueError(
-                "Legacy model fields are removed: "
-                f"{legacy_keys}. Run `kmcpy pack-model` and use `model_file`."
-            )
+        if not isinstance(config_dict, dict):
+            raise ValueError("Configuration.from_dict expects a dictionary")
+        config_dict = dict(config_dict)
 
-        # Split parameters between system and runtime configs
-        system_params = {}
-        runtime_params = {}
-        
-        # SystemConfig parameter names
-        system_param_names = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'model_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
-            'initial_state_file', 'initial_occupations'
-        }
-        
-        # RuntimeConfig parameter names
-        runtime_param_names = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name', 'property_sampling_interval',
-            'property_sampling_time_interval', 'builtin_property_enabled',
-            'property_callbacks'
-        }
-        
-        for key, value in config_dict.items():
-            if key in system_param_names:
-                system_params[key] = value
-            elif key in runtime_param_names:
-                runtime_params[key] = value
-        
-        return cls(
-            system_config=SystemConfig(**system_params),
-            runtime_config=RuntimeConfig(**runtime_params)
-        )
+        return cls(**config_dict)
+
+    @classmethod
+    def _extract_file_config_data(
+        cls,
+        raw_data: Dict[str, Any],
+        filepath: str,
+    ) -> Dict[str, Any]:
+        """Normalize flat or generated-template file payloads to config fields."""
+        if not isinstance(raw_data, dict):
+            raise ValueError(f"Configuration file {filepath} must contain a dictionary")
+
+        if CONFIG_PARAM_NAMES.intersection(raw_data.keys()):
+            return raw_data
+
+        if "kmc" not in raw_data:
+            return raw_data
+
+        kmc_section = raw_data["kmc"]
+        if not isinstance(kmc_section, dict):
+            raise ValueError(f"Section 'kmc' in {filepath} must be a dictionary")
+
+        if "type" in kmc_section:
+            task_type = kmc_section["type"]
+            if task_type not in kmc_section:
+                available_types = [key for key in kmc_section.keys() if key != "type"]
+                raise ValueError(
+                    f"Task type '{task_type}' not found in section 'kmc'. "
+                    f"Available: {available_types}"
+                )
+            section_data = kmc_section[task_type]
+        else:
+            section_data = kmc_section
+
+        if not isinstance(section_data, dict):
+            raise ValueError(
+                f"Selected 'kmc' configuration in {filepath} must be a dictionary"
+            )
+        return section_data
     
     # ===== FILE I/O METHODS =====
     
@@ -373,8 +377,9 @@ class Configuration:
             raw_data = ConfigIO._load_yaml(filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
-                
-        return cls.from_dict(raw_data)
+
+        config_data = cls._extract_file_config_data(raw_data, filepath)
+        return cls.from_dict(config_data)
     
     @classmethod
     def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "Configuration":
@@ -462,8 +467,6 @@ class Configuration:
         
         # Create registry-style section
         config_data = self.to_dict()
-        # Remove task field since we'll use section structure
-        config_data.pop('task', None)
         
         yaml_data[section] = {
             'type': task_type,
@@ -613,11 +616,6 @@ class Configuration:
         """Access initial occupations directly."""
         return self.system_config.initial_occupations
     
-    @property
-    def event_dependencies(self) -> Optional[str]:
-        """Access event dependencies directly."""
-        return self.system_config.event_dependencies
-    
     # ===== HELPER METHODS =====
     
     @classmethod
@@ -626,21 +624,12 @@ class Configuration:
         print("Configuration Parameters:\n")
         
         print("SYSTEM PARAMETERS (physical setup):")
-        system_params = [
-            "structure_file", "supercell_shape", "dimension", "mobile_ion_specie",
-            "mobile_ion_charge", "elementary_hop_distance", "model_type", "model_file",
-            "event_file", "event_dependencies", "immutable_sites", "convert_to_primitive_cell"
-        ]
+        system_params = sorted(SYSTEM_PARAM_NAMES)
         for param in system_params:
             print(f"  - {param}")
         
         print("\nRUNTIME PARAMETERS (simulation settings):")
-        runtime_params = [
-            "temperature", "attempt_frequency", "equilibration_passes", "kmc_passes",
-            "random_seed", "name", "property_sampling_interval",
-            "property_sampling_time_interval", "builtin_property_enabled",
-            "property_callbacks"
-        ]
+        runtime_params = sorted(RUNTIME_PARAM_NAMES)
         for param in runtime_params:
             print(f"  - {param}")
         
@@ -651,22 +640,9 @@ class Configuration:
     
     def which_config(self, parameter_name: str) -> str:
         """Show which sub-config contains a parameter."""
-        system_params = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'model_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
-        }
-        
-        runtime_params = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name', 'property_sampling_interval',
-            'property_sampling_time_interval', 'builtin_property_enabled',
-            'property_callbacks'
-        }
-        
-        if parameter_name in system_params:
+        if parameter_name in SYSTEM_PARAM_NAMES:
             return f"'{parameter_name}' is in system_config (physical setup)"
-        elif parameter_name in runtime_params:
+        elif parameter_name in RUNTIME_PARAM_NAMES:
             return f"'{parameter_name}' is in runtime_config (simulation settings)"
         else:
             return f"'{parameter_name}' is not a recognized parameter"

@@ -55,7 +55,7 @@ API users can load the same generated file with:
 ```python
 from kmcpy.simulator.config import Configuration
 
-config = Configuration.from_yaml_section("input_template.yaml", "kmc", "default")
+config = Configuration.from_file("input_template.yaml")
 ```
 
 ## Troubleshooting

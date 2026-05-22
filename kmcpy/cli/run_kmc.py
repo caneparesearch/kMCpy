@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from kmcpy.io.config_io import ConfigIO
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 import kmcpy
@@ -86,8 +85,7 @@ def run_kmc(args)-> None:
         # Load modern Configuration format only
         try:
             print(f"Loading configuration from {args.input}")
-            raw_data = ConfigIO._load_yaml_section(args.input, "kmc", "default")
-            config = Configuration.from_dict(raw_data)
+            config = Configuration.from_file(args.input)
             print(f"✓ Configuration loaded: {config.runtime_config.name}")
         except Exception as e:
             # Provide clear error message for legacy formats
@@ -95,7 +93,7 @@ def run_kmc(args)-> None:
                 f"Unable to load configuration from {args.input}. "
                 f"Legacy InputSet format is no longer supported. "
                 f"Please convert your configuration to the modern Configuration format. "
-                f"Use ConfigIO to create new configuration files. "
+                f"Use `kmcpy init` to create a new configuration file. "
                 f"Original error: {e}"
             )
     else:

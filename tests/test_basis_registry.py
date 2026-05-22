@@ -110,29 +110,31 @@ class TestBasisFunctionInterface:
         
         # Test convert_to method
         cheb_basis = ChebyshevBasis()
-        assert basis.convert_to(0, cheb_basis) == -1  # vacant to vacant
-        assert basis.convert_to(1, cheb_basis) == 1   # occupied to occupied
+        assert basis.convert_to(0, cheb_basis) == 1   # mismatch/vacant to mismatch
+        assert basis.convert_to(1, cheb_basis) == -1  # match/occupied to match
     
     def test_chebyshev_basis_implements_interface(self):
         """Test that ChebyshevBasis properly implements BasisFunction."""
         basis = ChebyshevBasis()
         
         # Test all required properties
-        assert basis.vacant_value == -1
-        assert basis.occupied_value == 1
+        assert basis.match_value == -1
+        assert basis.mismatch_value == 1
+        assert basis.vacant_value == 1
+        assert basis.occupied_value == -1
         assert basis.valid_values == {-1, 1}
         assert basis.basis_function == [-1, 1]
         assert basis.name == 'chebyshev'
         
         # Test all required methods
-        assert basis.is_occupied(1)
-        assert basis.is_vacant(-1)
+        assert basis.is_occupied(-1)
+        assert basis.is_vacant(1)
         assert basis.flip_value(-1) == 1
         
         # Test convert_to method
         occ_basis = OccupationBasis()
-        assert basis.convert_to(-1, occ_basis) == 0  # vacant to vacant
-        assert basis.convert_to(1, occ_basis) == 1   # occupied to occupied
+        assert basis.convert_to(1, occ_basis) == 0   # mismatch/vacant to mismatch
+        assert basis.convert_to(-1, occ_basis) == 1  # match/occupied to match
 
 
 class TestGeneralizedOccupation:
@@ -170,7 +172,7 @@ class TestGeneralizedOccupation:
         # Convert to occupation basis using string
         occ_occ = cheb_occ.to_basis('occupation')
         assert occ_occ.basis == 'occupation'
-        assert occ_occ.values == [0, 1, 0]
+        assert occ_occ.values == [1, 0, 1]
         
         # Convert back using basis instance
         cheb_basis = ChebyshevBasis()
@@ -186,10 +188,10 @@ class TestGeneralizedOccupation:
         # Test with Chebyshev basis
         zeros_cheb = Occupation.zeros(3, basis=cheb_basis)
         assert zeros_cheb.basis == 'chebyshev'
-        assert zeros_cheb.values == [-1, -1, -1]
+        assert zeros_cheb.values == [1, 1, 1]
         
         ones_cheb = Occupation.ones(3, basis=cheb_basis)
-        assert ones_cheb.values == [1, 1, 1]
+        assert ones_cheb.values == [-1, -1, -1]
         
         # Test with occupation basis
         zeros_occ = Occupation.zeros(3, basis=occ_basis)
@@ -281,7 +283,7 @@ class TestBasisConversionGeneral:
         """Test that conversions are consistent using convert_to interface."""
         # Create test data in both bases
         cheb_data = [-1, 1, -1, 1]
-        occ_data = [0, 1, 0, 1]
+        occ_data = [1, 0, 1, 0]
         
         cheb_occ = Occupation(cheb_data, basis='chebyshev')
         occ_occ = Occupation(occ_data, basis='occupation')

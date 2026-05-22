@@ -17,7 +17,6 @@ API Reference Documentation
     composite_lce_model.rst
     base.rst
     pack_tabulated_model.rst
-    pack_model.rst
     init.rst
     main.rst
     run_kmc.rst

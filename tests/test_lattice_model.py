@@ -270,3 +270,48 @@ def test_get_occ_from_structure_different_species_subset(complex_lattice_model):
         model.basis.occupied_value    # Cl at [0.5,0.5,0.5]
     ]
     assert occ.array_equal(expected_pattern), f"Expected {expected_pattern}, got {occ.values}"
+
+
+def test_get_occ_from_structure_allowed_substitution_is_mismatch():
+    lattice = Lattice.cubic(5.0)
+    template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
+    model = LatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Si": ["Si", "P"]},
+    )
+    substituted_structure = Structure(lattice, ["P"], [[0, 0, 0]])
+
+    occ = model.get_occ_from_structure(substituted_structure)
+
+    assert occ.array_equal([model.basis.mismatch_value])
+
+
+def test_get_occ_from_structure_chebyshev_sign_convention():
+    lattice = Lattice.cubic(5.0)
+    template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
+    model = LatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Si": ["Si", "P"]},
+        basis_type="chebyshev",
+    )
+
+    matching_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
+    substituted_structure = Structure(lattice, ["P"], [[0, 0, 0]])
+    vacant_structure = Structure(lattice, [], [])
+
+    assert model.get_occ_from_structure(matching_structure).array_equal([-1])
+    assert model.get_occ_from_structure(substituted_structure).array_equal([1])
+    assert model.get_occ_from_structure(vacant_structure).array_equal([1])
+
+
+def test_get_occ_from_structure_rejects_unallowed_species():
+    lattice = Lattice.cubic(5.0)
+    template_structure = Structure(lattice, ["Na"], [[0, 0, 0]])
+    model = LatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"]},
+    )
+    wrong_species_structure = Structure(lattice, ["K"], [[0, 0, 0]])
+
+    with pytest.raises(ValueError, match="not allowed"):
+        model.get_occ_from_structure(wrong_species_structure)

@@ -12,7 +12,6 @@ import pytest
     "kmcpy.api",
     "kmcpy.cli.main",
     "kmcpy.cli.init",
-    "kmcpy.cli.pack_model",
     "kmcpy.simulator.tracker",
 ])
 def test_module_imports(module_path):

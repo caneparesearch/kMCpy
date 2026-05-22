@@ -25,7 +25,6 @@ def test_simulation_config_integration():
         mobile_ion_specie="Na",
         supercell_shape=(2, 2, 2),
         model_file="fake_model.json",
-        event_dependencies="fake.csv",
     )
 
     config = Configuration(system_config=system, runtime_config=runtime)
@@ -81,7 +80,6 @@ def test_parameter_serialization():
         supercell_shape=(2, 2, 2),
         model_file="fake_model.json",
         event_file="fake.json",
-        event_dependencies="fake.csv",
         property_sampling_interval=200,
         builtin_property_enabled={"conductivity": False},
         property_callbacks=[

@@ -88,7 +88,6 @@ def create_test_config(
         'supercell_shape': (1, 1, 1),
         'structure_file': 'test_structure.cif',
         'event_file': 'test_events.json',
-        'event_dependencies': 'test_dependencies.csv',
         'model_file': 'test_model.json',
     }
     

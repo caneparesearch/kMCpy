@@ -36,6 +36,7 @@ This code was recently employed to investigate `the transport properties of Na-i
    tutorial
    howto/attach_properties
    howto/local_ordering
+   howto/neb_fitting
    howto/tabulated_model
    modules/api
    about

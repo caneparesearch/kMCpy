@@ -10,7 +10,7 @@ from kmcpy.simulator.kmc import KMC
 kmc = KMC.from_config(config)
 
 def calc_occupation(state, step, sim_time):
-    occupied = sum(1 for occ in state.occupations if occ > 0)
+    occupied = sum(1 for occ in state.occupations if occ < 0)
     return occupied / len(state.occupations)
 
 # Run every 100 production events.

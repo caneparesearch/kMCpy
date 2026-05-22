@@ -134,12 +134,6 @@ class ConfigIO:
             parameters = section_data.copy()
             logger.debug(f"Loaded flat section '{section}' from {filepath}")
         
-        # Add task field based on section for compatibility
-        if section == "model":
-            parameters["task"] = "lce"  # Default model task
-        else:
-            parameters["task"] = section
-        
         return parameters
     
     @staticmethod
@@ -210,51 +204,6 @@ class ConfigIO:
             return 'yaml'
         else:
             return 'unknown'
-
-    @staticmethod
-    def _extract_latest_fit_parameters(fitting_results_file: str) -> dict[str, Any]:
-        """
-        Extract latest fitted parameters from a legacy fitting-results JSON file.
-
-        Selection rule:
-        1) If any entry has `time_stamp`, choose max `time_stamp`.
-        2) Otherwise choose the last entry in file order.
-        """
-        data = ConfigIO._load_json(fitting_results_file)
-        if not isinstance(data, dict) or not data:
-            raise ValueError(
-                f"Invalid fitting results format in '{fitting_results_file}': expected non-empty object"
-            )
-
-        items = list(data.items())
-        rows = [row for _, row in items if isinstance(row, dict)]
-        if not rows:
-            raise ValueError(
-                f"Invalid fitting results format in '{fitting_results_file}': no valid rows found"
-            )
-
-        rows_with_ts = [row for row in rows if row.get("time_stamp") is not None]
-        if rows_with_ts:
-            selected = max(rows_with_ts, key=lambda row: row["time_stamp"])
-        else:
-            selected = rows[-1]
-
-        if "keci" not in selected or "empty_cluster" not in selected:
-            raise ValueError(
-                f"Invalid fitting results format in '{fitting_results_file}': "
-                "missing required keys 'keci' and/or 'empty_cluster'"
-            )
-
-        return {
-            "parameters": {
-                "keci": selected["keci"],
-                "empty_cluster": selected["empty_cluster"],
-            },
-            "fit_metadata": {
-                "time_stamp": selected.get("time_stamp"),
-                "time": selected.get("time"),
-            },
-        }
 
     @staticmethod
     def _validate_bundle_component(name: str, component: dict[str, Any]) -> None:
@@ -337,36 +286,6 @@ class ConfigIO:
         """Validate and save a model bundle JSON."""
         ConfigIO._validate_model_bundle(bundle)
         ConfigIO._save_json(bundle, output_file, indent=indent)
-
-    @staticmethod
-    def build_model_bundle_from_legacy_files(
-        kra_lce: str,
-        kra_fit: str,
-        site_lce: Optional[str] = None,
-        site_fit: Optional[str] = None,
-    ) -> dict[str, Any]:
-        """Build a v1 model bundle from legacy 2-file/4-file model inputs."""
-        if (site_lce is None) ^ (site_fit is None):
-            raise ValueError("site_lce and site_fit must be provided together")
-
-        kra_component = {
-            "lce": ConfigIO._load_json(kra_lce),
-            **ConfigIO._extract_latest_fit_parameters(kra_fit),
-        }
-        bundle = {
-            "format": "kmcpy.model_bundle.v1",
-            "model_type": "composite_lce",
-            "kra": kra_component,
-        }
-
-        if site_lce is not None and site_fit is not None:
-            bundle["site"] = {
-                "lce": ConfigIO._load_json(site_lce),
-                **ConfigIO._extract_latest_fit_parameters(site_fit),
-            }
-
-        ConfigIO._validate_model_bundle(bundle)
-        return bundle
 
     @staticmethod
     def build_tabulated_model_bundle(
@@ -466,7 +385,7 @@ class ConfigIO:
             select_sites: Indices of sites to include in KMC (excluding immutable sites)
             
         Returns:
-            List of occupation values in Chebyshev basis (1 and -1)
+            List of occupation values in Chebyshev basis (-1 and 1)
             
         Raises:
             FileNotFoundError: If initial state file doesn't exist
@@ -497,8 +416,9 @@ class ConfigIO:
                 select_sites
             ].flatten("C")
 
-            # Convert to Chebyshev basis (replace 0 with -1)
-            occupation_chebyshev = np.where(occupation == 0, -1, occupation)
+            # Convert binary site-state indices to Chebyshev basis:
+            # first mapped state 0 -> -1, second mapped state 1 -> +1.
+            occupation_chebyshev = np.where(occupation == 0, -1, 1)
 
             logger.debug(f"Selected sites are {select_sites}")
             logger.debug(f"Converting the occupation raw data to dimension: {convert_to_dimension}")

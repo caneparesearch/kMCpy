@@ -24,7 +24,7 @@ def build_template() -> str:
         #
         # API usage:
         #   from kmcpy.simulator.config import Configuration
-        #   config = Configuration.from_yaml_section("input_template.yaml", "kmc", "default")
+        #   config = Configuration.from_file("input_template.yaml")
 
         kmc:
           type: default

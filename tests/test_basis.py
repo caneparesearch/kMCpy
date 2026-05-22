@@ -46,11 +46,11 @@ class TestOccupationBasis:
         """Test conversion to/from Chebyshev basis."""
         basis = OccupationBasis()
         # To Chebyshev
-        assert basis.to_chebyshev(0) == -1  # vacant -> -1
-        assert basis.to_chebyshev(1) == 1   # occupied -> +1
+        assert basis.to_chebyshev(0) == 1   # vacant -> +1
+        assert basis.to_chebyshev(1) == -1  # occupied -> -1
         # From Chebyshev
-        assert basis.from_chebyshev(-1) == 0  # -1 -> vacant
-        assert basis.from_chebyshev(1) == 1   # +1 -> occupied
+        assert basis.from_chebyshev(1) == 0   # +1 -> vacant
+        assert basis.from_chebyshev(-1) == 1  # -1 -> occupied
 
 
 class TestChebyshevBasis:
@@ -59,22 +59,24 @@ class TestChebyshevBasis:
     def test_init(self):
         """Test ChebyshevBasis initialization."""
         basis = ChebyshevBasis()
-        assert basis.vacant_value == -1
-        assert basis.occupied_value == 1
+        assert basis.match_value == -1
+        assert basis.mismatch_value == 1
+        assert basis.vacant_value == 1
+        assert basis.occupied_value == -1
         assert basis.valid_values == {-1, 1}
         assert basis.basis_function == [-1, 1]
     
     def test_is_occupied(self):
         """Test occupation detection."""
         basis = ChebyshevBasis()
-        assert basis.is_occupied(1) is True
-        assert basis.is_occupied(-1) is False
+        assert basis.is_occupied(-1) is True
+        assert basis.is_occupied(1) is False
     
     def test_is_vacant(self):
         """Test vacancy detection."""
         basis = ChebyshevBasis()
-        assert basis.is_vacant(-1) is True
-        assert basis.is_vacant(1) is False
+        assert basis.is_vacant(1) is True
+        assert basis.is_vacant(-1) is False
     
     def test_flip_value(self):
         """Test value flipping."""
@@ -86,11 +88,11 @@ class TestChebyshevBasis:
         """Test conversion to/from occupation basis."""
         basis = ChebyshevBasis()
         # To occupation
-        assert basis.to_occupation(-1) == 0  # -1 (vacant) -> 0 (vacant)
-        assert basis.to_occupation(1) == 1   # 1 (occupied) -> 1 (occupied)
+        assert basis.to_occupation(1) == 0   # +1 (vacant) -> 0 (vacant)
+        assert basis.to_occupation(-1) == 1  # -1 (occupied) -> 1 (occupied)
         # From occupation
-        assert basis.from_occupation(0) == -1  # 0 (vacant) -> -1 (vacant)
-        assert basis.from_occupation(1) == 1   # 1 (occupied) -> 1 (occupied)
+        assert basis.from_occupation(0) == 1   # 0 (vacant) -> +1 (vacant)
+        assert basis.from_occupation(1) == -1  # 1 (occupied) -> -1 (occupied)
 
 
 class TestOccupation:
@@ -188,8 +190,8 @@ class TestOccupation:
     def test_count_operations_chebyshev(self):
         """Test counting operations with Chebyshev basis."""
         occ = Occupation([-1, 1, -1, 1, 1], basis='chebyshev')
-        assert occ.count_occupied() == 3  # Three +1 values
-        assert occ.count_vacant() == 2    # Two -1 values
+        assert occ.count_occupied() == 2  # Two -1 values
+        assert occ.count_vacant() == 3    # Three +1 values
     
     def test_count_operations_occupation(self):
         """Test counting operations with occupation basis."""
@@ -200,8 +202,8 @@ class TestOccupation:
     def test_get_indices_chebyshev(self):
         """Test getting indices with Chebyshev basis."""
         occ = Occupation([-1, 1, -1, 1], basis='chebyshev')
-        assert occ.get_occupied_indices() == [1, 3]  # +1 at indices 1, 3
-        assert occ.get_vacant_indices() == [0, 2]    # -1 at indices 0, 2
+        assert occ.get_occupied_indices() == [0, 2]  # -1 at indices 0, 2
+        assert occ.get_vacant_indices() == [1, 3]    # +1 at indices 1, 3
     
     def test_get_indices_occupation(self):
         """Test getting indices with occupation basis."""
@@ -232,13 +234,13 @@ class TestOccupation:
         cheb_occ = Occupation([-1, 1, -1, 1], basis='chebyshev')
         occ_occ = cheb_occ.to_basis('occupation')
         assert occ_occ.basis == 'occupation'
-        assert occ_occ.values == [0, 1, 0, 1]
+        assert occ_occ.values == [1, 0, 1, 0]
         
         # Occupation to Chebyshev  
         occ_occ = Occupation([0, 1, 0, 1], basis='occupation')
         cheb_occ = occ_occ.to_basis('chebyshev')
         assert cheb_occ.basis == 'chebyshev'
-        assert cheb_occ.values == [-1, 1, -1, 1]
+        assert cheb_occ.values == [1, -1, 1, -1]
         
         # Same basis - should return equivalent object
         same = cheb_occ.to_basis('chebyshev')
@@ -263,14 +265,14 @@ class TestOccupation:
     
     def test_factory_methods_chebyshev(self):
         """Test factory methods with Chebyshev basis."""
-        # zeros (all vacant = -1)
+        # zeros (all vacant = +1)
         occ = Occupation.zeros(3, basis='chebyshev')
-        assert occ.values == [-1, -1, -1]
+        assert occ.values == [1, 1, 1]
         assert occ.count_vacant() == 3
         
-        # ones (all occupied = +1)
+        # ones (all occupied/first species = -1)
         occ = Occupation.ones(3, basis='chebyshev')
-        assert occ.values == [1, 1, 1]
+        assert occ.values == [-1, -1, -1]
         assert occ.count_occupied() == 3
     
     def test_factory_methods_occupation(self):
@@ -326,7 +328,7 @@ class TestOccupation:
         assert empty.get_vacant_indices() == []
         
         # Single site
-        single = Occupation([1], basis='chebyshev')
+        single = Occupation([-1], basis='chebyshev')
         assert len(single) == 1
         assert single.count_occupied() == 1
         

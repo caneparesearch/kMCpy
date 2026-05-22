@@ -129,7 +129,6 @@ class TestNa3SbS4(unittest.TestCase):
             
             model_file="fake_model.json",
             event_file="fake_events.json",
-            event_dependencies="fake_dependencies.csv"
         )
         
         # Test that configuration was created successfully
