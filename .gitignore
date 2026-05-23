@@ -147,12 +147,6 @@ cython_debug/
 .DS_Store
 .vscode/
 
-# Local agent/LLM tooling
-AGENTS.md
-.agents/
-.claude/
-.codex/
-
 # Ignore results
 *.csv.gz
 
