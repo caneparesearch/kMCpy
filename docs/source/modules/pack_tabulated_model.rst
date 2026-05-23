@@ -1,7 +1,7 @@
-condition
+pack_tabulated_model
 =========================
 
-.. automodule:: kmcpy.simulator.condition
+.. automodule:: kmcpy.cli.pack_tabulated_model
     :members:
     :inherited-members:
                   

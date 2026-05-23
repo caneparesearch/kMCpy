@@ -242,19 +242,6 @@ class EventLib(ABC):
         logger.info("Event dependency matrix generated and stored with %d events", len(self.event_dependencies))
         return self.event_dependencies
     
-    def save_event_dependencies_to_file(self, filename="event_dependencies.csv"):
-        """Save the event dependency matrix to a CSV file."""
-        if self.event_dependencies is None:
-            logger.warning("Event dependencies not generated yet. Call generate_event_dependencies() first.")
-            return
-            
-        logger.info("Saving event dependencies to: %s", filename)
-        with open(filename, "w") as f:
-            for row in self.event_dependencies:
-                for item in row:
-                    f.write("%5d " % item)
-                f.write("\n")
-    
     def get_dependent_events(self, event_index):
         """
         Get all event indices that depend on the given event (need to be updated when it's executed).
@@ -325,31 +312,46 @@ class EventLib(ABC):
     @classmethod
     def from_json(cls, fname):
         """
-        Load EventLib from a JSON file and generate event dependencies.
+        Load EventLib from a JSON file.
+        
+        Supports two formats:
+        - Bundled format (dict): events + event_dependencies + site_to_events
+        - Legacy format (list): just events, dependencies regenerated
+        
+        For bundled format, embedded dependencies are used directly (fast).
+        For legacy format, dependencies are regenerated (slower).
         
         Args:
             fname: The name of the file to load the EventLib from.
             
         Returns:
-            EventLib: Loaded EventLib with event dependencies generated.
+            EventLib: Loaded EventLib with event dependencies available.
         """
         logger.info("Loading EventLib from: %s", fname)
         with open(fname, "r") as fhandle:
             data = json.load(fhandle)
             
-        # Handle both old format (list of events) and new format (dict with events and kernel)
+        # Handle both old format (list of events) and new format (dict with events and deps)
         if isinstance(data, list):
-            # Old format - just a list of event dictionaries
+            # Legacy format - just a list of event dictionaries
+            logger.info("Loading legacy event format (list), will regenerate dependencies")
             event_lib = cls()
             for event_dict in data:
                 event = Event.from_dict(event_dict)
                 event_lib.add_event(event)
+            # Regenerate dependencies for legacy format
+            event_lib.generate_event_dependencies()
         else:
-            # New format - use from_dict method
+            # Bundled format - use from_dict method which loads embedded dependencies
             event_lib = cls.from_dict(data)
-        
-        # Always generate event dependencies after loading
-        event_lib.generate_event_dependencies()
+            
+            if event_lib.has_event_dependencies():
+                logger.info("Loaded bundled event format with %d events and embedded dependencies", 
+                           len(event_lib.events))
+            else:
+                # No embedded deps, regenerate them
+                logger.info("Loaded bundled event format without dependencies, regenerating...")
+                event_lib.generate_event_dependencies()
         
         return event_lib
     

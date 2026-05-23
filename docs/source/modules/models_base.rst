@@ -1,7 +1,6 @@
-base
-=========================
+models_base
+===========
 
 .. automodule:: kmcpy.models.base
     :members:
     :inherited-members:
-                  

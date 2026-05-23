@@ -12,11 +12,10 @@ from pathlib import Path
 from pymatgen.core import Structure, Lattice, Element, Species
 from pymatgen.core.sites import PeriodicSite
 
-from kmcpy.simulator.condition import SimulationCondition
-from kmcpy.simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
-from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.config import Configuration, SystemConfig, RuntimeConfig
+from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker
-from kmcpy.io.config_io import SimulationConfigIO
+from kmcpy.io.config_io import ConfigIO
 
 
 @pytest.fixture
@@ -68,7 +67,7 @@ class TestTrackerParameterDeduplication:
             equilibration_passes=100,
             kmc_passes=1000
         )
-        config = SimulationConfig(system_config=system, runtime_config=runtime)
+        config = Configuration(system_config=system, runtime_config=runtime)
         
         # Verify that configuration is properly structured
         assert config.runtime_config.name == "TrackerTest"
@@ -91,10 +90,10 @@ class TestTrackerParameterDeduplication:
 
 
 class TestSimulationStateArchitecture:
-    """Test SimulationState-centric architecture."""
+    """Test State-centric architecture."""
     
     def test_simulation_state_centralized_management(self, test_structure):
-        """Test that SimulationState is the central manager for all mutable state."""
+        """Test that State is the central manager for all mutable state."""
         
         # Create configuration (immutable) using new clean API
         system = SystemConfig(
@@ -112,15 +111,15 @@ class TestSimulationStateArchitecture:
             equilibration_passes=100,
             kmc_passes=1000
         )
-        config = SimulationConfig(system_config=system, runtime_config=runtime)
+        config = Configuration(system_config=system, runtime_config=runtime)
         
-        # Create SimulationState (mutable) with initial occupations  
+        # Create State (mutable) with initial occupations  
         initial_occ = [1, -1, 1, -1]
-        state = SimulationState(
+        state = State(
             occupations=initial_occ,
         )
         
-        # Test that SimulationState manages all mutable state
+        # Test that State manages all mutable state
         assert state.occupations == [1, -1, 1, -1]
         assert state.time == 0.0
         assert state.step == 0
@@ -150,10 +149,10 @@ class TestSimulationStateArchitecture:
             temperature=400.0,
             attempt_frequency=2e13
         )
-        config = SimulationConfig(system_config=system, runtime_config=runtime)
+        config = Configuration(system_config=system, runtime_config=runtime)
         
         # State should be mutable
-        state = SimulationState(
+        state = State(
             occupations=[1, -1, 1, -1],
         )
         
@@ -180,7 +179,7 @@ class TestKMCIntegrationImprovements:
     """Test KMC integration improvements."""
     
     def test_kmc_simulation_state_integration(self):
-        """Test that KMC uses SimulationState as single source of truth."""
+        """Test that KMC uses State as single source of truth."""
         
         # Create minimal configuration for testing using clean API
         system = SystemConfig(
@@ -199,7 +198,7 @@ class TestKMCIntegrationImprovements:
             equilibration_passes=10,
             kmc_passes=50
         )
-        config = SimulationConfig(system_config=system, runtime_config=runtime)
+        config = Configuration(system_config=system, runtime_config=runtime)
         
         # Test that configuration is properly structured for KMC integration
         assert config.runtime_config.name == "Phase3_Test"
@@ -208,7 +207,7 @@ class TestKMCIntegrationImprovements:
         
         # Create initial occupations for state
         initial_occ = [1, -1, 1, -1]
-        state = SimulationState(occupations=initial_occ)
+        state = State(occupations=initial_occ)
         
         # Test parameter mapping for KMC
         kmc_params = {
@@ -229,8 +228,8 @@ class TestKMCIntegrationImprovements:
     def test_optimized_simulation_loop(self, test_structure):
         """Test optimized simulation loop with direct state management."""
         
-        # Create SimulationState for optimized loop
-        state = SimulationState(
+        # Create State for optimized loop
+        state = State(
             occupations=[1, -1, 1, -1],
         )
         
@@ -263,7 +262,7 @@ class TestPhase4InputSetMigration:
     """Test Phase 4: InputSet migration and deprecation."""
     
     def test_simulation_config_direct_api(self):
-        """Test direct SimulationConfig API without InputSet conversion."""
+        """Test direct Configuration API without InputSet conversion."""
         
         # Create configuration with all necessary parameters using clean API
         system = SystemConfig(
@@ -284,7 +283,7 @@ class TestPhase4InputSetMigration:
             kmc_passes=50,
             random_seed=42
         )
-        config = SimulationConfig(system_config=system, runtime_config=runtime)
+        config = Configuration(system_config=system, runtime_config=runtime)
         
         # Test direct API usage
         assert config.runtime_config.name == "Phase4_Test"
@@ -301,7 +300,7 @@ class TestPhase4InputSetMigration:
         assert hasattr(config.system_config, 'mobile_ion_specie')
         assert hasattr(config.runtime_config, 'random_seed')
         
-        print("✓ Phase 4: Direct SimulationConfig API working correctly")
+        print("✓ Phase 4: Direct Configuration API working correctly")
 
     
     def test_parameter_migration(self):
@@ -321,15 +320,15 @@ class TestPhase4InputSetMigration:
             kmc_passes=25,
             random_seed=123  # Random seed parameter
         )
-        config = SimulationConfig(system_config=system, runtime_config=runtime)
+        config = Configuration(system_config=system, runtime_config=runtime)
         
         # Test the to_dict method for migration
         config_dict = config.to_dict()
         
         # Test that parameters are correctly set
         assert config_dict['temperature'] == 300.0
-        assert config_dict['equ_pass'] == 5  # Legacy key name in to_dict
-        assert config_dict['kmc_pass'] == 25  # Legacy key name in to_dict
+        assert config_dict['equilibration_passes'] == 5
+        assert config_dict['kmc_passes'] == 25
         assert config_dict['mobile_ion_specie'] == "Li"
         assert config_dict['random_seed'] == 123
         assert config_dict['supercell_shape'] == [2, 2, 2]  # Converted to list
@@ -341,11 +340,11 @@ class TestOccupationManagement:
     """Test occupation management improvements."""
     
     def test_occupation_state_management(self, test_structure):
-        """Test that SimulationState properly manages occupations."""
+        """Test that State properly manages occupations."""
         
         initial_occ = [1, -1, 1, -1]  # Sites 0,2 occupied, sites 1,3 vacant
         
-        state = SimulationState(
+        state = State(
             occupations=initial_occ,
         )
         
@@ -379,13 +378,13 @@ class TestOccupationManagement:
         
         initial_occ = [1, -1, 1, -1]
         
-        state = SimulationState(
+        state = State(
             occupations=initial_occ,
         )
         
         # State should manage its own occupations
         assert hasattr(state, 'occupations')
-        assert isinstance(state.occupations, list)  # SimulationState uses lists, not numpy arrays
+        assert isinstance(state.occupations, list)  # State uses lists, not numpy arrays
         
         # Modifications should be direct
         original_occ = state.occupations.copy()

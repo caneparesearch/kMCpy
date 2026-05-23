@@ -1,9 +1,9 @@
 """
-Internal I/O utilities for SimulationConfig.
+Internal I/O utilities for Configuration.
 
 This module provides pure I/O operations for loading/saving simulation configurations.
 These classes are internal implementation details and should not be used directly by users.
-All user interactions should go through SimulationConfig methods.
+All user interactions should go through Configuration methods.
 """
 
 from typing import Dict, Any, Optional, TYPE_CHECKING
@@ -15,7 +15,7 @@ from kmcpy.io.registry import MODEL_CLASS_REGISTRY
 from kmcpy.io.serialization import to_json_compatible
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 MODEL_REGISTRY = MODEL_CLASS_REGISTRY
 
 
-class SimulationConfigIO:
+class ConfigIO:
     """
-    INTERNAL ONLY: Pure I/O utility for SimulationConfig.
+    INTERNAL ONLY: Pure I/O utility for Configuration.
     
     This class handles file operations without any business logic.
-    Users should never interact with this class directly - use SimulationConfig methods instead.
+    Users should never interact with this class directly - use Configuration methods instead.
     """
     
     @staticmethod
@@ -109,7 +109,7 @@ class SimulationConfigIO:
         Raises:
             ValueError: If section or task_type not found
         """
-        yaml_data = SimulationConfigIO._load_yaml(filepath)
+        yaml_data = ConfigIO._load_yaml(filepath)
         
         if section not in yaml_data:
             available = list(yaml_data.keys())
@@ -134,12 +134,6 @@ class SimulationConfigIO:
             parameters = section_data.copy()
             logger.debug(f"Loaded flat section '{section}' from {filepath}")
         
-        # Add task field based on section for compatibility
-        if section == "model":
-            parameters["task"] = "lce"  # Default model task
-        else:
-            parameters["task"] = section
-        
         return parameters
     
     @staticmethod
@@ -157,7 +151,7 @@ class SimulationConfigIO:
         
         try:
             with open(filepath, 'w') as f:
-                json.dump(data, f, indent=indent, default=SimulationConfigIO._json_serializer)
+                json.dump(data, f, indent=indent, default=ConfigIO._json_serializer)
             logger.debug(f"Saved JSON configuration to {filepath}")
         except TypeError as e:
             raise ValueError(f"Cannot serialize configuration to JSON: {e}")
@@ -212,6 +206,175 @@ class SimulationConfigIO:
             return 'unknown'
 
     @staticmethod
+    def _validate_bundle_component(name: str, component: dict[str, Any]) -> None:
+        if not isinstance(component, dict):
+            raise ValueError(f"Bundle component '{name}' must be an object")
+
+        if "lce" not in component or not isinstance(component["lce"], dict):
+            raise ValueError(f"Bundle component '{name}' must contain object key 'lce'")
+
+        parameters = component.get("parameters")
+        if not isinstance(parameters, dict):
+            raise ValueError(f"Bundle component '{name}' must contain object key 'parameters'")
+        if "keci" not in parameters or "empty_cluster" not in parameters:
+            raise ValueError(
+                f"Bundle component '{name}.parameters' must contain keys 'keci' and 'empty_cluster'"
+            )
+
+    @staticmethod
+    def _validate_composite_lce_bundle(bundle: dict[str, Any]) -> None:
+        if "kra" not in bundle:
+            raise ValueError("Composite model bundle must contain required key 'kra'")
+
+        ConfigIO._validate_bundle_component("kra", bundle["kra"])
+        if "site" in bundle and bundle["site"] is not None:
+            ConfigIO._validate_bundle_component("site", bundle["site"])
+
+    @staticmethod
+    def _validate_tabulated_component(component: dict[str, Any]) -> None:
+        if not isinstance(component, dict):
+            raise ValueError("Tabulated model component 'tabulated' must be an object")
+
+        entries = component.get("entries")
+        if not isinstance(entries, list) or not entries:
+            raise ValueError(
+                "Tabulated model component must contain non-empty list key 'entries'"
+            )
+
+        from kmcpy.models.tabulated_model import TabulatedModel
+
+        # Reuse model-level validation to enforce entry structure and duplicate checks.
+        TabulatedModel.from_dict(component)
+
+    @staticmethod
+    def _validate_tabulated_bundle(bundle: dict[str, Any]) -> None:
+        if "tabulated" not in bundle:
+            raise ValueError("Tabulated model bundle must contain required key 'tabulated'")
+        ConfigIO._validate_tabulated_component(bundle["tabulated"])
+
+    @staticmethod
+    def _validate_model_bundle(bundle: dict[str, Any]) -> None:
+        if not isinstance(bundle, dict):
+            raise ValueError("Model bundle must be a JSON object")
+
+        if bundle.get("format") != "kmcpy.model_bundle.v1":
+            raise ValueError(
+                "Unsupported model bundle format. Expected 'kmcpy.model_bundle.v1'."
+            )
+
+        model_type = bundle.get("model_type")
+        if model_type == "composite_lce":
+            ConfigIO._validate_composite_lce_bundle(bundle)
+            return
+        if model_type == "tabulated":
+            ConfigIO._validate_tabulated_bundle(bundle)
+            return
+
+        raise ValueError(
+            "Model bundle 'model_type' must be one of: ['composite_lce', 'tabulated']."
+        )
+
+    @staticmethod
+    def load_model_bundle(model_file: str) -> dict[str, Any]:
+        """Load and validate a model bundle JSON."""
+        bundle = ConfigIO._load_json(model_file)
+        ConfigIO._validate_model_bundle(bundle)
+        return bundle
+
+    @staticmethod
+    def save_model_bundle(bundle: dict[str, Any], output_file: str, indent: int = 2) -> None:
+        """Validate and save a model bundle JSON."""
+        ConfigIO._validate_model_bundle(bundle)
+        ConfigIO._save_json(bundle, output_file, indent=indent)
+
+    @staticmethod
+    def build_tabulated_model_bundle(
+        entries: list[dict[str, Any]],
+        name: str = "TabulatedModel",
+        lookup_key: str = "event_local_occ_v1",
+        default_property: str = "barrier",
+        probability_mode: str = "barrier_arrhenius",
+        probability_property: str = "barrier",
+    ) -> dict[str, Any]:
+        """Build a tabulated model bundle from explicit entries."""
+        from kmcpy.models.tabulated_model import TabulatedModel
+
+        model = TabulatedModel.from_entries(
+            entries=entries,
+            name=name,
+            lookup_key=lookup_key,
+            default_property=default_property,
+            probability_mode=probability_mode,
+            probability_property=probability_property,
+        )
+        bundle = model.to_model_bundle_dict()
+        ConfigIO._validate_model_bundle(bundle)
+        return bundle
+
+    @staticmethod
+    def build_tabulated_model_bundle_from_file(
+        entries_file: str,
+        name: Optional[str] = None,
+        lookup_key: Optional[str] = None,
+        default_property: Optional[str] = None,
+        probability_mode: Optional[str] = None,
+        probability_property: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """
+        Build a tabulated model bundle from JSON file payload.
+
+        Accepted payloads:
+        - JSON list of entries
+        - JSON object with key `entries` and optional metadata
+        - Full tabulated bundle (`format/model_type/tabulated`)
+        """
+        payload = ConfigIO._load_json(entries_file)
+        if isinstance(payload, list):
+            entries = payload
+            payload_metadata: dict[str, Any] = {}
+        elif isinstance(payload, dict):
+            if (
+                payload.get("format") == "kmcpy.model_bundle.v1"
+                and payload.get("model_type") == "tabulated"
+            ):
+                payload = payload.get("tabulated")
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    "Tabulated entries file has invalid tabulated payload structure"
+                )
+            if "entries" not in payload:
+                raise ValueError(
+                    "Tabulated entries JSON object must include key 'entries'"
+                )
+            entries = payload["entries"]
+            payload_metadata = payload
+        else:
+            raise ValueError("Tabulated entries file must contain a JSON list or object")
+
+        resolved_name = name or payload_metadata.get("name", "TabulatedModel")
+        resolved_lookup_key = lookup_key or payload_metadata.get(
+            "lookup_key", "event_local_occ_v1"
+        )
+        resolved_default_property = default_property or payload_metadata.get(
+            "default_property", "barrier"
+        )
+        resolved_probability_mode = probability_mode or payload_metadata.get(
+            "probability_mode", "barrier_arrhenius"
+        )
+        resolved_probability_property = probability_property or payload_metadata.get(
+            "probability_property", "barrier"
+        )
+
+        return ConfigIO.build_tabulated_model_bundle(
+            entries=entries,
+            name=resolved_name,
+            lookup_key=resolved_lookup_key,
+            default_property=resolved_default_property,
+            probability_mode=resolved_probability_mode,
+            probability_property=resolved_probability_property,
+        )
+
+    @staticmethod
     def load_occupation_data(initial_state_file: str, supercell_shape: list, select_sites: list) -> list:
         """
         Load occupation data from file, replacing deprecated InputSet.load_occ functionality.
@@ -222,7 +385,7 @@ class SimulationConfigIO:
             select_sites: Indices of sites to include in KMC (excluding immutable sites)
             
         Returns:
-            List of occupation values in Chebyshev basis (1 and -1)
+            List of occupation values in Chebyshev basis (-1 and 1)
             
         Raises:
             FileNotFoundError: If initial state file doesn't exist
@@ -253,8 +416,9 @@ class SimulationConfigIO:
                 select_sites
             ].flatten("C")
 
-            # Convert to Chebyshev basis (replace 0 with -1)
-            occupation_chebyshev = np.where(occupation == 0, -1, occupation)
+            # Convert binary site-state indices to Chebyshev basis:
+            # first mapped state 0 -> -1, second mapped state 1 -> +1.
+            occupation_chebyshev = np.where(occupation == 0, -1, 1)
 
             logger.debug(f"Selected sites are {select_sites}")
             logger.debug(f"Converting the occupation raw data to dimension: {convert_to_dimension}")
@@ -263,7 +427,7 @@ class SimulationConfigIO:
             return occupation_chebyshev.tolist()
 
     @staticmethod
-    def _create_model_from_config(config: 'SimulationConfig'):
+    def _create_model_from_config(config: 'Configuration'):
         """
         Create model from configuration using registry pattern.
         
@@ -271,7 +435,7 @@ class SimulationConfigIO:
         config.model_type, then calls the model's from_config method.
         
         Args:
-            config: SimulationConfig containing model parameters and model_type
+            config: Configuration containing model parameters and model_type
             
         Returns:
             BaseModel: Configured model instance
@@ -304,7 +468,7 @@ class SimulationConfigIO:
             raise ValueError(f"Model class '{class_name}' does not have a 'from_config' method")
 
     @staticmethod
-    def load_simulation_components(config: 'SimulationConfig') -> tuple:
+    def load_simulation_components(config: 'Configuration') -> tuple:
         """
         Load all simulation components from config, centralizing all manual loading logic.
         
@@ -312,7 +476,7 @@ class SimulationConfigIO:
         a single entry point for loading structure, model, events, and simulation state.
         
         Args:
-            config: SimulationConfig object with all parameters
+            config: Configuration object with all parameters
             
         Returns:
             tuple: (structure, model, event_lib, simulation_state)
@@ -323,7 +487,7 @@ class SimulationConfigIO:
         """
         import numpy as np
         from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.simulator.state import SimulationState
+        from kmcpy.simulator.state import State
         
         # Load structure directly from config
         structure = StructureKMCpy.from_cif(
@@ -349,7 +513,7 @@ class SimulationConfigIO:
             structure.make_supercell(supercell_shape_matrix)
         
         # Load model using factory method (currently defaults to CompositeLCEModel)
-        model = SimulationConfigIO._create_model_from_config(config)
+        model = ConfigIO._create_model_from_config(config)
         
         # Load events using EventLib's own method
         from kmcpy.event import EventLib
@@ -361,14 +525,14 @@ class SimulationConfigIO:
             initial_occ = list(config.initial_occupations)
         elif config.initial_state_file:
             # Use centralized occupation loading method
-            initial_occ = SimulationConfigIO.load_occupation_data(
+            initial_occ = ConfigIO.load_occupation_data(
                 initial_state_file=config.initial_state_file,
                 supercell_shape=list(config.supercell_shape),
                 select_sites=select_sites_for_occupation
             )
         
         if initial_occ is not None:
-            simulation_state = SimulationState(occupations=initial_occ)
+            simulation_state = State(occupations=initial_occ)
         else:
             # We cannot proceed without an initial occupation
             raise ValueError("Initial occupations could not be determined.")

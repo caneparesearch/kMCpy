@@ -17,7 +17,7 @@ except ImportError:
     GooeyParser = argparse.ArgumentParser
 
 from kmcpy.simulator.kmc import KMC
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 from kmcpy.event.generators import EventGenerator
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 import kmcpy._version
@@ -125,7 +125,6 @@ def main():
 
     # things that shouldn't change at all
     event_parser.add_argument("event_fname", default="events.json")
-    event_parser.add_argument("event_dependencies_fname", default="event_dependencies.csv")
 
     event_parser.add_argument("--distance_matrix_rtol", default=0.01, type=float)
     event_parser.add_argument("--distance_matrix_atol", default=0.01, type=float)
@@ -172,9 +171,6 @@ def main():
         type=str,
     )
     kmc_parser.add_argument("event_fname", default="./input/events.json", type=str)
-    kmc_parser.add_argument(
-        "event_dependencies", default="./input/event_dependencies.csv", type=str
-    )
     kmc_parser.add_argument(
         "initial_state", default="./input/initial_state.json", type=str
     )
@@ -244,9 +240,6 @@ def main():
 
         # fanme_path
         args.event_fname = os.path.join(args.events_output_dir, args.event_fname)
-        args.event_dependencies_fname = os.path.join(
-            args.events_output_dir, args.event_dependencies_fname
-        )
 
         if isinstance(args.find_nearest_if_fail, str):
             args.find_nearest_if_fail = args.find_nearest_if_fail.lower() in {
@@ -275,7 +268,7 @@ def main():
             export_local_env_structure=args.export_local_env_structure,
             supercell_shape=args.supercell_shape,
             event_file=args.event_fname,
-            event_dependencies_file=args.event_dependencies_fname,
+            # event_dependencies embedded in events.json
         )
 
     if args.command == "KMCSimulation":
@@ -285,12 +278,9 @@ def main():
         os.chdir(args.work_dir)
         print(vars(args))
 
-        # Convert GUI args to SimulationConfig using modern parameter names.
+        # Convert GUI args to Configuration using modern parameter names.
         legacy_mapping = {
-            "fitting_results": "fitting_results_file",
-            "fitting_results_site": "fitting_results_site_file",
-            "lce_fname": "cluster_expansion_file",
-            "lce_site_fname": "cluster_expansion_site_file",
+            "lce_fname": "model_file",
             "prim_fname": "structure_file",
             "event_fname": "event_file",
             "initial_state": "initial_state_file",
@@ -308,12 +298,8 @@ def main():
             "mobile_ion_charge",
             "elementary_hop_distance",
             "model_type",
-            "cluster_expansion_file",
-            "cluster_expansion_site_file",
-            "fitting_results_file",
-            "fitting_results_site_file",
+            "model_file",
             "event_file",
-            "event_dependencies",
             "immutable_sites",
             "convert_to_primitive_cell",
             "initial_state_file",
@@ -332,7 +318,7 @@ def main():
             if mapped_key in valid_config_keys and value is not None:
                 config_params[mapped_key] = value
 
-        config = SimulationConfig(**config_params)
+        config = Configuration(**config_params)
         kmc = KMC.from_config(config)
 
         # run kmc

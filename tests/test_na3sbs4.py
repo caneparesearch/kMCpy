@@ -34,7 +34,6 @@ class TestNa3SbS4(unittest.TestCase):
                 export_local_env_structure=True,
                 supercell_shape=[3, 3, 3],
                 event_file=f"{file_path}/events.json",
-                event_dependencies_file=f"{file_path}/event_dependencies.csv",
             )
 
             self.assertEqual(
@@ -64,7 +63,6 @@ class TestNa3SbS4(unittest.TestCase):
                     exclude_species=["S2-", "S", "Zr4+", "Zr"],
                     supercell_shape=[2, 2, 2],
                     event_file=os.path.join(tmpdir, "events.json"),
-                    event_dependencies_file=os.path.join(tmpdir, "event_dependencies.csv"),
                     rtol=0.01,
                     atol=0.01,
                 )
@@ -111,11 +109,11 @@ class TestNa3SbS4(unittest.TestCase):
             os.chdir(original_cwd)
 
     def test_simulation_config_basic(self):
-        """Test basic SimulationConfig functionality for Na3SbS4."""
-        from kmcpy.simulator.config import SimulationConfig
+        """Test basic Configuration functionality for Na3SbS4."""
+        from kmcpy.simulator.config import Configuration
         
         # Test basic configuration creation
-        config = SimulationConfig(
+        config = Configuration(
             structure_file="fake_structure.cif",  # Required parameter with correct name
             name="Na3SbS4_Test",
             temperature=600.0,
@@ -129,13 +127,8 @@ class TestNa3SbS4(unittest.TestCase):
             supercell_shape=(2, 2, 2),  # Use tuple
             immutable_sites=("S", "Sb"),  # Use tuple
             
-            # Use correct parameter names
-            fitting_results_file="fake_fitting.json",
-            fitting_results_site_file="fake_fitting_site.json",
-            cluster_expansion_file="fake_lce.json",
-            cluster_expansion_site_file="fake_lce_site.json",
+            model_file="fake_model.json",
             event_file="fake_events.json",
-            event_dependencies="fake_dependencies.csv"
         )
         
         # Test that configuration was created successfully
@@ -150,11 +143,10 @@ class TestNa3SbS4(unittest.TestCase):
         config_dict = config.to_dict()
         self.assertIn('name', config_dict)
         self.assertIn('temperature', config_dict)
-        # Note: to_dict() uses legacy key names
-        self.assertIn('equ_pass', config_dict)  # maps from equilibration_passes
-        self.assertIn('kmc_pass', config_dict)  # maps from kmc_passes
-        self.assertEqual(config_dict['equ_pass'], 100)
-        self.assertEqual(config_dict['kmc_pass'], 500)
+        self.assertIn('equilibration_passes', config_dict)
+        self.assertIn('kmc_passes', config_dict)
+        self.assertEqual(config_dict['equilibration_passes'], 100)
+        self.assertEqual(config_dict['kmc_passes'], 500)
         
         # Test property access
         self.assertEqual(config.name, "Na3SbS4_Test")
@@ -169,7 +161,7 @@ class TestNa3SbS4(unittest.TestCase):
         self.assertEqual(modified_config.name, "Modified_Na3SbS4")
         self.assertEqual(modified_config.attempt_frequency, config.attempt_frequency)
         
-        print("✓ SimulationConfig basic functionality works for Na3SbS4")
+        print("✓ Configuration basic functionality works for Na3SbS4")
 
 
 if __name__ == "__main__":

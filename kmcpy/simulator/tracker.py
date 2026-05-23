@@ -1,498 +1,576 @@
 #!/usr/bin/env python
-"""
-This module defines a Tracker class for monitoring mobile ion species in kinetic Monte Carlo (kMC) simulations.
-"""
+"""Tracker for monitoring mobile ion trajectories during kMC simulations."""
+
+from __future__ import annotations
+
+from copy import copy
+import gzip
+import json
+import logging
+import warnings
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
-from copy import copy
-import json
-from kmcpy.io import convert
-import logging
+
 from kmcpy.external.structure import StructureKMCpy
-from typing import TYPE_CHECKING, Optional
+from kmcpy.io.serialization import to_json_compatible
+from kmcpy.simulator.property import (
+    BUILTIN_PROPERTY_FIELDS,
+    PropertyRecord,
+    PropertySpec,
+    append_record,
+    compute_transport_properties,
+    should_trigger,
+    validate_max_records,
+    validate_schedule,
+)
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.condition import SimulationConfig
-    from kmcpy.simulator.state import SimulationState
+    from kmcpy.simulator.config import Configuration
+    from kmcpy.simulator.state import State
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
 
 RESULT_FIELDS = (
     "time",
-    "D_J",
-    "D_tracer",
+    "jump_diffusivity",
+    "tracer_diffusivity",
     "conductivity",
-    "f",
-    "H_R",
+    "correlation_factor",
+    "havens_ratio",
     "msd",
 )
 
+SUMMARY_PROPERTY_NAME = "_built_in_summary"
 
-def _create_result_store() -> dict:
+
+class CallbackExecutionError(RuntimeError):
+    """Raised when an attached property callback fails and cannot be recovered."""
+
+
+
+def _create_result_store() -> dict[str, list[float]]:
+    """Allocate empty storage lists for built-in summary fields."""
     return {field: [] for field in RESULT_FIELDS}
 
 
-def _append_result(store: dict, time, D_J, D_tracer, conductivity, f, H_R, msd) -> None:
-    store["time"].append(time)
-    store["D_J"].append(D_J)
-    store["D_tracer"].append(D_tracer)
-    store["conductivity"].append(conductivity)
-    store["f"].append(f)
-    store["H_R"].append(H_R)
-    store["msd"].append(msd)
+
+def _append_result_row(store: dict[str, list[float]], sim_time: float, metrics: dict[str, float]) -> None:
+    """Append one built-in summary sample to the result table."""
+    store["time"].append(sim_time)
+    store["jump_diffusivity"].append(metrics["jump_diffusivity"])
+    store["tracer_diffusivity"].append(metrics["tracer_diffusivity"])
+    store["conductivity"].append(metrics["conductivity"])
+    store["correlation_factor"].append(metrics["correlation_factor"])
+    store["havens_ratio"].append(metrics["havens_ratio"])
+    store["msd"].append(metrics["msd"])
+
+
+
+def _to_json_safe(value: Any) -> Any:
+    """Convert callback payloads to JSON-compatible values."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    if isinstance(value, dict):
+        return {str(k): _to_json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple)):
+        return [_to_json_safe(v) for v in value]
+
+    try:
+        return to_json_compatible(value)
+    except TypeError:
+        return repr(value)
 
 
 class Tracker:
-    """
-    Tracker class for monitoring mobile ion species in kinetic Monte Carlo (kMC) simulations.
+    """Track trajectories and evaluate attached properties for each sampling point."""
 
-    The Tracker class is responsible for tracking the positions, displacements, hop counts, and related transport properties
-    of mobile ion species within a given structure during kMC simulations. It provides methods to update the tracked state
-    after each kMC event, calculate diffusion coefficients, correlation factors, conductivity, and to summarize and save
-    simulation results.
-    """
-
-    def __init__(self, config: "SimulationConfig", structure: StructureKMCpy, 
-                 initial_state: Optional["SimulationState"] = None, **kwargs) -> None:
-        """Initialize a Tracker object for monitoring mobile ion species.
-
-        Args:
-            config (SimulationConfig): Configuration object containing simulation parameters.
-            structure (StructureKMCpy): Structure object.
-            initial_state (SimulationState, optional): Initial simulation state. If None, creates from config or occ_initial.
-            **kwargs: Additional legacy parameters for backward compatibility.
-
-        """
+    def __init__(
+        self,
+        config: "Configuration",
+        structure: StructureKMCpy,
+        initial_state: Optional["State"] = None,
+    ) -> None:
+        """Initialize tracker state, trajectory arrays, and built-in sampling."""
         logger.info("Initializing Tracker ...")
+        if initial_state is None:
+            raise ValueError("State must be provided to Tracker")
 
-        # Store configuration reference (no parameter duplication)
         self.config = config
         self.structure = structure
-        
-        # Initialize or use provided simulation state
-        if initial_state is not None:
-            self.state = initial_state
-        else:
-            raise ValueError("SimulationState must be provided to Tracker")
-        
-        # Initialize mobile ion tracking in Tracker (where it belongs)
-        initial_occ = initial_state.occupations if initial_state else occ_initial
-        self._initialize_mobile_ion_tracking(initial_occ)
-        
-        # Results storage (owned by Tracker).
+        self.state = initial_state
+
+        self._initialize_mobile_ion_tracking(initial_state.occupations)
+
         self.results = _create_result_store()
         self.current_pass = 0
-        
+
+        self._global_interval: Optional[int] = 1
+        self._global_time_interval: Optional[float] = None
+        self._enabled_builtin_properties = {
+            name: True for name in BUILTIN_PROPERTY_FIELDS
+        }
+
+        self._properties: dict[str, PropertySpec] = {}
+        self._property_records: dict[str, list[PropertyRecord]] = {}
+
+        self.attach(
+            self._compute_built_in_summary,
+            name=SUMMARY_PROPERTY_NAME,
+            store=False,
+        )
+
         logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
         logger.info(
-            f"""Center of mass ({self.mobile_ion_specie}): {np.mean(
-            self.r0, axis=0
-            )}""")
-    
-    def _initialize_mobile_ion_tracking(self, initial_occ: list):
+            "Center of mass (%s): %s",
+            self.mobile_ion_specie,
+            np.mean(self.r0, axis=0),
+        )
+
+    def _initialize_mobile_ion_tracking(self, initial_occ: list[int]) -> None:
         """Initialize mobile ion tracking arrays."""
-        import numpy as np
-        
-        # Find mobile ion sites (working version - mobile ion sites are first N sites)
         self.n_mobile_ion_specie_site = len(
             [el.symbol for el in self.structure.species if self.mobile_ion_specie in el.symbol]
         )
         self.mobile_ion_specie_locations = np.where(
-            np.array(initial_occ[0:self.n_mobile_ion_specie_site]) == -1
+            np.array(initial_occ[0 : self.n_mobile_ion_specie_site]) == -1
         )[0]
         self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
-        
-        logger.debug('Initial mobile ion locations = %s', self.mobile_ion_specie_locations)
-        
-        # Initialize tracking arrays
+
+        logger.debug("Initial mobile ion locations = %s", self.mobile_ion_specie_locations)
+
         self.displacement = np.zeros((self.n_mobile_ion_specie, 3))
         self.hop_counter = np.zeros(self.n_mobile_ion_specie, dtype=np.int64)
         self.r0 = self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix
 
-    # Properties to access state information (delegation to state)
     @property
     def occ_initial(self) -> list:
-        """Get initial occupation from state."""
-        return self.state.occupations  # Current occupations
+        """Return current occupations from the shared simulation state."""
+        return self.state.occupations
 
     @property
     def frac_coords(self) -> np.ndarray:
-        """Get fractional coordinates from structure."""
+        """Return structure fractional coordinates."""
         return self.structure.frac_coords
-    
+
     @property
     def latt(self):
-        """Get lattice from structure."""
+        """Return structure lattice."""
         return self.structure.lattice
-    
+
     @property
     def volume(self) -> float:
-        """Get volume from structure."""
+        """Return structure volume."""
         return self.structure.volume
 
-    # Properties to access configuration parameters (no duplication)
     @property
     def dimension(self) -> int:
-        """Get dimension from configuration."""
+        """Return simulation dimensionality."""
         return self.config.dimension
-    
+
     @property
     def q(self) -> float:
-        """Get mobile ion charge from configuration."""
+        """Return mobile ion charge."""
         return self.config.mobile_ion_charge
-    
+
     @property
     def elem_hop_distance(self) -> float:
-        """Get elementary hop distance from configuration."""
+        """Return elementary hop distance."""
         return self.config.elementary_hop_distance
-    
+
     @property
     def temperature(self) -> float:
-        """Get temperature from configuration."""
+        """Return simulation temperature."""
         return self.config.temperature
-    
+
     @property
     def v(self) -> float:
-        """Get attempt frequency from configuration."""
+        """Return attempt frequency."""
         return self.config.attempt_frequency
-    
+
     @property
     def time(self) -> float:
-        """Get current simulation time from state."""
+        """Return current simulation time."""
         return self.state.time
-    
-    @time.setter
-    def time(self, value: float):
-        """Set simulation time in state (for backward compatibility)."""
-        self.state.time = value
 
     @property
     def mobile_ion_specie(self) -> str:
-        """Get mobile ion species from configuration."""
+        """Return tracked mobile ion species label."""
         return self.config.mobile_ion_specie
 
     @classmethod
-    def from_config(cls, config: "SimulationConfig", structure: StructureKMCpy, occ_initial: list) -> "Tracker":
-        """
-        Create a Tracker object from a SimulationConfig object.
-        
-        This is the preferred method for creating Tracker instances.
+    def from_config(
+        cls,
+        config: "Configuration",
+        structure: StructureKMCpy,
+        occ_initial: list,
+    ) -> "Tracker":
+        """Construct tracker from config and initial occupations."""
+        from kmcpy.simulator.state import State
 
-        Args:
-            config (SimulationConfig): A SimulationConfig object containing simulation parameters.
-            structure (StructureKMCpy): A StructureKMCpy object containing the structure information.
-            occ_initial (list): Initial occupation list for the mobile ion specie.
-            
-        Returns:
-            Tracker: An instance of the Tracker class.
-        """
-        # Create SimulationState with initial occupation
-        from kmcpy.simulator.state import SimulationState
-        initial_state = SimulationState(occupations=occ_initial)
-        
+        initial_state = State(occupations=occ_initial)
         return cls(config=config, structure=structure, initial_state=initial_state)
 
+    def set_global_property_frequency(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+    ) -> None:
+        """Set global sampling defaults for all attached properties."""
+        validate_schedule(interval=interval, time_interval=time_interval)
+        self._global_interval = interval
+        self._global_time_interval = time_interval
 
-    def update(self, event, current_occ, dt)->None:
+    def attach(
+        self,
+        func: Callable[["State", int, float], Any],
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        name: Optional[str] = None,
+        store: bool = True,
+        max_records: Optional[int] = None,
+        on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
+        enabled: bool = True,
+    ) -> str:
+        """Attach one property callback to this tracker."""
+        if not callable(func):
+            raise TypeError("func must be callable")
+
+        validate_schedule(interval=interval, time_interval=time_interval)
+        validate_max_records(max_records=max_records)
+
+        property_name = name or getattr(func, "__name__", "attached_property")
+        if property_name in BUILTIN_PROPERTY_FIELDS:
+            raise ValueError(
+                f"'{property_name}' is reserved for built-in summary fields"
+            )
+        if property_name in self._properties:
+            raise ValueError(f"Property '{property_name}' is already attached")
+
+        spec = PropertySpec(
+            name=property_name,
+            callback=func,
+            interval=interval,
+            time_interval=time_interval,
+            store=store,
+            max_records=max_records,
+            enabled=enabled,
+            on_error=on_error,
+        )
+        self._properties[property_name] = spec
+        self._property_records[property_name] = []
+        return property_name
+
+    def detach(self, name: str) -> None:
+        """Detach a previously attached property callback."""
+        if name == SUMMARY_PROPERTY_NAME:
+            raise ValueError("Cannot detach the built-in summary property")
+        if name not in self._properties:
+            raise ValueError(f"Property '{name}' is not attached")
+        del self._properties[name]
+        self._property_records.pop(name, None)
+
+    def detach_property(self, name: str) -> None:
+        """Detach a previously attached property callback."""
+        self.detach(name)
+
+    def disable_property(self, name: str) -> None:
         """
-        Update tracker observables for a proposed kMC event.
+        Compatibility alias for old API.
 
-        This method should be called with the pre-event occupation snapshot.
-        Tracker updates trajectory observables (positions, displacements, hops),
-        while simulation time/step are owned by KMC via SimulationState.
-
-        Args:
-            event: An object representing the KMC event, containing indices and properties of the mobile ions involved.
-            current_occ (np.ndarray): The current occupation array indicating the occupation state of each site.
-            dt (float): Time increment for this event (kept for API compatibility).
-
-        Side Effects:
-            - Updates the internal state of the tracker, including:
-                - `mobile_ion_specie_locations`: The indices of the mobile ions after the event.
-                - `displacement`: The cumulative displacement of each mobile ion.
-                - `hop_counter`: The number of hops performed by each mobile ion.
-            - Logs detailed debug information if the logger is set to DEBUG level.
-
-        Raises:
-            Logs an error if the event direction cannot be determined (i.e., if the event is invalid).
+        - Built-ins: disable by setting enabled=False.
+        - Custom callbacks: detach from tracker.
         """
+        warnings.warn(
+            "disable_property(...) is deprecated. "
+            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name in self._enabled_builtin_properties:
+            self.set_property_enabled(name, False)
+            return
+        self.detach(name)
+
+    def clear_attachments(self) -> None:
+        """Remove all user attachments while preserving built-in summary sampling."""
+        self._properties = {
+            SUMMARY_PROPERTY_NAME: self._properties[SUMMARY_PROPERTY_NAME]
+        }
+        self._property_records = {
+            SUMMARY_PROPERTY_NAME: self._property_records[SUMMARY_PROPERTY_NAME]
+        }
+
+    def list_attachments(self) -> list[str]:
+        """Return names of user-attached properties."""
+        return [name for name in self._properties if name != SUMMARY_PROPERTY_NAME]
+
+    def list_property_calculations(self) -> dict[str, list[str]]:
+        """Return enabled/disabled built-ins and currently attached callbacks."""
+        built_in_enabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if self._enabled_builtin_properties.get(name, True)
+        ]
+        built_in_disabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if not self._enabled_builtin_properties.get(name, True)
+        ]
+        attached_enabled = [
+            name for name in self.list_attachments() if self._properties[name].enabled
+        ]
+        attached_disabled = [
+            name for name in self.list_attachments() if not self._properties[name].enabled
+        ]
+        return {
+            "built_in_enabled": built_in_enabled,
+            "built_in_disabled": built_in_disabled,
+            "attached_enabled": attached_enabled,
+            "attached_disabled": attached_disabled,
+        }
+
+    def set_property_enabled(self, name: str, enabled: bool) -> None:
+        """Enable or disable a built-in summary field or an attached callback."""
+        if name in self._enabled_builtin_properties:
+            self._enabled_builtin_properties[name] = bool(enabled)
+            return
+
+        if name not in self._properties:
+            raise ValueError(f"Unknown property '{name}'")
+        self._properties[name].enabled = bool(enabled)
+
+    def _compute_built_in_summary(self, _state: "State", _step: int, _sim_time: float) -> dict[str, float]:
+        """Compute the built-in transport summary from current tracker state."""
+        return compute_transport_properties(
+            self.displacement,
+            self.hop_counter,
+            sim_time=float(self.time),
+            dimension=self.dimension,
+            n_mobile_ion_specie=self.n_mobile_ion_specie,
+            elementary_hop_distance=self.elem_hop_distance,
+            volume=self.volume,
+            mobile_ion_charge=self.q,
+            temperature=self.temperature,
+            enabled=self._enabled_builtin_properties,
+        )
+
+    def _handle_callback_error(
+        self,
+        spec: PropertySpec,
+        exc: Exception,
+        step: int,
+        sim_time: float,
+    ) -> None:
+        """Handle callback failures using optional on_error policy."""
+        if spec.on_error is None:
+            raise CallbackExecutionError(
+                f"Property callback '{spec.name}' failed at step={step}, time={sim_time}"
+            ) from exc
+
+        try:
+            keep_running = bool(spec.on_error(exc, self.state, step, sim_time))
+        except Exception as handler_exc:
+            raise CallbackExecutionError(
+                f"Error handler for callback '{spec.name}' failed"
+            ) from handler_exc
+
+        if not keep_running:
+            raise CallbackExecutionError(
+                f"Property callback '{spec.name}' failed and requested termination"
+            ) from exc
+
+    def _append_summary_result(self, sim_time: float, metrics: dict[str, float]) -> None:
+        """Persist one built-in summary sample."""
+        _append_result_row(self.results, copy(sim_time), metrics)
+
+    def _latest_property_value(self, name: str) -> Any:
+        """Return latest sampled value for a property name."""
+        records = self._property_records.get(name, [])
+        if not records:
+            return float("nan")
+        return records[-1].value
+
+    def sample_properties(self, step: int, sim_time: float) -> None:
+        """Evaluate schedules and execute all attached property callbacks."""
+        for spec in list(self._properties.values()):
+            if not spec.enabled:
+                continue
+
+            interval = spec.interval if spec.interval is not None else self._global_interval
+            time_interval = (
+                spec.time_interval
+                if spec.time_interval is not None
+                else self._global_time_interval
+            )
+
+            if not should_trigger(
+                step=step,
+                sim_time=sim_time,
+                interval=interval,
+                time_interval=time_interval,
+                last_trigger_time=spec.last_trigger_time,
+            ):
+                continue
+
+            try:
+                value = spec.callback(self.state, step, sim_time)
+            except Exception as exc:
+                self._handle_callback_error(spec=spec, exc=exc, step=step, sim_time=sim_time)
+                spec.last_trigger_step = step
+                spec.last_trigger_time = sim_time
+                continue
+
+            if spec.name == SUMMARY_PROPERTY_NAME:
+                self._append_summary_result(sim_time=sim_time, metrics=value)
+
+            if spec.store:
+                append_record(
+                    records=self._property_records[spec.name],
+                    spec=spec,
+                    step=step,
+                    sim_time=sim_time,
+                    value=value,
+                )
+
+            spec.last_trigger_step = step
+            spec.last_trigger_time = sim_time
+
+    def get_property_records(
+        self, name: Optional[str] = None
+    ) -> dict[str, list[dict[str, Any]]] | list[dict[str, Any]]:
+        """Retrieve stored callback records."""
+        if name is not None:
+            if name not in self._property_records:
+                raise ValueError(f"Property '{name}' has no stored records")
+            return [record.__dict__.copy() for record in self._property_records[name]]
+
+        return {
+            key: [record.__dict__.copy() for record in records]
+            for key, records in self._property_records.items()
+            if key != SUMMARY_PROPERTY_NAME
+        }
+
+    def update(self, event, current_occ, dt) -> None:
+        """Update trajectory observables for a proposed kMC event."""
         _ = dt
-        mobile_ion_specie_1_coord = copy(
-            self.frac_coords[event.mobile_ion_indices[0]]
-        )
-        mobile_ion_specie_2_coord = copy(
-            self.frac_coords[event.mobile_ion_indices[1]]
-        )
+        mobile_ion_specie_1_coord = copy(self.frac_coords[event.mobile_ion_indices[0]])
+        mobile_ion_specie_2_coord = copy(self.frac_coords[event.mobile_ion_indices[1]])
         mobile_ion_specie_1_occ = current_occ[event.mobile_ion_indices[0]]
         mobile_ion_specie_2_occ = current_occ[event.mobile_ion_indices[1]]
 
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('--------------------- Tracker Update Start ---------------------')
+            logger.debug("--------------------- Tracker Update Start ---------------------")
             logger.debug(
-            "%s(1): idx=%d, coord=%s, occ=%s",
-            self.mobile_ion_specie, event.mobile_ion_indices[0], np.array2string(mobile_ion_specie_1_coord, precision=4), mobile_ion_specie_1_occ
+                "%s(1): idx=%d, coord=%s, occ=%s",
+                self.mobile_ion_specie,
+                event.mobile_ion_indices[0],
+                np.array2string(mobile_ion_specie_1_coord, precision=4),
+                mobile_ion_specie_1_occ,
             )
             logger.debug(
-            "%s(2): idx=%d, coord=%s, occ=%s",
-            self.mobile_ion_specie, event.mobile_ion_indices[1], np.array2string(mobile_ion_specie_2_coord, precision=4), mobile_ion_specie_2_occ
+                "%s(2): idx=%d, coord=%s, occ=%s",
+                self.mobile_ion_specie,
+                event.mobile_ion_indices[1],
+                np.array2string(mobile_ion_specie_2_coord, precision=4),
+                mobile_ion_specie_2_occ,
             )
             logger.debug("Current simulation time: %.6f", self.time)
-            logger.debug("Hop counters: %s", np.array2string(self.hop_counter, precision=0, separator=', '))
+            logger.debug(
+                "Hop counters: %s",
+                np.array2string(self.hop_counter, precision=0, separator=", "),
+            )
             logger.debug("Event probability: %s", getattr(event, "probability", None))
-            logger.debug("Mobile ion locations before update: %s", self.mobile_ion_specie_locations)
-            logger.debug("Occupation before update: %s", np.array2string(current_occ, precision=0, separator=', '))
-        direction = int(
-            (mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2
-        )  # na1 -> na2 direction = 1; na2 -> na1 direction = -1
-        displacement_frac = copy(
-            direction * (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord)
-        )
-        displacement_frac -= np.array(
-            [int(round(i)) for i in displacement_frac]
-        )  # for periodic condition
+            logger.debug(
+                "Mobile ion locations before update: %s",
+                self.mobile_ion_specie_locations,
+            )
+            logger.debug(
+                "Occupation before update: %s",
+                np.array2string(current_occ, precision=0, separator=", "),
+            )
+
+        direction = int((mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2)
+        displacement_frac = copy(direction * (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord))
+        displacement_frac -= np.array([int(round(i)) for i in displacement_frac])
         displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
-        if direction == -1:  # Na(2) -> Na(1)
-            logger.debug(f'Diffuse direction: {self.mobile_ion_specie}(2) -> {self.mobile_ion_specie}(1)')
-            specie_to_diff = np.where(
-            self.mobile_ion_specie_locations == event.mobile_ion_indices[1]
-            )[0][0]
-            self.mobile_ion_specie_locations[specie_to_diff] = (
-            event.mobile_ion_indices[0]
+
+        if direction == -1:
+            logger.debug(
+                "Diffuse direction: %s(2) -> %s(1)",
+                self.mobile_ion_specie,
+                self.mobile_ion_specie,
             )
-        elif direction == 1:  # Na(1) -> Na(2)
-            logger.debug(f'Diffuse direction: {self.mobile_ion_specie}(1) -> {self.mobile_ion_specie}(2)')
             specie_to_diff = np.where(
-            self.mobile_ion_specie_locations == event.mobile_ion_indices[0]
+                self.mobile_ion_specie_locations == event.mobile_ion_indices[1]
             )[0][0]
-            self.mobile_ion_specie_locations[specie_to_diff] = (
-            event.mobile_ion_indices[1]
+            self.mobile_ion_specie_locations[specie_to_diff] = event.mobile_ion_indices[0]
+        elif direction == 1:
+            logger.debug(
+                "Diffuse direction: %s(1) -> %s(2)",
+                self.mobile_ion_specie,
+                self.mobile_ion_specie,
             )
+            specie_to_diff = np.where(
+                self.mobile_ion_specie_locations == event.mobile_ion_indices[0]
+            )[0][0]
+            self.mobile_ion_specie_locations[specie_to_diff] = event.mobile_ion_indices[1]
         else:
             logger.error("Proposed a wrong event! Please check the code!")
-            return  # Return early to avoid using undefined specie_to_diff
+            return
+
         self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
         self.hop_counter[specie_to_diff] += 1
-        # Time progression is handled by KMC.update(...) through SimulationState.
-        logger.debug('------------------------ Tracker Update End --------------------')
-        # self.frac_na_at_na1.append(np.count_nonzero(self.mobile_ion_specie_location < self.n_mobile_ion_specie_site/4)/self.n_mobile_ion_specie)
+        logger.debug("------------------------ Tracker Update End --------------------")
 
-    def update_current_pass(self, current_pass:int)-> None:
-        """
-        Update the current pass number for the tracker.
-
-        This method updates the current pass number, which is used to track the progress of the simulation.
-
-        Args:
-            current_pass (int): The new current pass number.
-        """
+    def update_current_pass(self, current_pass: int) -> None:
+        """Update current pass index used in logging/output."""
         self.current_pass = current_pass
 
+    def show_current_info(self) -> None:
+        """Log current simulation information and latest sampled summary."""
+        if not self.results["time"]:
+            logger.info("Pass %d has no sampled properties yet.", self.current_pass)
+            return
 
-    def calc_D_J(self)-> float:
-        """
-        Calculate the jump diffusivity (D_J) based on the total displacement vector.
+        rows = [
+            ["pass", self.current_pass],
+            ["time", self.results["time"][-1]],
+            ["msd", self.results["msd"][-1]],
+            ["jump_diffusivity", self.results["jump_diffusivity"][-1]],
+            ["tracer_diffusivity", self.results["tracer_diffusivity"][-1]],
+            ["conductivity", self.results["conductivity"][-1]],
+            ["havens_ratio", self.results["havens_ratio"][-1]],
+            ["correlation_factor", self.results["correlation_factor"][-1]],
+        ]
 
-        This method computes the jump diffusivity using the total displacement
-        of mobile ions (in Angstrom) over a given time period, normalized by the system's dimensionality,
-        the number of mobile ion species, and the elapsed time. The result is converted to
-        units of cm^2/s.
+        for name in self.list_attachments():
+            value = self._latest_property_value(name)
+            rows.append([name, value])
 
-        Returns:
-            float: The calculated jump diffusivity (D_J) in cm^2/s.
-        """
-        displacement_vector_tot = np.linalg.norm(np.sum(self.displacement, axis=0))
+        table = "\n" + pd.DataFrame(rows, columns=["Property", "Value"]).to_string(index=False)
+        logger.info("Tracker Summary:%s", table)
 
-        D_J = (
-            displacement_vector_tot**2
-            / (2 * self.dimension * self.time * self.n_mobile_ion_specie)
-            * 10 ** (-16)
-        )  # to cm^2/s
+    def return_current_info(self) -> tuple[float, float, float, float, float, float, float]:
+        """Return latest sampled summary values for testing/reporting."""
+        if not self.results["time"]:
+            raise ValueError("No property samples are available. Increase sampling frequency.")
 
-        return D_J
-
-    def calc_D_tracer(self)-> float:
-        """
-        Calculate the tracer diffusivity (D_tracer).
-
-        This method computes the tracer diffusivity based on the mean squared displacement
-        of particles over time, normalized by the system's dimensionality and total elapsed time.
-        The result is converted to in cm^2/s.
-
-        Returns:
-            float: The calculated tracer diffusivity.
-        """
-        D_tracer = (
-            np.mean(np.linalg.norm(self.displacement, axis=1) ** 2)
-            / (2 * self.dimension * self.time)
-            * 10 ** (-16)
-        )
-
-        return D_tracer
-
-    def calc_corr_factor(self)->float:  # a is the hopping distance in Angstrom
-        """
-        Calculate the correlation factor for the tracked hops.
-
-        The correlation factor is computed as the mean squared norm of the displacement
-        vectors divided by the product of the number of hops and the square of the 
-        elementary hop distance. NaN values in the result are replaced with zero.
-
-        Returns:
-            float: The mean correlation factor for the tracked hops.
-        """
-        
-        hop_counter_safe = np.where(self.hop_counter == 0, 1, self.hop_counter)
-        corr_factor = np.linalg.norm(self.displacement, axis=1) ** 2 / (
-            hop_counter_safe * self.elem_hop_distance**2
-        )
-        corr_factor[self.hop_counter == 0] = 0  # Set correlation factor to 0 where hop_counter was zero
-
-        return np.mean(corr_factor)
-
-    def calc_conductivity(self, D_J)-> float:
-        """
-        Calculate the ionic conductivity based on the jump diffusivity.
-
-        Args:
-            D_J (float): Jump diffusivity in units of cm^2/s.
-
-        Returns:
-            float: Ionic conductivity in mS/cm.
-
-        Notes:
-            - The calculation uses the Nernst-Einstein relation.
-            - `self.n_mobile_ion_specie` is the number of mobile ions.
-            - `self.volume` is the simulation cell volume in Å^3.
-            - `self.q` is the charge of the mobile ion (in elementary charge units).
-            - `self.temperature` is the temperature in Kelvin.
-            - The Boltzmann constant `k` is used in meV/K.
-            - The factor `1.602 * 10**11` converts the units to mS/cm.
-        """
-
-        k = 8.617333262145 * 10 ** (-2)  # unit in meV/K
-
-        n = (
-            self.n_mobile_ion_specie
-        ) / self.volume  # e per Angst^3 vacancy is the carrier
-        conductivity = D_J * n * self.q**2 / (k * self.temperature) * 1.602 * 10**11  # to mS/cm
-
-        return conductivity
-    
-    def show_current_info(self)-> None:
-        """
-        Logs the current simulation information, including pass number, time, and various computed results.
-
-        The method outputs a summary of the current state using the logger at the INFO level, displaying:
-            - Current pass number
-            - Simulation time
-            - Mean squared displacement (MSD)
-            - Jump diffusion coefficient (D_J)
-            - Tracer diffusion coefficient (D_tracer)
-            - Ionic conductivity
-            - Haven ratio (H_R)
-            - Correlation factor (f)
-
-        Additionally, it logs at the DEBUG level:
-            - The center of mass of the mobile ion species
-            - The mean squared displacement and current time
-
-        This method is intended for tracking and debugging the progress of kinetic Monte Carlo simulations.
-        """
-        logger.info(
-            "%d\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E\t%.3E",
-            self.current_pass,
-            self.time,
-            self.results["msd"][-1],
-            self.results["D_J"][-1],
-            self.results["D_tracer"][-1],
-            self.results["conductivity"][-1],
-            self.results["H_R"][-1],
-            self.results["f"][-1],
-        )
-        logger.debug('Center of mass (%s): %s', self.mobile_ion_specie, np.mean(self.frac_coords[self.mobile_ion_specie_locations] @ self.latt.matrix, axis=0))
-        logger.debug('MSD = %s, time = %s', np.linalg.norm(np.sum(self.displacement, axis=0))**2, self.time)
-
-    def return_current_info(self)-> tuple:
-        """
-        Returns the current simulation information as a tuple for unit testing purposes.
-
-        Returns:
-            tuple: A tuple containing the following elements:
-                - self.time (float): The current simulation time.
-                - self.results["msd"][-1] (float): The most recent mean squared displacement value.
-                - self.results["D_J"][-1] (float): The most recent jump diffusion coefficient.
-                - self.results["D_tracer"][-1] (float): The most recent tracer diffusion coefficient.
-                - self.results["conductivity"][-1] (float): The most recent conductivity value.
-                - self.results["H_R"][-1] (float): The most recent Haven ratio.
-                - self.results["f"][-1] (float): The most recent correlation factor.
-        """
         return (
-            self.time,
+            self.results["time"][-1],
             self.results["msd"][-1],
-            self.results["D_J"][-1],
-            self.results["D_tracer"][-1],
+            self.results["jump_diffusivity"][-1],
+            self.results["tracer_diffusivity"][-1],
             self.results["conductivity"][-1],
-            self.results["H_R"][-1],
-            self.results["f"][-1],
+            self.results["havens_ratio"][-1],
+            self.results["correlation_factor"][-1],
         )
 
-    def compute_properties(self)-> None:
-        """
-        Compute properties of the current simulation state, log key properties, and update results.
-
-        This method calculates and logs various transport properties such as the jump diffusivity (D_J),
-        tracer diffusivity (D_tracer), correlation factor (f), ionic conductivity, Haven's ratio (H_R),
-        and mean squared displacement (MSD). It also logs a summary table of important simulation parameters and
-        adds the computed results to the results tracker.
-
-        """
-        # logger.debug('Si ratio (Si/(Si+P)) = %s', self.n_si/self.n_si_sites)
-        # logger.debug('Displacement vectors r_i = %s', self.displacement)
-        # logger.debug('Hopping counts n_i = %s', self.hop_counter)
-        # logger.debug('average n_Na%% @ Na(1) = %s', sum(self.frac_na_at_na1)/len(self.frac_na_at_na1))
-        # logger.debug('final n_Na%% @ Na(1) = %s', self.frac_na_at_na1[-1])
-        # logger.debug('final Occ Na(1): %s', (4-3*comp)*self.frac_na_at_na1[-1])
-        # logger.debug('final Occ Na(2): %s', (4-3*comp)/3*(1-self.frac_na_at_na1[-1]))
-
-        D_J = self.calc_D_J()
-        D_tracer = self.calc_D_tracer()
-        f = self.calc_corr_factor()
-        conductivity = self.calc_conductivity(D_J=D_J)
-        H_R = D_tracer / D_J
-
-        msd = np.mean(np.linalg.norm(self.displacement, axis=1) ** 2)  # MSD = sum_i(|r_i|^2)/N
-
-        if logger.isEnabledFor(logging.DEBUG):
-            summary_data = [
-                ["Time elapsed", self.time],
-                ["Current pass", self.current_pass],
-                ["Temperature (K)", self.temperature],
-                ["Attempt frequency (v)", self.v],
-                [f"{self.mobile_ion_specie} ratio ({self.mobile_ion_specie}/({self.mobile_ion_specie}+Va))", self.n_mobile_ion_specie/self.n_mobile_ion_specie_site],
-                ["Haven's ratio H_R", H_R],
-            ]
-            table_str = "\n" + pd.DataFrame(summary_data, columns=["Property", "Value"]).to_string(index=False)
-            logger.debug('Tracker Summary:%s', table_str)
-
-        _append_result(self.results, copy(self.time), D_J, D_tracer, conductivity, f, H_R, msd)
-
-    def write_results(self, current_occupation:list, label:str = None)-> None:
-        """
-        Save simulation results to compressed CSV files.
-
-        Args:
-            current_occupation (list): The current occupation state to be saved.
-            label (str, optional): An optional label to prefix output files.
-                If not provided, files are saved without a label. Defaults to None.
-
-        Saves:
-            displacement_{label}_{current_pass}.csv.gz (ndarray)
-            hop_counter_{label}_{current_pass}.csv.gz (ndarray)
-            current_occ_{label}_{current_pass}.csv.gz (list)
-            results_{label}.csv.gz or results.csv.gz (DataFrame):
-        """
-        prefix = f"{label}_{self.current_pass}"
+    def write_results(self, current_occupation: list, label: str | None = None) -> None:
+        """Save displacement/hop arrays, summary CSV, and property records."""
+        if label:
+            prefix = f"{label}_{self.current_pass}"
+        else:
+            prefix = f"{self.current_pass}"
         np.savetxt(
             f"displacement_{prefix}.csv.gz",
             self.displacement,
@@ -511,44 +589,27 @@ class Tracker:
 
         if label:
             results_file = f"results_{label}.csv.gz"
+            properties_file = f"properties_{label}.json.gz"
         else:
             results_file = "results.csv.gz"
+            properties_file = "properties.json.gz"
+
         pd.DataFrame(self.results).to_csv(results_file, compression="gzip", index=False)
 
-    def as_dict(self)-> dict:
-        d = {
-            "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
-            "T": self.temperature,
-            "occ_initial": self.occ_initial,
-            "frac_coords": self.frac_coords,
-            "latt": self.latt.as_dict(),
-            "volume": self.volume,
-            "n_mobile_ion_specie_site": self.n_mobile_ion_specie_site,
-            "mobile_ion_specie_locations": self.mobile_ion_specie_locations,
-            "n_mobile_ion_specie": self.n_mobile_ion_specie,
-            "displacement": self.displacement,
-            "hop_counter": self.hop_counter,
-            "time": self.time,
-            "results": self.results,
-            "r0": self.r0,
-        }
-        return d
+        flat_records: list[dict[str, Any]] = []
+        for name, records in self._property_records.items():
+            if name == SUMMARY_PROPERTY_NAME:
+                continue
+            for record in records:
+                flat_records.append(
+                    {
+                        "name": record.name,
+                        "step": int(record.step),
+                        "time": float(record.time),
+                        "value": _to_json_safe(record.value),
+                    }
+                )
 
-    def to_json(self, fname)-> None:
-        logger.info("Saving: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(jsonStr)
-
-    @classmethod
-    def from_json(self, fname)-> "Tracker":
-        logger.info("Loading: %s", fname)
-        with open(fname, "rb") as fhandle:
-            objDict = json.load(fhandle)
-        obj = Tracker()
-        obj.__dict__ = objDict
-        return obj
+        if flat_records:
+            with gzip.open(properties_file, "wt", encoding="utf-8") as fhandle:
+                json.dump(flat_records, fhandle, indent=2)

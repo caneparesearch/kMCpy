@@ -1,7 +1,7 @@
-gui_wrapper
+init
 =========================
 
-.. automodule:: kmcpy.cli.gui_wrapper
+.. automodule:: kmcpy.cli.init
     :members:
     :inherited-members:
                   

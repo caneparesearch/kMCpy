@@ -3,6 +3,7 @@ import numpy as np
 from pymatgen.core import Structure, Lattice
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
 
 @pytest.fixture
 def global_lattice_model_and_env():
@@ -44,6 +45,60 @@ def test_local_environment_setup(global_lattice_model_and_env):
     assert local_env.structure[1].species_string == "Na"
     # Check that the global indices are correct (1 for Cl, 0 for Na)
     assert local_env.site_indices == [1, 0]
+
+
+def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_x():
+    """Publication convention should mimic the single-unit NASICON site order."""
+    lattice = Lattice.cubic(20.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "Na", "Na", "Si", "Si"],
+        [
+            [5, 5, 5],
+            [4, 5, 5],
+            [6, 5, 5],
+            [3, 5, 5],
+            [7, 5, 5],
+        ],
+        coords_are_cartesian=True,
+    )
+
+    local_env = LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.1,
+        ordering_convention="nasicon_publication_v1",
+    )
+
+    assert local_env.ordering_convention.name == "nasicon_publication_v1"
+    assert local_env.site_indices == [1, 2, 3, 4]
+    assert [site.species_string for site in local_env.structure] == [
+        "Na",
+        "Na",
+        "Si",
+        "Si",
+    ]
+    assert [round(float(site.coords[0]), 3) for site in local_env.structure] == [
+        -1.0,
+        1.0,
+        -2.0,
+        2.0,
+    ]
+
+
+def test_local_site_ordering_convention_round_trip():
+    convention = LocalSiteOrderingConvention.from_name("nasicon_publication_v1")
+
+    restored = LocalSiteOrderingConvention.resolve(convention.as_dict())
+    restored_from_name_only = LocalSiteOrderingConvention.resolve(
+        {"name": "nasicon_publication_v1"}
+    )
+
+    assert restored == convention
+    assert restored_from_name_only == convention
+    assert restored.exclude_center_site
+    assert restored.sort_keys == ("species", "cartesian_x")
 
 def test_get_local_occupation(global_lattice_model_and_env):
     """Test getting occupation for a local environment from a full structure."""
@@ -114,6 +169,100 @@ def test_local_lattice_structure_does_not_mutate_input_structure():
 
     assert len(template_structure) == original_len
     assert [site.species_string for site in template_structure] == original_species
+
+
+def test_local_lattice_structure_exclude_species_updates_allowed_species():
+    lattice = Lattice.cubic(10.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "O", "Si"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+
+    local_lattice = LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        center=[0, 0, 0],
+        cutoff=3.0,
+        exclude_species=["O"],
+    )
+
+    substituted_structure = Structure(
+        lattice,
+        ["Na", "O", "P"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+    substituted_structure.remove_species(["O"])
+
+    occ = local_lattice.get_occ_from_structure(substituted_structure)
+
+    assert len(local_lattice.allowed_species) == len(local_lattice.template_structure)
+    assert occ.array_equal([
+        local_lattice.basis.match_value,
+        local_lattice.basis.mismatch_value,
+    ])
+
+
+def test_local_lattice_structure_accepts_neutral_mapping_for_oxidized_template():
+    lattice = Lattice.cubic(10.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "O", "Si"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+    template_structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "Si": 4})
+
+    local_lattice = LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.0,
+        exclude_species=["O"],
+    )
+
+    substituted_structure = Structure(
+        lattice,
+        ["Na", "P"],
+        [[0, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+
+    occ = local_lattice.get_occ_from_structure(substituted_structure)
+
+    assert all(species is not None for species in local_lattice.allowed_species)
+    assert occ.array_equal([
+        local_lattice.basis.match_value,
+        local_lattice.basis.mismatch_value,
+    ])
+
+
+def test_local_lattice_structure_excludes_oxidized_species_after_normalization():
+    lattice = Lattice.cubic(10.0)
+    template_structure = Structure(
+        lattice,
+        ["Na", "O", "Si"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+        coords_are_cartesian=True,
+    )
+    template_structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "Si": 4})
+
+    local_lattice = LocalLatticeStructure(
+        template_structure=template_structure,
+        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.0,
+        exclude_species=["O2-"],
+    )
+
+    assert [site.species_string for site in local_lattice.template_structure] == [
+        "Na",
+        "Si",
+    ]
+    assert local_lattice.site_indices == [0, 1]
+    assert len(local_lattice.allowed_species) == 2
 
 
 def test_sort_neighbor_info_preserves_metadata():

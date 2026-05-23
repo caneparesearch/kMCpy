@@ -9,6 +9,9 @@ import pytest
     "kmcpy.simulator.kmc",
     "kmcpy.event",
     "kmcpy.io",
+    "kmcpy.api",
+    "kmcpy.cli.main",
+    "kmcpy.cli.init",
     "kmcpy.simulator.tracker",
 ])
 def test_module_imports(module_path):
@@ -27,38 +30,51 @@ def test_top_level_imports(module_path):
     except ImportError as e:
         pytest.fail(f"Failed to import top-level {module_path}: {e}")
 
-def test_simulation_condition_classes():
-    """Test that SimulationCondition classes can be imported and instantiated."""
-    from kmcpy.simulator.condition import (
-        SimulationCondition, 
-        SimulationConfig,
+
+def test_public_run_api():
+    import kmcpy
+
+    assert hasattr(kmcpy, "run")
+    assert callable(kmcpy.run)
+    assert hasattr(kmcpy, "Configuration")
+    assert hasattr(kmcpy, "State")
+
+def test_simulation_config_classes():
+    """Test that configuration classes can be imported and instantiated."""
+    from kmcpy.simulator.config import (
+        Configuration,
+        RuntimeConfig,
+        SystemConfig,
     )
     from tests.test_utils import create_nasicon_config, create_temperature_series
     
-    # Test basic instantiation
-    condition = SimulationCondition(
-        name="Test",
+    runtime_config = RuntimeConfig(
+        name="Runtime_Test",
         temperature=300.0,
-        attempt_frequency=1e13
+        attempt_frequency=1e13,
     )
-    assert condition.name == "Test"
+    system_config = SystemConfig(
+        structure_file="test.cif",
+        event_file="events.json",
+    )
+    assert runtime_config.name == "Runtime_Test"
     
-    kmc_condition = SimulationConfig(
-        structure_file="test.cif",  # Required parameter
+    simulation_config = Configuration(
+        system_config=system_config,
+        runtime_config=runtime_config,
         name="KMC_Test",
         temperature=400.0,
         attempt_frequency=1e13,
         equilibration_passes=1000,
-        kmc_passes=5000
+        kmc_passes=5000,
     )
-    assert kmc_condition.equilibration_passes == 1000
-    
+    assert simulation_config.equilibration_passes == 1000
     # Test convenience functions exist
     assert callable(create_nasicon_config)
     assert callable(create_temperature_series)
 
-def test_kmc_simulation_condition_integration():
-    """Test that KMC class has SimulationConfig integration methods."""
+def test_kmc_simulation_config_integration():
+    """Test that KMC class has Configuration integration methods."""
     from kmcpy.simulator.kmc import KMC
     
     # Test that new methods exist (updated method names)
@@ -71,3 +87,10 @@ def test_kmc_simulation_condition_integration():
     
     # Verify that InputSet methods have been removed (no longer supported)
     assert not hasattr(KMC, 'from_inputset'), "KMC should not have from_inputset method (InputSet deprecated)"
+
+
+def test_public_aliases():
+    import kmcpy
+
+    assert hasattr(kmcpy, "Configuration")
+    assert hasattr(kmcpy, "State")

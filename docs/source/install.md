@@ -31,11 +31,6 @@ pip install -e ".[dev]"
 ```
 This allows you to modify the source code and see changes immediately without reinstalling.
 
-kMCpy also has a basic graphical user interface (GUI). It is based on`wxpython`. You might need to install [GTK](https://www.gtk.org/) for `wxpython`. You can install other additional dependencies for the GUI by running:
-```shell
-pip install -e ".[gui]"
-```
-
 ## Method 3: Install from source using [UV](https://docs.astral.sh/uv/getting-started/installation/)
 It is highly recommended to install kMCpy from source using [UV](https://docs.astral.sh/uv/getting-started/installation/) and use it with virtual environment.
 ```shell
@@ -45,10 +40,6 @@ For development, you can install it in editable mode using:
 ```shell
 uv sync --extra dev
 uv pip install -e . # this makes the installation using the editable mode
-```
-For GUI, you can install the additional dependencies by running:
-```shell
-uv sync --extra gui
 ```
 
 > **⚠️ Warning for Windows users:**  

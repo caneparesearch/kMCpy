@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from kmcpy.event import EventGenerator
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 
 
@@ -31,7 +31,7 @@ def parse_supercell_shape(value: str) -> tuple[int, int, int]:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run a tutorial kMC simulation using files in example/files"
+        description="Run a tutorial kMC simulation using files in tests/files"
     )
     parser.add_argument(
         "--output-dir",
@@ -92,18 +92,13 @@ def resolve_output_dir(repo_root: Path, output_dir_arg: str) -> Path:
 def generate_events_if_needed(
     structure_file: Path,
     event_file: Path,
-    event_dependencies_file: Path,
     supercell_shape: tuple[int, int, int],
     regenerate_events: bool,
 ) -> None:
-    if (
-        not regenerate_events
-        and event_file.exists()
-        and event_dependencies_file.exists()
-    ):
-        print("Reusing existing event files:")
+    """Generate event library with embedded dependencies (single file)."""
+    if not regenerate_events and event_file.exists():
+        print("Reusing existing event file:")
         print(f"  {event_file}")
-        print(f"  {event_dependencies_file}")
         return
 
     print("Generating event library from example structure...")
@@ -121,38 +116,33 @@ def generate_events_if_needed(
         export_local_env_structure=False,
         supercell_shape=list(supercell_shape),
         event_file=str(event_file),
-        event_dependencies_file=str(event_dependencies_file),
+        # Dependencies are embedded in events.json - no separate file needed
     )
 
 
 def run_tutorial(args: argparse.Namespace) -> None:
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parent
-    files_dir = script_dir / "files"
+    files_dir = repo_root / "tests" / "files"
 
     output_dir = resolve_output_dir(repo_root=repo_root, output_dir_arg=args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    structure_file = files_dir / "nasicon.cif"
+    structure_file = files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
     event_file = output_dir / "events.json"
-    event_dependencies_file = output_dir / "event_dependencies.csv"
 
     generate_events_if_needed(
         structure_file=structure_file,
         event_file=event_file,
-        event_dependencies_file=event_dependencies_file,
         supercell_shape=args.supercell_shape,
         regenerate_events=args.regenerate_events,
     )
 
-    config = SimulationConfig.create(
+    config = Configuration.create(
         structure_file=str(structure_file),
-        cluster_expansion_file=str(files_dir / "input/lce.json"),
-        fitting_results_file=str(files_dir / "input/fitting_results.json"),
-        cluster_expansion_site_file=str(files_dir / "input/lce_site.json"),
-        fitting_results_site_file=str(files_dir / "input/fitting_results_site.json"),
+        model_file=str(files_dir / "input/model.json"),
         event_file=str(event_file),
-        event_dependencies=str(event_dependencies_file),
+        # No event_dependencies needed - embedded in events.json
         initial_state_file=str(files_dir / "input/initial_state.json"),
         mobile_ion_specie="Na",
         temperature=args.temperature,
@@ -172,6 +162,14 @@ def run_tutorial(args: argparse.Namespace) -> None:
     print("Initializing KMC from generated tutorial configuration...")
     kmc = KMC.from_config(config)
 
+    # Example custom property callback: sample occupied-site fraction every 50 events.
+    def calc_occupation(state, step, sim_time):
+        _ = step, sim_time
+        occupied = sum(1 for occ in state.occupations if occ < 0)
+        return occupied / len(state.occupations)
+
+    kmc.attach(calc_occupation, interval=50, name="calc_occupation")
+
     original_cwd = Path.cwd()
     try:
         os.chdir(output_dir)
@@ -181,12 +179,15 @@ def run_tutorial(args: argparse.Namespace) -> None:
         os.chdir(original_cwd)
 
     print("Tutorial run complete.")
-    print("Final metrics (time, msd, D_J, D_tracer, conductivity, H_R, f):")
+    print(
+        "Final metrics (time, msd, jump_diffusivity, tracer_diffusivity, conductivity, havens_ratio, correlation_factor):"
+    )
     print(f"  {tracker.return_current_info()}")
     print("Generated outputs in:")
     print(f"  {output_dir}")
     print("Look for files named like:")
     print("  results_NASICON_Tutorial.csv.gz")
+    print("  custom_results_NASICON_Tutorial.json.gz")
     print("  displacement_NASICON_Tutorial_<pass>.csv.gz")
     print("  hop_counter_NASICON_Tutorial_<pass>.csv.gz")
     print("  current_occ_NASICON_Tutorial_<pass>.csv.gz")

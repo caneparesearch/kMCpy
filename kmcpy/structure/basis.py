@@ -138,49 +138,43 @@ class OccupationBasis(BasisFunction):
         return value == self.vacant_value
 
     def to_chebyshev(self, value: int) -> int:
-        """Convert occupation value to Chebyshev basis."""
-        return -1 if value == self.vacant_value else 1
+        """Convert occupation value to the binary site-state Chebyshev basis."""
+        return 1 if value == self.vacant_value else -1
 
     def from_chebyshev(self, value: int) -> int:
-        """Convert Chebyshev value to occupation basis."""
-        return self.vacant_value if value == -1 else self.occupied_value
+        """Convert the binary site-state Chebyshev value to occupation basis."""
+        return self.occupied_value if value == -1 else self.vacant_value
 
 
 @register_basis('chebyshev')
 class ChebyshevBasis(BasisFunction):
     """
-    Chebyshev basis function that maps between [-1, +1] representation.
-    Often used in cluster expansion for better numerical properties.
+    Binary site-state Chebyshev basis used for cluster expansion.
 
     In Chebyshev basis:
-    - -1 = vacant (no atom present)
-    - +1 = occupied (atom present)
-
-    This is the standard convention in cluster expansion where:
-    - The reference state (vacant) is mapped to -1
-    - The occupied state (diffusing atom) is mapped to +1
+    - -1 = site matches the first species in the site mapping
+    - +1 = site is missing or matches another allowed species
     """
 
     @property
     def match_value(self) -> int:
-        """Value when site matches template (has atom = occupied)."""
-        return 1
+        """Value when site matches the first mapped species."""
+        return -1
 
     @property
     def mismatch_value(self) -> int:
-        """Value when site doesn't match template (no atom = vacant)."""
-        return -1
-
-    # Physical interpretation properties
-    @property
-    def occupied_value(self) -> int:
-        """Value representing occupied site (atom present)."""
+        """Value when site is missing or matches another allowed species."""
         return 1
 
     @property
+    def occupied_value(self) -> int:
+        """Alias for the first mapped species state."""
+        return self.match_value
+
+    @property
     def vacant_value(self) -> int:
-        """Value representing vacant site (no atom)."""
-        return -1
+        """Alias for the missing/second-species state."""
+        return self.mismatch_value
 
     @property
     def valid_values(self) -> set:
@@ -199,18 +193,18 @@ class ChebyshevBasis(BasisFunction):
         return self.flip(value)
 
     def is_occupied(self, value: int) -> bool:
-        """Check if value represents occupied state."""
+        """Check if value represents the first mapped species state."""
         return value == self.occupied_value
 
     def is_vacant(self, value: int) -> bool:
-        """Check if value represents vacant state."""
+        """Check if value represents the missing/second-species state."""
         return value == self.vacant_value
 
     def to_occupation(self, value: int) -> int:
         """
         Convert Chebyshev value to occupation basis.
 
-        Chebyshev: -1 (vacant), +1 (occupied)
+        Chebyshev: -1 (first species), +1 (missing/second species)
         Occupation: 0 (vacant), 1 (occupied)
         """
         return 1 if value == self.occupied_value else 0
@@ -220,7 +214,7 @@ class ChebyshevBasis(BasisFunction):
         Convert occupation value to Chebyshev basis.
 
         Occupation: 0 (vacant), 1 (occupied)
-        Chebyshev: -1 (vacant), +1 (occupied)
+        Chebyshev: -1 (first species), +1 (missing/second species)
         """
         return self.occupied_value if value == 1 else self.vacant_value
 

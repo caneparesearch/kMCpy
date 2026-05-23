@@ -5,17 +5,66 @@ Architecture:
 
 - SystemConfig: Physical system definition (immutable)
 - RuntimeConfig: Simulation runtime parameters (immutable) 
-- SimulationConfig: Complete simulation setup (immutable)
-- SimulationState: Mutable state during execution
+- Configuration: Complete simulation setup (immutable)
+- State: Mutable state during execution
 
 This module provides the parameter routing and configuration management for
 kinetic Monte Carlo simulations. It handles both system parameters (what you're
 simulating) and runtime parameters (how you run the simulation).
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
+
+SYSTEM_PARAM_NAMES = {
+    "structure_file",
+    "supercell_shape",
+    "dimension",
+    "mobile_ion_specie",
+    "mobile_ion_charge",
+    "elementary_hop_distance",
+    "model_type",
+    "model_file",
+    "event_file",
+    "immutable_sites",
+    "convert_to_primitive_cell",
+    "initial_state_file",
+    "initial_occupations",
+}
+
+RUNTIME_PARAM_NAMES = {
+    "temperature",
+    "attempt_frequency",
+    "equilibration_passes",
+    "kmc_passes",
+    "random_seed",
+    "name",
+    "property_sampling_interval",
+    "property_sampling_time_interval",
+    "builtin_property_enabled",
+    "property_callbacks",
+}
+
+CONFIG_PARAM_NAMES = SYSTEM_PARAM_NAMES | RUNTIME_PARAM_NAMES
+
+
+def _validate_builtin_property_enabled(values: dict[str, bool]) -> None:
+    """Validate built-in property enable/disable map."""
+    if not isinstance(values, dict):
+        raise TypeError("builtin_property_enabled must be a dictionary")
+    for key, enabled in values.items():
+        if key not in BUILTIN_PROPERTY_FIELDS:
+            raise ValueError(
+                f"Unknown built-in property '{key}'. "
+                f"Supported: {list(BUILTIN_PROPERTY_FIELDS)}"
+            )
+        if not isinstance(enabled, bool):
+            raise TypeError(
+                f"builtin_property_enabled['{key}'] must be a boolean"
+            )
 
 
 @dataclass(frozen=True)
@@ -35,14 +84,9 @@ class SystemConfig:
     elementary_hop_distance: float = 1.0
     
     # Model configuration
-    model_type: str = "composite_lce"  # Default to composite_lce for backward compatibility
-    cluster_expansion_file: str = ""
-    cluster_expansion_site_file: Optional[str] = None
-    fitting_results_file: str = ""
-    fitting_results_site_file: Optional[str] = None
+    model_type: str = "composite_lce"
+    model_file: str = ""
     event_file: str = ""
-    event_dependencies: Optional[str] = None
-    
     # System constraints
     immutable_sites: tuple = field(default_factory=tuple)
     convert_to_primitive_cell: bool = False
@@ -93,6 +137,12 @@ class RuntimeConfig:
     
     # Simulation identification
     name: str = "DefaultSimulation"
+
+    # Optional property sampling controls
+    property_sampling_interval: Optional[int] = None
+    property_sampling_time_interval: Optional[float] = None
+    builtin_property_enabled: dict[str, bool] = field(default_factory=dict)
+    property_callbacks: list[dict[str, Any]] = field(default_factory=list)
     
     def __post_init__(self):
         """Validate runtime parameters."""
@@ -107,20 +157,72 @@ class RuntimeConfig:
         
         if self.kmc_passes <= 0:
             raise ValueError("KMC passes must be positive")
+
+        validate_schedule(
+            interval=self.property_sampling_interval,
+            time_interval=self.property_sampling_time_interval,
+        )
+
+        _validate_builtin_property_enabled(self.builtin_property_enabled)
+
+        if not isinstance(self.property_callbacks, list):
+            raise TypeError("property_callbacks must be a list")
+        for callback_spec in self.property_callbacks:
+            if not isinstance(callback_spec, dict):
+                raise TypeError("Each property callback spec must be a dictionary")
+            allowed_keys = {
+                "callable",
+                "name",
+                "interval",
+                "time_interval",
+                "store",
+                "max_records",
+                "enabled",
+            }
+            unknown_keys = set(callback_spec.keys()) - allowed_keys
+            if unknown_keys:
+                raise ValueError(
+                    f"Unknown keys in property callback spec: {sorted(unknown_keys)}"
+                )
+            callable_ref = callback_spec.get("callable")
+            if not isinstance(callable_ref, str) or not callable_ref.strip():
+                raise ValueError(
+                    "Each property callback spec must include a non-empty 'callable' field"
+                )
+            validate_schedule(
+                interval=callback_spec.get("interval"),
+                time_interval=callback_spec.get("time_interval"),
+            )
+            max_records = callback_spec.get("max_records")
+            if max_records is not None:
+                if not isinstance(max_records, int):
+                    raise TypeError("property callback max_records must be an integer")
+                if max_records <= 0:
+                    raise ValueError("property callback max_records must be positive")
+            for bool_key in ("store", "enabled"):
+                if bool_key in callback_spec and not isinstance(callback_spec[bool_key], bool):
+                    raise TypeError(
+                        f"property callback '{bool_key}' must be a boolean when provided"
+                    )
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary with legacy key names."""
+        """Convert to dictionary."""
         return {
-            'temperature': self.temperature,
-            'equ_pass': self.equilibration_passes,
-            'kmc_pass': self.kmc_passes,
-            'random_seed': self.random_seed,
-            'name': self.name
+            "temperature": self.temperature,
+            "attempt_frequency": self.attempt_frequency,
+            "equilibration_passes": self.equilibration_passes,
+            "kmc_passes": self.kmc_passes,
+            "random_seed": self.random_seed,
+            "name": self.name,
+            "property_sampling_interval": self.property_sampling_interval,
+            "property_sampling_time_interval": self.property_sampling_time_interval,
+            "builtin_property_enabled": dict(self.builtin_property_enabled),
+            "property_callbacks": [dict(callback) for callback in self.property_callbacks],
         }
 
 
 @dataclass(frozen=True)
-class SimulationConfig:
+class Configuration:
     """Complete simulation configuration combining system and runtime parameters."""
     
     system_config: SystemConfig
@@ -128,42 +230,28 @@ class SimulationConfig:
     
     def __init__(self, system_config=None, runtime_config=None, **kwargs):
         """
-        Create SimulationConfig with automatic parameter routing.
+        Create Configuration with automatic parameter routing.
         
         You can either:
-        1. Pass pre-built configs: SimulationConfig(system_config=sys, runtime_config=run)
-        2. Pass parameters directly: SimulationConfig(temperature=300, structure_file="x.cif", ...)
-        3. Mix both: SimulationConfig(system_config=sys, temperature=400)
+        1. Pass pre-built configs: Configuration(system_config=sys, runtime_config=run)
+        2. Pass parameters directly: Configuration(temperature=300, structure_file="x.cif", ...)
+        3. Mix both: Configuration(system_config=sys, temperature=400)
         
         Parameters are automatically routed to SystemConfig or RuntimeConfig based on their names.
         """
         if system_config is None and runtime_config is None and not kwargs:
             raise ValueError("Must provide either configs or parameters")
-        
+
         # Split kwargs into system and runtime parameters
         system_params = {}
         runtime_params = {}
         unknown_params = {}
         
-        # Parameter routing tables
-        system_param_names = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell',
-            'initial_state_file', 'initial_occupations'  # Added initial state parameters
-        }
-        
-        runtime_param_names = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
-        }
-        
         # Route parameters
         for key, value in kwargs.items():
-            if key in system_param_names:
+            if key in SYSTEM_PARAM_NAMES:
                 system_params[key] = value
-            elif key in runtime_param_names:
+            elif key in RUNTIME_PARAM_NAMES:
                 runtime_params[key] = value
             else:
                 unknown_params[key] = value
@@ -171,7 +259,7 @@ class SimulationConfig:
         # Reject unknown parameters - no legacy support
         if unknown_params:
             raise ValueError(f"Unknown parameters: {list(unknown_params.keys())}. "
-                           f"Use SimulationConfig.help_parameters() to see valid parameters.")
+                           f"Use Configuration.help_parameters() to see valid parameters.")
         
         # Create or update configs
         if system_config is None:
@@ -199,7 +287,7 @@ class SimulationConfig:
         
         Examples::
         
-            config = SimulationConfig.create(
+            config = Configuration.create(
                 structure_file="test.cif",
                 temperature=400.0,
                 kmc_passes=50000
@@ -216,71 +304,87 @@ class SimulationConfig:
         return result
     
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> "SimulationConfig":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "Configuration":
         """Create from dictionary."""
-        # Split parameters between system and runtime configs
-        system_params = {}
-        runtime_params = {}
-        
-        # SystemConfig parameter names
-        system_param_names = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
-        }
-        
-        # RuntimeConfig parameter names
-        runtime_param_names = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
-        }
-        
-        for key, value in config_dict.items():
-            if key in system_param_names:
-                system_params[key] = value
-            elif key in runtime_param_names:
-                runtime_params[key] = value
-        
-        return cls(
-            system_config=SystemConfig(**system_params),
-            runtime_config=RuntimeConfig(**runtime_params)
-        )
+        if not isinstance(config_dict, dict):
+            raise ValueError("Configuration.from_dict expects a dictionary")
+        config_dict = dict(config_dict)
+
+        return cls(**config_dict)
+
+    @classmethod
+    def _extract_file_config_data(
+        cls,
+        raw_data: Dict[str, Any],
+        filepath: str,
+    ) -> Dict[str, Any]:
+        """Normalize flat or generated-template file payloads to config fields."""
+        if not isinstance(raw_data, dict):
+            raise ValueError(f"Configuration file {filepath} must contain a dictionary")
+
+        if CONFIG_PARAM_NAMES.intersection(raw_data.keys()):
+            return raw_data
+
+        if "kmc" not in raw_data:
+            return raw_data
+
+        kmc_section = raw_data["kmc"]
+        if not isinstance(kmc_section, dict):
+            raise ValueError(f"Section 'kmc' in {filepath} must be a dictionary")
+
+        if "type" in kmc_section:
+            task_type = kmc_section["type"]
+            if task_type not in kmc_section:
+                available_types = [key for key in kmc_section.keys() if key != "type"]
+                raise ValueError(
+                    f"Task type '{task_type}' not found in section 'kmc'. "
+                    f"Available: {available_types}"
+                )
+            section_data = kmc_section[task_type]
+        else:
+            section_data = kmc_section
+
+        if not isinstance(section_data, dict):
+            raise ValueError(
+                f"Selected 'kmc' configuration in {filepath} must be a dictionary"
+            )
+        return section_data
     
     # ===== FILE I/O METHODS =====
     
     @classmethod
-    def from_file(cls, filepath: str) -> "SimulationConfig":
+    def from_file(cls, filepath: str) -> "Configuration":
         """
-        Load SimulationConfig from file (auto-detects format from extension).
+        Load Configuration from file (auto-detects format from extension).
         
         Args:
             filepath: Path to configuration file (.json, .yaml, .yml)
             
         Returns:
-            SimulationConfig instance
+            Configuration instance
             
         Example:
-            config = SimulationConfig.from_file("simulation.yaml")
-            config = SimulationConfig.from_file("simulation.json")
+            config = Configuration.from_file("simulation.yaml")
+            config = Configuration.from_file("simulation.json")
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
-        file_format = SimulationConfigIO._detect_file_format(filepath)
+        file_format = ConfigIO._detect_file_format(filepath)
         
         if file_format == 'json':
-            raw_data = SimulationConfigIO._load_json(filepath)
+            raw_data = ConfigIO._load_json(filepath)
         elif file_format == 'yaml':
-            raw_data = SimulationConfigIO._load_yaml(filepath)
+            raw_data = ConfigIO._load_yaml(filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
-                
-        return cls.from_dict(raw_data)
+
+        config_data = cls._extract_file_config_data(raw_data, filepath)
+        return cls.from_dict(config_data)
     
     @classmethod
-    def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "SimulationConfig":
+    def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "Configuration":
         """
-        Load SimulationConfig from specific section of YAML file.
+        Load Configuration from specific section of YAML file.
         
         Useful for multi-section YAML files that contain different configurations.
         
@@ -290,23 +394,23 @@ class SimulationConfig:
             task_type: Optional task type for registry-style sections
             
         Returns:
-            SimulationConfig instance
+            Configuration instance
             
         Example:
             # Load from simple section
-            config = SimulationConfig.from_yaml_section("workflow.yaml", "kmc")
+            config = Configuration.from_yaml_section("workflow.yaml", "kmc")
             # Load from registry-style section
-            config = SimulationConfig.from_yaml_section("workflow.yaml", "kmc", "diffusion")
+            config = Configuration.from_yaml_section("workflow.yaml", "kmc", "diffusion")
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
-        raw_data = SimulationConfigIO._load_yaml_section(filepath, section, task_type)
+        raw_data = ConfigIO._load_yaml_section(filepath, section, task_type)
     
         return cls.from_dict(raw_data)
     
     def save(self, filepath: str, **kwargs) -> None:
         """
-        Save SimulationConfig to file (auto-detects format from extension).
+        Save Configuration to file (auto-detects format from extension).
         
         Args:
             filepath: Output file path (.json, .yaml, .yml)
@@ -316,22 +420,22 @@ class SimulationConfig:
             config.save("output.yaml")
             config.save("output.json", indent=4)
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
         data = self.to_dict()
-        file_format = SimulationConfigIO._detect_file_format(filepath)
+        file_format = ConfigIO._detect_file_format(filepath)
         
         if file_format == 'json':
             indent = kwargs.get('indent', 2)
-            SimulationConfigIO._save_json(data, filepath, indent=indent)
+            ConfigIO._save_json(data, filepath, indent=indent)
         elif file_format == 'yaml':
-            SimulationConfigIO._save_yaml(data, filepath)
+            ConfigIO._save_yaml(data, filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
     
     def save_yaml_section(self, filepath: str, section: str = "kmc", task_type: str = "default") -> None:
         """
-        Save SimulationConfig as a section in YAML file.
+        Save Configuration as a section in YAML file.
         
         Creates a registry-style YAML section with type field.
         
@@ -349,13 +453,13 @@ class SimulationConfig:
             #     temperature: 300.0
             #     ...
         """
-        from kmcpy.io.config_io import SimulationConfigIO
+        from kmcpy.io.config_io import ConfigIO
         import os
         
         # Load existing YAML file or create new structure
         if os.path.exists(filepath):
             try:
-                yaml_data = SimulationConfigIO._load_yaml(filepath)
+                yaml_data = ConfigIO._load_yaml(filepath)
             except:
                 yaml_data = {}
         else:
@@ -363,23 +467,21 @@ class SimulationConfig:
         
         # Create registry-style section
         config_data = self.to_dict()
-        # Remove task field since we'll use section structure
-        config_data.pop('task', None)
         
         yaml_data[section] = {
             'type': task_type,
             task_type: config_data
         }
         
-        SimulationConfigIO._save_yaml(yaml_data, filepath)
+        ConfigIO._save_yaml(yaml_data, filepath)
     
-    def with_runtime_changes(self, **changes) -> "SimulationConfig":
+    def with_runtime_changes(self, **changes) -> "Configuration":
         """Create new config with runtime parameter changes."""
         from dataclasses import replace
         new_runtime = replace(self.runtime_config, **changes)
         return replace(self, runtime_config=new_runtime)
     
-    def with_system_changes(self, **changes) -> "SimulationConfig":
+    def with_system_changes(self, **changes) -> "Configuration":
         """Create new config with system parameter changes."""
         from dataclasses import replace
         new_system = replace(self.system_config, **changes)
@@ -427,6 +529,26 @@ class SimulationConfig:
     def random_seed(self) -> Optional[int]:
         """Access random seed directly."""
         return self.runtime_config.random_seed
+
+    @property
+    def property_sampling_interval(self) -> Optional[int]:
+        """Access global property sampling step interval directly."""
+        return self.runtime_config.property_sampling_interval
+
+    @property
+    def property_sampling_time_interval(self) -> Optional[float]:
+        """Access global property sampling time interval directly."""
+        return self.runtime_config.property_sampling_time_interval
+
+    @property
+    def builtin_property_enabled(self) -> dict[str, bool]:
+        """Access built-in property enable/disable map directly."""
+        return self.runtime_config.builtin_property_enabled
+
+    @property
+    def property_callbacks(self) -> list[dict[str, Any]]:
+        """Access callback attachment specs directly."""
+        return self.runtime_config.property_callbacks
     
     # System properties
     @property
@@ -455,9 +577,9 @@ class SimulationConfig:
         return self.system_config.model_type
     
     @property
-    def cluster_expansion_file(self) -> str:
-        """Access cluster expansion file directly."""
-        return self.system_config.cluster_expansion_file
+    def model_file(self) -> str:
+        """Access model file directly."""
+        return self.system_config.model_file
     
     @property
     def event_file(self) -> str:
@@ -494,73 +616,33 @@ class SimulationConfig:
         """Access initial occupations directly."""
         return self.system_config.initial_occupations
     
-    @property
-    def fitting_results_file(self) -> str:
-        """Access fitting results file directly."""
-        return self.system_config.fitting_results_file
-    
-    @property
-    def fitting_results_site_file(self) -> Optional[str]:
-        """Access fitting results site file directly."""
-        return self.system_config.fitting_results_site_file
-    
-    @property
-    def cluster_expansion_site_file(self) -> Optional[str]:
-        """Access cluster expansion site file directly."""
-        return self.system_config.cluster_expansion_site_file
-    
-    @property
-    def event_dependencies(self) -> Optional[str]:
-        """Access event dependencies directly."""
-        return self.system_config.event_dependencies
-    
     # ===== HELPER METHODS =====
     
     @classmethod
     def help_parameters(cls):
         """Print available parameters and which config they belong to."""
-        print("SimulationConfig Parameters:\n")
+        print("Configuration Parameters:\n")
         
         print("SYSTEM PARAMETERS (physical setup):")
-        system_params = [
-            "structure_file", "supercell_shape", "dimension", "mobile_ion_specie",
-            "mobile_ion_charge", "elementary_hop_distance", "model_type", "cluster_expansion_file",
-            "cluster_expansion_site_file", "fitting_results_file", "fitting_results_site_file",
-            "event_file", "event_dependencies", "immutable_sites", "convert_to_primitive_cell"
-        ]
+        system_params = sorted(SYSTEM_PARAM_NAMES)
         for param in system_params:
             print(f"  - {param}")
         
         print("\nRUNTIME PARAMETERS (simulation settings):")
-        runtime_params = [
-            "temperature", "attempt_frequency", "equilibration_passes", "kmc_passes",
-            "random_seed", "name"
-        ]
+        runtime_params = sorted(RUNTIME_PARAM_NAMES)
         for param in runtime_params:
             print(f"  - {param}")
         
         print("\nUsage examples:")
-        print("  config = SimulationConfig(structure_file='x.cif', temperature=400)")
-        print("  config = SimulationConfig.create(temperature=300, kmc_passes=10000)")
+        print("  config = Configuration(structure_file='x.cif', temperature=400)")
+        print("  config = Configuration.create(temperature=300, kmc_passes=10000)")
         print("  print(config.temperature)  # Direct access to any parameter")
     
     def which_config(self, parameter_name: str) -> str:
         """Show which sub-config contains a parameter."""
-        system_params = {
-            'structure_file', 'supercell_shape', 'dimension', 'mobile_ion_specie',
-            'mobile_ion_charge', 'elementary_hop_distance', 'model_type', 'cluster_expansion_file',
-            'cluster_expansion_site_file', 'fitting_results_file', 'fitting_results_site_file',
-            'event_file', 'event_dependencies', 'immutable_sites', 'convert_to_primitive_cell'
-        }
-        
-        runtime_params = {
-            'temperature', 'attempt_frequency', 'equilibration_passes', 'kmc_passes',
-            'random_seed', 'name'
-        }
-        
-        if parameter_name in system_params:
+        if parameter_name in SYSTEM_PARAM_NAMES:
             return f"'{parameter_name}' is in system_config (physical setup)"
-        elif parameter_name in runtime_params:
+        elif parameter_name in RUNTIME_PARAM_NAMES:
             return f"'{parameter_name}' is in runtime_config (simulation settings)"
         else:
             return f"'{parameter_name}' is not a recognized parameter"
@@ -574,14 +656,14 @@ class SimulationConfig:
         except Exception as e:
             raise ValueError(f"Configuration validation failed: {e}")
     
-    def copy_with_changes(self, **changes) -> "SimulationConfig":
+    def copy_with_changes(self, **changes) -> "Configuration":
         """Create a copy of this config with some parameters changed.
         
         Args:
             **changes: Parameter changes to apply
             
         Returns:
-            SimulationConfig: New config with changes applied
+            Configuration: New config with changes applied
         """
         # Get current config as dict
         current_dict = self.to_dict()
@@ -590,7 +672,4 @@ class SimulationConfig:
         current_dict.update(changes)
         
         # Create new config
-        return SimulationConfig.from_dict(current_dict)
-
-
-# ===== I/O HELPER CLASS =====
+        return Configuration.from_dict(current_dict)

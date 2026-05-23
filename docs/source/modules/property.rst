@@ -1,7 +1,6 @@
-model
+property
 =========================
 
-.. automodule:: kmcpy.models.model
+.. automodule:: kmcpy.simulator.property
     :members:
     :inherited-members:
-                  

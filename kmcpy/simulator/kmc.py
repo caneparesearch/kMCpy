@@ -9,17 +9,24 @@ from numba import njit
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
-from kmcpy.simulator.tracker import Tracker
+import importlib
+import warnings
+from kmcpy.simulator.tracker import (
+    BUILTIN_PROPERTY_FIELDS,
+    CallbackExecutionError,
+    Tracker,
+)
+from kmcpy.simulator.property import validate_max_records, validate_schedule
 from kmcpy.event import Event, EventLib
 from kmcpy.io import convert
 import logging
 import kmcpy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
-    from kmcpy.simulator.state import SimulationState
-    from kmcpy.models.composite_lce_model import CompositeLCEModel
+    from kmcpy.simulator.config import Configuration
+    from kmcpy.simulator.state import State
+    from kmcpy.models.base import BaseModel
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
@@ -34,27 +41,29 @@ class KMC:
     """
     def __init__(self, 
                 structure: StructureKMCpy,
-                model: 'CompositeLCEModel',
+                model: 'BaseModel',
                 event_lib: EventLib,
-                config: "SimulationConfig",
-                simulation_state: "SimulationState" = None,
+                config: "Configuration",
+                simulation_state: "State" = None,
                 **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
         Args:
             structure (StructureKMCpy): The structure object (already processed).
-            model (CompositeLCEModel): The model with all parameters loaded.
+            model (BaseModel): The loaded model implementing compute_probability(...).
             event_lib (EventLib): The event library with all events loaded.
-            config (SimulationConfig): Configuration object containing all simulation parameters.
-            simulation_state (SimulationState, optional): SimulationState object for state management.
+            config (Configuration): Configuration object containing all simulation parameters.
+            simulation_state (State, optional): State object for state management.
             **kwargs: Additional keyword arguments.
 
         Note:
-            SimulationState is the preferred way to manage mutable simulation state.
+            State is the preferred way to manage mutable simulation state.
             The config object contains all immutable configuration parameters.
         """
         logger.info(kmcpy.get_logo())
         logger.info(f"Initializing kMC calculations ...")
+
+        self._ensure_property_state()
         
         # Store configuration
         self.config = config
@@ -65,33 +74,25 @@ class KMC:
         # Store the already loaded structure
         self.structure = structure
         
-        # Store the composite model (already loaded and configured)
+        # Store the pre-configured model
         self.model = model
         
         # Store the event library (already loaded)
         self.event_lib = event_lib
         
-        # Initialize occupation state from simulation_state
-        # Initialize simulation state and condition objects
+        # Initialize occupation state from simulation_state.
         if simulation_state is not None:
-            # Use SimulationState as single source of truth
-            logger.info("Using SimulationState for occupation management")
-            logger.debug(f"SimulationState occupations length: {len(simulation_state.occupations)}")
+            # Use State as single source of truth
+            logger.info("Using State for occupation management")
+            logger.debug(f"State occupations length: {len(simulation_state.occupations)}")
             self.occ_global = simulation_state.occupations
         else:
-            raise ValueError("SimulationState must be provided for clean architecture")
+            raise ValueError("State must be provided for clean architecture")
 
-        # Initialize simulation condition and calculate initial probabilities
-        logger.info("Initializing simulation condition and probabilities...")
+        # Calculate initial probabilities from runtime configuration and state.
+        logger.info("Initializing probabilities...")
         
-        # Create simulation condition object using config
-        from kmcpy.simulator.condition import SimulationCondition
-        self.sim_condition = SimulationCondition(
-            temperature=self.config.temperature, 
-            attempt_frequency=self.config.attempt_frequency
-        )
-        
-        # Calculate probabilities for all events using composite model
+        # Calculate probabilities for all events using configured model
         self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
         for i, event in enumerate(self.event_lib.events):
             # Update the occupation in simulation_state for each event calculation
@@ -99,7 +100,7 @@ class KMC:
 
             self.prob_list[i] = self.model.compute_probability(
                 event=event,
-                simulation_condition=self.sim_condition,
+                runtime_config=self.config.runtime_config,
                 simulation_state=self.simulation_state
             )
         
@@ -114,25 +115,90 @@ class KMC:
         stats = self.event_lib.get_dependency_statistics()
         logger.info(f"Dependency matrix statistics: {stats}")
 
+        # Apply property controls provided by RuntimeConfig/YAML.
+        self._configure_properties_from_runtime_config(self.config.runtime_config)
+
         logger.info("kMC initialization complete!")
+
+    def _ensure_property_state(self) -> None:
+        """Initialize KMC property attachment state if missing."""
+        if not hasattr(self, "_attached_properties"):
+            self._attached_properties: dict[str, dict[str, Any]] = {}
+        if not hasattr(self, "_property_frequency_interval"):
+            self._property_frequency_interval: Optional[int] = None
+        if not hasattr(self, "_property_frequency_time_interval"):
+            self._property_frequency_time_interval: Optional[float] = None
+        if not hasattr(self, "_property_enabled"):
+            self._property_enabled = {
+                name: True for name in BUILTIN_PROPERTY_FIELDS
+            }
+        if not hasattr(self, "_active_tracker"):
+            self._active_tracker: Optional[Tracker] = None
+
+    @staticmethod
+    def _resolve_callback_reference(callable_ref: str) -> Callable[["State", int, float], Any]:
+        """Resolve callback path strings like `module.path:func` or `module.path.func`."""
+        if ":" in callable_ref:
+            module_path, attr_path = callable_ref.split(":", 1)
+        else:
+            module_path, _, attr_path = callable_ref.rpartition(".")
+            if not module_path:
+                raise ValueError(
+                    f"Invalid callback reference '{callable_ref}'. "
+                    "Use 'package.module:function' or 'package.module.function'."
+                )
+
+        module = importlib.import_module(module_path)
+        callback_obj: Any = module
+        for attr in attr_path.split("."):
+            callback_obj = getattr(callback_obj, attr)
+
+        if not callable(callback_obj):
+            raise TypeError(f"Resolved callback '{callable_ref}' is not callable")
+        return callback_obj
+
+    def _configure_properties_from_runtime_config(self, runtime_config: Any) -> None:
+        """Apply runtime property controls from configuration."""
+        self._ensure_property_state()
+
+        interval = getattr(runtime_config, "property_sampling_interval", None)
+        time_interval = getattr(runtime_config, "property_sampling_time_interval", None)
+        if interval is not None or time_interval is not None:
+            self.set_property_frequency(interval=interval, time_interval=time_interval)
+
+        for property_name, enabled in getattr(runtime_config, "builtin_property_enabled", {}).items():
+            self.set_property_enabled(property_name, bool(enabled))
+
+        for callback_spec in getattr(runtime_config, "property_callbacks", []):
+            callback_ref = callback_spec["callable"]
+            callback_func = self._resolve_callback_reference(callback_ref)
+            self.attach(
+                callback_func,
+                interval=callback_spec.get("interval"),
+                time_interval=callback_spec.get("time_interval"),
+                name=callback_spec.get("name"),
+                store=callback_spec.get("store", True),
+                max_records=callback_spec.get("max_records"),
+                enabled=callback_spec.get("enabled", True),
+            )
         
     @classmethod
-    def from_config(cls, config: "SimulationConfig") -> "KMC":
-        """Create KMC instance from SimulationConfig (recommended initialization method).
+    def from_config(cls, config: "Configuration") -> "KMC":
+        """Create KMC instance from Configuration (recommended initialization method).
 
-        This is the main initialization method that leverages SimulationConfigIO
+        This is the main initialization method that leverages ConfigIO
         for all component loading operations and provides a clean interface.
 
         Args:
-            config (SimulationConfig): Configuration object containing all necessary parameters.
+            config (Configuration): Configuration object containing all necessary parameters.
 
         Returns:
             KMC: An instance of the KMC class.
         """
-        # Use centralized component loading from SimulationConfigIO
-        from kmcpy.io.config_io import SimulationConfigIO
+        # Use centralized component loading from ConfigIO
+        from kmcpy.io.config_io import ConfigIO
         
-        structure, model, event_lib, simulation_state = SimulationConfigIO.load_simulation_components(config)
+        structure, model, event_lib, simulation_state = ConfigIO.load_simulation_components(config)
         
         return cls(
             structure=structure,
@@ -143,6 +209,7 @@ class KMC:
         )
 
     def show_project_info(self):
+        """Log current probability vectors for quick diagnostics."""
         try:
             logger.info("Probabilities:")
             logger.info(self.prob_list)
@@ -150,6 +217,196 @@ class KMC:
             logger.info(self.prob_cum_list / sum(self.prob_list))
         except Exception:
             pass
+
+    def set_property_frequency(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+    ) -> None:
+        """
+        Set global sampling frequency for built-in and attached properties.
+
+        Args:
+            interval: Global event-step interval.
+            time_interval: Global simulation-time interval.
+        """
+        self._ensure_property_state()
+        validate_schedule(interval=interval, time_interval=time_interval)
+        self._property_frequency_interval = interval
+        self._property_frequency_time_interval = time_interval
+
+        if self._active_tracker is not None:
+            self._active_tracker.set_global_property_frequency(
+                interval=interval,
+                time_interval=time_interval,
+            )
+
+    def attach(
+        self,
+        func: Callable[["State", int, float], Any],
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        name: Optional[str] = None,
+        store: bool = True,
+        max_records: Optional[int] = None,
+        on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
+        enabled: bool = True,
+    ) -> str:
+        """
+        Attach a custom property callback to the KMC run.
+
+        Args:
+            func: Callback with signature `(state, step, time)`.
+            interval: Event-step interval override for this callback.
+            time_interval: Simulation-time interval override for this callback.
+            name: Optional callback name; defaults to function `__name__`.
+            store: Whether callback return values should be stored.
+            max_records: Optional cap on stored record count for this callback.
+            on_error: Optional error handler. Return True to continue.
+
+        Returns:
+            str: The callback name used for registration.
+        """
+        self._ensure_property_state()
+        if not callable(func):
+            raise TypeError("func must be callable")
+        validate_schedule(interval=interval, time_interval=time_interval)
+        validate_max_records(max_records=max_records)
+
+        callback_name = name or getattr(func, "__name__", "attached_property")
+        if callback_name in BUILTIN_PROPERTY_FIELDS:
+            raise ValueError(
+                f"'{callback_name}' is reserved for built-in properties"
+            )
+        if callback_name in self._attached_properties:
+            raise ValueError(f"Callback '{callback_name}' is already attached")
+
+        attachment = {
+            "func": func,
+            "interval": interval,
+            "time_interval": time_interval,
+            "name": callback_name,
+            "store": store,
+            "max_records": max_records,
+            "on_error": on_error,
+            "enabled": enabled,
+        }
+        self._attached_properties[callback_name] = attachment
+        self._property_enabled[callback_name] = bool(enabled)
+
+        if self._active_tracker is not None:
+            self._active_tracker.attach(**attachment)
+
+        return callback_name
+
+    def detach(self, name: str) -> None:
+        """Detach a previously attached custom property callback."""
+        self._ensure_property_state()
+        if name not in self._attached_properties:
+            raise ValueError(f"Callback '{name}' is not attached")
+        del self._attached_properties[name]
+        self._property_enabled.pop(name, None)
+
+        if self._active_tracker is not None:
+            self._active_tracker.detach(name)
+
+    def detach_property(self, name: str) -> None:
+        """Detach a custom property callback by name."""
+        self.detach(name)
+
+    def disable_property(self, name: str) -> None:
+        """
+        Compatibility alias for old API.
+
+        - Built-ins: disable by setting enabled=False.
+        - Custom callbacks: detach from run.
+        """
+        warnings.warn(
+            "disable_property(...) is deprecated. "
+            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name in BUILTIN_PROPERTY_FIELDS:
+            self.set_property_enabled(name, False)
+            return
+        self.detach(name)
+
+    def clear_attachments(self) -> None:
+        """Remove all attached custom property callbacks."""
+        self._ensure_property_state()
+        self._attached_properties.clear()
+        self._property_enabled = {
+            key: value
+            for key, value in self._property_enabled.items()
+            if key in BUILTIN_PROPERTY_FIELDS
+        }
+        if self._active_tracker is not None:
+            self._active_tracker.clear_attachments()
+
+    def list_attachments(self) -> list[str]:
+        """Return names of currently attached custom property callbacks."""
+        self._ensure_property_state()
+        return list(self._attached_properties.keys())
+
+    def list_property_calculations(self) -> dict[str, list[str]]:
+        """Return enabled/disabled built-ins and currently attached callbacks."""
+        self._ensure_property_state()
+        built_in_enabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if self._property_enabled.get(name, True)
+        ]
+        built_in_disabled = [
+            name for name in BUILTIN_PROPERTY_FIELDS if not self._property_enabled.get(name, True)
+        ]
+        attached_enabled = [
+            name for name in self._attached_properties if self._property_enabled.get(name, True)
+        ]
+        attached_disabled = [
+            name for name in self._attached_properties if not self._property_enabled.get(name, True)
+        ]
+        return {
+            "built_in_enabled": built_in_enabled,
+            "built_in_disabled": built_in_disabled,
+            "attached_enabled": attached_enabled,
+            "attached_disabled": attached_disabled,
+        }
+
+    def set_property_enabled(self, name: str, enabled: bool) -> None:
+        """Enable or disable a built-in summary field or attached callback."""
+        self._ensure_property_state()
+
+        if name not in self._property_enabled and name not in self._attached_properties:
+            raise ValueError(f"Unknown property '{name}'")
+
+        self._property_enabled[name] = bool(enabled)
+        if name in self._attached_properties:
+            self._attached_properties[name]["enabled"] = bool(enabled)
+
+        if self._active_tracker is not None:
+            self._active_tracker.set_property_enabled(name, bool(enabled))
+
+    def _configure_tracker_properties(self, tracker: Tracker, pass_length: int) -> None:
+        """Apply KMC-side property settings and attachments to a tracker instance."""
+        self._ensure_property_state()
+
+        global_interval = self._property_frequency_interval
+        global_time_interval = self._property_frequency_time_interval
+
+        # Preserve previous behavior: built-ins sampled once per pass by default.
+        if global_interval is None and global_time_interval is None:
+            global_interval = max(pass_length, 1)
+
+        tracker.set_global_property_frequency(
+            interval=global_interval,
+            time_interval=global_time_interval,
+        )
+
+        for property_name, enabled in self._property_enabled.items():
+            if property_name in BUILTIN_PROPERTY_FIELDS:
+                tracker.set_property_enabled(property_name, enabled)
+
+        for attachment in self._attached_properties.values():
+            tracker.attach(**attachment)
 
     def propose(
         self,
@@ -172,11 +429,11 @@ class KMC:
         """
         Updates the system state and event probabilities after an event occurs.
         
-        This method delegates state management to SimulationState, following clean
+        This method delegates state management to State, following clean
         architecture principles with single responsibility and separation of concerns.
         
         This method performs the following steps:
-        1. Delegates occupation updates to SimulationState.apply_event()
+        1. Delegates occupation updates to State.apply_event()
         2. Automatically finds the event index in the event library
         3. Identifies all events that need probability updates using EventLib
         4. Recalculates probabilities for affected events
@@ -187,9 +444,9 @@ class KMC:
             dt (float, optional): Time increment for this event. Used for state tracking.
             
         Side Effects:
-            Modifies occupation state and probability lists via SimulationState delegation.
+            Modifies occupation state and probability lists via State delegation.
         """
-        # Delegate state update to SimulationState - clean architecture with single state object
+        # Delegate state update to State - clean architecture with single state object
         self.simulation_state.apply_event(event, dt)
         
         # Synchronize occupation reference for probability calculations
@@ -201,27 +458,27 @@ class KMC:
         # Use EventLib to get dependent events
         events_to_be_updated = self.event_lib.get_dependent_events(event_index)
         
-        # Update probabilities for dependent events using composite model
+        # Update probabilities for dependent events using configured model
         for e_index in events_to_be_updated:
             # Use single simulation_state for probability calculations
             self.simulation_state.occupations = self.occ_global
             
-            # Recalculate probability using composite model
+            # Recalculate probability using configured model
             self.prob_list[e_index] = self.model.compute_probability(
                 event=self.event_lib.events[e_index],
-                simulation_condition=self.sim_condition,
+                runtime_config=self.config.runtime_config,
                 simulation_state=self.simulation_state
             )
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run(self, config: "SimulationConfig", label: str = None) -> Tracker:
-        """Run KMC simulation from a SimulationConfig object.
+    def run(self, config: "Configuration", label: str = None) -> Tracker:
+        """Run KMC simulation from a Configuration object.
 
         This is the main method for running KMC simulations using the modern
-        SimulationConfig format.
+        Configuration format.
 
         Args:
-            config (SimulationConfig): Configuration object containing all necessary parameters.
+            config (Configuration): Configuration object containing all necessary parameters.
             label (str, optional): Label for the simulation run. Defaults to None.
                 If None, will use config.name.
 
@@ -230,8 +487,8 @@ class KMC:
             
         Example::
         
-            # Using SimulationConfig
-            config = SimulationConfig.create(name="Test", temperature=400.0, ...)
+            # Using Configuration
+            config = Configuration.create(name="Test", temperature=400.0, ...)
             tracker = kmc.run(config)
             
             # Alternative usage patterns:
@@ -249,7 +506,11 @@ class KMC:
         else:
             self.rng = np.random.default_rng()
 
-        logger.info(f"Simulation condition: v = {config.attempt_frequency} T = {config.temperature}")
+        logger.info(
+            "Runtime config: v = %s T = %s",
+            config.attempt_frequency,
+            config.temperature,
+        )
         
         # Calculate pass length based on mobile ions
         pass_length = len([
@@ -272,13 +533,13 @@ class KMC:
 
         logger.info("Start running kMC ...")
 
-        # Create Tracker using clean SimulationState architecture
+        # Create Tracker using clean State architecture
         tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
-        logger.info("Using clean SimulationState architecture")
+        self._configure_tracker_properties(tracker=tracker, pass_length=pass_length)
+        self._active_tracker = tracker
+        logger.info("Using clean State architecture")
         
-        logger.info(
-            "Pass\tTime\t\tMSD\t\tD_J\t\tD_tracer\tConductivity\tH_R\t\tf"
-        )
+        logger.info("Tracker summaries are reported as dynamic property tables per pass.")
 
         # Main KMC loop
         for current_pass in np.arange(config.kmc_passes):
@@ -290,17 +551,21 @@ class KMC:
                 tracker.update(event, current_occupations, dt)
                 # KMC is the single owner of mutable simulation state updates.
                 self.update(event, dt=dt)
+                tracker.sample_properties(
+                    step=int(self.simulation_state.step),
+                    sim_time=float(self.simulation_state.time),
+                )
             
             tracker.update_current_pass(current_pass)
-            tracker.compute_properties()
             tracker.show_current_info()
 
-        # Use SimulationState occupations for final output
+        # Use State occupations for final output
         final_occupations = self.simulation_state.occupations
         tracker.write_results(final_occupations, label=label)
         return tracker
 
     def as_dict(self)-> dict:
+        """Serialize KMC object state to dictionary form."""
         d = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
@@ -313,6 +578,7 @@ class KMC:
         return d
 
     def to_json(self, fname)-> None:
+        """Write serialized KMC state to a JSON file."""
         logger.info(f"Saving: {fname}")
         with open(fname, "w") as fhandle:
             d = self.as_dict()
@@ -323,6 +589,7 @@ class KMC:
 
     @classmethod
     def from_json(cls, fname)-> "KMC":
+        """Load a serialized KMC object state from JSON."""
         logger.info(f"Loading: {fname}")
         with open(fname, "rb") as fhandle:
             objDict = json.load(fhandle)
@@ -333,6 +600,7 @@ class KMC:
 
 @njit
 def _propose(prob_cum_list, rng)-> tuple[int, float]:
+    """Sample one event index and waiting time from cumulative rates."""
     random_seed = rng.random()
     random_seed_2 = rng.random()
     proposed_event_index = np.searchsorted(

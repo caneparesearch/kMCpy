@@ -3,7 +3,7 @@
 This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
 from itertools import combinations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Sequence
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
@@ -13,12 +13,13 @@ from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.fitting.registry import register_fitter
 from copy import deepcopy
 from kmcpy.event import Event
-from kmcpy.simulator.state import SimulationState
+from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
+from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
 import numba as nb
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import SimulationConfig
+    from kmcpy.simulator.config import Configuration
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -61,6 +62,12 @@ class LocalClusterExpansion(BaseModel):
         self.local_lattice_structure = local_lattice_structure
         self.center_site = local_lattice_structure.center_site
         self.local_env_structure = local_lattice_structure.structure
+        self.basis = local_lattice_structure.basis
+        self.ordering_convention = local_lattice_structure.ordering_convention
+        self.local_environment_signature = (
+            local_lattice_structure.get_ordered_site_signature()
+        )
+        self.local_environment_hash = local_lattice_structure.get_ordered_site_hash()
 
         # List all possible point, pair and triplet clusters
         atom_index_list = np.arange(0, len(local_lattice_structure.structure))
@@ -80,10 +87,10 @@ class LocalClusterExpansion(BaseModel):
 
         self.orbits = self.build_orbits(self.clusters)
 
-        self.cluster_site_indices = [
+        self.cluster_site_indices = _to_numba_cluster_site_indices([
             [cluster.site_indices for cluster in orbit.clusters]
             for orbit in self.orbits
-        ]  # cluster_site_indices[orbit,cluster,site]
+        ])  # cluster_site_indices[orbit,cluster,site]
         
                 
         logger.info(
@@ -93,9 +100,9 @@ class LocalClusterExpansion(BaseModel):
             orbit.show_representative_cluster()
 
     @classmethod
-    def from_json(cls, filename: str):
+    def from_file(cls, filename: str):
         """
-        Load a LocalClusterExpansion object from a JSON file.
+        Load a LocalClusterExpansion object from a serialized file.
         
         Args:
             filename: Path to the JSON file containing the LocalClusterExpansion data
@@ -103,10 +110,31 @@ class LocalClusterExpansion(BaseModel):
         Returns:
             LocalClusterExpansion: The loaded LocalClusterExpansion object
         """
-        from kmcpy.models.cluster import Orbit, Cluster
         with open(filename, 'r') as f:
             data = json.load(f)
-        
+
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_json(cls, filename: str):
+        """
+        Compatibility alias for JSON model loading.
+        """
+        return cls.from_file(filename)
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """
+        Load a LocalClusterExpansion object from a dictionary payload.
+
+        Args:
+            data: Dictionary containing serialized LocalClusterExpansion data.
+
+        Returns:
+            LocalClusterExpansion: The loaded LocalClusterExpansion object
+        """
+        from kmcpy.models.cluster import Orbit, Cluster
+
         # Create a new instance without calling __init__
         obj = cls.__new__(cls)
         
@@ -167,15 +195,17 @@ class LocalClusterExpansion(BaseModel):
                     # Default to ChebyshevBasis if class is not recognized
                     from kmcpy.structure.basis import ChebyshevBasis
                     obj.basis = ChebyshevBasis()
+            elif key == 'ordering_convention':
+                obj.ordering_convention = LocalSiteOrderingConvention.resolve(value)
             else:
                 # For all other attributes, set them directly
                 setattr(obj, key, value)
         
         # Convert cluster_site_indices to numba TypedList format if it exists
         if hasattr(obj, 'cluster_site_indices'):
-            from numba.typed import List
-            converted_list = List([List(List(int(k) for k in j) for j in i) for i in obj.cluster_site_indices])
-            obj.cluster_site_indices = converted_list
+            obj.cluster_site_indices = _to_numba_cluster_site_indices(
+                obj.cluster_site_indices
+            )
 
         # Legacy JSON fixtures may not include `name`; keep serialization robust.
         if not getattr(obj, "name", None):
@@ -184,24 +214,136 @@ class LocalClusterExpansion(BaseModel):
         return obj
 
     @classmethod
-    def from_config(cls, config: 'SimulationConfig'):
+    def from_config(cls, config: 'Configuration'):
         """
-        Create a LocalClusterExpansion from a SimulationConfig object.
+        Create a LocalClusterExpansion from a Configuration object.
         
         Args:
-            config: SimulationConfig containing cluster expansion file path
+            config: Configuration containing `model_file` path
             
         Returns:
             LocalClusterExpansion: Loaded LocalClusterExpansion instance
         """
-        return cls.from_json(config.cluster_expansion_file)
+        return cls.from_file(config.model_file)
 
-    def get_corr_from_structure(self, structure: StructureKMCpy, tol=1e-2, angle_tol=5):
+    @staticmethod
+    def _iter_cluster_site_indices(cluster_site_indices):
+        for orbit in cluster_site_indices:
+            for cluster in orbit:
+                for site_idx in cluster:
+                    yield int(site_idx)
+
+    def validate_reference_lattice_structure(
+        self,
+        reference_local_lattice_structure: LocalLatticeStructure,
+    ) -> None:
+        """
+        Validate that a reference local lattice has the same site order as the model.
+
+        Args:
+            reference_local_lattice_structure: Reference used to map structures
+                into occupation vectors.
+
+        Raises:
+            ValueError: If the reference ordering is incompatible with this model.
+        """
+        if not hasattr(self, "cluster_site_indices"):
+            raise ValueError("LocalClusterExpansion model must define cluster_site_indices.")
+
+        model_hash = getattr(self, "local_environment_hash", None)
+        if model_hash and hasattr(reference_local_lattice_structure, "get_ordered_site_hash"):
+            reference_hash = reference_local_lattice_structure.get_ordered_site_hash()
+            if reference_hash != model_hash:
+                raise ValueError(
+                    "Reference LocalLatticeStructure ordering does not match "
+                    "the LocalClusterExpansion model."
+                )
+
+        cluster_site_indices = list(
+            self._iter_cluster_site_indices(self.cluster_site_indices)
+        )
+        if cluster_site_indices and (
+            min(cluster_site_indices) < 0
+            or max(cluster_site_indices) >= len(reference_local_lattice_structure.site_indices)
+        ):
+            raise ValueError(
+                "LocalClusterExpansion cluster_site_indices are incompatible "
+                "with the reference LocalLatticeStructure site order."
+            )
+
+    def get_occ_corr_from_structure(
+        self,
+        structure: StructureKMCpy,
+        reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
+        exclude_species: Optional[Sequence[str]] = None,
+        tol=1e-2,
+        angle_tol=5,
+    ):
+        """
+        Compute occupation and correlation vectors from a structure.
+
+        Args:
+            structure: Structure to featurize.
+            reference_local_lattice_structure: Reference local lattice used to
+                map structure sites into the model's local site order. If omitted,
+                the model must carry ``local_lattice_structure`` from ``build``.
+            exclude_species: Species removed before occupation mapping. If
+                omitted, use the reference local lattice's exclusion list.
+            tol: Structure matching tolerance.
+            angle_tol: Structure matching angle tolerance.
+
+        Returns:
+            tuple: ``(occupation, correlation)``.
+        """
+        reference = reference_local_lattice_structure or getattr(
+            self, "local_lattice_structure", None
+        )
+        if reference is None:
+            raise ValueError(
+                "Cannot compute correlation from structure without a reference "
+                "LocalLatticeStructure. Pass reference_local_lattice_structure "
+                "or build the model in memory first."
+            )
+
+        self.validate_reference_lattice_structure(reference)
+
+        structure_for_occ = structure.copy()
+        species_to_exclude = (
+            exclude_species
+            if exclude_species is not None
+            else getattr(reference, "exclude_species", None)
+        )
+        if species_to_exclude:
+            structure_for_occ.remove_species(species_to_exclude)
+        structure_for_occ.remove_oxidation_states()
+
+        occ = reference.get_occ_from_structure(
+            structure_for_occ,
+            tol=tol,
+            angle_tol=angle_tol,
+        )
+        local_occ = occ[reference.site_indices]
+        corr = np.empty(shape=len(self.cluster_site_indices))
+        _calc_corr(corr, local_occ.array, self.cluster_site_indices)
+        return occ, corr
+
+    def get_corr_from_structure(
+        self,
+        structure: StructureKMCpy,
+        reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
+        exclude_species: Optional[Sequence[str]] = None,
+        tol=1e-2,
+        angle_tol=5,
+    ):
         '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
         '''
-        occ = self.local_lattice_structure.get_occ_from_structure(structure, tol=tol, angle_tol=angle_tol)
-        corr = np.empty(shape=len(self.basis.basis_function))
-        _calc_corr(corr, occ, self.cluster_site_indices)
+        _, corr = self.get_occ_corr_from_structure(
+            structure,
+            reference_local_lattice_structure=reference_local_lattice_structure,
+            exclude_species=exclude_species,
+            tol=tol,
+            angle_tol=angle_tol,
+        )
         return corr
     
     def build_clusters(self, local_env_structure, indexes, cutoff):  # return a list of Cluster
@@ -248,7 +390,7 @@ class LocalClusterExpansion(BaseModel):
             orbits.append(orbit)
         return orbits
 
-    def compute(self, simulation_state:SimulationState, event:Event):
+    def compute(self, simulation_state:State, event:Event):
         """
         Compute energy value using stored parameters and correlation coefficients.
         
@@ -256,7 +398,7 @@ class LocalClusterExpansion(BaseModel):
         and the predefined cluster_site_indices to compute energy values.
         
         Args:
-            simulation_state: SimulationState object containing occupation vector (preferred)
+            simulation_state: State object containing occupation vector (preferred)
             event: Event object containing mobile ion indices (required for local environment)
             
         Returns:
@@ -362,18 +504,45 @@ class LocalClusterExpansion(BaseModel):
         """
         Return a dictionary representation of the LocalClusterExpansion.
         """
-        return {
+        cluster_site_indices = []
+        if hasattr(self, "cluster_site_indices"):
+            # Normalize possible numba TypedList payloads to plain nested Python lists.
+            cluster_site_indices = [
+                [[int(site_idx) for site_idx in cluster] for cluster in orbit]
+                for orbit in self.cluster_site_indices
+            ]
+
+        payload = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "name": self.name,
             "orbits": [orbit.as_dict() for orbit in self.orbits],
-            "cluster_site_indices": self.cluster_site_indices,
+            "cluster_site_indices": cluster_site_indices,
             "center_site": self.center_site.as_dict(),
             "migration_unit_structure": self.local_env_structure.as_dict()
         }
+        if hasattr(self, "ordering_convention"):
+            payload["ordering_convention"] = self.ordering_convention.as_dict()
+        if hasattr(self, "local_environment_signature"):
+            payload["local_environment_signature"] = self.local_environment_signature
+        if hasattr(self, "local_environment_hash"):
+            payload["local_environment_hash"] = self.local_environment_hash
+        return payload
 
 
 register_fitter(LocalClusterExpansion, LCEFitter)
+
+def _to_numba_cluster_site_indices(cluster_site_indices):
+    """Convert nested cluster site indices into numba typed lists."""
+    from numba.typed import List
+
+    return List(
+        [
+            List([List([int(site_idx) for site_idx in cluster]) for cluster in orbit])
+            for orbit in cluster_site_indices
+        ]
+    )
+
 
 @nb.njit
 def _calc_corr(corr, occ_latt, cluster_site_indices):

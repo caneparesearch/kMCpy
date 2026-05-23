@@ -1,10 +1,45 @@
 #!/usr/bin/env python
 
-from kmcpy.io.config_io import SimulationConfigIO
-from kmcpy.simulator.config import SimulationConfig
+from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 import kmcpy
 import argparse
+import ast
+
+
+def _parse_sequence(value):
+    if value is None or isinstance(value, (list, tuple)):
+        return value
+    try:
+        parsed = ast.literal_eval(value)
+    except (SyntaxError, ValueError):
+        parsed = [item.strip() for item in str(value).split(",") if item.strip()]
+    if not isinstance(parsed, (list, tuple)):
+        raise argparse.ArgumentTypeError("value must be a list or tuple")
+    return parsed
+
+
+def _parse_supercell_shape(value):
+    parsed = _parse_sequence(value)
+    if parsed is None:
+        return None
+    try:
+        supercell_shape = tuple(int(item) for item in parsed)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "supercell_shape must contain integers"
+        ) from exc
+    if len(supercell_shape) != 3:
+        raise argparse.ArgumentTypeError("supercell_shape must contain 3 integers")
+    return supercell_shape
+
+
+def _parse_immutable_sites(value):
+    parsed = _parse_sequence(value)
+    if parsed is None:
+        return ()
+    return tuple(str(item) for item in parsed)
+
 
 def main()->None:
     """
@@ -24,13 +59,8 @@ def main()->None:
             parameters are read from this file.
         supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
-        fitting_results_file (str): Path to the JSON file containing the fitting results for E_kra.
-            Required if input file is not provided.
-        fitting_results_site_file (str): Path to the JSON file containing the fitting results for site energy difference.
-            Required if input file is not provided.
-        cluster_expansion_file (str): Path to the JSON file containing the Local Cluster Expansion (LCE) model.
-            Required if input file is not provided.
-        cluster_expansion_site_file (str): Path to the JSON file containing the site LCE model for computing site energy differences.
+        model_file (str): Path to model JSON file.
+            For model_type=composite_lce/tabulated, use format kmcpy.model_bundle.v1.
             Required if input file is not provided.
         structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
@@ -51,19 +81,64 @@ def main()->None:
         description=kmcpy.get_logo(),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--input", type=str, help="Path to the input JSON/YAML file for kMC simulation. If provided, all other parameters are read from this file.")
+    parser.add_argument(
+        "--input",
+        type=str,
+        help=(
+            "Path to the input JSON/YAML file for kMC simulation. If provided, "
+            "all other parameters are read from this file."
+        ),
+    )
     # Always show all arguments in help - using modern parameter names
-    parser.add_argument("--supercell_shape", type=str, help='Shape of the supercell as a list of integers (e.g., [2, 2, 2]). This should be consistent with events.')
-    parser.add_argument("--fitting_results_file", type=str, help='Path to the JSON file containing the fitting results for E_kra.')
-    parser.add_argument("--fitting_results_site_file", type=str, help='Path to the JSON file containing the fitting results for site energy difference.')
-    parser.add_argument("--cluster_expansion_file", type=str, help='Path to the JSON file containing the Local Cluster Expansion (LCE) model.')
-    parser.add_argument("--cluster_expansion_site_file", type=str, help='Path to the JSON file containing the site LCE model for computing site energy differences.')
-    parser.add_argument("--structure_file", type=str, help='Path to the CIF file of the template structure (with all sites filled).')
-    parser.add_argument("--event_file", type=str, help='Path to the JSON file containing the list of events.')
-    parser.add_argument("--attempt_frequency", type=float, default=1e13, help='Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.')
-    parser.add_argument("--temperature", type=float, default=300, help='Simulation temperature in Kelvin. Defaults to 300 K.')
-    parser.add_argument("--convert_to_primitive_cell", action='store_true', help='Whether to convert the structure to its primitive cell (default: False).')
-    parser.add_argument("--immutable_sites", type=str, default="[]", help='List of sites to be treated as immutable and removed from the simulation (as a JSON string, default: []).')
+    parser.add_argument(
+        "--supercell_shape",
+        type=_parse_supercell_shape,
+        help=(
+            "Shape of the supercell as a list of integers (e.g., [2, 2, 2]). "
+            "This should be consistent with events."
+        ),
+    )
+    parser.add_argument(
+        "--model_file",
+        type=str,
+        help="Path to model JSON file (for composite_lce/tabulated use kmcpy.model_bundle.v1).",
+    )
+    parser.add_argument(
+        "--structure_file",
+        type=str,
+        help="Path to the CIF file of the template structure (with all sites filled).",
+    )
+    parser.add_argument(
+        "--event_file",
+        type=str,
+        help="Path to the JSON file containing the list of events.",
+    )
+    parser.add_argument(
+        "--attempt_frequency",
+        type=float,
+        default=1e13,
+        help="Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=300,
+        help="Simulation temperature in Kelvin. Defaults to 300 K.",
+    )
+    parser.add_argument(
+        "--convert_to_primitive_cell",
+        action="store_true",
+        help="Whether to convert the structure to its primitive cell (default: False).",
+    )
+    parser.add_argument(
+        "--immutable_sites",
+        type=_parse_immutable_sites,
+        default=(),
+        help=(
+            "List of sites to be treated as immutable and removed from the "
+            "simulation (as a JSON string, default: [])."
+        ),
+    )
     args = parser.parse_args()
     run_kmc(args)
 
@@ -87,28 +162,36 @@ def run_kmc(args)-> None:
     print("Starting KMC simulation...")
     
     if args.input:
-        # Load modern SimulationConfig format only
+        # Load modern Configuration format only
         try:
             print(f"Loading configuration from {args.input}")
-            raw_data = SimulationConfigIO._load_yaml_section(args.input, "kmc", "default")
-            config = SimulationConfig.from_dict(raw_data)
+            config = Configuration.from_file(args.input)
             print(f"✓ Configuration loaded: {config.runtime_config.name}")
         except Exception as e:
             # Provide clear error message for legacy formats
             raise ValueError(
                 f"Unable to load configuration from {args.input}. "
                 f"Legacy InputSet format is no longer supported. "
-                f"Please convert your configuration to the modern SimulationConfig format. "
-                f"Use SimulationConfigIO to create new configuration files. "
+                f"Please convert your configuration to the modern Configuration format. "
+                f"Use `kmcpy init` to create a new configuration file. "
                 f"Original error: {e}"
             )
     else:
         # Build a dictionary from the argparse Namespace, excluding None values and 'input'
         input_dict = {k: v for k, v in vars(args).items() if k != "input" and v is not None}
-        config = SimulationConfig(**input_dict)
+        if "supercell_shape" in input_dict:
+            input_dict["supercell_shape"] = _parse_supercell_shape(
+                input_dict["supercell_shape"]
+            )
+        if "immutable_sites" in input_dict:
+            input_dict["immutable_sites"] = _parse_immutable_sites(
+                input_dict["immutable_sites"]
+            )
+        config = Configuration(**input_dict)
 
     print("Configuration loaded, initializing KMC...")
     print(f"  Structure file: {config.system_config.structure_file}")
+    print(f"  Model file: {config.system_config.model_file}")
     print(f"  Temperature: {config.runtime_config.temperature} K")
     
     # initialize global occupation and conditions using modern API

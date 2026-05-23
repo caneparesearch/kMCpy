@@ -7,9 +7,9 @@
 </h1>
 
 [![GitHub release](https://img.shields.io/github/release/caneparesearch/kmcpy.svg)](https://GitHub.com/caneparesearch/kmcpy/releases/)
-[![Documentation Status](https://readthedocs.org/projects/kmcpy/badge/)](https://kmcpy.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/kmcpy/badge/?version=latest)](https://kmcpy.readthedocs.io/en/latest/?badge=latest)
 [![CI Status](https://github.com/caneparesearch/kmcpy/actions/workflows/test-ubuntu.yml/badge.svg)](https://github.com/caneparesearch/kmcpy/actions/workflows/test-ubuntu.yml)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/kmcpy?logo=pypi&logoColor=white&color=blue&label=PyPI)](https://pypi.org/project/kmcpy)
+[![PyPI Version](https://img.shields.io/pypi/v/kmcpy?logo=pypi&logoColor=white&color=blue&label=PyPI)](https://pypi.org/project/kmcpy)
 [![Requires Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg?logo=python&logoColor=white)](https://python.org/downloads)
 [![Paper](https://img.shields.io/badge/Comp.Mater.Sci.-2023.112394-blue?logo=elsevier&logoColor=white)](https://doi.org/10.1016/j.commatsci.2023.112394)
 
@@ -23,7 +23,9 @@ Advantages of using kMCpy:
 2.  Cross-platform compatibility, supporting Windows, macOS, and Linux.
 3.  Performance-optimized kMC routines using [Numba](https://numba.pydata.org/), resulting in significant speed improvements.
 
-> [!warning] kMCpy is under active development 
+> [!WARNING]
+> kMCpy is under active development.
+>
 > kMCpy is still under active development. While we strive to maintain backward compatibility, some changes may occur that could affect existing workflows. We recommend users to check the release notes and documentation for any updates or changes that might impact their usage.
 
 ## Installation
@@ -34,7 +36,9 @@ You can quickly install the latest version of kMCpy through [PyPI](https://pypi.
 ```shell
 pip install kmcpy
 ```
-> [!note] Virtual Environment
+> [!NOTE]
+> Virtual Environment
+>
 > It is highly recommended to install kMCpy in a virtual environment to avoid dependency conflicts with other packages. You can use [uv](https://docs.astral.sh/uv/getting-started/installation/) or [venv](https://docs.python.org/3/library/venv.html) or [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to create a virtual environment.
 > For example, using `venv`:
 > ```shell
@@ -62,11 +66,6 @@ For development (editable mode):
 pip install -e ".[dev]"
 ```
 
-To install GUI dependencies:
-```shell
-pip install -e ".[gui]"
-```
-
 #### Using UV (recommended)
 
 To install all dependencies:
@@ -80,16 +79,9 @@ uv sync --extra dev
 uv pip install -e .
 ```
 
-To install GUI dependencies:
-```shell
-uv sync --extra gui
-```
-
-> [!note] GUI
-> kMCpy provides a graphical user interface (GUI) to facilitate the setup and execution of kMC simulations. However, the current GUI is deprecated. Users are encouraged to use the command line interface (CLI) or API for running simulations.
-> The GUI is based on `wxpython`. You may need to install [GTK](https://www.gtk.org/) for `wxpython` to work properly.
-
-> [!warning] Windows users 
+> [!WARNING]
+> Windows users
+>
 > Windows users (not applicable to WSL) need to install [Microsoft C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) for `pymatgen`. 
 
 
@@ -100,14 +92,67 @@ uv sync --extra doc
 python scripts/build_doc.py
 ```
 
+## Quickstart
+Run a minimal end-to-end simulation with bundled example files:
+
+```shell
+uv sync
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
+uv run python example/minimal_example.py
+```
+
+`Configuration` routes arguments into two groups:
+
+1. `system` parameters define what you simulate (structure, events, model files).
+2. `runtime` parameters define how you simulate (temperature, passes, random seed).
+
+If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_parameters()`.
+
 ## Run kMCpy
 ### API usage
-You can run kMC through API. You can find more details in the `examples` directory. You can see the examples in the `examples` directory for how to use kMCpy in your own scripts. The examples cover various aspects of kMCpy, including how to build a model and use it for simulations.
+You can run kMC through API. See the `example` directory for scripts and notebook workflows covering setup, event generation, and simulations.
+
+For a one-call simulation:
+
+```python
+from kmcpy import Configuration, run
+
+config = Configuration.from_file("input.yaml")
+tracker = run(config)
+```
+
+You can also attach custom property callbacks during a run:
+
+```python
+from kmcpy.simulator.kmc import KMC
+
+kmc = KMC.from_config(config)
+
+def custom_property(state, step, sim_time):
+    occupied = sum(1 for occ in state.occupations if occ < 0)
+    return occupied / len(state.occupations)
+
+kmc.attach(custom_property, interval=100, name="occupied_fraction")
+kmc.set_property_enabled("conductivity", False)  # Optional: disable selected built-in fields
+tracker = kmc.run(config)
+
+# Stored custom callback records
+records = tracker.get_property_records("occupied_fraction")
+```
 
 ### Command line usage
-A wrapper is provided if you want to run kMCpy through command line only. There is a wrapper script `run_kmc` that allows you to run kMCpy from the command line. You can use it to run a kMCpy simulation with a JSON/YAML input file. The input file should contain the necessary parameters for the simulation. It should be noted that you need to have all the input files that needed to run kMC.
+A wrapper is provided if you want to run kMCpy from the command line.
+
+1. Generate a commented template input file:
 ```shell
-run_kmc input.json
+kmcpy init --output input_template.yaml
+```
+
+2. Edit the required file paths and simulation settings in `input_template.yaml`.
+
+3. Run the simulation:
+```shell
+run_kmc --input input_template.yaml
 ```
 
 To print out all arguments, you can run:
@@ -115,12 +160,31 @@ To print out all arguments, you can run:
 run_kmc --help
 ```
 
-### GUI usage
-You can start the GUI from command line. The basic usage is as follows:
-```shell
-start_kmcpy_gui
+## Build tabulated model files (sparse data)
+For sparse datasets, you can use `TabulatedModel` with direct event+occupation lookup.
+
+Build a model bundle via API:
+```python
+from kmcpy.io.config_io import ConfigIO
+
+bundle = ConfigIO.build_tabulated_model_bundle_from_file(
+    entries_file="tabulated_entries.json"
+)
+ConfigIO.save_model_bundle(bundle, "model.json")
 ```
-Then  a window will pop up, allowing you to select the input file and run the simulation.
+
+Build via CLI:
+```shell
+kmcpy pack-tabulated-model --entries-file tabulated_entries.json --output model.json
+```
+
+Use it in simulation config:
+```yaml
+model_type: "tabulated"
+model_file: "model.json"
+```
+
+`TabulatedModel` performs exact lookup only. Unseen configurations raise an error (no extrapolation fallback).
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:

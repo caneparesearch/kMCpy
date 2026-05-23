@@ -8,11 +8,23 @@ occupation management, basis functions, and local environment comparison.
 from .lattice_structure import LatticeStructure
 from .vacancy import Vacancy
 from .local_lattice_structure import LocalLatticeStructure
+from .local_site_ordering import (
+    LocalSiteOrderingConvention,
+    ordered_site_hash,
+    ordered_site_signature,
+)
 from .comparator import SupercellComparator
 from .local_environment_comparator import (
     LocalEnvironmentComparator,
     create_environment_comparator,
     match_local_environments
+)
+from .local_environment_enumerator import (
+    LocalEnvironmentEnumeration,
+    NEBEndpointPair,
+    enumerate_local_environments,
+    enumerate_neb_endpoint_pairs,
+    generate_neb_endpoint_pair,
 )
 from .basis import (
     BasisFunction, 
@@ -28,10 +40,18 @@ __all__ = [
     "LatticeStructure",
     "Vacancy",
     "LocalLatticeStructure",
+    "LocalSiteOrderingConvention",
+    "ordered_site_hash",
+    "ordered_site_signature",
     "SupercellComparator",
     "LocalEnvironmentComparator",
     "create_environment_comparator",
     "match_local_environments",
+    "LocalEnvironmentEnumeration",
+    "NEBEndpointPair",
+    "enumerate_local_environments",
+    "enumerate_neb_endpoint_pairs",
+    "generate_neb_endpoint_pair",
     "BasisFunction",
     "Occupation",
     "OccupationBasis", 

@@ -1,7 +1,7 @@
-io
+tabulated_model
 =========================
 
-.. automodule:: kmcpy.io.io
+.. automodule:: kmcpy.models.tabulated_model
     :members:
     :inherited-members:
                   

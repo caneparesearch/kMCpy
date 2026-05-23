@@ -3,14 +3,20 @@ import datetime
 import logging
 
 from ._version import __version__
+from .api import run
 
 # Import main classes for convenient access
-from .models import BaseModel, LocalClusterExpansion, CompositeLCEModel
+from .models import (
+    BaseModel,
+    LocalClusterExpansion,
+    CompositeLCEModel,
+    TabulatedEntry,
+    TabulatedModel,
+)
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
-from .simulator.condition import SimulationCondition
-from .simulator.config import SimulationConfig, SystemConfig, RuntimeConfig
-from .simulator.state import SimulationState
+from .simulator.config import Configuration, SystemConfig, RuntimeConfig
+from .simulator.state import State
 from .simulator.tracker import Tracker
 
 __author__ = "kMCpy Development Team"
@@ -19,19 +25,21 @@ __author_email__ = "dengzeyu@gmail.com"
 # Expose the main classes and functions as the public API
 __all__ = [
     "__version__", 
+    "run",
     "get_logo",
     "BaseModel",
     "LocalClusterExpansion", 
+    "TabulatedModel",
+    "TabulatedEntry",
     "CompositeLCEModel",
     "KMC",
     "Event",
     "EventGenerator",
     "NeighborInfoMatcher",
-    "SimulationCondition",
-    "SimulationConfig", 
+    "Configuration",
     "SystemConfig",
     "RuntimeConfig",
-    "SimulationState",
+    "State",
     "Tracker"
 ]
 
