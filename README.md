@@ -101,7 +101,7 @@ uv run python -c "from kmcpy.simulator.config import Configuration; Configuratio
 uv run python example/minimal_example.py
 ```
 
-`Configuration` (alias of `SimulationConfig`) routes arguments into two groups:
+`Configuration` routes arguments into two groups:
 
 1. `system` parameters define what you simulate (structure, events, model files).
 2. `runtime` parameters define how you simulate (temperature, passes, random seed).

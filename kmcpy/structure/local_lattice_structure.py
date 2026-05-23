@@ -30,6 +30,7 @@ class LocalLatticeStructure(LatticeStructure):
                  exclude_center_site=None):
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
+        # Preserve oxidized exclude tokens after oxidation states are stripped.
         exclude_species = self._normalize_exclude_species(exclude_species)
         working_structure.remove_oxidation_states()
         ordering = LocalSiteOrderingConvention.resolve(ordering_convention)
