@@ -11,13 +11,8 @@ import pandas as pd
 from kmcpy.simulator.property import compute_transport_properties
 
 
-results = glob.glob("comp_0.1_1")
-
-
-
 def compute_chemical_diffusivity(jump_diffusivity: float, theta: float) -> float:
     return jump_diffusivity * theta
-
 
 
 def fit_theta():
@@ -25,7 +20,6 @@ def fit_theta():
     from scipy.interpolate import interp1d
 
     return interp1d(x, y, kind="cubic")
-
 
 
 def calc_transport_properties(
@@ -54,38 +48,46 @@ def calc_transport_properties(
     )
 
 
-spl = fit_theta()
-data = []
-for result in results:
-    for n_pass in np.arange(0, 2000, 1, dtype="int"):
-        print(result)
-        x_value = 3 - 3 * float(result.strip().split("_")[1])
-        structure_id = int(result.strip().split("_")[2])
-        jump_diffusivity, tracer_diffusivity, correlation_factor, conductivity = np.loadtxt(
-            result + "/migration_" + str(n_pass) + ".txt"
-        )
-
-        theta = spl(x_value)
-        chemical_diffusivity = compute_chemical_diffusivity(jump_diffusivity, theta)
-        print("D_c = ", chemical_diffusivity)
-
-        data.append(
-            [
-                x_value,
-                n_pass,
-                structure_id,
+def collect_transport_data(results=None):
+    if results is None:
+        results = glob.glob("comp_0.1_1")
+    spl = fit_theta()
+    data = []
+    for result in results:
+        for n_pass in np.arange(0, 2000, 1, dtype="int"):
+            print(result)
+            x_value = 3 - 3 * float(result.strip().split("_")[1])
+            structure_id = int(result.strip().split("_")[2])
+            (
                 jump_diffusivity,
                 tracer_diffusivity,
-                chemical_diffusivity,
-                theta,
                 correlation_factor,
                 conductivity,
-                result,
-            ]
-        )
+            ) = np.loadtxt(result + "/migration_" + str(n_pass) + ".txt")
+
+            theta = spl(x_value)
+            chemical_diffusivity = compute_chemical_diffusivity(jump_diffusivity, theta)
+            print("D_c = ", chemical_diffusivity)
+
+            data.append(
+                [
+                    x_value,
+                    n_pass,
+                    structure_id,
+                    jump_diffusivity,
+                    tracer_diffusivity,
+                    chemical_diffusivity,
+                    theta,
+                    correlation_factor,
+                    conductivity,
+                    result,
+                ]
+            )
+    return data
 
 
-if __name__ == "__main__":
+def main():
+    data = collect_transport_data()
     df = pd.DataFrame(
         data,
         columns=[
@@ -134,3 +136,7 @@ if __name__ == "__main__":
 
     fig.tight_layout()
     fig.savefig("plot.pdf")
+
+
+if __name__ == "__main__":
+    main()

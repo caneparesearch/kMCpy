@@ -1,4 +1,4 @@
-from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule
+from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule, Species
 import numpy as np
 import logging
 from typing import TYPE_CHECKING, List, Dict, Any
@@ -30,6 +30,8 @@ class LocalLatticeStructure(LatticeStructure):
                  exclude_center_site=None):
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
+        # Preserve oxidized exclude tokens after oxidation states are stripped.
+        exclude_species = self._normalize_exclude_species(exclude_species)
         working_structure.remove_oxidation_states()
         ordering = LocalSiteOrderingConvention.resolve(ordering_convention)
         if exclude_center_site is not None:
@@ -98,6 +100,21 @@ class LocalLatticeStructure(LatticeStructure):
         # Initialize comparator for neighbor sequence matching
         self._comparator = None
         self._neighbor_info = None
+
+    @staticmethod
+    def _normalize_exclude_species(exclude_species) -> list[str]:
+        """Return exclude tokens that match oxidized and neutral structures."""
+        tokens = []
+        for species in exclude_species or []:
+            token = str(species)
+            tokens.append(token)
+            try:
+                parsed_species = Species(token)
+            except Exception:
+                continue
+            tokens.append(str(parsed_species.symbol))
+            tokens.append(str(parsed_species.element))
+        return list(dict.fromkeys(tokens))
 
     def _is_center_site(self, site_info) -> bool:
         """Return whether a sphere result corresponds to the center site."""

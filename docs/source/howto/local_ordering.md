@@ -19,7 +19,10 @@ local_lattice = LocalLatticeStructure(
 )
 ```
 
-For NASICON publication reproduction, opt into the historical convention:
+For reproducing the NASICON results from Deng et al.,
+[*Fundamental investigations on the sodium-ion transport properties of mixed
+polyanion solid-state battery electrolytes*](https://www.nature.com/articles/s41467-022-32190-7),
+opt into the historical convention:
 
 ```python
 local_lattice = LocalLatticeStructure(
@@ -52,7 +55,7 @@ feature ordering explicit:
 }
 ```
 
-For exact publication reproduction, prefer converted legacy artifacts because
-they preserve the original `cluster_site_indices`. Regenerating local
-correlation vectors with a different ordering convention and reusing old `keci`
-values can change predicted barriers substantially.
+For exact reproduction of that paper's model inputs, prefer converted legacy
+artifacts because they preserve the original `cluster_site_indices`.
+Regenerating local correlation vectors with a different ordering convention and
+reusing old `keci` values can change predicted barriers substantially.

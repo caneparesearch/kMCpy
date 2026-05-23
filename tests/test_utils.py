@@ -5,13 +5,15 @@ This module contains utility functions that are specific to testing,
 including configuration builders for specific material systems.
 """
 
+from typing import Sequence
+
 from kmcpy.simulator.config import Configuration
 
 
 def create_nasicon_config(
     name: str = "NASICON_Simulation",
     temperature: float = 573.0,
-    supercell_shape: list = None,
+    supercell_shape: Sequence[int] | None = None,
     data_dir: str = "example",
     **kwargs
 ) -> Configuration:
@@ -24,7 +26,7 @@ def create_nasicon_config(
     Args:
         name: Simulation name
         temperature: Temperature in Kelvin
-        supercell_shape: Supercell dimensions [nx, ny, nz]
+        supercell_shape: Supercell dimensions (nx, ny, nz)
         data_dir: Directory containing input files
         **kwargs: Additional parameters to override defaults
     
@@ -32,7 +34,9 @@ def create_nasicon_config(
         Configuration: Configured simulation setup for NASICON testing
     """
     if supercell_shape is None:
-        supercell_shape = [2, 2, 2]
+        supercell_shape = (2, 2, 2)
+    else:
+        supercell_shape = tuple(supercell_shape)
     
     default_config = {
         'name': name,

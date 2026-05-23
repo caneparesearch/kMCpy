@@ -165,7 +165,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
     # Example custom property callback: sample occupied-site fraction every 50 events.
     def calc_occupation(state, step, sim_time):
         _ = step, sim_time
-        occupied = sum(1 for occ in state.occupations if occ > 0)
+        occupied = sum(1 for occ in state.occupations if occ < 0)
         return occupied / len(state.occupations)
 
     kmc.attach(calc_occupation, interval=50, name="calc_occupation")

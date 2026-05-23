@@ -8,7 +8,7 @@ from itertools import product
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
-from pymatgen.core import DummySpecies, PeriodicSite, Structure
+from pymatgen.core import DummySpecies, PeriodicSite, Species, Structure
 
 from kmcpy.structure.basis import Occupation
 from kmcpy.structure.lattice_structure import LatticeStructure
@@ -286,7 +286,7 @@ def _local_site_indices(
     else:
         raise ValueError("Center must be an index or a list of fractional coordinates.")
 
-    excluded = set(exclude_species or [])
+    excluded = set(_normalize_exclude_species(exclude_species))
     local_env_sites = structure.get_sites_in_sphere(
         center_site.coords,
         cutoff,
@@ -320,6 +320,20 @@ def _is_center_site(
     if center_index is not None and int(site_index) == int(center_index):
         return True
     return np.linalg.norm(site.coords - center_site.coords) <= ordering.center_match_tolerance
+
+
+def _normalize_exclude_species(exclude_species) -> list[str]:
+    tokens = []
+    for species in exclude_species or []:
+        token = str(species)
+        tokens.append(token)
+        try:
+            parsed_species = Species(token)
+        except Exception:
+            continue
+        tokens.append(str(parsed_species.symbol))
+        tokens.append(str(parsed_species.element))
+    return list(dict.fromkeys(tokens))
 
 
 def _base_occupation(
