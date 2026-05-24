@@ -34,11 +34,17 @@ def _parse_supercell_shape(value):
     return supercell_shape
 
 
-def _parse_immutable_sites(value):
-    parsed = _parse_sequence(value)
-    if parsed is None:
-        return ()
-    return tuple(str(item) for item in parsed)
+def _parse_mapping(value):
+    if value is None or isinstance(value, dict):
+        return value
+    try:
+        parsed = ast.literal_eval(value)
+    except (SyntaxError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("value must be a dictionary") from exc
+    if not isinstance(parsed, dict):
+        raise argparse.ArgumentTypeError("value must be a dictionary")
+    return parsed
+
 
 
 def main()->None:
@@ -60,7 +66,7 @@ def main()->None:
         supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
         model_file (str): Path to model JSON file.
-            For model_type=composite_lce/tabulated, use format kmcpy.model_bundle.v1.
+            For model_type=composite_lce/tabulated, use a model file JSON file.
             Required if input file is not provided.
         structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
@@ -70,8 +76,6 @@ def main()->None:
         temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
         convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell.
             Defaults to False.
-        immutable_sites (str, optional): List of sites to be treated as immutable and removed from the simulation
-            (as a JSON string, default: []).
     
     Returns:
         None
@@ -101,7 +105,7 @@ def main()->None:
     parser.add_argument(
         "--model_file",
         type=str,
-        help="Path to model JSON file (for composite_lce/tabulated use kmcpy.model_bundle.v1).",
+        help="Path to model JSON file or model file JSON file.",
     )
     parser.add_argument(
         "--structure_file",
@@ -112,6 +116,14 @@ def main()->None:
         "--event_file",
         type=str,
         help="Path to the JSON file containing the list of events.",
+    )
+    parser.add_argument(
+        "--site_mapping",
+        type=_parse_mapping,
+        help=(
+            "Site mapping that defines active and fixed sites "
+            "(for example: {'Na': ['Na', 'X'], 'O': 'O'})."
+        ),
     )
     parser.add_argument(
         "--attempt_frequency",
@@ -129,15 +141,6 @@ def main()->None:
         "--convert_to_primitive_cell",
         action="store_true",
         help="Whether to convert the structure to its primitive cell (default: False).",
-    )
-    parser.add_argument(
-        "--immutable_sites",
-        type=_parse_immutable_sites,
-        default=(),
-        help=(
-            "List of sites to be treated as immutable and removed from the "
-            "simulation (as a JSON string, default: [])."
-        ),
     )
     args = parser.parse_args()
     run_kmc(args)
@@ -183,9 +186,9 @@ def run_kmc(args)-> None:
             input_dict["supercell_shape"] = _parse_supercell_shape(
                 input_dict["supercell_shape"]
             )
-        if "immutable_sites" in input_dict:
-            input_dict["immutable_sites"] = _parse_immutable_sites(
-                input_dict["immutable_sites"]
+        if "site_mapping" in input_dict:
+            input_dict["site_mapping"] = _parse_mapping(
+                input_dict["site_mapping"]
             )
         config = Configuration(**input_dict)
 

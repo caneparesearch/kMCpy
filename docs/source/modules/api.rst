@@ -8,8 +8,7 @@ API Reference Documentation
     high_level_api.rst
     data_loader.rst
     serialization.rst
-    config_io.rst
-    io_registry.rst
+    model_file.rst
     models_fitting_registry.rst
     fitter.rst
     parameters.rst
@@ -31,8 +30,10 @@ API Reference Documentation
     basis.rst
     comparator.rst
     lattice_structure.rst
+    active_site_index_map.rst
     vacancy.rst
     local_lattice_structure.rst
+    local_environment_enumerator.rst
     local_site_ordering.rst
     local_environment_comparator.rst
     tracker.rst

@@ -5,7 +5,7 @@ import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.tabulated_model import TabulatedModel
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.io.model_file import load_model_file
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
 
@@ -37,10 +37,10 @@ def test_local_cluster_expansion_serializes_ordering_convention():
     )
     local_lattice = LocalLatticeStructure(
         template_structure=structure,
-        specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
         center=0,
         cutoff=3.0,
-        ordering_convention="nasicon_publication_v1",
+        ordering_convention="nasicon_nat_commun_2022",
     )
     model = LocalClusterExpansion()
     model.build(local_lattice, cutoff_cluster=[3.0, 3.0, 0.0])
@@ -48,9 +48,9 @@ def test_local_cluster_expansion_serializes_ordering_convention():
     payload = model.as_dict()
     reloaded = LocalClusterExpansion.from_dict(payload)
 
-    assert payload["ordering_convention"]["name"] == "nasicon_publication_v1"
+    assert payload["ordering_convention"]["name"] == "nasicon_nat_commun_2022"
     assert "local_environment_hash" in payload
-    assert reloaded.ordering_convention.name == "nasicon_publication_v1"
+    assert reloaded.ordering_convention.name == "nasicon_nat_commun_2022"
 
 
 def test_composite_lce_model_as_dict_with_legacy_json_inputs():
@@ -76,10 +76,10 @@ def test_composite_lce_model_from_file_matches_from_json():
     assert from_file_model.site_model.name == from_json_model.site_model.name
 
 
-def test_composite_lce_model_from_bundle_without_site(tmp_path):
+def test_composite_lce_model_from_model_file_without_site(tmp_path):
     root = Path(__file__).parent / "files" / "input"
-    model_bundle = {
-        "format": "kmcpy.model_bundle.v1",
+    model_data = {
+        "format": "kmcpy.model_file",
         "model_type": "composite_lce",
         "kra": {
             "lce": json.loads((root / "lce.json").read_text(encoding="utf-8")),
@@ -87,32 +87,32 @@ def test_composite_lce_model_from_bundle_without_site(tmp_path):
             "fit_metadata": {"time_stamp": 1.0, "time": "now"},
         },
     }
-    bundle_file = tmp_path / "model_bundle_no_site.json"
-    bundle_file.write_text(json.dumps(model_bundle), encoding="utf-8")
+    model_data_file = tmp_path / "model_file_no_site.json"
+    model_data_file.write_text(json.dumps(model_data), encoding="utf-8")
 
-    model = CompositeLCEModel.from_json(str(bundle_file))
+    model = CompositeLCEModel.from_json(str(model_data_file))
     assert model.kra_model is not None
     assert model.site_model is None
 
 
-def test_composite_lce_model_to_json_is_bundle_compatible(tmp_path):
+def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
     root = Path(__file__).parent / "files" / "input"
     model = CompositeLCEModel.from_json(str(root / "model.json"))
 
-    output_bundle = tmp_path / "saved_bundle.json"
-    model.to_json(str(output_bundle))
+    output_model_file = tmp_path / "saved_model_file.json"
+    model.to_json(str(output_model_file))
 
-    loaded_bundle = ConfigIO.load_model_bundle(str(output_bundle))
-    reloaded = CompositeLCEModel.from_json(str(output_bundle))
+    loaded_model_data = load_model_file(str(output_model_file))
+    reloaded = CompositeLCEModel.from_json(str(output_model_file))
 
-    assert loaded_bundle["format"] == "kmcpy.model_bundle.v1"
+    assert loaded_model_data["format"] == "kmcpy.model_file"
     assert reloaded.kra_model is not None
 
 
 def test_tabulated_model_from_file_matches_from_json():
     root = Path(__file__).parent / "files" / "input"
-    from_file_model = TabulatedModel.from_file(str(root / "tabulated_model_bundle.json"))
-    from_json_model = TabulatedModel.from_json(str(root / "tabulated_model_bundle.json"))
+    from_file_model = TabulatedModel.from_file(str(root / "tabulated_model_file.json"))
+    from_json_model = TabulatedModel.from_json(str(root / "tabulated_model_file.json"))
 
     assert from_file_model.as_dict() == from_json_model.as_dict()
     assert from_file_model.name == "TabulatedModel"

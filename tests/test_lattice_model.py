@@ -12,8 +12,8 @@ def simple_lattice_model():
         ["Na", "Na"],
         [[0, 0, 0], [0.5, 0.5, 0.5]]
     )
-    specie_site_mapping = {"Na": ["Na", "X"]}  # X represents a vacancy
-    return LatticeStructure(template_structure=template_structure, specie_site_mapping=specie_site_mapping)
+    site_mapping = {"Na": ["Na", "X"]}  # X represents a vacancy
+    return LatticeStructure(template_structure=template_structure, site_mapping=site_mapping)
 
 @pytest.fixture
 def complex_lattice_model():
@@ -24,12 +24,12 @@ def complex_lattice_model():
         ["Na", "O", "Na", "Cl", "Cl"], 
         [[0, 0, 0], [0.25, 0, 0], [0.5, 0.5, 0.0], [0.5, 0.0, 0.0], [0.5, 0.5, 0.5]]
     )
-    specie_site_mapping = {
+    site_mapping = {
         "Na": ["Na", "X"], 
         "O": ["O", "X"], 
         "Cl": ["Cl", "X"]
     }  # X represents a vacancy
-    return LatticeStructure(template_structure=template_structure, specie_site_mapping=specie_site_mapping)
+    return LatticeStructure(template_structure=template_structure, site_mapping=site_mapping)
 
 def test_get_occ_from_structure_perfect_match(simple_lattice_model):
     """Test get_occ_from_structure with perfect match (no vacancies)."""
@@ -277,7 +277,7 @@ def test_get_occ_from_structure_allowed_substitution_is_mismatch():
     template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
     model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Si": ["Si", "P"]},
+        site_mapping={"Si": ["Si", "P"]},
     )
     substituted_structure = Structure(lattice, ["P"], [[0, 0, 0]])
 
@@ -291,7 +291,7 @@ def test_get_occ_from_structure_chebyshev_sign_convention():
     template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
     model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Si": ["Si", "P"]},
+        site_mapping={"Si": ["Si", "P"]},
         basis_type="chebyshev",
     )
 
@@ -309,7 +309,7 @@ def test_get_occ_from_structure_rejects_unallowed_species():
     template_structure = Structure(lattice, ["Na"], [[0, 0, 0]])
     model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Na": ["Na", "X"]},
+        site_mapping={"Na": ["Na", "X"]},
     )
     wrong_species_structure = Structure(lattice, ["K"], [[0, 0, 0]])
 

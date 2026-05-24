@@ -8,6 +8,23 @@ import json
 from typing import Any, Iterable, Sequence
 
 
+BUILTIN_ORDERING_CONVENTIONS = {
+    "kmcpy_default": {
+        "sort_keys": ("species_string",),
+        "exclude_center_site": False,
+    },
+    "nasicon_nat_commun_2022": {
+        "sort_keys": ("species", "cartesian_x"),
+        "exclude_center_site": True,
+    },
+}
+
+LEGACY_ORDERING_CONVENTION_NAMES = {
+    "kmcpy_default_v1": "kmcpy_default",
+    "nasicon_publication_v1": "nasicon_nat_commun_2022",
+}
+
+
 @dataclass(frozen=True)
 class LocalSiteOrderingConvention:
     """Rules that define the order of sites in a local occupation vector."""
@@ -20,17 +37,18 @@ class LocalSiteOrderingConvention:
     @classmethod
     def from_name(cls, name: str) -> "LocalSiteOrderingConvention":
         """Create a built-in ordering convention by name."""
-        if name == "kmcpy_default_v1":
-            return cls(name=name, sort_keys=("species_string",))
-        if name == "nasicon_publication_v1":
+        canonical_name = LEGACY_ORDERING_CONVENTION_NAMES.get(name, name)
+        convention = BUILTIN_ORDERING_CONVENTIONS.get(canonical_name)
+        if convention is not None:
             return cls(
-                name=name,
-                sort_keys=("species", "cartesian_x"),
-                exclude_center_site=True,
+                name=canonical_name,
+                sort_keys=convention["sort_keys"],
+                exclude_center_site=convention["exclude_center_site"],
             )
+        available = sorted(BUILTIN_ORDERING_CONVENTIONS)
         raise ValueError(
             f"Unknown local site ordering convention '{name}'. "
-            "Available: ['kmcpy_default_v1', 'nasicon_publication_v1']"
+            f"Available: {available}"
         )
 
     @classmethod
@@ -41,10 +59,12 @@ class LocalSiteOrderingConvention:
         name = str(data["name"])
         try:
             base = cls.from_name(name)
+            resolved_name = base.name
         except ValueError:
             base = cls(name=name)
+            resolved_name = name
         return cls(
-            name=name,
+            name=resolved_name,
             sort_keys=tuple(data.get("sort_keys", base.sort_keys)),
             exclude_center_site=bool(
                 data.get("exclude_center_site", base.exclude_center_site)
@@ -61,7 +81,7 @@ class LocalSiteOrderingConvention:
     ) -> "LocalSiteOrderingConvention":
         """Normalize user input into an ordering convention."""
         if convention is None:
-            return cls.from_name("kmcpy_default_v1")
+            return cls.from_name("kmcpy_default")
         if isinstance(convention, cls):
             return convention
         if isinstance(convention, str):

@@ -7,8 +7,8 @@ from typing import Sequence
 
 from kmcpy.cli.init import DEFAULT_TEMPLATE_FILENAME, write_template
 from kmcpy.cli.pack_tabulated_model import (
-    DEFAULT_BUNDLE_FILENAME,
-    write_tabulated_model_bundle,
+    DEFAULT_MODEL_FILE_FILENAME,
+    write_tabulated_model_file,
 )
 
 
@@ -39,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     pack_tabulated_parser = subparsers.add_parser(
         "pack-tabulated-model",
-        help="Build a tabulated model bundle JSON from tabulated entries.",
+        help="Build a tabulated model file JSON from tabulated entries.",
     )
     pack_tabulated_parser.add_argument(
         "--entries-file",
@@ -61,8 +61,8 @@ def build_parser() -> argparse.ArgumentParser:
     pack_tabulated_parser.add_argument(
         "-o",
         "--output",
-        default=DEFAULT_BUNDLE_FILENAME,
-        help=f"Output bundle JSON path (default: {DEFAULT_BUNDLE_FILENAME})",
+        default=DEFAULT_MODEL_FILE_FILENAME,
+        help=f"Output model JSON path (default: {DEFAULT_MODEL_FILE_FILENAME})",
     )
     pack_tabulated_parser.add_argument(
         "-f",
@@ -86,7 +86,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "pack-tabulated-model":
-        output_path = write_tabulated_model_bundle(
+        output_path = write_tabulated_model_file(
             output=args.output,
             entries_file=args.entries_file,
             name=args.name,
@@ -94,7 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             probability_property=args.probability_property,
             force=args.force,
         )
-        print(f"Model bundle written to: {output_path}")
+        print(f"Model file written to: {output_path}")
         return 0
 
     parser.error(f"Unknown command: {args.command}")

@@ -13,6 +13,7 @@ import numpy as np
 from pymatgen.util.coord import get_angle
 
 from kmcpy.event.base import Event, EventLib
+from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
 logger = logging.getLogger(__name__) 
@@ -545,7 +546,7 @@ class EventGenerator:
         supercell_shape: Optional[List[int]],
         local_env_cutoff_dict: Optional[Dict[Tuple[str, str], float]],
         mobile_species: Optional[List[str]],
-        mobile_site_mapping: Optional[Dict],
+        site_mapping: Optional[Dict],
         local_env_cutoff: Optional[float],
         exclude_species: Optional[List[str]],
         rtol: Optional[float],
@@ -555,7 +556,7 @@ class EventGenerator:
             value is not None
             for value in (
                 mobile_species,
-                mobile_site_mapping,
+                site_mapping,
                 local_env_cutoff,
                 exclude_species,
                 rtol,
@@ -571,24 +572,28 @@ class EventGenerator:
         if supercell_shape is None:
             supercell_shape = [2, 1, 1]
 
+        if species_to_be_removed is not None or exclude_species is not None:
+            raise ValueError(
+                "species_to_be_removed and exclude_species are no longer supported; "
+                "use site_mapping to define active and fixed sites."
+            )
+        if site_mapping is None:
+            raise ValueError(
+                "site_mapping is required to generate events in the "
+                "active-site index space."
+            )
+
         if new_style_requested:
             if mobile_species is None:
                 mobile_species = []
-                if mobile_site_mapping:
-                    for key, value in mobile_site_mapping.items():
+                if site_mapping:
+                    for key, value in site_mapping.items():
                         values = value if isinstance(value, list) else [value]
                         value_tokens = {str(v) for v in values}
                         if "X" in value_tokens:
                             mobile_species.append(str(key))
                 if not mobile_species:
                     mobile_species = ["Na"]
-
-            if species_to_be_removed is None:
-                species_to_be_removed = list(exclude_species or [])
-            elif exclude_species:
-                species_to_be_removed = list(
-                    dict.fromkeys(list(species_to_be_removed) + list(exclude_species))
-                )
 
             if (
                 mobile_ion_identifier_type == "label"
@@ -601,8 +606,6 @@ class EventGenerator:
                 local_env_cutoff = 4.0
 
         else:
-            if species_to_be_removed is None:
-                species_to_be_removed = ["O2-", "O"]
             if local_env_cutoff_dict is None:
                 local_env_cutoff_dict = {("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0}
 
@@ -708,7 +711,7 @@ class EventGenerator:
         supercell_shape: Optional[List[int]] = None,
         event_file: str = "events.json",
         mobile_species: Optional[List[str]] = None,
-        mobile_site_mapping: Optional[Dict] = None,
+        site_mapping: Optional[Dict] = None,
         local_env_cutoff: Optional[float] = None,
         exclude_species: Optional[List[str]] = None,
         rtol: Optional[float] = None,
@@ -723,11 +726,9 @@ class EventGenerator:
         Event generation always follows the performant primitive-template -> supercell
         expansion workflow.
 
-        This method accepts both:
-        1. The legacy argument style (label/specie identifiers and cutoff dict).
-        2. The newer argument style (mobile_species/local_env_cutoff/exclude_species/rtol/atol).
-
-        New-style arguments are normalized into the same internal legacy backend.
+        This method accepts label/specie hop identifiers or mobile_species, but
+        site_mapping is always required because generated events are stored in the
+        active-site index space.
         """
         from kmcpy.external.local_env import CutOffDictNNKMCpy
         from kmcpy.external.structure import StructureKMCpy
@@ -754,7 +755,7 @@ class EventGenerator:
             supercell_shape=supercell_shape,
             local_env_cutoff_dict=local_env_cutoff_dict,
             mobile_species=mobile_species,
-            mobile_site_mapping=mobile_site_mapping,
+            site_mapping=site_mapping,
             local_env_cutoff=local_env_cutoff,
             exclude_species=exclude_species,
             rtol=rtol,
@@ -767,12 +768,21 @@ class EventGenerator:
             )
 
         logger.info(kmcpy.get_logo())
-        primitive_cell = StructureKMCpy.from_cif(
+        full_primitive_cell = StructureKMCpy.from_cif(
             structure_file, primitive=convert_to_primitive_cell
         )
-        primitive_cell.add_oxidation_state_by_guess()
-        if species_to_be_removed:
-            primitive_cell.remove_species(species_to_be_removed)
+        full_primitive_cell.add_oxidation_state_by_guess()
+        primitive_active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+            full_primitive_cell, site_mapping
+        )
+        event_active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+            full_primitive_cell,
+            site_mapping,
+            supercell_shape=supercell_shape,
+        )
+        primitive_cell = StructureKMCpy.from_sites(
+            primitive_active_site_index_map.active_structure().sites
+        )
 
         if local_env_cutoff_dict is None:
             if new_style_requested:
@@ -906,6 +916,7 @@ class EventGenerator:
         event_lib = EventLib()
         for event in events:
             event_lib.add_event(event)
+        event_lib.set_index_metadata(event_active_site_index_map)
 
         # Generate dependencies before saving
         logger.info("Generating event dependency matrix...")

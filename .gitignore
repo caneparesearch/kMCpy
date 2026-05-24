@@ -169,6 +169,7 @@ reference_distance_matrix.csv
 
 0th_reference_cluster.cif
 0th_reference_local_env.cif
+*th_reference_local_env.cif
 dev/scalability/input/*
 nohup.out*
 

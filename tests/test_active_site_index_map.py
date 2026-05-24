@@ -1,0 +1,78 @@
+import pytest
+from pymatgen.core import Lattice, Structure
+
+from kmcpy.structure import ActiveSiteIndexMap, LatticeStructure
+
+
+def _structure():
+    return Structure(
+        Lattice.cubic(10.0),
+        ["Na", "O", "Si", "Na"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]],
+        coords_are_cartesian=True,
+    )
+
+
+def test_active_site_map_infers_mutable_and_fixed_sites():
+    mapping = {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
+    index_map = ActiveSiteIndexMap.from_structure_and_mapping(_structure(), mapping)
+
+    assert index_map.primitive_active_indices == (0, 2, 3)
+    assert index_map.active_to_original == (0, 2, 3)
+    assert index_map.original_to_active == {0: 0, 2: 1, 3: 2}
+    assert index_map.active_site_count == 3
+    assert [site.species_string for site in index_map.active_structure()] == [
+        "Na",
+        "Si",
+        "Na",
+    ]
+
+
+def test_active_site_map_supercell_properties_and_fingerprint_are_stable():
+    mapping = {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
+    first = ActiveSiteIndexMap.from_structure_and_mapping(
+        _structure(), mapping, supercell_shape=(2, 1, 1)
+    )
+    second = ActiveSiteIndexMap.from_structure_and_mapping(
+        _structure(), mapping, supercell_shape=(2, 1, 1)
+    )
+
+    assert first.fingerprint == second.fingerprint
+    assert first.active_site_count == 6
+    active_structure = first.active_structure()
+    assert active_structure.site_properties["_kmcpy_active_site_index"] == list(range(6))
+    assert set(active_structure.site_properties["_kmcpy_primitive_site_index"]) == {0, 2, 3}
+
+
+def test_active_site_map_selects_active_values_and_rejects_wrong_lengths():
+    index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        _structure(), {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
+    )
+
+    assert index_map.select_active_values([-1, 1, -1]) == [-1, 1, -1]
+    assert index_map.select_active_values([-1, 9, 1, -1]) == [-1, 1, -1]
+    with pytest.raises(ValueError, match="Occupation length"):
+        index_map.select_active_values([1, 2])
+
+
+def test_active_site_map_accepts_neutral_mapping_for_oxidized_structure():
+    structure = _structure()
+    structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "Si": 4})
+
+    index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        structure, {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
+    )
+
+    assert index_map.primitive_active_indices == (0, 2, 3)
+
+
+def test_lattice_structure_exposes_active_site_map():
+    model = LatticeStructure(
+        _structure(), {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
+    )
+
+    active_model = model.get_active_lattice_structure()
+
+    assert model.active_site_index_map.active_site_count == 3
+    assert len(active_model.template_structure) == 3
+    assert hasattr(active_model, "source_active_site_index_map")

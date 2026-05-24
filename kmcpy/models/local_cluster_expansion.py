@@ -287,8 +287,7 @@ class LocalClusterExpansion(BaseModel):
             reference_local_lattice_structure: Reference local lattice used to
                 map structure sites into the model's local site order. If omitted,
                 the model must carry ``local_lattice_structure`` from ``build``.
-            exclude_species: Species removed before occupation mapping. If
-                omitted, use the reference local lattice's exclusion list.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
 
@@ -307,14 +306,18 @@ class LocalClusterExpansion(BaseModel):
 
         self.validate_reference_lattice_structure(reference)
 
+        if exclude_species is not None:
+            raise ValueError(
+                "exclude_species is no longer supported; encode fixed sites in "
+                "site_mapping with a single allowed species."
+            )
+
         structure_for_occ = structure.copy()
-        species_to_exclude = (
-            exclude_species
-            if exclude_species is not None
-            else getattr(reference, "exclude_species", None)
-        )
-        if species_to_exclude:
-            structure_for_occ.remove_species(species_to_exclude)
+        active_site_index_map = getattr(reference, "active_site_index_map", None)
+        if active_site_index_map is not None:
+            structure_for_occ = active_site_index_map.filter_active_structure(
+                structure_for_occ, tol=tol
+            )
         structure_for_occ.remove_oxidation_states()
 
         occ = reference.get_occ_from_structure(
@@ -425,7 +428,7 @@ class LocalClusterExpansion(BaseModel):
         corr = np.empty(shape=len(self.cluster_site_indices))
         
         # Extract local occupation using event's local environment indices
-        occ_sublat = deepcopy(occ_global[event.local_env_indices])
+        occ_sublat = deepcopy(occ_global[list(event.local_env_indices)])
             
         _calc_corr(corr, occ_sublat, self.cluster_site_indices)
         

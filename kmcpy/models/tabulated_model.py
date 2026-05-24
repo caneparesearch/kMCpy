@@ -141,7 +141,8 @@ class TabulatedEntry:
 class TabulatedModel(BaseModel):
     """Direct lookup model for sparse, exact event+occupation data."""
 
-    SUPPORTED_LOOKUP_KEY = "event_local_occ_v1"
+    SUPPORTED_LOOKUP_KEY = "event_local_occupation"
+    LEGACY_LOOKUP_KEYS = {"event_local_occ_v1": SUPPORTED_LOOKUP_KEY}
     SUPPORTED_PROBABILITY_MODE = "barrier_arrhenius"
     BOLTZMANN_CONSTANT_MEV_PER_K = 8.617333262145e-2
 
@@ -156,7 +157,7 @@ class TabulatedModel(BaseModel):
     ) -> None:
         super().__init__(name=name)
         self.name = name
-        self.lookup_key = lookup_key
+        self.lookup_key = self._canonical_lookup_key(lookup_key)
         self.default_property = default_property
         self.probability_mode = probability_mode
         self.probability_property = probability_property
@@ -173,6 +174,10 @@ class TabulatedModel(BaseModel):
         raise NotImplementedError(
             "TabulatedModel does not support fit(). Provide explicit table entries instead."
         )
+
+    @classmethod
+    def _canonical_lookup_key(cls, lookup_key: str) -> str:
+        return cls.LEGACY_LOOKUP_KEYS.get(lookup_key, lookup_key)
 
     def _validate_modes(self) -> None:
         if self.lookup_key != self.SUPPORTED_LOOKUP_KEY:
@@ -288,7 +293,7 @@ class TabulatedModel(BaseModel):
     ) -> None:
         """Mutating builder equivalent to ``from_entries(...)`` on an existing instance."""
         if lookup_key is not None:
-            self.lookup_key = lookup_key
+            self.lookup_key = self._canonical_lookup_key(lookup_key)
         if default_property is not None:
             self.default_property = default_property
         if probability_mode is not None:
@@ -421,10 +426,12 @@ class TabulatedModel(BaseModel):
             "entries": [entry.as_dict() for entry in self.entries],
         }
 
-    def to_model_bundle_dict(self) -> dict[str, Any]:
-        """Serialize this tabulated model into bundle format."""
+    def to_model_file_dict(self) -> dict[str, Any]:
+        """Serialize this tabulated model into the model-file format."""
+        from kmcpy.io.model_file import MODEL_FILE_FORMAT
+
         return {
-            "format": "kmcpy.model_bundle.v1",
+            "format": MODEL_FILE_FORMAT,
             "model_type": "tabulated",
             "tabulated": self.as_dict(),
         }
@@ -448,22 +455,22 @@ class TabulatedModel(BaseModel):
 
     @classmethod
     def from_file(cls, model_file: str) -> "TabulatedModel":
-        """Load from model file (bundle or direct model payload)."""
+        """Load from a model file or direct model payload."""
         with open(model_file, "r", encoding="utf-8") as fhandle:
             payload = json.load(fhandle)
 
         if (
             isinstance(payload, dict)
-            and payload.get("format") == "kmcpy.model_bundle.v1"
+            and payload.get("format") in {"kmcpy.model_file", "kmcpy.model_bundle.v1"}
         ):
             model_type = payload.get("model_type")
             if model_type != "tabulated":
                 raise ValueError(
-                    f"Expected bundle model_type 'tabulated', got '{model_type}'"
+                    f"Expected model_type 'tabulated', got '{model_type}'"
                 )
             tabulated_payload = payload.get("tabulated")
             if not isinstance(tabulated_payload, dict):
-                raise ValueError("Tabulated model bundle is missing object key 'tabulated'")
+                raise ValueError("Tabulated model file is missing object key 'tabulated'")
             return cls.from_dict(tabulated_payload)
 
         if isinstance(payload, dict):

@@ -15,7 +15,6 @@ from pymatgen.core.sites import PeriodicSite
 from kmcpy.simulator.config import Configuration, SystemConfig, RuntimeConfig
 from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker
-from kmcpy.io.config_io import ConfigIO
 
 
 @pytest.fixture
@@ -58,7 +57,7 @@ class TestTrackerParameterDeduplication:
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
             supercell_shape=(2, 1, 1),
-            immutable_sites=("Zr", "O")
+            site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
         )
         runtime = RuntimeConfig(
             name="TrackerTest",
@@ -189,7 +188,7 @@ class TestKMCIntegrationImprovements:
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
             supercell_shape=(2, 1, 1),
-            immutable_sites=("Zr", "O")
+            site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
         )
         runtime = RuntimeConfig(
             name="Phase3_Test",
@@ -214,14 +213,15 @@ class TestKMCIntegrationImprovements:
             'temperature': config.runtime_config.temperature,
             'attempt_frequency': config.runtime_config.attempt_frequency,
             'supercell_shape': config.system_config.supercell_shape,
-            'immutable_sites': config.system_config.immutable_sites,
+            'site_mapping': config.system_config.site_mapping,
         }
         
         # Verify parameter mapping
         assert kmc_params['temperature'] == 400.0
         assert kmc_params['attempt_frequency'] == 1e13
         assert kmc_params['supercell_shape'] == (2, 1, 1)
-        assert kmc_params['immutable_sites'] == ("Zr", "O")
+        assert kmc_params['site_mapping']['Zr'] == 'Zr'
+        assert kmc_params['site_mapping']['Na'] == ['Na', 'X']
         
         print("✓ KMC integration working correctly")
     
@@ -272,7 +272,7 @@ class TestPhase4InputSetMigration:
             mobile_ion_charge=1.0,
             elementary_hop_distance=4.0,
             convert_to_primitive_cell=False,
-            immutable_sites=('Zr', 'O'),
+            site_mapping={'Na': ['Na', 'X'], 'Zr': 'Zr', 'Si': ['Si', 'P'], 'O': 'O'},
             mobile_ion_specie='Na',
         )
         runtime = RuntimeConfig(

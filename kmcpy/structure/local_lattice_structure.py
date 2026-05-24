@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, List, Dict, Any
 
 from kmcpy.structure.lattice_structure import LatticeStructure
+from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 from kmcpy.structure.local_site_ordering import (
     LocalSiteOrderingConvention,
     ordered_site_hash,
@@ -22,23 +23,40 @@ class LocalLatticeStructure(LatticeStructure):
     """
     def __init__(self, template_structure:Structure, 
                  center, cutoff, 
-                 specie_site_mapping=None,
+                 site_mapping=None,
                  basis_type = 'chebyshev',
                  is_write_basis=False, 
                  exclude_species=None,
                  ordering_convention=None,
                  exclude_center_site=None):
+        if exclude_species:
+            raise ValueError(
+                "exclude_species is no longer supported; encode fixed sites in "
+                "site_mapping with a single allowed species."
+            )
+
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
-        # Preserve oxidized exclude tokens after oxidation states are stripped.
-        exclude_species = self._normalize_exclude_species(exclude_species)
+        active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+            working_structure, site_mapping
+        )
+        if isinstance(center, int):
+            primitive_to_active = active_site_index_map.primitive_to_active
+            if center not in primitive_to_active:
+                raise ValueError(
+                    f"center site {center} is fixed by site_mapping and is "
+                    "not part of the active-site index space"
+                )
+            center = primitive_to_active[center]
+        working_structure = active_site_index_map.active_structure()
         working_structure.remove_oxidation_states()
         ordering = LocalSiteOrderingConvention.resolve(ordering_convention)
         if exclude_center_site is not None:
             ordering = ordering.with_exclude_center_site(exclude_center_site)
 
-        super().__init__(template_structure=working_structure, specie_site_mapping=specie_site_mapping,
+        super().__init__(template_structure=working_structure, site_mapping=site_mapping,
                          basis_type=basis_type)
+        self.active_site_index_map = active_site_index_map
         self.cutoff = cutoff
         self.is_write_basis = is_write_basis
         self.ordering_convention = ordering
@@ -55,16 +73,7 @@ class LocalLatticeStructure(LatticeStructure):
             logger.debug(f"Dummy site: {self.center_site}")
         else:
             raise ValueError("Center must be an index or a list of fractional coordinates.")
-        self.exclude_species = list(exclude_species or [])
-        if exclude_species:
-            keep_indices = [
-                index
-                for index, site in enumerate(self.template_structure)
-                if site.species_string not in exclude_species
-                and str(site.specie) not in exclude_species
-            ]
-            self.template_structure.remove_species(exclude_species)
-            self.allowed_species = [self.allowed_species[index] for index in keep_indices]
+        self.exclude_species = []
 
         local_env_sites = self.template_structure.get_sites_in_sphere(
             self.center_site.coords, cutoff, include_index=True
@@ -135,7 +144,7 @@ class LocalLatticeStructure(LatticeStructure):
         The ordering matches the historical event-generator behavior:
         species first, then x coordinate.
         """
-        convention = LocalSiteOrderingConvention.from_name("nasicon_publication_v1")
+        convention = LocalSiteOrderingConvention.from_name("nasicon_nat_commun_2022")
         return sorted(neighbor_info, key=lambda x: convention._sort_key(x["site"]))
 
     @classmethod
@@ -205,7 +214,7 @@ class LocalLatticeStructure(LatticeStructure):
             template_structure=self.template_structure,
             center=self.center_site if hasattr(self, 'center_site') else 0,
             cutoff=self.cutoff,
-            specie_site_mapping=self.specie_site_mapping,
+            site_mapping=self.site_mapping,
             basis_type=self.basis_type if hasattr(self, 'basis_type') else 'occupation'
         )
         
@@ -268,7 +277,7 @@ class LocalLatticeStructure(LatticeStructure):
 
     @classmethod
     def from_lattice_structure(cls, lattice_structure: LatticeStructure, center, cutoff,
-                               specie_site_mapping=None, basis_type='chebyshev',
+                               site_mapping=None, basis_type='chebyshev',
                                is_write_basis=False, exclude_species=None,
                                ordering_convention=None, exclude_center_site=None):
         """
@@ -278,10 +287,10 @@ class LocalLatticeStructure(LatticeStructure):
             lattice_structure (LatticeStructure): The base lattice structure.
             center: Center site or coordinates for the local environment.
             cutoff (float): Cutoff distance for the local environment.
-            specie_site_mapping (dict): Mapping of species to sites.
+            site_mapping (dict): Mapping of species to sites.
             basis_type (str): Type of basis to use.
             is_write_basis (bool): Whether to write the basis to a file.
-            exclude_species (list): Species to exclude from the local environment.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
         
         Returns:
             LocalLatticeStructure: The created local lattice structure.
@@ -290,10 +299,10 @@ class LocalLatticeStructure(LatticeStructure):
             template_structure=lattice_structure.template_structure,
             center=center,
             cutoff=cutoff,
-            specie_site_mapping=(
-                specie_site_mapping
-                if specie_site_mapping is not None
-                else lattice_structure.specie_site_mapping
+            site_mapping=(
+                site_mapping
+                if site_mapping is not None
+                else lattice_structure.site_mapping
             ),
             basis_type=basis_type,
             is_write_basis=is_write_basis,

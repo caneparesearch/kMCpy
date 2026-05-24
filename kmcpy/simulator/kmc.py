@@ -186,7 +186,7 @@ class KMC:
     def from_config(cls, config: "Configuration") -> "KMC":
         """Create KMC instance from Configuration (recommended initialization method).
 
-        This is the main initialization method that leverages ConfigIO
+        This is the main initialization method that uses the component loader
         for all component loading operations and provides a clean interface.
 
         Args:
@@ -195,10 +195,9 @@ class KMC:
         Returns:
             KMC: An instance of the KMC class.
         """
-        # Use centralized component loading from ConfigIO
-        from kmcpy.io.config_io import ConfigIO
+        from kmcpy.simulator.components import load_simulation_components
         
-        structure, model, event_lib, simulation_state = ConfigIO.load_simulation_components(config)
+        structure, model, event_lib, simulation_state = load_simulation_components(config)
         
         return cls(
             structure=structure,

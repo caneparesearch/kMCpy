@@ -34,7 +34,7 @@ def build_template() -> str:
             structure_file: "path/to/structure.cif"
             # Path to migration event library JSON
             event_file: "path/to/event.json"
-            # Path to bundled model JSON (format: kmcpy.model_bundle.v1)
+            # Path to serialized model JSON
             model_file: "path/to/model.json"
 
             # ----- Optional system files -----
@@ -56,8 +56,9 @@ def build_template() -> str:
             elementary_hop_distance: 1.0
             # Model selector: composite_lce / lce / tabulated
             model_type: "composite_lce"
-            # Sites to freeze (indices, labels, or species depending on workflow)
-            immutable_sites: []
+            # Site mapping. One allowed species means fixed; multiple means active.
+            site_mapping:
+              Li: [Li, X]
             # Convert structure to primitive cell before simulation
             convert_to_primitive_cell: false
 

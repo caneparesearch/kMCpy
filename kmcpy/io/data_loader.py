@@ -110,8 +110,7 @@ class NEBEntry:
             reference_local_lattice_structure: Reference local lattice used to
                 map structures into occupation vectors. If omitted, the model
                 must carry ``local_lattice_structure`` from ``build``.
-            exclude_species: Species to remove from input structures before
-                computing occupations. If omitted, the reference local lattice's
+            exclude_species: Removed legacy argument; use site_mapping fixed sites. If omitted, the reference local lattice's
                 exclusion list is used when available.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
@@ -171,10 +170,15 @@ class NEBDataLoader(DataLoader):
         exclude_species: Optional[Sequence[str]] = None,
     ):
         """Initialize the NEBDataLoader."""
+        if exclude_species is not None:
+            raise ValueError(
+                "exclude_species is no longer supported; encode fixed sites in "
+                "site_mapping with a single allowed species."
+            )
         self.neb_entries: List[NEBEntry] = []
         self.model = model
         self.reference_local_lattice_structure = reference_local_lattice_structure
-        self.exclude_species = list(exclude_species) if exclude_species is not None else None
+        self.exclude_species = None
         if model is not None:
             self.model_name = getattr(model, "name", "unknown")
 
@@ -207,11 +211,15 @@ class NEBDataLoader(DataLoader):
             model: Local Cluster Expansion model instance
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Species to remove from input structures before
-                computing occupations.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
         """
+        if exclude_species is not None:
+            raise ValueError(
+                "exclude_species is no longer supported; encode fixed sites in "
+                "site_mapping with a single allowed species."
+            )
         if not isinstance(neb_entry, NEBEntry):
             raise ValueError("Entry must be a NEBEntry instance")
 
@@ -267,8 +275,7 @@ class NEBDataLoader(DataLoader):
             metadata: Optional metadata stored with the entry.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Species to remove from input structures before
-                computing occupations.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
 
@@ -312,8 +319,7 @@ class NEBDataLoader(DataLoader):
             metadata: Optional metadata stored with the entry.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Species to remove from input structures before
-                computing occupations.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
             **from_file_kwargs: Additional keyword arguments passed to pymatgen.
@@ -359,8 +365,7 @@ class NEBDataLoader(DataLoader):
             metadata: Optional metadata entries matching ``structure_files``.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Species to remove from input structures before
-                computing occupations.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
             **from_file_kwargs: Additional keyword arguments passed to pymatgen.
@@ -408,8 +413,7 @@ class NEBDataLoader(DataLoader):
             model: Local Cluster Expansion model instance.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Species to remove from input structures before
-                computing occupations.
+            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             metadata: Optional metadata entries matching ``structure_files``.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.

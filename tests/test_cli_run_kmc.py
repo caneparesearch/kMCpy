@@ -29,7 +29,7 @@ def test_run_kmc_direct_args_accept_model_file(monkeypatch):
         attempt_frequency=1e13,
         temperature=300.0,
         convert_to_primitive_cell=False,
-        immutable_sites=[],
+        site_mapping={"Na": ["Na", "X"]},
         initial_occupations=[1, -1],
     )
 
@@ -45,7 +45,7 @@ def test_run_kmc_direct_args_parse_list_like_strings(monkeypatch):
         @classmethod
         def from_config(cls, config):
             captured["supercell_shape"] = config.system_config.supercell_shape
-            captured["immutable_sites"] = config.system_config.immutable_sites
+            captured["site_mapping"] = config.system_config.site_mapping
             return cls()
 
         def run(self, config):
@@ -62,13 +62,13 @@ def test_run_kmc_direct_args_parse_list_like_strings(monkeypatch):
         attempt_frequency=1e13,
         temperature=300.0,
         convert_to_primitive_cell=False,
-        immutable_sites='["Zr4+", "O2-"]',
+        site_mapping='{ "Na": ["Na", "X"], "O": "O" }',
     )
 
     run_kmc_module.run_kmc(args)
 
     assert captured["supercell_shape"] == (2, 1, 1)
-    assert captured["immutable_sites"] == ("Zr4+", "O2-")
+    assert captured["site_mapping"] == {"Na": ["Na", "X"], "O": "O"}
 
 
 @pytest.mark.unit

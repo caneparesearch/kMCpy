@@ -16,18 +16,18 @@ def global_lattice_model_and_env():
         [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]],
         coords_are_cartesian=True
     )
-    specie_site_mapping = {"Na": ["Na", "X"], "Cl": ["Cl"], "Br": ["Br"]}  # X represents a vacancy
+    site_mapping = {"Na": ["Na", "X"], "Cl": ["Cl"], "Br": ["Br"]}  # X represents a vacancy
     
     # Create the global model
     global_model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping=specie_site_mapping
+        site_mapping=site_mapping
     )
     
     # Create a local environment centered on the first Na atom
     local_env = LocalLatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping=specie_site_mapping,
+        site_mapping=site_mapping,
         center=[0, 0, 0],
         cutoff=1.5
     )
@@ -38,13 +38,10 @@ def test_local_environment_setup(global_lattice_model_and_env):
     """Test that the LocalLatticeStructure is set up correctly."""
     _, local_env = global_lattice_model_and_env
     
-    # The local environment should contain the Na at [0,0,0] and the Cl at [1,0,0]
-    assert len(local_env.structure) == 2
-    # The species should be Cl and Na, sorted by species name
-    assert local_env.structure[0].species_string == "Cl"
-    assert local_env.structure[1].species_string == "Na"
-    # Check that the global indices are correct (1 for Cl, 0 for Na)
-    assert local_env.site_indices == [1, 0]
+    # Fixed Cl/Br sites are excluded from the compact active-site space.
+    assert len(local_env.structure) == 1
+    assert local_env.structure[0].species_string == "Na"
+    assert local_env.site_indices == [0]
 
 
 def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_x():
@@ -65,13 +62,13 @@ def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_
 
     local_env = LocalLatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
         center=0,
         cutoff=3.1,
-        ordering_convention="nasicon_publication_v1",
+        ordering_convention="nasicon_nat_commun_2022",
     )
 
-    assert local_env.ordering_convention.name == "nasicon_publication_v1"
+    assert local_env.ordering_convention.name == "nasicon_nat_commun_2022"
     assert local_env.site_indices == [1, 2, 3, 4]
     assert [site.species_string for site in local_env.structure] == [
         "Na",
@@ -88,11 +85,11 @@ def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_
 
 
 def test_local_site_ordering_convention_round_trip():
-    convention = LocalSiteOrderingConvention.from_name("nasicon_publication_v1")
+    convention = LocalSiteOrderingConvention.from_name("nasicon_nat_commun_2022")
 
     restored = LocalSiteOrderingConvention.resolve(convention.as_dict())
     restored_from_name_only = LocalSiteOrderingConvention.resolve(
-        {"name": "nasicon_publication_v1"}
+        {"name": "nasicon_nat_commun_2022"}
     )
 
     assert restored == convention
@@ -115,7 +112,6 @@ def test_get_local_occupation(global_lattice_model_and_env):
     
     # The local environment is perfect (identical to template), so all sites should be occupied
     expected_local_occ = [
-        global_model.basis.occupied_value,  # All sites are occupied
         global_model.basis.occupied_value
     ]
     
@@ -125,21 +121,18 @@ def test_get_local_occupation_with_vacancy(global_lattice_model_and_env):
     """Test local occupation when there's a vacancy in the local environment."""
     global_model, local_env = global_lattice_model_and_env
     
-    # Create a structure where the Cl atom is missing (a vacancy)
+    # Create a structure where the active Na site is missing.
     structure_with_vacancy = global_model.template_structure.copy()
-    structure_with_vacancy.remove_sites([1])  # Remove the Cl atom at index 1
-    
-    # 1. Get the full occupation vector
-    full_occ = global_model.get_occ_from_structure(structure_with_vacancy)
-    
-    # 2. Get the local occupation by slicing
+    structure_with_vacancy.remove_sites([0])
+
+    active_map = global_model.get_active_site_index_map()
+    active_model = global_model.get_active_lattice_structure()
+    active_structure = active_map.filter_active_structure(structure_with_vacancy)
+    full_occ = active_model.get_occ_from_structure(active_structure)
     local_occ = full_occ[local_env.site_indices]
-    
-    # The Cl site (index 1 in global, index 0 in local_env.site_indices) is vacant.
-    # The Na site (index 0 in global, index 1 in local_env.site_indices) is occupied.
+
     expected_local_occ = [
-        global_model.basis.vacant_value,    # Cl site is vacant
-        global_model.basis.occupied_value   # Na site is occupied  
+        global_model.basis.vacant_value
     ]
     
     assert local_occ.array_equal(expected_local_occ)
@@ -154,24 +147,23 @@ def test_local_lattice_structure_does_not_mutate_input_structure():
         [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
         coords_are_cartesian=True,
     )
-    specie_site_mapping = {"Na": ["Na", "X"], "Cl": ["Cl"]}
+    site_mapping = {"Na": ["Na", "X"], "Cl": ["Cl"]}
 
     original_len = len(template_structure)
     original_species = [site.species_string for site in template_structure]
 
     LocalLatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping=specie_site_mapping,
+        site_mapping=site_mapping,
         center=[0, 0, 0],
         cutoff=2.5,
-        exclude_species=["Cl"],
     )
 
     assert len(template_structure) == original_len
     assert [site.species_string for site in template_structure] == original_species
 
 
-def test_local_lattice_structure_exclude_species_updates_allowed_species():
+def test_local_lattice_structure_removes_fixed_sites_from_active_space():
     lattice = Lattice.cubic(10.0)
     template_structure = Structure(
         lattice,
@@ -182,10 +174,9 @@ def test_local_lattice_structure_exclude_species_updates_allowed_species():
 
     local_lattice = LocalLatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
         center=[0, 0, 0],
         cutoff=3.0,
-        exclude_species=["O"],
     )
 
     substituted_structure = Structure(
@@ -194,9 +185,10 @@ def test_local_lattice_structure_exclude_species_updates_allowed_species():
         [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
         coords_are_cartesian=True,
     )
-    substituted_structure.remove_species(["O"])
-
-    occ = local_lattice.get_occ_from_structure(substituted_structure)
+    active_structure = local_lattice.active_site_index_map.filter_active_structure(
+        substituted_structure
+    )
+    occ = local_lattice.get_occ_from_structure(active_structure)
 
     assert len(local_lattice.allowed_species) == len(local_lattice.template_structure)
     assert occ.array_equal([
@@ -217,20 +209,24 @@ def test_local_lattice_structure_accepts_neutral_mapping_for_oxidized_template()
 
     local_lattice = LocalLatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
         center=0,
         cutoff=3.0,
-        exclude_species=["O"],
     )
 
     substituted_structure = Structure(
         lattice,
-        ["Na", "P"],
-        [[0, 0, 0], [2, 0, 0]],
+        ["Na", "O", "P"],
+        [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
         coords_are_cartesian=True,
     )
+    substituted_structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "P": 5})
+    substituted_structure.remove_oxidation_states()
 
-    occ = local_lattice.get_occ_from_structure(substituted_structure)
+    active_structure = local_lattice.active_site_index_map.filter_active_structure(
+        substituted_structure
+    )
+    occ = local_lattice.get_occ_from_structure(active_structure)
 
     assert all(species is not None for species in local_lattice.allowed_species)
     assert occ.array_equal([
@@ -239,7 +235,7 @@ def test_local_lattice_structure_accepts_neutral_mapping_for_oxidized_template()
     ])
 
 
-def test_local_lattice_structure_excludes_oxidized_species_after_normalization():
+def test_local_lattice_structure_infers_fixed_oxidized_species():
     lattice = Lattice.cubic(10.0)
     template_structure = Structure(
         lattice,
@@ -251,10 +247,9 @@ def test_local_lattice_structure_excludes_oxidized_species_after_normalization()
 
     local_lattice = LocalLatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
+        site_mapping={"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]},
         center=0,
         cutoff=3.0,
-        exclude_species=["O2-"],
     )
 
     assert [site.species_string for site in local_lattice.template_structure] == [

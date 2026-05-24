@@ -1,21 +1,34 @@
 {
-    "task": "kmc",
     "attempt_frequency": 5000000000000,
     "equilibration_passes": 1,
     "kmc_passes": 100,
-    "supercell_shape": [2,1,1],
+    "supercell_shape": [
+        2,
+        1,
+        1
+    ],
     "model_file": "./files/input/model.json",
     "structure_file": "./files/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
     "event_file": "./files/input/events.json",
-    "event_dependencies": "./files/event_dependencies.csv",
     "initial_state_file": "./files/input/initial_state.json",
     "mobile_ion_specie": "Na",
     "temperature": 298,
-    "immutable_sites": ["Zr","O","Zr4+","O2-"],
     "random_seed": 12345,
     "convert_to_primitive_cell": true,
     "mobile_ion_charge": 1.0,
     "elementary_hop_distance": 3.47782,
     "dimension": 3,
-    "name": "NASICON_Test"
+    "name": "NASICON_Test",
+    "site_mapping": {
+        "Na": [
+            "Na",
+            "X"
+        ],
+        "Zr": "Zr",
+        "Si": [
+            "Si",
+            "P"
+        ],
+        "O": "O"
+    }
 }

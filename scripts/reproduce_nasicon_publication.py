@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 
 from kmcpy.event import Event, EventLib
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.io.model_file import build_model_file_from_legacy_files, save_model_file
 from kmcpy.io.serialization import to_json_compatible
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
@@ -91,7 +91,7 @@ def _legacy_lce_to_dict(legacy_lce: Any, name: str) -> dict[str, Any]:
         "name": name,
         "cluster_site_indices": _nested_int_lists(cluster_site_indices),
         "ordering_convention": LocalSiteOrderingConvention.from_name(
-            "nasicon_publication_v1"
+            "nasicon_nat_commun_2022"
         ).as_dict(),
     }
 
@@ -188,22 +188,22 @@ def convert_legacy_lce_model(source_repo: Path, output_dir: Path) -> dict[str, P
     _json_dump(lce_json, _legacy_lce_to_dict(legacy_lce, "NASICONLegacyLCE"))
 
     model_json = artifacts_dir / "model.json"
-    bundle = ConfigIO.build_model_bundle_from_legacy_files(
+    model_data = build_model_file_from_legacy_files(
         kra_lce=str(lce_json),
         kra_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_ekra.json"),
         site_lce=str(lce_json),
         site_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_esite.json"),
     )
-    ConfigIO.save_model_bundle(bundle, str(model_json))
+    save_model_file(model_data, str(model_json))
 
-    keci_length = len(bundle["kra"]["parameters"]["keci"])
-    cluster_count = len(bundle["kra"]["lce"]["cluster_site_indices"])
+    keci_length = len(model_data["kra"]["parameters"]["keci"])
+    cluster_count = len(model_data["kra"]["lce"]["cluster_site_indices"])
     if keci_length != cluster_count:
         raise ValueError(
             f"Fitted KRA KECI length {keci_length} does not match "
             f"legacy LCE cluster count {cluster_count}"
         )
-    site_keci_length = len(bundle["site"]["parameters"]["keci"])
+    site_keci_length = len(model_data["site"]["parameters"]["keci"])
     if site_keci_length != cluster_count:
         raise ValueError(
             f"Fitted site KECI length {site_keci_length} does not match "
@@ -270,7 +270,7 @@ def run_quick_kmc(
         equilibration_passes=1,
         kmc_passes=20,
         supercell_shape=(2, 2, 2),
-        immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+        site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
         convert_to_primitive_cell=True,
         mobile_ion_charge=1.0,
         elementary_hop_distance=3.47782,

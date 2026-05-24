@@ -163,14 +163,17 @@ run_kmc --help
 ## Build tabulated model files (sparse data)
 For sparse datasets, you can use `TabulatedModel` with direct event+occupation lookup.
 
-Build a model bundle via API:
+Build a model file via API:
 ```python
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.io.model_file import (
+    build_tabulated_model_file_from_entries_file,
+    save_model_file,
+)
 
-bundle = ConfigIO.build_tabulated_model_bundle_from_file(
+model_data = build_tabulated_model_file_from_entries_file(
     entries_file="tabulated_entries.json"
 )
-ConfigIO.save_model_bundle(bundle, "model.json")
+save_model_file(model_data, "model.json")
 ```
 
 Build via CLI:

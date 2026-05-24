@@ -26,7 +26,7 @@ def test_local_environment_comparator_integration():
     try:
         from kmcpy.structure import LocalLatticeStructure
         
-        mobile_site_mapping = {
+        site_mapping = {
             "Na": ["Na", "X"],
             "Cl": ["Cl"]
         }
@@ -36,7 +36,7 @@ def test_local_environment_comparator_integration():
             template_structure=structure,
             center=0,
             cutoff=4.0,
-            specie_site_mapping=mobile_site_mapping
+            site_mapping=site_mapping
         )
         
         print(f"✓ Created LocalLatticeStructure with {len(local_env1.structure)} neighbors")
@@ -54,7 +54,7 @@ def test_local_environment_comparator_integration():
             template_structure=structure,
             center=1,
             cutoff=4.0,
-            specie_site_mapping=mobile_site_mapping
+            site_mapping=site_mapping
         )
         
         # Test equivalence checking

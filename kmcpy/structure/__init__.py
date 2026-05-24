@@ -7,6 +7,7 @@ occupation management, basis functions, and local environment comparison.
 
 from .lattice_structure import LatticeStructure
 from .vacancy import Vacancy
+from .active_site_index_map import ActiveSiteIndexMap
 from .local_lattice_structure import LocalLatticeStructure
 from .local_site_ordering import (
     LocalSiteOrderingConvention,
@@ -39,6 +40,7 @@ from .basis import (
 __all__ = [
     "LatticeStructure",
     "Vacancy",
+    "ActiveSiteIndexMap",
     "LocalLatticeStructure",
     "LocalSiteOrderingConvention",
     "ordered_site_hash",

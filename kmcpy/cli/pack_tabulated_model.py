@@ -1,4 +1,4 @@
-"""CLI helper to build tabulated model bundles from JSON entries."""
+"""CLI helper to build tabulated model files from JSON entries."""
 
 from __future__ import annotations
 
@@ -6,13 +6,16 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.io.model_file import (
+    build_tabulated_model_file_from_entries_file,
+    save_model_file,
+)
 
 
-DEFAULT_BUNDLE_FILENAME = "model.json"
+DEFAULT_MODEL_FILE_FILENAME = "model.json"
 
 
-def write_tabulated_model_bundle(
+def write_tabulated_model_file(
     output: str | Path,
     entries_file: str,
     name: str | None = None,
@@ -20,7 +23,7 @@ def write_tabulated_model_bundle(
     probability_property: str | None = None,
     force: bool = False,
 ) -> Path:
-    """Build and write a tabulated model bundle from JSON input."""
+    """Build and write a tabulated model file from JSON input."""
     output_path = Path(output).expanduser()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -29,20 +32,20 @@ def write_tabulated_model_bundle(
             f"Refusing to overwrite existing file: {output_path}. Use --force to overwrite."
         )
 
-    bundle = ConfigIO.build_tabulated_model_bundle_from_file(
+    model_data = build_tabulated_model_file_from_entries_file(
         entries_file=entries_file,
         name=name,
         default_property=default_property,
         probability_property=probability_property,
     )
-    ConfigIO.save_model_bundle(bundle, str(output_path))
+    save_model_file(model_data, str(output_path))
     return output_path
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Build parser for standalone tabulated model packing command."""
     parser = argparse.ArgumentParser(
-        description="Build a tabulated kMCpy model bundle from JSON entries.",
+        description="Build a tabulated kMCpy model file from JSON entries.",
     )
     parser.add_argument(
         "--entries-file",
@@ -61,8 +64,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-o",
         "--output",
-        default=DEFAULT_BUNDLE_FILENAME,
-        help=f"Output bundle JSON path (default: {DEFAULT_BUNDLE_FILENAME})",
+        default=DEFAULT_MODEL_FILE_FILENAME,
+        help=f"Output model JSON path (default: {DEFAULT_MODEL_FILE_FILENAME})",
     )
     parser.add_argument(
         "-f",
@@ -74,10 +77,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point for creating a tabulated model bundle."""
+    """Entry point for creating a tabulated model file."""
     parser = build_parser()
     args = parser.parse_args(argv)
-    output_path = write_tabulated_model_bundle(
+    output_path = write_tabulated_model_file(
         output=args.output,
         entries_file=args.entries_file,
         name=args.name,
@@ -85,7 +88,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         probability_property=args.probability_property,
         force=args.force,
     )
-    print(f"Tabulated model bundle written to: {output_path}")
+    print(f"Tabulated model file written to: {output_path}")
     return 0
 
 

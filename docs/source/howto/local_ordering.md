@@ -13,7 +13,7 @@ from kmcpy.structure import LocalLatticeStructure
 
 local_lattice = LocalLatticeStructure(
     template_structure=structure,
-    specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+    site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
     center=0,
     cutoff=5.0,
 )
@@ -27,15 +27,20 @@ opt into the historical convention:
 ```python
 local_lattice = LocalLatticeStructure(
     template_structure=structure,
-    specie_site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"], "P": ["Si", "P"]},
+    site_mapping={
+        "Na": ["Na", "X"],
+        "Zr": "Zr",
+        "Si": ["Si", "P"],
+        "P": ["Si", "P"],
+        "O": "O",
+    },
     center=3,
     cutoff=5.0,
-    exclude_species=["Zr4+", "O2-", "O", "Zr"],
-    ordering_convention="nasicon_publication_v1",
+    ordering_convention="nasicon_nat_commun_2022",
 )
 ```
 
-`nasicon_publication_v1` uses the selected Na site as the geometric center,
+`nasicon_nat_commun_2022` uses the selected active-site Na as the geometric center,
 removes that center site from the local occupation vector, and sorts the
 remaining local sites by species and Cartesian `x` coordinate. This matches the
 single-unit local environment convention used by the original NASICON code.
@@ -47,7 +52,7 @@ feature ordering explicit:
 ```json
 {
   "ordering_convention": {
-    "name": "nasicon_publication_v1",
+    "name": "nasicon_nat_commun_2022",
     "sort_keys": ["species", "cartesian_x"],
     "exclude_center_site": true
   },

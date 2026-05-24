@@ -16,14 +16,13 @@ reference = LocalLatticeStructure(
     template_structure=reference_structure,
     center=0,
     cutoff=4.0,
-    specie_site_mapping={
+    site_mapping={
         "Na": ["Na", "X"],
         "Zr": "Zr",
         "Si": ["Si", "P"],
         "O": "O",
     },
     basis_type="chebyshev",
-    exclude_species=["O2-", "O", "Zr4+", "Zr"],
 )
 
 loader = NEBDataLoader.from_structure_files(

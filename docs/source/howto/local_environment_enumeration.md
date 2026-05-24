@@ -2,7 +2,7 @@
 
 Use `enumerate_local_environments` to build ordered local configurations from a
 `LatticeStructure`. The function returns pymatgen structures together with the
-full and local occupation vectors, so the result can be passed directly into
+compact active-site and local occupation vectors, so the result can be passed directly into
 local-cluster-expansion or NEB preparation workflows.
 
 ```python
@@ -20,7 +20,7 @@ template = Structure(
 
 lattice_model = LatticeStructure(
     template_structure=template,
-    specie_site_mapping={
+    site_mapping={
         "Na": ["Na", "X"],
         "Si": ["Si", "P"],
         "Cl": "Cl",
@@ -97,7 +97,7 @@ for pair in endpoint_pairs:
     final_structure = pair.final
 ```
 
-`mobile_ion_indices` is the pair of lattice-site indices for the hop. You can
+`mobile_ion_indices` is the pair of compact active-site indices for the hop. You can
 also pass an object produced by kMCpy event generation, as long as it has a
 `mobile_ion_indices` attribute.
 

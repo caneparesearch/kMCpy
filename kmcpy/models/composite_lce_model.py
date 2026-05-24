@@ -189,11 +189,11 @@ class CompositeLCEModel(CompositeModel):
         }
 
     @staticmethod
-    def _extract_parameters_for_bundle(model: LocalClusterExpansion, label: str) -> dict:
-        """Extract fitted parameters from a local model for bundle serialization."""
+    def _extract_parameters_for_model_file(model: LocalClusterExpansion, label: str) -> dict:
+        """Extract fitted parameters from a local model for model-file serialization."""
         if not hasattr(model, "keci") or not hasattr(model, "empty_cluster"):
             raise ValueError(
-                f"Cannot serialize '{label}' model to bundle: missing fitted parameters "
+                f"Cannot serialize '{label}' model to file: missing fitted parameters "
                 "(expected attributes 'keci' and 'empty_cluster')."
             )
         return {
@@ -201,45 +201,47 @@ class CompositeLCEModel(CompositeModel):
             "empty_cluster": model.empty_cluster,
         }
 
-    def to_model_bundle_dict(self) -> dict:
+    def to_model_file_dict(self) -> dict:
         """
-        Convert this composite model into a model bundle payload (kmcpy.model_bundle.v1).
+        Convert this composite model into a model file payload.
         """
         if self.kra_model is None:
             raise ValueError("Cannot serialize composite model: kra_model is missing")
 
-        bundle = {
-            "format": "kmcpy.model_bundle.v1",
+        from kmcpy.io.model_file import MODEL_FILE_FORMAT
+
+        model_data = {
+            "format": MODEL_FILE_FORMAT,
             "model_type": "composite_lce",
             "kra": {
                 "lce": self.kra_model.as_dict(),
-                "parameters": self._extract_parameters_for_bundle(self.kra_model, "kra"),
+                "parameters": self._extract_parameters_for_model_file(self.kra_model, "kra"),
                 "fit_metadata": {"time_stamp": None, "time": None},
             },
         }
 
         if self.site_model is not None:
-            bundle["site"] = {
+            model_data["site"] = {
                 "lce": self.site_model.as_dict(),
-                "parameters": self._extract_parameters_for_bundle(self.site_model, "site"),
+                "parameters": self._extract_parameters_for_model_file(self.site_model, "site"),
                 "fit_metadata": {"time_stamp": None, "time": None},
             }
 
-        return bundle
+        return model_data
 
     def to_json(self, fname: str) -> None:
         """
-        Save this composite model as a model bundle JSON file.
+        Save this composite model as a model file JSON file.
 
         The output is directly consumable by `CompositeLCEModel.from_file(...)`
         and by Configuration `model_file`.
         """
         from kmcpy.io import convert
 
-        logger.info("Saving composite model bundle to: %s", fname)
-        bundle = self.to_model_bundle_dict()
+        logger.info("Saving composite model file to: %s", fname)
+        model_data = self.to_model_file_dict()
         with open(fname, "w") as fhandle:
-            json.dump(bundle, fhandle, indent=4, default=convert)
+            json.dump(model_data, fhandle, indent=4, default=convert)
     
     def build(self, *args, **kwargs):
         """
@@ -302,29 +304,29 @@ class CompositeLCEModel(CompositeModel):
     @classmethod
     def from_file(cls, model_file: str) -> "CompositeLCEModel":
         """
-        Create a CompositeLCEModel from a bundled model file.
+        Create a CompositeLCEModel from a serialized model file.
         
         Args:
-            model_file: Path to bundled model file (format: kmcpy.model_bundle.v1)
+            model_file: Path to serialized model file
             
         Returns:
             CompositeLCEModel: Configured composite model with loaded parameters
         """
-        from kmcpy.io.config_io import ConfigIO
+        from kmcpy.io.model_file import load_model_file
         
-        logger.info(f"Loading composite model bundle from: {model_file}")
-        bundle = ConfigIO.load_model_bundle(model_file)
+        logger.info(f"Loading composite model file from: {model_file}")
+        model_data = load_model_file(model_file)
         
         # Load KRA model
-        kra_component = bundle["kra"]
+        kra_component = model_data["kra"]
         kra_model = LocalClusterExpansion.from_dict(kra_component["lce"])
         kra_params = kra_component["parameters"]
         kra_model.set_parameters(kra_params)
         
         # Load optional site model
         site_model = None
-        if bundle.get("site") is not None:
-            site_component = bundle["site"]
+        if model_data.get("site") is not None:
+            site_component = model_data["site"]
             site_model = LocalClusterExpansion.from_dict(site_component["lce"])
             site_params = site_component["parameters"]
             site_model.set_parameters(site_params)

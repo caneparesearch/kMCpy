@@ -17,6 +17,14 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from kmcpy.io.files import (
+    detect_file_format,
+    load_json,
+    load_yaml,
+    load_yaml_section,
+    save_json,
+    save_yaml,
+)
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
 
 SYSTEM_PARAM_NAMES = {
@@ -29,7 +37,7 @@ SYSTEM_PARAM_NAMES = {
     "model_type",
     "model_file",
     "event_file",
-    "immutable_sites",
+    "site_mapping",
     "convert_to_primitive_cell",
     "initial_state_file",
     "initial_occupations",
@@ -87,8 +95,8 @@ class SystemConfig:
     model_type: str = "composite_lce"
     model_file: str = ""
     event_file: str = ""
-    # System constraints
-    immutable_sites: tuple = field(default_factory=tuple)
+    # Site-space definition
+    site_mapping: Optional[dict] = None
     convert_to_primitive_cell: bool = False
     
     # Initial state specification
@@ -116,7 +124,6 @@ class SystemConfig:
         data = asdict(self)
         # Convert tuple back to list for compatibility
         data['supercell_shape'] = list(self.supercell_shape)
-        data['immutable_sites'] = list(self.immutable_sites)
         return data
 
 
@@ -367,14 +374,13 @@ class Configuration:
             config = Configuration.from_file("simulation.yaml")
             config = Configuration.from_file("simulation.json")
         """
-        from kmcpy.io.config_io import ConfigIO
         
-        file_format = ConfigIO._detect_file_format(filepath)
+        file_format = detect_file_format(filepath)
         
         if file_format == 'json':
-            raw_data = ConfigIO._load_json(filepath)
+            raw_data = load_json(filepath)
         elif file_format == 'yaml':
-            raw_data = ConfigIO._load_yaml(filepath)
+            raw_data = load_yaml(filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
 
@@ -402,9 +408,8 @@ class Configuration:
             # Load from registry-style section
             config = Configuration.from_yaml_section("workflow.yaml", "kmc", "diffusion")
         """
-        from kmcpy.io.config_io import ConfigIO
         
-        raw_data = ConfigIO._load_yaml_section(filepath, section, task_type)
+        raw_data = load_yaml_section(filepath, section, task_type)
     
         return cls.from_dict(raw_data)
     
@@ -420,16 +425,15 @@ class Configuration:
             config.save("output.yaml")
             config.save("output.json", indent=4)
         """
-        from kmcpy.io.config_io import ConfigIO
         
         data = self.to_dict()
-        file_format = ConfigIO._detect_file_format(filepath)
+        file_format = detect_file_format(filepath)
         
         if file_format == 'json':
             indent = kwargs.get('indent', 2)
-            ConfigIO._save_json(data, filepath, indent=indent)
+            save_json(data, filepath, indent=indent)
         elif file_format == 'yaml':
-            ConfigIO._save_yaml(data, filepath)
+            save_yaml(data, filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
     
@@ -453,13 +457,12 @@ class Configuration:
             #     temperature: 300.0
             #     ...
         """
-        from kmcpy.io.config_io import ConfigIO
         import os
         
         # Load existing YAML file or create new structure
         if os.path.exists(filepath):
             try:
-                yaml_data = ConfigIO._load_yaml(filepath)
+                yaml_data = load_yaml(filepath)
             except:
                 yaml_data = {}
         else:
@@ -473,7 +476,7 @@ class Configuration:
             task_type: config_data
         }
         
-        ConfigIO._save_yaml(yaml_data, filepath)
+        save_yaml(yaml_data, filepath)
     
     def with_runtime_changes(self, **changes) -> "Configuration":
         """Create new config with runtime parameter changes."""
@@ -587,9 +590,9 @@ class Configuration:
         return self.system_config.event_file
     
     @property
-    def immutable_sites(self) -> tuple:
-        """Access immutable sites directly."""
-        return self.system_config.immutable_sites
+    def site_mapping(self) -> Optional[dict]:
+        """Access site mapping directly."""
+        return self.system_config.site_mapping
     
     @property
     def elementary_hop_distance(self) -> float:

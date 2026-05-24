@@ -66,7 +66,7 @@ The basis functions encode information about which sites around the hop are occu
 
 ### Local Site Ordering
 
-The LCE correlation vector is order-sensitive: each fitted coefficient corresponds to a specific component of the local occupation vector. kMCpy records this feature order through a local site ordering convention. The default convention preserves current kMCpy behavior, while `nasicon_publication_v1` reproduces the historical NASICON single-unit convention: use the selected Na as the geometric center, remove that center site from the occupation vector, then sort the remaining local sites by species and Cartesian `x` coordinate.
+The LCE correlation vector is order-sensitive: each fitted coefficient corresponds to a specific component of the local occupation vector. kMCpy records this feature order through a local site ordering convention. The default convention preserves current kMCpy behavior, while `nasicon_nat_commun_2022` reproduces the historical NASICON single-unit convention: use the selected Na as the geometric center, remove that center site from the occupation vector, then sort the remaining local sites by species and Cartesian `x` coordinate.
 
 Old fitted coefficients should only be reused with the same `cluster_site_indices` and ordering convention, or with an explicitly verified remapping. See the [local ordering how-to](howto/local_ordering.md) for usage.
 

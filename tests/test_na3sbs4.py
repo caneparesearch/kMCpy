@@ -26,7 +26,7 @@ class TestNa3SbS4(unittest.TestCase):
                 local_env_cutoff_dict=local_env_cutoff_dict,
                 mobile_ion_identifier_type=mobile_ion_identifier_type,
                 mobile_ion_identifiers=("Na1", "Na1"),
-                species_to_be_removed=["S2-", "S", "Zr4+", "Zr"],
+                site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                 distance_matrix_rtol=0.01,
                 distance_matrix_atol=0.01,
                 find_nearest_if_fail=False,
@@ -59,8 +59,8 @@ class TestNa3SbS4(unittest.TestCase):
                 reference_local_env_dict = EventGenerator().generate_events(
                     structure_file=structure_file,
                     mobile_species=["Na"],
+                    site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                     local_env_cutoff=5.0,
-                    exclude_species=["S2-", "S", "Zr4+", "Zr"],
                     supercell_shape=[2, 2, 2],
                     event_file=os.path.join(tmpdir, "events.json"),
                     rtol=0.01,
@@ -90,7 +90,7 @@ class TestNa3SbS4(unittest.TestCase):
             )
             a = LocalClusterExpansion()
             local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
-                                         specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
+                                         site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                                          basis_type="chebyshev")
             a.build(
                 local_lattice_structure=local_lattice_structure,
@@ -101,7 +101,6 @@ class TestNa3SbS4(unittest.TestCase):
                 template_structure_fname=f"{file_path}/Na3SbS4_cubic.cif",  # LCE still uses legacy param name
                 convert_to_primitive_cell=True,
                 is_write_basis=True,
-                species_to_be_removed=["S2-", "S"],
             )
             # Basic test - should verify object creation
             self.assertEqual(1, 1)
@@ -125,7 +124,7 @@ class TestNa3SbS4(unittest.TestCase):
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
             supercell_shape=(2, 2, 2),  # Use tuple
-            immutable_sites=("S", "Sb"),  # Use tuple
+            site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
             
             model_file="fake_model.json",
             event_file="fake_events.json",

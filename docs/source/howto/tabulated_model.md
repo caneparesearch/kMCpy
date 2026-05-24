@@ -41,23 +41,29 @@ Notes:
 
 ## 2. Build model file with API
 
-Use `ConfigIO.build_tabulated_model_bundle_from_file(...)` to produce a validated `kmcpy.model_bundle.v1` file:
+Use `build_tabulated_model_file_from_entries_file(...)` to produce a validated model file:
 
 ```python
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.io.model_file import (
+    build_tabulated_model_file_from_entries_file,
+    save_model_file,
+)
 
-bundle = ConfigIO.build_tabulated_model_bundle_from_file(
+model_data = build_tabulated_model_file_from_entries_file(
     entries_file="tabulated_entries.json"
 )
-ConfigIO.save_model_bundle(bundle, "model.json")
+save_model_file(model_data, "model.json")
 ```
 
 You can also build directly from in-memory entries:
 
 ```python
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.io.model_file import (
+    build_tabulated_model_file,
+    save_model_file,
+)
 
-bundle = ConfigIO.build_tabulated_model_bundle(
+model_data = build_tabulated_model_file(
     entries=[
         {
             "mobile_ion_indices": [0, 1],
@@ -69,7 +75,7 @@ bundle = ConfigIO.build_tabulated_model_bundle(
     default_property="barrier",
     probability_property="barrier",
 )
-ConfigIO.save_model_bundle(bundle, "model.json")
+save_model_file(model_data, "model.json")
 ```
 
 ## 3. Build model file with CLI
@@ -88,7 +94,7 @@ Optional flags:
 
 ## 4. Use in simulation configuration
 
-Set `model_type` to `tabulated` and point `model_file` to the generated bundle:
+Set `model_type` to `tabulated` and point `model_file` to the generated model file:
 
 ```yaml
 kmc:

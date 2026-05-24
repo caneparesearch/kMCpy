@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Integration tests for Configuration, KMC, and EventLib APIs."""
 
+import pytest
+
 
 def test_simulation_config_integration():
     """Test that strict Configuration integration works properly."""
@@ -148,6 +150,20 @@ def test_eventlib_bundled_format():
     event_lib.add_event(event1)
     event_lib.add_event(event2)
 
+    from pymatgen.core import Lattice, Structure
+    from kmcpy.structure import ActiveSiteIndexMap
+
+    index_structure = Structure(
+        Lattice.cubic(10.0),
+        ["Na"] * 6,
+        [[i, 0, 0] for i in range(6)],
+        coords_are_cartesian=True,
+    )
+    index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        index_structure, {"Na": ["Na", "X"]}
+    )
+    event_lib.set_index_metadata(index_map)
+
     # Generate dependencies
     event_lib.generate_event_dependencies()
     assert event_lib.has_event_dependencies()
@@ -189,9 +205,7 @@ def test_eventlib_legacy_format():
         json.dump(legacy_events, f)
 
     try:
-        # Load and verify deps are regenerated
-        loaded = EventLib.from_json(legacy_file)
-        assert len(loaded) == 2
-        assert loaded.has_event_dependencies()
+        with pytest.raises(ValueError, match="Legacy list-format event files"):
+            EventLib.from_json(legacy_file)
     finally:
         os.unlink(legacy_file)
