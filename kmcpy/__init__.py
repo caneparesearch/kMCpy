@@ -10,8 +10,8 @@ from .models import (
     BaseModel,
     LocalClusterExpansion,
     CompositeLCEModel,
-    TabulatedEntry,
-    TabulatedModel,
+    LocalEnvCatalogEntry,
+    LocalEnvCatalog,
 )
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator, NeighborInfoMatcher
@@ -29,8 +29,8 @@ __all__ = [
     "get_logo",
     "BaseModel",
     "LocalClusterExpansion", 
-    "TabulatedModel",
-    "TabulatedEntry",
+    "LocalEnvCatalog",
+    "LocalEnvCatalogEntry",
     "CompositeLCEModel",
     "KMC",
     "Event",

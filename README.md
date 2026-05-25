@@ -160,29 +160,29 @@ To print out all arguments, you can run:
 run_kmc --help
 ```
 
-## Build tabulated model files (sparse data)
-For sparse datasets, you can use `TabulatedModel` with direct event+occupation lookup.
+## Build local-environment catalog files (sparse data)
+For sparse datasets, you can use `LocalEnvCatalog` with direct event+occupation lookup.
 
 Build a model file via API:
 ```python
-from kmcpy.models import TabulatedModel
+from kmcpy.models import LocalEnvCatalog
 
-model = TabulatedModel.from_file("tabulated_entries.json")
+model = LocalEnvCatalog.from_file("local_env_catalog_entries.json")
 model.to("model.json")
 ```
 
 Build via CLI:
 ```shell
-kmcpy pack-tabulated-model --entries-file tabulated_entries.json --output model.json
+kmcpy pack-local-env-catalog --entries-file local_env_catalog_entries.json --output model.json
 ```
 
 Use it in simulation config:
 ```yaml
-model_type: "tabulated"
+model_type: "local_env_catalog"
 model_file: "model.json"
 ```
 
-`TabulatedModel` performs exact lookup only. Unseen configurations raise an error (no extrapolation fallback).
+`LocalEnvCatalog` performs exact lookup only. Unseen configurations raise an error (no extrapolation fallback).
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:

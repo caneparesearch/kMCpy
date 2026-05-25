@@ -54,7 +54,7 @@ def build_template() -> str:
             mobile_ion_charge: 1.0
             # Characteristic hop distance (Angstrom)
             elementary_hop_distance: 1.0
-            # Model selector: composite_lce / lce / tabulated
+            # Model selector: composite_lce / lce / local_env_catalog
             model_type: "composite_lce"
             # Site mapping. One allowed species means fixed; multiple means active.
             site_mapping:

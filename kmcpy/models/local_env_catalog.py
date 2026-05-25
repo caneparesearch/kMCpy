@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tabulated model for direct sparse lookup."""
+"""Local-environment catalog for direct sparse lookup."""
 
 from __future__ import annotations
 
@@ -79,8 +79,8 @@ def _normalize_properties(properties: Any) -> dict[str, float]:
 
 
 @dataclass(frozen=True)
-class TabulatedEntry:
-    """One tabulated row keyed by event and canonical local occupations."""
+class LocalEnvCatalogEntry:
+    """One catalog row keyed by event and canonical local occupations."""
 
     mobile_ion_indices: tuple[int, ...]
     local_env_indices: tuple[int, ...]
@@ -110,9 +110,9 @@ class TabulatedEntry:
         }
 
     @classmethod
-    def from_dict(cls, entry: dict[str, Any]) -> "TabulatedEntry":
+    def from_dict(cls, entry: dict[str, Any]) -> "LocalEnvCatalogEntry":
         if not isinstance(entry, dict):
-            raise TypeError("Each tabulated entry must be a JSON object")
+            raise TypeError("Each local-environment catalog entry must be a JSON object")
 
         mobile_ion_indices = _normalize_index_sequence(
             entry.get("mobile_ion_indices"), "mobile_ion_indices"
@@ -138,18 +138,17 @@ class TabulatedEntry:
         )
 
 
-class TabulatedModel(BaseModel):
+class LocalEnvCatalog(BaseModel):
     """Direct lookup model for sparse, exact event+occupation data."""
 
     SUPPORTED_LOOKUP_KEY = "event_local_occupation"
-    LEGACY_LOOKUP_KEYS = {"event_local_occ_v1": SUPPORTED_LOOKUP_KEY}
     SUPPORTED_PROBABILITY_MODE = "barrier_arrhenius"
     BOLTZMANN_CONSTANT_MEV_PER_K = 8.617333262145e-2
 
     def __init__(
         self,
-        entries: Optional[list[dict[str, Any] | TabulatedEntry]] = None,
-        name: str = "TabulatedModel",
+        entries: Optional[list[dict[str, Any] | LocalEnvCatalogEntry]] = None,
+        name: str = "LocalEnvCatalog",
         lookup_key: str = SUPPORTED_LOOKUP_KEY,
         default_property: str = "barrier",
         probability_mode: str = SUPPORTED_PROBABILITY_MODE,
@@ -157,11 +156,11 @@ class TabulatedModel(BaseModel):
     ) -> None:
         super().__init__(name=name)
         self.name = name
-        self.lookup_key = self._canonical_lookup_key(lookup_key)
+        self.lookup_key = lookup_key
         self.default_property = default_property
         self.probability_mode = probability_mode
         self.probability_property = probability_property
-        self.entries: list[TabulatedEntry] = []
+        self.entries: list[LocalEnvCatalogEntry] = []
         self._table: dict[
             tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]], dict[str, float]
         ] = {}
@@ -170,14 +169,10 @@ class TabulatedModel(BaseModel):
             self.build(entries=entries)
 
     def fit(self, *args, **kwargs):
-        """Tabulated models are defined by explicit data, not by fitting."""
+        """Local-environment catalogs are defined by explicit data, not by fitting."""
         raise NotImplementedError(
-            "TabulatedModel does not support fit(). Provide explicit table entries instead."
+            "LocalEnvCatalog does not support fit(). Provide explicit table entries instead."
         )
-
-    @classmethod
-    def _canonical_lookup_key(cls, lookup_key: str) -> str:
-        return cls.LEGACY_LOOKUP_KEYS.get(lookup_key, lookup_key)
 
     def _validate_modes(self) -> None:
         if self.lookup_key != self.SUPPORTED_LOOKUP_KEY:
@@ -193,7 +188,7 @@ class TabulatedModel(BaseModel):
 
     @classmethod
     def canonical_key_from_entry(
-        cls, entry: dict[str, Any] | TabulatedEntry
+        cls, entry: dict[str, Any] | LocalEnvCatalogEntry
     ) -> tuple[
         tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]],
         tuple[int, ...],
@@ -202,12 +197,12 @@ class TabulatedModel(BaseModel):
         dict[str, float],
     ]:
         normalized = (
-            TabulatedEntry.from_dict(entry)
+            LocalEnvCatalogEntry.from_dict(entry)
             if isinstance(entry, dict)
             else entry
         )
-        if not isinstance(normalized, TabulatedEntry):
-            raise TypeError("entry must be a dictionary or TabulatedEntry")
+        if not isinstance(normalized, LocalEnvCatalogEntry):
+            raise TypeError("entry must be a dictionary or LocalEnvCatalogEntry")
 
         return (
             normalized.canonical_key,
@@ -250,31 +245,31 @@ class TabulatedModel(BaseModel):
             occupation_pattern,
         )
 
-    def add_entry(self, entry: dict[str, Any] | TabulatedEntry) -> None:
+    def add_entry(self, entry: dict[str, Any] | LocalEnvCatalogEntry) -> None:
         """Add one validated entry to the model."""
         self._validate_modes()
 
         normalized = (
-            TabulatedEntry.from_dict(entry)
+            LocalEnvCatalogEntry.from_dict(entry)
             if isinstance(entry, dict)
             else entry
         )
-        if not isinstance(normalized, TabulatedEntry):
-            raise TypeError("entry must be a dictionary or TabulatedEntry")
+        if not isinstance(normalized, LocalEnvCatalogEntry):
+            raise TypeError("entry must be a dictionary or LocalEnvCatalogEntry")
 
         if self.default_property not in normalized.properties:
             raise ValueError(
-                f"default_property '{self.default_property}' is not present in tabulated entry"
+                f"default_property '{self.default_property}' is not present in local-environment catalog entry"
             )
         if self.probability_property not in normalized.properties:
             raise ValueError(
-                f"probability_property '{self.probability_property}' is not present in tabulated entry"
+                f"probability_property '{self.probability_property}' is not present in local-environment catalog entry"
             )
 
         canonical_key = normalized.canonical_key
         if canonical_key in self._table:
             raise ValueError(
-                "Duplicate tabulated canonical key detected: "
+                "Duplicate local-environment catalog canonical key detected: "
                 f"mobile_ion_indices={normalized.mobile_ion_indices}, "
                 f"canonical_sites={normalized.canonical_site_indices}, "
                 f"occupations={normalized.occupations}"
@@ -285,7 +280,7 @@ class TabulatedModel(BaseModel):
 
     def build(
         self,
-        entries: list[dict[str, Any] | TabulatedEntry],
+        entries: list[dict[str, Any] | LocalEnvCatalogEntry],
         lookup_key: Optional[str] = None,
         default_property: Optional[str] = None,
         probability_mode: Optional[str] = None,
@@ -293,7 +288,7 @@ class TabulatedModel(BaseModel):
     ) -> None:
         """Mutating builder equivalent to ``from_entries(...)`` on an existing instance."""
         if lookup_key is not None:
-            self.lookup_key = self._canonical_lookup_key(lookup_key)
+            self.lookup_key = lookup_key
         if default_property is not None:
             self.default_property = default_property
         if probability_mode is not None:
@@ -304,7 +299,9 @@ class TabulatedModel(BaseModel):
         self._validate_modes()
 
         if not isinstance(entries, list) or not entries:
-            raise ValueError("'entries' must be a non-empty list of tabulated entries")
+            raise ValueError(
+                "'entries' must be a non-empty list of local-environment catalog entries"
+            )
 
         self.entries = []
         self._table = {}
@@ -314,14 +311,14 @@ class TabulatedModel(BaseModel):
     @classmethod
     def from_entries(
         cls,
-        entries: list[dict[str, Any] | TabulatedEntry],
-        name: str = "TabulatedModel",
+        entries: list[dict[str, Any] | LocalEnvCatalogEntry],
+        name: str = "LocalEnvCatalog",
         lookup_key: str = SUPPORTED_LOOKUP_KEY,
         default_property: str = "barrier",
         probability_mode: str = SUPPORTED_PROBABILITY_MODE,
         probability_property: str = "barrier",
-    ) -> "TabulatedModel":
-        """Construct a new tabulated model directly from entries."""
+    ) -> "LocalEnvCatalog":
+        """Construct a new local-environment catalog directly from entries."""
         return cls(
             entries=entries,
             name=name,
@@ -339,13 +336,17 @@ class TabulatedModel(BaseModel):
         if event is None:
             raise ValueError("event is required")
 
-        canonical_key, canonical_sites, occupation_pattern = self._canonical_key_from_event_state(
+        (
+            canonical_key,
+            canonical_sites,
+            occupation_pattern,
+        ) = self._canonical_key_from_event_state(
             event=event, occupations=simulation_state.occupations
         )
         properties = self._table.get(canonical_key)
         if properties is None:
             raise KeyError(
-                "No tabulated entry found for event lookup: "
+                "No local-environment catalog entry found for event lookup: "
                 f"mobile_ion_indices={tuple(event.mobile_ion_indices)}, "
                 f"local_env_indices={tuple(event.local_env_indices)}, "
                 f"canonical_sites={canonical_sites}, "
@@ -359,12 +360,14 @@ class TabulatedModel(BaseModel):
         event: Event,
         property_name: Optional[str] = None,
     ) -> float:
-        """Compute a tabulated property value by exact event+occupation lookup."""
-        properties = self._lookup_properties(simulation_state=simulation_state, event=event)
+        """Compute a catalog property value by exact event+occupation lookup."""
+        properties = self._lookup_properties(
+            simulation_state=simulation_state, event=event
+        )
         selected_property = property_name or self.default_property
         if selected_property not in properties:
             raise KeyError(
-                f"Property '{selected_property}' not found in matched tabulated entry"
+                f"Property '{selected_property}' not found in matched local-environment catalog entry"
             )
         return float(properties[selected_property])
 
@@ -374,10 +377,10 @@ class TabulatedModel(BaseModel):
         runtime_config: "RuntimeConfig",
         simulation_state: State,
     ) -> float:
-        """Compute event probability from tabulated barrier using Arrhenius equation."""
+        """Compute event probability from a catalog barrier using Arrhenius equation."""
         if self.probability_mode != self.SUPPORTED_PROBABILITY_MODE:
             raise ValueError(
-                f"Unsupported probability mode '{self.probability_mode}' for TabulatedModel"
+                f"Unsupported probability mode '{self.probability_mode}' for LocalEnvCatalog"
             )
 
         barrier = self.compute(
@@ -398,14 +401,14 @@ class TabulatedModel(BaseModel):
 
     def __str__(self) -> str:
         return (
-            f"TabulatedModel(name={self.name}, entries={len(self.entries)}, "
+            f"LocalEnvCatalog(name={self.name}, entries={len(self.entries)}, "
             f"default_property={self.default_property}, "
             f"probability_property={self.probability_property})"
         )
 
     def __repr__(self) -> str:
         return (
-            "TabulatedModel("
+            "LocalEnvCatalog("
             f"name={self.name!r}, entries={len(self.entries)}, "
             f"lookup_key={self.lookup_key!r}, "
             f"default_property={self.default_property!r}, "
@@ -427,34 +430,34 @@ class TabulatedModel(BaseModel):
         }
 
     def to_model_file_dict(self) -> dict[str, Any]:
-        """Serialize this tabulated model into the model-file format."""
+        """Serialize this local-environment catalog into the model-file format."""
         model_data = {
             "format": MODEL_FILE_FORMAT,
-            "model_type": "tabulated",
-            "tabulated": self.as_dict(),
+            "model_type": "local_env_catalog",
+            "local_env_catalog": self.as_dict(),
         }
         self.validate_model_file_dict(model_data)
         return model_data
 
     def to(self, filename: str, indent: int = 2) -> None:
-        """Write this tabulated model as a serialized model file."""
+        """Write this local-environment catalog as a serialized model file."""
         from monty.serialization import dumpfn
 
         dumpfn(self.to_model_file_dict(), filename, indent=indent)
 
     def to_json(self, fname: str) -> None:
-        """Compatibility alias for JSON model writing."""
+        """Alias for JSON model writing."""
         self.to(fname)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TabulatedModel":
+    def from_dict(cls, data: dict[str, Any]) -> "LocalEnvCatalog":
         """Deserialize from in-memory payload."""
         if not isinstance(data, dict):
-            raise ValueError("TabulatedModel payload must be a JSON object")
+            raise ValueError("LocalEnvCatalog payload must be a JSON object")
 
         return cls(
             entries=data.get("entries"),
-            name=data.get("name", "TabulatedModel"),
+            name=data.get("name", "LocalEnvCatalog"),
             lookup_key=data.get("lookup_key", cls.SUPPORTED_LOOKUP_KEY),
             default_property=data.get("default_property", "barrier"),
             probability_mode=data.get(
@@ -472,23 +475,29 @@ class TabulatedModel(BaseModel):
         default_property: str | None = None,
         probability_mode: str | None = None,
         probability_property: str | None = None,
-    ) -> "TabulatedModel":
+    ) -> "LocalEnvCatalog":
         if isinstance(payload, list):
             entries = payload
             metadata: dict[str, Any] = {}
         elif isinstance(payload, dict):
             if "entries" not in payload:
-                raise ValueError("Tabulated entries JSON object must include key 'entries'")
+                raise ValueError(
+                    "Local-environment catalog entries JSON object must include key 'entries'"
+                )
             entries = payload["entries"]
             metadata = payload
         else:
-            raise ValueError("Tabulated entries file must contain a JSON list or object")
+            raise ValueError(
+                "Local-environment catalog entries file must contain a JSON list or object"
+            )
 
         return cls.from_entries(
             entries=entries,
-            name=name or metadata.get("name", "TabulatedModel"),
-            lookup_key=lookup_key or metadata.get("lookup_key", cls.SUPPORTED_LOOKUP_KEY),
-            default_property=default_property or metadata.get("default_property", "barrier"),
+            name=name or metadata.get("name", "LocalEnvCatalog"),
+            lookup_key=lookup_key
+            or metadata.get("lookup_key", cls.SUPPORTED_LOOKUP_KEY),
+            default_property=default_property
+            or metadata.get("default_property", "barrier"),
             probability_mode=probability_mode
             or metadata.get("probability_mode", cls.SUPPORTED_PROBABILITY_MODE),
             probability_property=probability_property
@@ -497,18 +506,21 @@ class TabulatedModel(BaseModel):
 
     @classmethod
     def validate_model_file_dict(cls, model_data: dict[str, Any]) -> None:
-        """Validate a tabulated model-file payload."""
-        data = require_model_type(model_data, "tabulated")
-        tabulated_payload = data.get("tabulated")
-        if not isinstance(tabulated_payload, dict):
-            raise ValueError("Tabulated model file is missing object key 'tabulated'")
-        cls.from_dict(tabulated_payload)
+        """Validate a local-environment catalog-file payload."""
+        data = require_model_type(model_data, "local_env_catalog")
+        local_env_catalog_payload = data.get("local_env_catalog")
+        if not isinstance(local_env_catalog_payload, dict):
+            raise ValueError(
+                "Local-environment catalog file is missing object key "
+                "'local_env_catalog'"
+            )
+        cls.from_dict(local_env_catalog_payload)
 
     @classmethod
-    def from_model_file_dict(cls, model_data: dict[str, Any]) -> "TabulatedModel":
-        """Create a TabulatedModel from an in-memory model-file payload."""
+    def from_model_file_dict(cls, model_data: dict[str, Any]) -> "LocalEnvCatalog":
+        """Create a LocalEnvCatalog from an in-memory model-file payload."""
         cls.validate_model_file_dict(model_data)
-        return cls.from_dict(model_data["tabulated"])
+        return cls.from_dict(model_data["local_env_catalog"])
 
     @classmethod
     def from_file(
@@ -519,7 +531,7 @@ class TabulatedModel(BaseModel):
         default_property: str | None = None,
         probability_mode: str | None = None,
         probability_property: str | None = None,
-    ) -> "TabulatedModel":
+    ) -> "LocalEnvCatalog":
         """Load from a model file, direct model payload, or raw entries file."""
         from monty.serialization import loadfn
 
@@ -557,11 +569,11 @@ class TabulatedModel(BaseModel):
         )
 
     @classmethod
-    def from_json(cls, model_file: str) -> "TabulatedModel":
-        """Compatibility alias for JSON loading."""
+    def from_json(cls, model_file: str) -> "LocalEnvCatalog":
+        """Alias for JSON loading."""
         return cls.from_file(model_file)
 
     @classmethod
-    def from_config(cls, config: "Configuration") -> "TabulatedModel":
+    def from_config(cls, config: "Configuration") -> "LocalEnvCatalog":
         """Create model from simulation configuration."""
         return cls.from_file(config.model_file)

@@ -1,10 +1,10 @@
 {
   "format": "kmcpy.model_file",
-  "model_type": "tabulated",
-  "tabulated": {
-    "@module": "kmcpy.models.tabulated_model",
-    "@class": "TabulatedModel",
-    "name": "TabulatedModel",
+  "model_type": "local_env_catalog",
+  "local_env_catalog": {
+    "@module": "kmcpy.models.local_env_catalog",
+    "@class": "LocalEnvCatalog",
+    "name": "LocalEnvCatalog",
     "lookup_key": "event_local_occupation",
     "default_property": "barrier",
     "probability_mode": "barrier_arrhenius",

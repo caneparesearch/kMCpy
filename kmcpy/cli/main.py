@@ -6,9 +6,9 @@ import argparse
 from typing import Sequence
 
 from kmcpy.cli.init import DEFAULT_TEMPLATE_FILENAME, write_template
-from kmcpy.cli.pack_tabulated_model import (
-    DEFAULT_MODEL_FILE_FILENAME,
-    write_tabulated_model_file,
+from kmcpy.cli.pack_local_env_catalog import (
+    DEFAULT_CATALOG_FILENAME,
+    write_local_env_catalog_file,
 )
 
 
@@ -37,34 +37,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="Overwrite output file if it already exists.",
     )
 
-    pack_tabulated_parser = subparsers.add_parser(
-        "pack-tabulated-model",
-        help="Build a tabulated model file JSON from tabulated entries.",
+    pack_local_env_catalog_parser = subparsers.add_parser(
+        "pack-local-env-catalog",
+        help="Build a local-environment catalog model file from entries.",
     )
-    pack_tabulated_parser.add_argument(
+    pack_local_env_catalog_parser.add_argument(
         "--entries-file",
         required=True,
         help="Path to JSON entries file (list or object with key 'entries').",
     )
-    pack_tabulated_parser.add_argument(
+    pack_local_env_catalog_parser.add_argument(
         "--name",
-        help="Optional tabulated model name.",
+        help="Optional local-environment catalog name.",
     )
-    pack_tabulated_parser.add_argument(
+    pack_local_env_catalog_parser.add_argument(
         "--default-property",
         help="Optional default property key for compute(...).",
     )
-    pack_tabulated_parser.add_argument(
+    pack_local_env_catalog_parser.add_argument(
         "--probability-property",
         help="Optional barrier property key for Arrhenius probability.",
     )
-    pack_tabulated_parser.add_argument(
+    pack_local_env_catalog_parser.add_argument(
         "-o",
         "--output",
-        default=DEFAULT_MODEL_FILE_FILENAME,
-        help=f"Output model JSON path (default: {DEFAULT_MODEL_FILE_FILENAME})",
+        default=DEFAULT_CATALOG_FILENAME,
+        help=f"Output model JSON path (default: {DEFAULT_CATALOG_FILENAME})",
     )
-    pack_tabulated_parser.add_argument(
+    pack_local_env_catalog_parser.add_argument(
         "-f",
         "--force",
         action="store_true",
@@ -85,8 +85,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Next step: run_kmc --input {output_path}")
         return 0
 
-    if args.command == "pack-tabulated-model":
-        output_path = write_tabulated_model_file(
+    if args.command == "pack-local-env-catalog":
+        output_path = write_local_env_catalog_file(
             output=args.output,
             entries_file=args.entries_file,
             name=args.name,

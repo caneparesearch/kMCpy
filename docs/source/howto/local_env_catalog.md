@@ -1,12 +1,12 @@
-# Tabulated Model Workflow
+# Local Environment Catalog Workflow
 
-`TabulatedModel` is designed for sparse datasets where you want exact lookup instead of fitted extrapolation.
+`LocalEnvCatalog` is designed for sparse datasets where you want exact lookup instead of fitted extrapolation.
 
 This guide shows how to:
 
-1. define tabulated entries,
+1. define local-environment catalog entries,
 2. build `model.json` via API or CLI,
-3. run KMC with `model_type: "tabulated"`,
+3. run KMC with `model_type: "local_env_catalog"`,
 4. append entries programmatically.
 
 ## 1. Entry schema
@@ -41,21 +41,21 @@ Notes:
 
 ## 2. Build model file with API
 
-Use `TabulatedModel.from_file(...)` to read a raw entries file and write a validated model file:
+Use `LocalEnvCatalog.from_file(...)` to read a raw entries file and write a validated model file:
 
 ```python
-from kmcpy.models import TabulatedModel
+from kmcpy.models import LocalEnvCatalog
 
-model = TabulatedModel.from_file("tabulated_entries.json")
+model = LocalEnvCatalog.from_file("local_env_catalog_entries.json")
 model.to("model.json")
 ```
 
 You can also build directly from in-memory entries:
 
 ```python
-from kmcpy.models import TabulatedModel
+from kmcpy.models import LocalEnvCatalog
 
-model = TabulatedModel.from_entries(
+model = LocalEnvCatalog.from_entries(
     entries=[
         {
             "mobile_ion_indices": [0, 1],
@@ -73,8 +73,8 @@ model.to("model.json")
 ## 3. Build model file with CLI
 
 ```shell
-kmcpy pack-tabulated-model \
-  --entries-file tabulated_entries.json \
+kmcpy pack-local-env-catalog \
+  --entries-file local_env_catalog_entries.json \
   --output model.json
 ```
 
@@ -86,28 +86,28 @@ Optional flags:
 
 ## 4. Use in simulation configuration
 
-Set `model_type` to `tabulated` and point `model_file` to the generated model file:
+Set `model_type` to `local_env_catalog` and point `model_file` to the generated model file:
 
 ```yaml
 kmc:
   type: default
   default:
-    model_type: "tabulated"
+    model_type: "local_env_catalog"
     model_file: "model.json"
     # ... other required config fields
 ```
 
 ## 5. Programmatic model construction and incremental updates
 
-`TabulatedModel` supports both constructor styles:
+`LocalEnvCatalog` supports both constructor styles:
 
 - `from_entries(...)`: construct from a full list
 - `add_entry(...)`: append one validated entry
 
 ```python
-from kmcpy.models import TabulatedEntry, TabulatedModel
+from kmcpy.models import LocalEnvCatalogEntry, LocalEnvCatalog
 
-model = TabulatedModel.from_entries(
+model = LocalEnvCatalog.from_entries(
     entries=[
         {
             "mobile_ion_indices": [0, 1],
@@ -119,7 +119,7 @@ model = TabulatedModel.from_entries(
 )
 
 model.add_entry(
-    TabulatedEntry.from_dict(
+    LocalEnvCatalogEntry.from_dict(
         {
             "mobile_ion_indices": [0, 1],
             "local_env_indices": [1, 2, 3],
@@ -132,11 +132,11 @@ model.add_entry(
 
 ## 6. Probability model
 
-`TabulatedModel.compute_probability(...)` uses Arrhenius form with runtime values:
+`LocalEnvCatalog.compute_probability(...)` uses Arrhenius form with runtime values:
 
 - `attempt_frequency` from config
 - `temperature` from config
-- tabulated `barrier` property
+- catalog `barrier` property
 
 `rate = abs(direction) * v * exp(-barrier / (k_B * T))`
 

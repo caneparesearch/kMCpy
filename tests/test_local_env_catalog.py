@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 from kmcpy.event import Event
-from kmcpy.models.tabulated_model import TabulatedEntry, TabulatedModel
+from kmcpy.models.local_env_catalog import LocalEnvCatalogEntry, LocalEnvCatalog
 from kmcpy.simulator.config import RuntimeConfig
 from kmcpy.simulator.state import State
 
 
 @pytest.fixture
-def tabulated_entries():
+def local_env_catalog_entries():
     return [
         {
             "mobile_ion_indices": [0, 1],
@@ -28,8 +28,8 @@ def tabulated_entries():
 
 
 @pytest.mark.unit
-def test_tabulated_model_lookup_hit_and_property_selection(tabulated_entries):
-    model = TabulatedModel(entries=tabulated_entries, default_property="barrier")
+def test_local_env_catalog_lookup_hit_and_property_selection(local_env_catalog_entries):
+    model = LocalEnvCatalog(entries=local_env_catalog_entries, default_property="barrier")
     state = State(occupations=[1, -1, 1, -1])
     event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
 
@@ -41,18 +41,18 @@ def test_tabulated_model_lookup_hit_and_property_selection(tabulated_entries):
 
 
 @pytest.mark.unit
-def test_tabulated_model_lookup_miss_raises_key_error(tabulated_entries):
-    model = TabulatedModel(entries=tabulated_entries)
+def test_local_env_catalog_lookup_miss_raises_key_error(local_env_catalog_entries):
+    model = LocalEnvCatalog(entries=local_env_catalog_entries)
     state = State(occupations=[1, 1, -1, -1])
     event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
 
-    with pytest.raises(KeyError, match="No tabulated entry found"):
+    with pytest.raises(KeyError, match="No local-environment catalog entry found"):
         model.compute(simulation_state=state, event=event)
 
 
 @pytest.mark.unit
-def test_tabulated_model_probability_uses_arrhenius(tabulated_entries):
-    model = TabulatedModel(entries=tabulated_entries, probability_property="barrier")
+def test_local_env_catalog_probability_uses_arrhenius(local_env_catalog_entries):
+    model = LocalEnvCatalog(entries=local_env_catalog_entries, probability_property="barrier")
     state = State(occupations=[1, -1, 1, -1])
     event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
     runtime_config = RuntimeConfig(temperature=300.0, attempt_frequency=1e13)
@@ -67,7 +67,7 @@ def test_tabulated_model_probability_uses_arrhenius(tabulated_entries):
 
 
 @pytest.mark.unit
-def test_tabulated_model_rejects_duplicate_canonical_keys():
+def test_local_env_catalog_rejects_duplicate_canonical_keys():
     entries = [
         {
             "mobile_ion_indices": [0, 1],
@@ -83,17 +83,17 @@ def test_tabulated_model_rejects_duplicate_canonical_keys():
         },
     ]
 
-    with pytest.raises(ValueError, match="Duplicate tabulated canonical key"):
-        TabulatedModel(entries=entries)
+    with pytest.raises(ValueError, match="Duplicate local-environment catalog canonical key"):
+        LocalEnvCatalog(entries=entries)
 
 
 @pytest.mark.unit
-def test_tabulated_model_roundtrip_direct_json(tmp_path: Path, tabulated_entries):
-    model = TabulatedModel(entries=tabulated_entries)
-    output = tmp_path / "tabulated_model.json"
+def test_local_env_catalog_roundtrip_direct_json(tmp_path: Path, local_env_catalog_entries):
+    model = LocalEnvCatalog(entries=local_env_catalog_entries)
+    output = tmp_path / "local_env_catalog.json"
     model.to_json(str(output))
 
-    reloaded = TabulatedModel.from_file(str(output))
+    reloaded = LocalEnvCatalog.from_file(str(output))
     state = State(occupations=[1, -1, 1, -1])
     event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
 
@@ -101,23 +101,23 @@ def test_tabulated_model_roundtrip_direct_json(tmp_path: Path, tabulated_entries
 
 
 @pytest.mark.unit
-def test_tabulated_model_fit_is_not_supported(tabulated_entries):
-    model = TabulatedModel(entries=tabulated_entries)
+def test_local_env_catalog_fit_is_not_supported(local_env_catalog_entries):
+    model = LocalEnvCatalog(entries=local_env_catalog_entries)
     with pytest.raises(NotImplementedError, match="does not support fit"):
         model.fit()
 
 
 @pytest.mark.unit
-def test_tabulated_model_from_entries_constructor(tabulated_entries):
-    model = TabulatedModel.from_entries(entries=tabulated_entries)
+def test_local_env_catalog_from_entries_constructor(local_env_catalog_entries):
+    model = LocalEnvCatalog.from_entries(entries=local_env_catalog_entries)
     state = State(occupations=[1, -1, 1, -1])
     event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
     assert model.compute(simulation_state=state, event=event) == 250.0
 
 
 @pytest.mark.unit
-def test_tabulated_model_add_entry_accepts_tabulated_entry():
-    model = TabulatedModel.from_entries(
+def test_local_env_catalog_add_entry_accepts_local_env_catalog_entry():
+    model = LocalEnvCatalog.from_entries(
         entries=[
             {
                 "mobile_ion_indices": [0, 1],
@@ -128,7 +128,7 @@ def test_tabulated_model_add_entry_accepts_tabulated_entry():
         ]
     )
     model.add_entry(
-        TabulatedEntry.from_dict(
+        LocalEnvCatalogEntry.from_dict(
             {
                 "mobile_ion_indices": [0, 1],
                 "local_env_indices": [1, 2, 3],
