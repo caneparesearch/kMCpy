@@ -732,7 +732,6 @@ class EventGenerator:
         """
         from kmcpy.external.local_env import CutOffDictNNKMCpy
         from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.io import convert
         import kmcpy
 
         (

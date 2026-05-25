@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 
 from kmcpy.io.registry import MODEL_CLASS_REGISTRY
-from kmcpy.simulator.state_io import load_occupation_data
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration
@@ -69,20 +68,17 @@ def load_simulation_components(config: "Configuration") -> tuple:
     event_lib = EventLib.from_json(config.event_file)
     event_lib.validate_index_metadata(active_site_index_map)
 
-    initial_occ = None
-    if config.initial_occupations:
-        initial_occ = active_site_index_map.select_active_values(
-            config.initial_occupations
-        )
-    elif config.initial_state_file:
-        initial_occ = load_occupation_data(
-            initial_state_file=config.initial_state_file,
-            supercell_shape=list(config.supercell_shape),
+    if config.initial_occupations is not None:
+        simulation_state = State.from_occupations(
+            config.initial_occupations,
             active_site_index_map=active_site_index_map,
         )
-
-    if initial_occ is None:
+    elif config.initial_state_file:
+        simulation_state = State.from_file(
+            config.initial_state_file,
+            supercell_shape=config.supercell_shape,
+            active_site_index_map=active_site_index_map,
+        )
+    else:
         raise ValueError("Initial occupations could not be determined.")
-
-    simulation_state = State(occupations=initial_occ)
     return structure, model, event_lib, simulation_state

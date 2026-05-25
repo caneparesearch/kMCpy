@@ -16,8 +16,8 @@ from typing import Any
 import numpy as np
 
 from kmcpy.event import Event, EventLib
-from kmcpy.io.model_file import build_model_file_from_legacy_files, save_model_file
-from kmcpy.io.serialization import to_json_compatible
+from monty.serialization import dumpfn
+from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
@@ -42,8 +42,7 @@ def _sha256(path: Path) -> str:
 
 def _json_dump(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, default=to_json_compatible)
+    dumpfn(payload, path, indent=2)
 
 
 def _read_csv_rows(path: Path) -> list[dict[str, str]]:
@@ -329,13 +328,14 @@ def convert_legacy_lce_model(source_repo: Path, output_dir: Path) -> dict[str, P
     _json_dump(lce_json, _legacy_lce_to_dict(legacy_lce, "NASICONLegacyLCE"))
 
     model_json = artifacts_dir / "model.json"
-    model_data = build_model_file_from_legacy_files(
+    model = CompositeLCEModel.from_legacy_files(
         kra_lce=str(lce_json),
         kra_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_ekra.json"),
         site_lce=str(lce_json),
         site_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_esite.json"),
     )
-    save_model_file(model_data, str(model_json))
+    model.to(str(model_json))
+    model_data = model.to_model_file_dict()
 
     keci_length = len(model_data["kra"]["parameters"]["keci"])
     cluster_count = len(model_data["kra"]["lce"]["cluster_site_indices"])

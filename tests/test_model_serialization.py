@@ -5,7 +5,6 @@ import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.tabulated_model import TabulatedModel
-from kmcpy.io.model_file import load_model_file
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
 
@@ -63,6 +62,18 @@ def test_composite_lce_model_as_dict_with_legacy_json_inputs():
     assert payload["kra_model"]["name"] == "LocalClusterExpansion"
 
 
+
+def test_composite_lce_model_from_dict_reconstructs_submodels():
+    root = Path(__file__).parent / "files" / "input"
+    model = CompositeLCEModel.from_file(str(root / "model.json"))
+
+    reloaded = CompositeLCEModel.from_dict(model.as_dict())
+
+    assert isinstance(reloaded.kra_model, LocalClusterExpansion)
+    assert isinstance(reloaded.site_model, LocalClusterExpansion)
+    assert reloaded.kra_model.name == "LocalClusterExpansion"
+    assert reloaded.site_model.name == "LocalClusterExpansion"
+
 def test_composite_lce_model_from_file_matches_from_json():
     root = Path(__file__).parent / "files" / "input"
     from_file_model = CompositeLCEModel.from_file(str(root / "model.json"))
@@ -102,7 +113,7 @@ def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
     output_model_file = tmp_path / "saved_model_file.json"
     model.to_json(str(output_model_file))
 
-    loaded_model_data = load_model_file(str(output_model_file))
+    loaded_model_data = json.loads(output_model_file.read_text(encoding="utf-8"))
     reloaded = CompositeLCEModel.from_json(str(output_model_file))
 
     assert loaded_model_data["format"] == "kmcpy.model_file"
@@ -128,3 +139,4 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
         assert callable(getattr(model_cls, "from_dict"))
         assert callable(getattr(model_cls, "from_file"))
         assert callable(getattr(model_cls, "from_json"))
+        assert callable(getattr(model_cls, "to"))

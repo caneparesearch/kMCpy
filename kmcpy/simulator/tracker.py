@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from kmcpy.external.structure import StructureKMCpy
-from kmcpy.io.serialization import to_json_compatible
+from monty.json import jsanitize
 from kmcpy.simulator.property import (
     BUILTIN_PROPERTY_FIELDS,
     PropertyRecord,
@@ -80,7 +80,7 @@ def _to_json_safe(value: Any) -> Any:
         return [_to_json_safe(v) for v in value]
 
     try:
-        return to_json_compatible(value)
+        return jsanitize(value)
     except TypeError:
         return repr(value)
 

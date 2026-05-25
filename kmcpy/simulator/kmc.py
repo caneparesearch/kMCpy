@@ -8,7 +8,6 @@ loading input data from various sources, updating system states, and tracking si
 from numba import njit
 from kmcpy.external.structure import StructureKMCpy
 import numpy as np
-import json
 import importlib
 import warnings
 from kmcpy.simulator.tracker import (
@@ -18,7 +17,7 @@ from kmcpy.simulator.tracker import (
 )
 from kmcpy.simulator.property import validate_max_records, validate_schedule
 from kmcpy.event import Event, EventLib
-from kmcpy.io import convert
+from monty.serialization import dumpfn, loadfn
 import logging
 import kmcpy
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -579,19 +578,13 @@ class KMC:
     def to_json(self, fname)-> None:
         """Write serialized KMC state to a JSON file."""
         logger.info(f"Saving: {fname}")
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(jsonStr)
+        dumpfn(self.as_dict(), fname, indent=4)
 
     @classmethod
     def from_json(cls, fname)-> "KMC":
         """Load a serialized KMC object state from JSON."""
         logger.info(f"Loading: {fname}")
-        with open(fname, "rb") as fhandle:
-            objDict = json.load(fhandle)
+        objDict = loadfn(fname, cls=None)
         obj = KMC()
         obj.__dict__ = objDict
         logger.info("load complete")

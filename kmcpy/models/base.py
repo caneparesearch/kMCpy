@@ -2,7 +2,6 @@
 Base model classes used across kMCpy.
 """
 from abc import ABC, abstractmethod
-import json
 import logging
 
 from kmcpy.models.fitting.registry import get_fitter_for_model
@@ -132,18 +131,18 @@ class BaseModel(ABC):
         """
         return cls.from_file(fname)
     
-    def to_json(self, fname):
-        from kmcpy.io import convert
+    def to(self, fname):
         """
         Save the model object to a JSON file.
         """
+        from monty.serialization import dumpfn
+
         logger.info("Saving model to: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )
-            fhandle.write(jsonStr)
+        dumpfn(self.as_dict(), fname, indent=4)
+
+    def to_json(self, fname):
+        """Compatibility alias for JSON-backed model writing."""
+        self.to(fname)
 
 
 class CompositeModel(BaseModel):

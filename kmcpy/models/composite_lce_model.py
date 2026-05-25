@@ -9,18 +9,18 @@ composable and generic.
 Author: Zeyu Deng
 """
 
-import json
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
 from kmcpy.models.base import CompositeModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.schema import MODEL_FILE_FORMAT, require_model_type
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import RuntimeConfig
+    from kmcpy.simulator.config import Configuration, RuntimeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +57,15 @@ class CompositeLCEModel(CompositeModel):
         )
     """
     
-    def __init__(self, site_model: Optional[LocalClusterExpansion] = None, 
-                 kra_model: Optional[LocalClusterExpansion] = None, *args, **kwargs):
+    def __init__(
+        self,
+        site_model: Optional[LocalClusterExpansion] = None,
+        kra_model: Optional[LocalClusterExpansion] = None,
+        kra_fit_metadata: Optional[dict[str, Any]] = None,
+        site_fit_metadata: Optional[dict[str, Any]] = None,
+        *args,
+        **kwargs,
+    ):
         """
         Initialize a composite LCE model with two component models.
         
@@ -82,6 +89,8 @@ class CompositeLCEModel(CompositeModel):
         
         self.site_model = site_model
         self.kra_model = kra_model
+        self.kra_fit_metadata = kra_fit_metadata or {"time_stamp": None, "time": None}
+        self.site_fit_metadata = site_fit_metadata or {"time_stamp": None, "time": None}
         
     def compute(self) -> None:
         """
@@ -201,14 +210,39 @@ class CompositeLCEModel(CompositeModel):
             "empty_cluster": model.empty_cluster,
         }
 
+    @staticmethod
+    def _validate_model_file_component(name: str, component: dict[str, Any]) -> None:
+        if not isinstance(component, dict):
+            raise ValueError(f"Model component '{name}' must be an object")
+        if "lce" not in component or not isinstance(component["lce"], dict):
+            raise ValueError(f"Model component '{name}' must contain object key 'lce'")
+
+        parameters = component.get("parameters")
+        if not isinstance(parameters, dict):
+            raise ValueError(
+                f"Model component '{name}' must contain object key 'parameters'"
+            )
+        if "keci" not in parameters or "empty_cluster" not in parameters:
+            raise ValueError(
+                f"Model component '{name}.parameters' must contain keys "
+                "'keci' and 'empty_cluster'"
+            )
+
+    @classmethod
+    def validate_model_file_dict(cls, model_data: dict[str, Any]) -> None:
+        """Validate a composite LCE model-file payload."""
+        data = require_model_type(model_data, "composite_lce")
+        if "kra" not in data:
+            raise ValueError("Composite model file must contain required key 'kra'")
+
+        cls._validate_model_file_component("kra", data["kra"])
+        if "site" in data and data["site"] is not None:
+            cls._validate_model_file_component("site", data["site"])
+
     def to_model_file_dict(self) -> dict:
-        """
-        Convert this composite model into a model file payload.
-        """
+        """Convert this composite model into a model-file payload."""
         if self.kra_model is None:
             raise ValueError("Cannot serialize composite model: kra_model is missing")
-
-        from kmcpy.io.model_file import MODEL_FILE_FORMAT
 
         model_data = {
             "format": MODEL_FILE_FORMAT,
@@ -216,7 +250,7 @@ class CompositeLCEModel(CompositeModel):
             "kra": {
                 "lce": self.kra_model.as_dict(),
                 "parameters": self._extract_parameters_for_model_file(self.kra_model, "kra"),
-                "fit_metadata": {"time_stamp": None, "time": None},
+                "fit_metadata": self.kra_fit_metadata,
             },
         }
 
@@ -224,25 +258,83 @@ class CompositeLCEModel(CompositeModel):
             model_data["site"] = {
                 "lce": self.site_model.as_dict(),
                 "parameters": self._extract_parameters_for_model_file(self.site_model, "site"),
-                "fit_metadata": {"time_stamp": None, "time": None},
+                "fit_metadata": self.site_fit_metadata,
             }
 
+        self.validate_model_file_dict(model_data)
         return model_data
 
+    def to(self, filename: str, indent: int = 2) -> None:
+        """Write this composite model as a serialized model file."""
+        from monty.serialization import dumpfn
+
+        logger.info("Saving composite model file to: %s", filename)
+        dumpfn(self.to_model_file_dict(), filename, indent=indent)
+
     def to_json(self, fname: str) -> None:
-        """
-        Save this composite model as a model file JSON file.
+        """Compatibility alias for JSON model writing."""
+        self.to(fname)
 
-        The output is directly consumable by `CompositeLCEModel.from_file(...)`
-        and by Configuration `model_file`.
-        """
-        from kmcpy.io import convert
+    @staticmethod
+    def _latest_fit_record(fit_file: str) -> dict[str, Any]:
+        from monty.serialization import loadfn
 
-        logger.info("Saving composite model file to: %s", fname)
-        model_data = self.to_model_file_dict()
-        with open(fname, "w") as fhandle:
-            json.dump(model_data, fhandle, indent=4, default=convert)
-    
+        payload = loadfn(fit_file, cls=None)
+        if not isinstance(payload, dict):
+            raise ValueError(f"Fitting results file {fit_file} must contain a JSON object")
+        rows = [row for row in payload.values() if isinstance(row, dict)]
+        if not rows:
+            raise ValueError(f"No fitting rows found in {fit_file}")
+        rows_with_ts = [row for row in rows if row.get("time_stamp") is not None]
+        return max(rows_with_ts, key=lambda row: row["time_stamp"]) if rows_with_ts else rows[-1]
+
+    @classmethod
+    def _component_from_legacy_files(
+        cls,
+        lce_file: str,
+        fit_file: str,
+    ) -> tuple[LocalClusterExpansion, dict[str, Any]]:
+        fit = cls._latest_fit_record(fit_file)
+        if "keci" not in fit or "empty_cluster" not in fit:
+            raise ValueError(
+                f"Fitting results file {fit_file} must contain keys keci and empty_cluster"
+            )
+
+        model = LocalClusterExpansion.from_file(lce_file)
+        model.set_parameters({"keci": fit["keci"], "empty_cluster": fit["empty_cluster"]})
+        metadata = {
+            key: value
+            for key, value in fit.items()
+            if key not in {"keci", "empty_cluster"}
+        }
+        return model, metadata
+
+    @classmethod
+    def from_legacy_files(
+        cls,
+        kra_lce: str,
+        kra_fit: str,
+        site_lce: str | None = None,
+        site_fit: str | None = None,
+    ) -> "CompositeLCEModel":
+        """Build a composite LCE model from legacy LCE and fitting JSON files."""
+        kra_model, kra_fit_metadata = cls._component_from_legacy_files(kra_lce, kra_fit)
+        site_model = None
+        site_fit_metadata = None
+        if site_lce is not None or site_fit is not None:
+            if site_lce is None or site_fit is None:
+                raise ValueError("Both site_lce and site_fit are required for a site model")
+            site_model, site_fit_metadata = cls._component_from_legacy_files(
+                site_lce, site_fit
+            )
+
+        return cls(
+            site_model=site_model,
+            kra_model=kra_model,
+            kra_fit_metadata=kra_fit_metadata,
+            site_fit_metadata=site_fit_metadata,
+        )
+
     def build(self, *args, **kwargs):
         """
         Build the composite model based on the provided parameters.
@@ -296,43 +388,49 @@ class CompositeLCEModel(CompositeModel):
         """
         Create a CompositeLCEModel from a dictionary.
         """
-        from kmcpy.io import convert
-        site_model = convert(d["site_model"]) if d.get("site_model") else None
-        kra_model = convert(d["kra_model"]) if d.get("kra_model") else None
+        site_model = (
+            LocalClusterExpansion.from_dict(d["site_model"])
+            if d.get("site_model")
+            else None
+        )
+        kra_model = (
+            LocalClusterExpansion.from_dict(d["kra_model"])
+            if d.get("kra_model")
+            else None
+        )
         return cls(site_model=site_model, kra_model=kra_model, name=d.get("name"))
 
     @classmethod
-    def from_file(cls, model_file: str) -> "CompositeLCEModel":
-        """
-        Create a CompositeLCEModel from a serialized model file.
-        
-        Args:
-            model_file: Path to serialized model file
-            
-        Returns:
-            CompositeLCEModel: Configured composite model with loaded parameters
-        """
-        from kmcpy.io.model_file import load_model_file
-        
-        logger.info(f"Loading composite model file from: {model_file}")
-        model_data = load_model_file(model_file)
-        
-        # Load KRA model
+    def from_model_file_dict(cls, model_data: dict[str, Any]) -> "CompositeLCEModel":
+        """Create a CompositeLCEModel from an in-memory model-file payload."""
+        cls.validate_model_file_dict(model_data)
+
         kra_component = model_data["kra"]
         kra_model = LocalClusterExpansion.from_dict(kra_component["lce"])
-        kra_params = kra_component["parameters"]
-        kra_model.set_parameters(kra_params)
-        
-        # Load optional site model
+        kra_model.set_parameters(kra_component["parameters"])
+
         site_model = None
+        site_fit_metadata = None
         if model_data.get("site") is not None:
             site_component = model_data["site"]
             site_model = LocalClusterExpansion.from_dict(site_component["lce"])
-            site_params = site_component["parameters"]
-            site_model.set_parameters(site_params)
-        
-        # Create composite model with pre-configured models
-        return cls(site_model=site_model, kra_model=kra_model)
+            site_model.set_parameters(site_component["parameters"])
+            site_fit_metadata = site_component.get("fit_metadata")
+
+        return cls(
+            site_model=site_model,
+            kra_model=kra_model,
+            kra_fit_metadata=kra_component.get("fit_metadata"),
+            site_fit_metadata=site_fit_metadata,
+        )
+
+    @classmethod
+    def from_file(cls, model_file: str) -> "CompositeLCEModel":
+        """Create a CompositeLCEModel from a serialized model file."""
+        from monty.serialization import loadfn
+
+        logger.info("Loading composite model file from: %s", model_file)
+        return cls.from_model_file_dict(loadfn(model_file, cls=None))
 
     @classmethod
     def from_json(cls, model_file: str) -> "CompositeLCEModel":

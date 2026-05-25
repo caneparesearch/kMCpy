@@ -2,11 +2,10 @@
 """Model fitting implementations."""
 
 from abc import ABC, abstractmethod
-import json
 import logging
 import os
 
-from kmcpy.io import convert
+from monty.serialization import dumpfn, loadfn
 from kmcpy.models.parameters import LCEModelParamHistory, LCEModelParameters
 
 logger = logging.getLogger(__name__)
@@ -155,18 +154,12 @@ class LCEFitter(BaseFitter):
 
     def to_json(self, fname):
         logger.info("Saving: %s", fname)
-        with open(fname, "w") as fhandle:
-            payload = self.as_dict()
-            json_str = json.dumps(
-                payload, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(json_str)
+        dumpfn(self.as_dict(), fname, indent=4)
 
     @classmethod
     def from_json(cls, fname):
         logger.info("Loading: %s", fname)
-        with open(fname, "rb") as fhandle:
-            payload = json.load(fhandle)
+        payload = loadfn(fname, cls=None)
         if not isinstance(payload, dict):
             raise ValueError("Serialized fitter payload must be a JSON object.")
 

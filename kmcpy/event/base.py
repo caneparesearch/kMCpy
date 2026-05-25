@@ -9,8 +9,7 @@ the local environment indices. All energy calculations are now handled by the mo
 
 import numpy as np
 import numba as nb
-import json
-from kmcpy.io import convert
+from monty.serialization import dumpfn, loadfn
 import logging
 from abc import ABC
 from numba.typed import List
@@ -52,23 +51,14 @@ class Event:
         }
         return d
 
-    def to_json(self, fname:str):
+    def to_json(self, fname: str):
         logger.info("Saving: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(jsonStr)
+        dumpfn(self.as_dict(), fname, indent=4)
 
     @classmethod
-    def from_json(self, fname:str):
+    def from_json(cls, fname: str):
         logger.info("Loading: %s", fname)
-        with open(fname, "rb") as fhandle:
-            objDict = json.load(fhandle)
-        obj = Event()
-        obj.__dict__ = objDict
-        return obj
+        return cls.from_dict(loadfn(fname, cls=None))
 
     @classmethod
     def from_dict(cls, event_dict:dict):
@@ -310,10 +300,7 @@ class EventLib(ABC):
                 "Event library cannot be saved without active-site index metadata"
             )
         logger.info("Saving EventLib to: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(d, indent=4, default=convert)
-            fhandle.write(jsonStr)
+        dumpfn(self.as_dict(), fname, indent=4)
 
     @classmethod
     def from_dict(cls, data):
@@ -371,8 +358,7 @@ class EventLib(ABC):
             EventLib: Loaded EventLib with event dependencies available.
         """
         logger.info("Loading EventLib from: %s", fname)
-        with open(fname, "r") as fhandle:
-            data = json.load(fhandle)
+        data = loadfn(fname, cls=None)
 
         # Handle both old format (list of events) and new format (dict with events and deps)
         if isinstance(data, list):

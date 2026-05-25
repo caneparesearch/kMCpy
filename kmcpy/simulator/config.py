@@ -17,14 +17,7 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from kmcpy.io.files import (
-    detect_file_format,
-    load_json,
-    load_yaml,
-    load_yaml_section,
-    save_json,
-    save_yaml,
-)
+from monty.serialization import dumpfn, loadfn
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
 
 SYSTEM_PARAM_NAMES = {
@@ -57,6 +50,47 @@ RUNTIME_PARAM_NAMES = {
 }
 
 CONFIG_PARAM_NAMES = SYSTEM_PARAM_NAMES | RUNTIME_PARAM_NAMES
+
+
+def _detect_config_file_format(filepath: str) -> str:
+    suffix = Path(filepath).suffix.lower()
+    if suffix == ".json":
+        return "json"
+    if suffix in {".yaml", ".yml"}:
+        return "yaml"
+    return "unknown"
+
+
+def _load_yaml_section(
+    filepath: str,
+    section: str,
+    task_type: str | None = None,
+) -> dict[str, Any]:
+    """Load a flat or registry-style section from a YAML file."""
+    yaml_data = loadfn(filepath)
+
+    if section not in yaml_data:
+        available = list(yaml_data.keys())
+        raise ValueError(
+            f"Section '{section}' not found in {filepath}. Available: {available}"
+        )
+
+    section_data = yaml_data[section]
+
+    if isinstance(section_data, dict) and "type" in section_data:
+        if task_type is None:
+            task_type = section_data["type"]
+
+        if task_type not in section_data:
+            available_types = [key for key in section_data.keys() if key != "type"]
+            raise ValueError(
+                f"Task type '{task_type}' not found in section '{section}'. "
+                f"Available: {available_types}"
+            )
+
+        return section_data[task_type].copy()
+
+    return section_data.copy()
 
 
 def _validate_builtin_property_enabled(values: dict[str, bool]) -> None:
@@ -375,12 +409,12 @@ class Configuration:
             config = Configuration.from_file("simulation.json")
         """
         
-        file_format = detect_file_format(filepath)
+        file_format = _detect_config_file_format(filepath)
         
         if file_format == 'json':
-            raw_data = load_json(filepath)
+            raw_data = loadfn(filepath, cls=None)
         elif file_format == 'yaml':
-            raw_data = load_yaml(filepath)
+            raw_data = loadfn(filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
 
@@ -409,7 +443,7 @@ class Configuration:
             config = Configuration.from_yaml_section("workflow.yaml", "kmc", "diffusion")
         """
         
-        raw_data = load_yaml_section(filepath, section, task_type)
+        raw_data = _load_yaml_section(filepath, section, task_type)
     
         return cls.from_dict(raw_data)
     
@@ -427,13 +461,13 @@ class Configuration:
         """
         
         data = self.to_dict()
-        file_format = detect_file_format(filepath)
+        file_format = _detect_config_file_format(filepath)
         
         if file_format == 'json':
             indent = kwargs.get('indent', 2)
-            save_json(data, filepath, indent=indent)
+            dumpfn(data, filepath, indent=indent)
         elif file_format == 'yaml':
-            save_yaml(data, filepath)
+            dumpfn(data, filepath)
         else:
             raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
     
@@ -462,7 +496,7 @@ class Configuration:
         # Load existing YAML file or create new structure
         if os.path.exists(filepath):
             try:
-                yaml_data = load_yaml(filepath)
+                yaml_data = loadfn(filepath)
             except:
                 yaml_data = {}
         else:
@@ -476,7 +510,7 @@ class Configuration:
             task_type: config_data
         }
         
-        save_yaml(yaml_data, filepath)
+        dumpfn(yaml_data, filepath)
     
     def with_runtime_changes(self, **changes) -> "Configuration":
         """Create new config with runtime parameter changes."""

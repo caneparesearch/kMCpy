@@ -2,38 +2,36 @@ from pathlib import Path
 
 import pytest
 
-from kmcpy.io.model_file import (
-    build_model_file_from_legacy_files,
-    build_tabulated_model_file,
-    build_tabulated_model_file_from_entries_file,
-    load_model_file,
-    save_model_file,
-)
-from kmcpy.simulator.components import create_model_from_config
+from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.tabulated_model import TabulatedModel
+from kmcpy.simulator.components import create_model_from_config
 from kmcpy.simulator.config import Configuration
 
 
 @pytest.mark.unit
-def test_load_model_file_validation_error(tmp_path: Path):
+def test_composite_model_file_validation_error(tmp_path: Path):
     invalid = tmp_path / "invalid_model_file.json"
-    invalid.write_text('{"format": "wrong", "model_type": "composite_lce"}', encoding="utf-8")
+    invalid.write_text(
+        '{"format": "wrong", "model_type": "composite_lce"}',
+        encoding="utf-8",
+    )
 
     with pytest.raises(ValueError, match="kmcpy.model_file"):
-        load_model_file(str(invalid))
+        CompositeLCEModel.from_file(str(invalid))
 
 
 @pytest.mark.unit
-def test_build_model_file_from_legacy_files():
+def test_composite_lce_model_from_legacy_files():
     root = Path(__file__).parent / "files" / "input"
 
-    model_data = build_model_file_from_legacy_files(
+    model = CompositeLCEModel.from_legacy_files(
         kra_lce=str(root / "lce.json"),
         kra_fit=str(root / "fitting_results.json"),
         site_lce=str(root / "lce_site.json"),
         site_fit=str(root / "fitting_results_site.json"),
     )
+    model_data = model.to_model_file_dict()
 
     assert model_data["format"] == "kmcpy.model_file"
     assert model_data["model_type"] == "composite_lce"
@@ -82,31 +80,28 @@ def test_lce_model_type_uses_model_file_directly():
 
 
 @pytest.mark.unit
-def test_build_and_load_tabulated_model_file_from_entries_file(tmp_path: Path):
+def test_tabulated_model_from_raw_entries_writes_model_file(tmp_path: Path):
     root = Path(__file__).parent / "files" / "input"
-    model_data = build_tabulated_model_file_from_entries_file(
-        entries_file=str(root / "tabulated_entries.json")
-    )
-    assert model_data["format"] == "kmcpy.model_file"
-    assert model_data["model_type"] == "tabulated"
-    assert "tabulated" in model_data
+    model = TabulatedModel.from_file(str(root / "tabulated_entries.json"))
 
     output = tmp_path / "tabulated_model.json"
-    save_model_file(model_data, str(output))
-    loaded = load_model_file(str(output))
-    assert loaded["tabulated"]["default_property"] == "barrier"
+    model.to(str(output))
+    loaded = TabulatedModel.from_file(str(output))
+
+    assert loaded.default_property == "barrier"
+    assert loaded.to_model_file_dict()["format"] == "kmcpy.model_file"
 
 
 @pytest.mark.unit
-def test_load_tabulated_model_file_validation_error(tmp_path: Path):
+def test_tabulated_model_file_validation_error(tmp_path: Path):
     invalid = tmp_path / "invalid_tabulated_model_file.json"
     invalid.write_text(
         '{"format":"kmcpy.model_file","model_type":"tabulated","tabulated":{"entries":[]}}',
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="non-empty list key 'entries'"):
-        load_model_file(str(invalid))
+    with pytest.raises(ValueError, match="non-empty list"):
+        TabulatedModel.from_file(str(invalid))
 
 
 @pytest.mark.unit
@@ -124,7 +119,7 @@ def test_tabulated_model_type_uses_model_file_directly():
 
 
 @pytest.mark.unit
-def test_build_tabulated_model_file_rejects_duplicate_entries():
+def test_tabulated_model_from_entries_rejects_duplicate_entries():
     entries = [
         {
             "mobile_ion_indices": [0, 1],
@@ -141,4 +136,4 @@ def test_build_tabulated_model_file_rejects_duplicate_entries():
     ]
 
     with pytest.raises(ValueError, match="Duplicate tabulated canonical key"):
-        build_tabulated_model_file(entries=entries)
+        TabulatedModel.from_entries(entries=entries)

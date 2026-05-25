@@ -41,29 +41,21 @@ Notes:
 
 ## 2. Build model file with API
 
-Use `build_tabulated_model_file_from_entries_file(...)` to produce a validated model file:
+Use `TabulatedModel.from_file(...)` to read a raw entries file and write a validated model file:
 
 ```python
-from kmcpy.io.model_file import (
-    build_tabulated_model_file_from_entries_file,
-    save_model_file,
-)
+from kmcpy.models import TabulatedModel
 
-model_data = build_tabulated_model_file_from_entries_file(
-    entries_file="tabulated_entries.json"
-)
-save_model_file(model_data, "model.json")
+model = TabulatedModel.from_file("tabulated_entries.json")
+model.to("model.json")
 ```
 
 You can also build directly from in-memory entries:
 
 ```python
-from kmcpy.io.model_file import (
-    build_tabulated_model_file,
-    save_model_file,
-)
+from kmcpy.models import TabulatedModel
 
-model_data = build_tabulated_model_file(
+model = TabulatedModel.from_entries(
     entries=[
         {
             "mobile_ion_indices": [0, 1],
@@ -75,7 +67,7 @@ model_data = build_tabulated_model_file(
     default_property="barrier",
     probability_property="barrier",
 )
-save_model_file(model_data, "model.json")
+model.to("model.json")
 ```
 
 ## 3. Build model file with CLI

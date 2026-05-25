@@ -7,8 +7,6 @@ API Reference Documentation
 
     high_level_api.rst
     neb.rst
-    serialization.rst
-    model_file.rst
     models_fitting_registry.rst
     fitter.rst
     parameters.rst

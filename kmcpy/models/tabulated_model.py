@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass
 from typing import Any, Optional, TYPE_CHECKING
@@ -12,6 +11,7 @@ import numpy as np
 
 from kmcpy.event import Event
 from kmcpy.models.base import BaseModel
+from kmcpy.models.schema import MODEL_FILE_FORMAT, require_model_type
 from kmcpy.simulator.state import State
 
 if TYPE_CHECKING:
@@ -428,13 +428,23 @@ class TabulatedModel(BaseModel):
 
     def to_model_file_dict(self) -> dict[str, Any]:
         """Serialize this tabulated model into the model-file format."""
-        from kmcpy.io.model_file import MODEL_FILE_FORMAT
-
-        return {
+        model_data = {
             "format": MODEL_FILE_FORMAT,
             "model_type": "tabulated",
             "tabulated": self.as_dict(),
         }
+        self.validate_model_file_dict(model_data)
+        return model_data
+
+    def to(self, filename: str, indent: int = 2) -> None:
+        """Write this tabulated model as a serialized model file."""
+        from monty.serialization import dumpfn
+
+        dumpfn(self.to_model_file_dict(), filename, indent=indent)
+
+    def to_json(self, fname: str) -> None:
+        """Compatibility alias for JSON model writing."""
+        self.to(fname)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TabulatedModel":
@@ -454,29 +464,97 @@ class TabulatedModel(BaseModel):
         )
 
     @classmethod
-    def from_file(cls, model_file: str) -> "TabulatedModel":
-        """Load from a model file or direct model payload."""
-        with open(model_file, "r", encoding="utf-8") as fhandle:
-            payload = json.load(fhandle)
+    def _from_entries_payload(
+        cls,
+        payload: dict[str, Any] | list[dict[str, Any]],
+        name: str | None = None,
+        lookup_key: str | None = None,
+        default_property: str | None = None,
+        probability_mode: str | None = None,
+        probability_property: str | None = None,
+    ) -> "TabulatedModel":
+        if isinstance(payload, list):
+            entries = payload
+            metadata: dict[str, Any] = {}
+        elif isinstance(payload, dict):
+            if "entries" not in payload:
+                raise ValueError("Tabulated entries JSON object must include key 'entries'")
+            entries = payload["entries"]
+            metadata = payload
+        else:
+            raise ValueError("Tabulated entries file must contain a JSON list or object")
 
-        if (
-            isinstance(payload, dict)
-            and payload.get("format") in {"kmcpy.model_file", "kmcpy.model_bundle.v1"}
-        ):
-            model_type = payload.get("model_type")
-            if model_type != "tabulated":
-                raise ValueError(
-                    f"Expected model_type 'tabulated', got '{model_type}'"
+        return cls.from_entries(
+            entries=entries,
+            name=name or metadata.get("name", "TabulatedModel"),
+            lookup_key=lookup_key or metadata.get("lookup_key", cls.SUPPORTED_LOOKUP_KEY),
+            default_property=default_property or metadata.get("default_property", "barrier"),
+            probability_mode=probability_mode
+            or metadata.get("probability_mode", cls.SUPPORTED_PROBABILITY_MODE),
+            probability_property=probability_property
+            or metadata.get("probability_property", "barrier"),
+        )
+
+    @classmethod
+    def validate_model_file_dict(cls, model_data: dict[str, Any]) -> None:
+        """Validate a tabulated model-file payload."""
+        data = require_model_type(model_data, "tabulated")
+        tabulated_payload = data.get("tabulated")
+        if not isinstance(tabulated_payload, dict):
+            raise ValueError("Tabulated model file is missing object key 'tabulated'")
+        cls.from_dict(tabulated_payload)
+
+    @classmethod
+    def from_model_file_dict(cls, model_data: dict[str, Any]) -> "TabulatedModel":
+        """Create a TabulatedModel from an in-memory model-file payload."""
+        cls.validate_model_file_dict(model_data)
+        return cls.from_dict(model_data["tabulated"])
+
+    @classmethod
+    def from_file(
+        cls,
+        filename: str,
+        name: str | None = None,
+        lookup_key: str | None = None,
+        default_property: str | None = None,
+        probability_mode: str | None = None,
+        probability_property: str | None = None,
+    ) -> "TabulatedModel":
+        """Load from a model file, direct model payload, or raw entries file."""
+        from monty.serialization import loadfn
+
+        payload = loadfn(filename, cls=None)
+
+        if isinstance(payload, dict) and "format" in payload:
+            model = cls.from_model_file_dict(payload)
+            if any(
+                value is not None
+                for value in (
+                    name,
+                    lookup_key,
+                    default_property,
+                    probability_mode,
+                    probability_property,
                 )
-            tabulated_payload = payload.get("tabulated")
-            if not isinstance(tabulated_payload, dict):
-                raise ValueError("Tabulated model file is missing object key 'tabulated'")
-            return cls.from_dict(tabulated_payload)
+            ):
+                return cls._from_entries_payload(
+                    model.as_dict(),
+                    name=name,
+                    lookup_key=lookup_key,
+                    default_property=default_property,
+                    probability_mode=probability_mode,
+                    probability_property=probability_property,
+                )
+            return model
 
-        if isinstance(payload, dict):
-            return cls.from_dict(payload)
-
-        raise ValueError("Unsupported tabulated model file schema")
+        return cls._from_entries_payload(
+            payload,
+            name=name,
+            lookup_key=lookup_key,
+            default_property=default_property,
+            probability_mode=probability_mode,
+            probability_property=probability_property,
+        )
 
     @classmethod
     def from_json(cls, model_file: str) -> "TabulatedModel":

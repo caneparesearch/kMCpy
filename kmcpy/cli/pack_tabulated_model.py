@@ -6,10 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from kmcpy.io.model_file import (
-    build_tabulated_model_file_from_entries_file,
-    save_model_file,
-)
+from kmcpy.models.tabulated_model import TabulatedModel
 
 
 DEFAULT_MODEL_FILE_FILENAME = "model.json"
@@ -32,13 +29,13 @@ def write_tabulated_model_file(
             f"Refusing to overwrite existing file: {output_path}. Use --force to overwrite."
         )
 
-    model_data = build_tabulated_model_file_from_entries_file(
-        entries_file=entries_file,
+    model = TabulatedModel.from_file(
+        entries_file,
         name=name,
         default_property=default_property,
         probability_property=probability_property,
     )
-    save_model_file(model_data, str(output_path))
+    model.to(str(output_path))
     return output_path
 
 

@@ -6,6 +6,7 @@ from pymatgen.core import Lattice, Structure
 
 from kmcpy.simulator.config import RuntimeConfig, Configuration, SystemConfig
 from kmcpy.simulator.state import State
+from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 
 
 class DummyEvent:
@@ -110,6 +111,33 @@ class TestOccupationManagement:
 
         assert state.time == 1.25
         assert state.step == 7
+
+    def test_state_from_occupations_filters_full_structure_values(self, test_structure):
+        """Test State.from_occupations handles full-structure occupation input."""
+        index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+            test_structure,
+            {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
+        )
+
+        state = State.from_occupations(
+            [-1, 1, 1, 1],
+            active_site_index_map=index_map,
+        )
+
+        assert state.occupations == [-1, 1]
+
+    def test_state_from_file_loads_initial_state(self, tmp_path, test_structure):
+        """Test initial-state files load through State.from_file."""
+        index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+            test_structure,
+            {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
+        )
+        state_file = tmp_path / "initial_state.json"
+        state_file.write_text('{"occupation": [0, 1, 1, 0]}', encoding="utf-8")
+
+        state = State.from_file(str(state_file), active_site_index_map=index_map)
+
+        assert state.occupations == [-1, 1]
 
     def test_simulation_state_apply_event(self):
         """Test state updates through the strict core apply_event API."""

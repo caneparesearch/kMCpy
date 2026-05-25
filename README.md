@@ -165,15 +165,10 @@ For sparse datasets, you can use `TabulatedModel` with direct event+occupation l
 
 Build a model file via API:
 ```python
-from kmcpy.io.model_file import (
-    build_tabulated_model_file_from_entries_file,
-    save_model_file,
-)
+from kmcpy.models import TabulatedModel
 
-model_data = build_tabulated_model_file_from_entries_file(
-    entries_file="tabulated_entries.json"
-)
-save_model_file(model_data, "model.json")
+model = TabulatedModel.from_file("tabulated_entries.json")
+model.to("model.json")
 ```
 
 Build via CLI:
