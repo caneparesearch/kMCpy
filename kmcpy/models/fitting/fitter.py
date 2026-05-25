@@ -51,6 +51,7 @@ class LCEFitter(BaseFitter):
             time="",
             rmse=0.0,
             loocv=0.0,
+            normalize=True,
         )
 
     @staticmethod
@@ -65,6 +66,7 @@ class LCEFitter(BaseFitter):
             time=payload.get("time", ""),
             rmse=payload.get("rmse", 0.0),
             loocv=payload.get("loocv", 0.0),
+            normalize=payload.get("normalize", True),
         )
 
     @staticmethod
@@ -93,7 +95,7 @@ class LCEFitter(BaseFitter):
     ) -> None:
         import pandas as pd
 
-        columns = [
+        required_columns = [
             "time_stamp",
             "time",
             "keci",
@@ -103,6 +105,7 @@ class LCEFitter(BaseFitter):
             "rmse",
             "loocv",
         ]
+        columns = required_columns + ["normalize"]
         row = [
             model_parameters.time_stamp,
             model_parameters.time,
@@ -112,12 +115,15 @@ class LCEFitter(BaseFitter):
             model_parameters.alpha,
             model_parameters.rmse,
             model_parameters.loocv,
+            model_parameters.normalize,
         ]
         try:
             logger.info("Try loading %s ...", fit_results_fname)
             df = pd.read_json(fit_results_fname, orient="index")
-            if not set(columns).issubset(df.columns):
+            if not set(required_columns).issubset(df.columns):
                 raise ValueError("Unexpected file schema")
+            if "normalize" not in df.columns:
+                df["normalize"] = True
             new_data = pd.DataFrame([row], columns=columns)
             df2 = pd.concat([df[columns], new_data], ignore_index=True)
             df2.to_json(fit_results_fname, orient="index", indent=4)
@@ -143,6 +149,7 @@ class LCEFitter(BaseFitter):
             "empty_cluster": self.model_parameters.empty_cluster,
             "rmse": self.model_parameters.rmse,
             "loocv": self.model_parameters.loocv,
+            "normalize": self.model_parameters.normalize,
         }
         return d
 
@@ -168,6 +175,89 @@ class LCEFitter(BaseFitter):
         obj.model_parameters = cls._model_parameters_from_dict(record)
         return obj
 
+    @staticmethod
+    def _fit_lasso_values(
+        correlation_matrix,
+        e_kra,
+        weight,
+        alpha,
+        max_iter,
+        normalize,
+    ):
+        """Fit Lasso and return unscaled coefficients, intercept, and predictions."""
+        from sklearn.linear_model import Lasso
+        import numpy as np
+
+        x = np.asarray(correlation_matrix, dtype=float)
+        y = np.asarray(e_kra, dtype=float)
+        sample_weight = None if weight is None else np.asarray(weight, dtype=float)
+
+        if not normalize:
+            estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=True)
+            fit_kwargs = (
+                {} if sample_weight is None else {"sample_weight": sample_weight}
+            )
+            estimator.fit(x, y, **fit_kwargs)
+            keci = estimator.coef_
+            empty_cluster = estimator.intercept_
+            return keci, empty_cluster, estimator.predict(x)
+
+        if sample_weight is None:
+            x_offset = np.mean(x, axis=0)
+            y_offset = float(np.mean(y))
+        else:
+            x_offset = np.average(x, axis=0, weights=sample_weight)
+            y_offset = float(np.average(y, weights=sample_weight))
+        x_centered = x - x_offset
+        y_centered = y - y_offset
+
+        # Mirror the deprecated sklearn normalize=True path used by the
+        # historical fitting workflow: center first, then divide each feature
+        # by its unweighted L2 norm.
+        x_scale = np.sqrt(np.sum(x_centered ** 2, axis=0))
+        x_scale[x_scale == 0.0] = 1.0
+        x_normalized = x_centered / x_scale
+
+        estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=False)
+        fit_kwargs = (
+            {} if sample_weight is None else {"sample_weight": sample_weight}
+        )
+        estimator.fit(x_normalized, y_centered, **fit_kwargs)
+        keci = estimator.coef_ / x_scale
+        empty_cluster = y_offset - float(np.dot(x_offset, keci))
+        y_pred = x @ keci + empty_cluster
+        return keci, empty_cluster, y_pred
+
+    @classmethod
+    def _leave_one_out_rmse(
+        cls,
+        correlation_matrix,
+        e_kra,
+        alpha,
+        max_iter,
+        normalize,
+    ) -> float:
+        """Compute the historical unweighted leave-one-out RMSE."""
+        import numpy as np
+
+        x = np.asarray(correlation_matrix, dtype=float)
+        y = np.asarray(e_kra, dtype=float)
+        squared_errors = []
+        for excluded_index in range(len(y)):
+            train_mask = np.ones(len(y), dtype=bool)
+            train_mask[excluded_index] = False
+            keci, empty_cluster, _ = cls._fit_lasso_values(
+                x[train_mask],
+                y[train_mask],
+                weight=None,
+                alpha=alpha,
+                max_iter=max_iter,
+                normalize=normalize,
+            )
+            y_pred = float(x[excluded_index] @ keci + empty_cluster)
+            squared_errors.append((float(y[excluded_index]) - y_pred) ** 2)
+        return float(np.sqrt(np.mean(squared_errors)))
+
     def fit(
         self,
         alpha,
@@ -179,6 +269,7 @@ class LCEFitter(BaseFitter):
         lce_params_fname="lce_params.json",
         lce_params_history_fname="lce_params_history.json",
         fit_results_fname=None,
+        normalize=True,
     ) -> tuple[LCEModelParameters, object, object]:
         """Main fitting function
 
@@ -209,9 +300,6 @@ class LCEFitter(BaseFitter):
         m is the number of E_KRA
         n is the number of clusers
         """
-        from sklearn.linear_model import Lasso
-        from sklearn.model_selection import cross_val_score
-        from sklearn.model_selection import LeaveOneOut
         from sklearn.metrics import root_mean_squared_error
 
         from copy import copy
@@ -224,10 +312,14 @@ class LCEFitter(BaseFitter):
         weight_copy = copy(weight)
         correlation_matrix = np.loadtxt(corr_fname)
 
-        estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=True)
-        estimator.fit(correlation_matrix, e_kra, sample_weight=weight)
-        keci = estimator.coef_
-        empty_cluster = estimator.intercept_
+        keci, empty_cluster, y_pred = self._fit_lasso_values(
+            correlation_matrix=correlation_matrix,
+            e_kra=e_kra,
+            weight=weight,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
+        )
         logger.info("Lasso Results:")
         logger.info("KECI = \n%s", np.round(keci, 2))
         logger.info(
@@ -236,7 +328,6 @@ class LCEFitter(BaseFitter):
         logger.info("Empty Cluster = %s", empty_cluster)
 
         y_true = e_kra
-        y_pred = estimator.predict(correlation_matrix)
         logger.info("index\tNEB\tLCE\tNEB-LCE")
         index = np.linspace(1, len(y_true), num=len(y_true), dtype="int")
         logger.info(
@@ -245,15 +336,13 @@ class LCEFitter(BaseFitter):
         )
 
         # cv = sqrt(mean(scores)) + N_nonzero_eci*penalty, penalty = 0 here
-        scores = -1 * cross_val_score(
-            estimator=estimator,
-            X=correlation_matrix,
-            y=e_kra,
-            scoring="neg_mean_squared_error",
-            cv=LeaveOneOut(),
-            n_jobs=-1,
+        loocv = self._leave_one_out_rmse(
+            correlation_matrix=correlation_matrix,
+            e_kra=e_kra,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
         )
-        loocv = np.sqrt(np.mean(scores))
         logger.info("LOOCV = %s meV", np.round(loocv, 2))
         # compute RMS error
         rmse = root_mean_squared_error(y_true, y_pred)
@@ -272,6 +361,7 @@ class LCEFitter(BaseFitter):
             time=time,
             rmse=rmse,
             loocv=loocv,
+            normalize=normalize,
         )
         self.model_parameters = lce_model_params
 

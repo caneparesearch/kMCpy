@@ -57,7 +57,7 @@ class LCEModelParameters(ModelParameters):
     def __init__(self, keci:list[float], empty_cluster:float, 
                  cluster_site_indices:list[int], 
                  weight:list[float], alpha:float, time_stamp:float, time:str, 
-                 rmse:float, loocv:float,**kwargs) -> None:
+                 rmse:float, loocv:float, normalize:bool=True, **kwargs) -> None:
         super().__init__(name="LCEModelParameters")
         self.keci = keci
         self.empty_cluster = empty_cluster
@@ -68,6 +68,7 @@ class LCEModelParameters(ModelParameters):
         self.time = time
         self.rmse = rmse
         self.loocv = loocv
+        self.normalize = normalize
 
     def get_parameters(self) -> dict:
         return {
@@ -79,7 +80,8 @@ class LCEModelParameters(ModelParameters):
             "time_stamp": self.time_stamp,
             "time": self.time,
             "rmse": self.rmse,
-            "loocv": self.loocv
+            "loocv": self.loocv,
+            "normalize": self.normalize
         }
 
     @classmethod
