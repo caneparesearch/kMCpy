@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--entries-file",
         required=True,
-        help="Path to JSON file with local-environment catalog entries (list or object with 'entries').",
+        help="Path to raw local-environment catalog entries JSON (list or object with 'entries').",
     )
     parser.add_argument("--name", help="Optional local-environment catalog name.")
     parser.add_argument(

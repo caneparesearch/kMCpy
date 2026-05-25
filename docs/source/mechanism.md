@@ -4,7 +4,7 @@ This section explains the theoretical foundations underlying kMCpy's implementat
 
 ## Overview
 
-kMCpy simulates ion transport in crystalline materials using a rejection-free kinetic Monte Carlo (rf-kMC) algorithm combined with a Local Cluster Expansion (LCE) model. This approach enables efficient computation of transport properties including diffusivity and ionic conductivity.
+kMCpy simulates ion transport in crystalline materials using a rejection-free kinetic Monte Carlo (rf-kMC) algorithm. The hop rates can currently come from two model types: a fitted `LocalClusterExpansion` model or an exact-lookup `LocalEnvCatalog` model. These models provide migration barriers for the same kMC engine, enabling efficient computation of transport properties including diffusivity and ionic conductivity.
 
 ## Kinetic Monte Carlo (kMC)
 
@@ -39,6 +39,15 @@ kMCpy uses the rejection-free algorithm (also called the "n-fold way" or "Bortz-
 ### Why Use kMC?
 
 Kinetic Monte Carlo bridges the gap between ab initio molecular dynamics (which is computationally too expensive for long timescales) and continuum diffusion models (which lack atomic-level detail). kMC simulations can reach microseconds to seconds—far beyond the nanosecond timescales accessible to molecular dynamics. At the same time, kMC maintains atomic resolution, tracking individual ions and capturing how local environment affects transport. This makes kMC particularly valuable for studying thermally activated processes where rare events dominate the long-time behavior.
+
+## Barrier Models
+
+kMCpy currently provides two model families for assigning hop barriers:
+
+- `LocalClusterExpansion`: a fitted model that predicts barriers from local occupation features. Use this when you want interpolation over many local configurations from a fitted training set.
+- `LocalEnvCatalog`: an exact lookup table keyed by event indices and local occupations. Use this when you have sparse, explicitly enumerated barriers and want missing configurations to fail instead of extrapolating.
+
+Both models operate in the active-site index space used by the event library and simulation state. The simulation config points to a serialized `model_file`; for kMCpy model-file envelopes, the model type is stored in that file.
 
 ## Local Cluster Expansion (LCE)
 
@@ -81,7 +90,7 @@ The fitting procedure involves:
 3. Using ridge regression (L2 regularization) to fit the coefficients $\alpha_i$ while avoiding overfitting.
 4. Validating the model by checking the root mean squared error (RMSE) and leave-one-out cross-validation (LOOCV) score.
 
-### Model
+### Composite LCE Model
 
 kMCpy uses a composite model that combines two LCE components: one for migration barriers (E_KRA) and one for site energy differences. This separation is important because the rate of an ion hop depends both on the barrier height and on the relative stability of the initial and final sites.
 
@@ -94,6 +103,14 @@ kMCpy combines these contributions to compute the effective barrier for each hop
 $$E_{\text{eff}} = E_{\text{KRA}} + \frac{\text{direction} \times \Delta E_{\text{site}}}{2}$$
 
 where direction indicates whether the hop is forward (+1) or backward (-1), and $\Delta E_{\text{site}}$ is the site energy difference between the final and initial sites. This formulation ensures that detailed balance is maintained: the ratio of forward to backward hop rates satisfies the Boltzmann factor for the site energy difference.
+
+## Local Environment Catalog
+
+`LocalEnvCatalog` is the exact-lookup alternative to LCE fitting. Each catalog row is keyed by the hopping sites, the local environment sites, and the occupations of the canonical local site list. The stored properties can include a migration barrier, which is then converted to a hop rate with the same Arrhenius expression used by the kMC algorithm.
+
+This model is useful when the relevant configurations have already been enumerated, for example from selected NEB calculations. It does not fit coefficients or estimate unseen environments. If a runtime event and occupation pattern is absent from the catalog, the lookup fails so the missing data can be corrected explicitly.
+
+See the [LocalEnvCatalog how-to](howto/local_env_catalog.md) for the required input fields and packing workflow.
 
 ## Transport Properties
 

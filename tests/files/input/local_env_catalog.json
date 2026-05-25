@@ -1,5 +1,5 @@
 {
-  "format": "kmcpy.model_file",
+  "filetype": "kmcpy.model_file",
   "model_type": "local_env_catalog",
   "local_env_catalog": {
     "@module": "kmcpy.models.local_env_catalog",

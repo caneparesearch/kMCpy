@@ -54,7 +54,8 @@ def build_template() -> str:
             mobile_ion_charge: 1.0
             # Characteristic hop distance (Angstrom)
             elementary_hop_distance: 1.0
-            # Model selector: composite_lce / lce / local_env_catalog
+            # Optional model selector for raw model payloads. Standard
+            # kmcpy.model_file envelopes infer this from model_file.
             model_type: "composite_lce"
             # Site mapping. One allowed species means fixed; multiple means active.
             site_mapping:

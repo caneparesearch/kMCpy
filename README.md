@@ -163,6 +163,20 @@ run_kmc --help
 ## Build local-environment catalog files (sparse data)
 For sparse datasets, you can use `LocalEnvCatalog` with direct event+occupation lookup.
 
+First write a raw entries file (`local_env_catalog_entries.json`). The required fields are `mobile_ion_indices`, `local_env_indices`, `occupations`, and `properties`; indices use the active-site index space from generated events.
+```json
+{
+  "entries": [
+    {
+      "mobile_ion_indices": [0, 1],
+      "local_env_indices": [1, 2, 3],
+      "occupations": [1, -1, 1, -1],
+      "properties": {"barrier": 250.0}
+    }
+  ]
+}
+```
+
 Build a model file via API:
 ```python
 from kmcpy.models import LocalEnvCatalog
@@ -176,9 +190,8 @@ Build via CLI:
 kmcpy pack-local-env-catalog --entries-file local_env_catalog_entries.json --output model.json
 ```
 
-Use it in simulation config:
+The generated model file contains `filetype: "kmcpy.model_file"` as storage metadata and `model_type: "local_env_catalog"` as model metadata. Use it in simulation config by pointing to the file:
 ```yaml
-model_type: "local_env_catalog"
 model_file: "model.json"
 ```
 

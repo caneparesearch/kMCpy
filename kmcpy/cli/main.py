@@ -44,7 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack_local_env_catalog_parser.add_argument(
         "--entries-file",
         required=True,
-        help="Path to JSON entries file (list or object with key 'entries').",
+        help="Path to raw catalog entries JSON (list or object with key 'entries').",
     )
     pack_local_env_catalog_parser.add_argument(
         "--name",

@@ -13,7 +13,7 @@ from kmcpy.simulator.config import Configuration
 def test_composite_model_file_validation_error(tmp_path: Path):
     invalid = tmp_path / "invalid_model_file.json"
     invalid.write_text(
-        '{"format": "wrong", "model_type": "composite_lce"}',
+        '{"filetype": "wrong", "model_type": "composite_lce"}',
         encoding="utf-8",
     )
 
@@ -33,7 +33,7 @@ def test_composite_lce_model_from_legacy_files():
     )
     model_data = model.to_model_file_dict()
 
-    assert model_data["format"] == "kmcpy.model_file"
+    assert model_data["filetype"] == "kmcpy.model_file"
     assert model_data["model_type"] == "composite_lce"
     assert model_data["kra"]["parameters"]["keci"]
     assert model_data["site"]["parameters"]["empty_cluster"] is not None
@@ -89,14 +89,14 @@ def test_local_env_catalog_from_raw_entries_writes_model_file(tmp_path: Path):
     loaded = LocalEnvCatalog.from_file(str(output))
 
     assert loaded.default_property == "barrier"
-    assert loaded.to_model_file_dict()["format"] == "kmcpy.model_file"
+    assert loaded.to_model_file_dict()["filetype"] == "kmcpy.model_file"
 
 
 @pytest.mark.unit
 def test_local_env_catalog_file_validation_error(tmp_path: Path):
     invalid = tmp_path / "invalid_local_env_catalog.json"
     invalid.write_text(
-        '{"format":"kmcpy.model_file","model_type":"local_env_catalog","local_env_catalog":{"entries":[]}}',
+        '{"filetype":"kmcpy.model_file","model_type":"local_env_catalog","local_env_catalog":{"entries":[]}}',
         encoding="utf-8",
     )
 
@@ -105,12 +105,11 @@ def test_local_env_catalog_file_validation_error(tmp_path: Path):
 
 
 @pytest.mark.unit
-def test_local_env_catalog_type_uses_model_file_directly():
+def test_model_type_is_inferred_from_model_file():
     root = Path(__file__).parent / "files" / "input"
     config = Configuration(
         structure_file="fake_structure.cif",
         event_file="fake_events.json",
-        model_type="local_env_catalog",
         model_file=str(root / "local_env_catalog.json"),
     )
 

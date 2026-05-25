@@ -90,7 +90,7 @@ def test_composite_lce_model_from_file_matches_from_json():
 def test_composite_lce_model_from_model_file_without_site(tmp_path):
     root = Path(__file__).parent / "files" / "input"
     model_data = {
-        "format": "kmcpy.model_file",
+        "filetype": "kmcpy.model_file",
         "model_type": "composite_lce",
         "kra": {
             "lce": json.loads((root / "lce.json").read_text(encoding="utf-8")),
@@ -116,7 +116,7 @@ def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
     loaded_model_data = json.loads(output_model_file.read_text(encoding="utf-8"))
     reloaded = CompositeLCEModel.from_json(str(output_model_file))
 
-    assert loaded_model_data["format"] == "kmcpy.model_file"
+    assert loaded_model_data["filetype"] == "kmcpy.model_file"
     assert reloaded.kra_model is not None
 
 

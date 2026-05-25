@@ -1,5 +1,5 @@
 {
-  "format": "kmcpy.model_file",
+  "filetype": "kmcpy.model_file",
   "model_type": "composite_lce",
   "kra": {
     "lce": {

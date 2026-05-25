@@ -11,7 +11,7 @@ import numpy as np
 
 from kmcpy.event import Event
 from kmcpy.models.base import BaseModel
-from kmcpy.models.schema import MODEL_FILE_FORMAT, require_model_type
+from kmcpy.models.schema import MODEL_FILETYPE, require_model_type
 from kmcpy.simulator.state import State
 
 if TYPE_CHECKING:
@@ -432,7 +432,7 @@ class LocalEnvCatalog(BaseModel):
     def to_model_file_dict(self) -> dict[str, Any]:
         """Serialize this local-environment catalog into the model-file format."""
         model_data = {
-            "format": MODEL_FILE_FORMAT,
+            "filetype": MODEL_FILETYPE,
             "model_type": "local_env_catalog",
             "local_env_catalog": self.as_dict(),
         }
@@ -537,7 +537,7 @@ class LocalEnvCatalog(BaseModel):
 
         payload = loadfn(filename, cls=None)
 
-        if isinstance(payload, dict) and "format" in payload:
+        if isinstance(payload, dict) and "filetype" in payload:
             model = cls.from_model_file_dict(payload)
             if any(
                 value is not None

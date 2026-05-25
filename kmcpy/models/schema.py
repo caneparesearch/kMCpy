@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-MODEL_FILE_FORMAT = "kmcpy.model_file"
-SUPPORTED_MODEL_FILE_FORMATS = frozenset({MODEL_FILE_FORMAT})
+MODEL_FILETYPE = "kmcpy.model_file"
+SUPPORTED_MODEL_FILETYPES = frozenset({MODEL_FILETYPE})
 
 
 def require_model_file_payload(payload: Any) -> dict[str, Any]:
@@ -13,9 +13,9 @@ def require_model_file_payload(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("Model file must be a JSON object")
 
-    if payload.get("format") not in SUPPORTED_MODEL_FILE_FORMATS:
+    if payload.get("filetype") not in SUPPORTED_MODEL_FILETYPES:
         raise ValueError(
-            f"Unsupported model file format. Expected '{MODEL_FILE_FORMAT}'."
+            f"Unsupported model filetype. Expected '{MODEL_FILETYPE}'."
         )
 
     return payload

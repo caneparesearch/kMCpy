@@ -15,7 +15,7 @@ import numpy as np
 
 from kmcpy.models.base import CompositeModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.schema import MODEL_FILE_FORMAT, require_model_type
+from kmcpy.models.schema import MODEL_FILETYPE, require_model_type
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 
@@ -245,7 +245,7 @@ class CompositeLCEModel(CompositeModel):
             raise ValueError("Cannot serialize composite model: kra_model is missing")
 
         model_data = {
-            "format": MODEL_FILE_FORMAT,
+            "filetype": MODEL_FILETYPE,
             "model_type": "composite_lce",
             "kra": {
                 "lce": self.kra_model.as_dict(),
