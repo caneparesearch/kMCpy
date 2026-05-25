@@ -5,12 +5,11 @@ This module defines the Event class and EventLib for managing migration events i
 """
 
 from .base import Event, EventLib
-from .generators import EventGenerator, NeighborInfoMatcher
+from .generators import EventGenerator
 
 
 __all__ = [
     'Event',
     'EventLib',
     'EventGenerator',
-    'NeighborInfoMatcher',
 ]

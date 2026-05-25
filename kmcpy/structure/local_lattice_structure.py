@@ -1,18 +1,16 @@
 from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule, Species
 import numpy as np
 import logging
-from typing import TYPE_CHECKING, List, Dict, Any
+from typing import List, Dict, Any
 
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+from kmcpy.structure.cluster import Cluster, ClusterMatcher
 from kmcpy.structure.local_site_ordering import (
     LocalSiteOrderingConvention,
     ordered_site_hash,
     ordered_site_signature,
 )
-
-if TYPE_CHECKING:
-    from kmcpy.structure.local_environment_comparator import LocalEnvironmentComparator
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -105,10 +103,7 @@ class LocalLatticeStructure(LatticeStructure):
         self.structure = local_env_structure
         self.local_environment_signature = ordered_site_signature(self.structure)
         self.local_environment_hash = ordered_site_hash(self.local_environment_signature)
-        
-        # Initialize comparator for neighbor sequence matching
-        self._comparator = None
-        self._neighbor_info = None
+
 
     @staticmethod
     def _normalize_exclude_species(exclude_species) -> list[str]:
@@ -162,23 +157,12 @@ class LocalLatticeStructure(LatticeStructure):
         """
         return cls.sort_neighbor_info(local_env_finder.get_nn_info(structure, center_index))
     
-    def get_comparator(self, rtol: float = 1e-3, atol: float = 1e-3) -> 'LocalEnvironmentComparator':
-        """
-        Get a comparator for this local environment.
-        
-        Args:
-            rtol: Relative tolerance for distance matrix comparison
-            atol: Absolute tolerance for distance matrix comparison
-            
-        Returns:
-            LocalEnvironmentComparator for this environment
-        """
-        if self._comparator is None:
-            from kmcpy.structure.local_environment_comparator import LocalEnvironmentComparator
-            self._comparator = LocalEnvironmentComparator.from_local_lattice_structure(
-                self, rtol=rtol, atol=atol
-            )
-        return self._comparator
+    def to_cluster(self):
+        """Return this local environment as a finite structural cluster."""
+        return Cluster.from_sites(
+            self.structure,
+            site_indices=self.site_indices,
+        )
     
     def match_with_reference(
         self,
@@ -199,39 +183,34 @@ class LocalLatticeStructure(LatticeStructure):
         Returns:
             New LocalLatticeStructure with reordered neighbors
         """
-        reference_comparator = reference_local_env.get_comparator(rtol, atol)
-        this_comparator = self.get_comparator(rtol, atol)
-        
-        # Match the neighbor sequences
-        matched_neighbors = reference_comparator.match_neighbor_sequence(
-            this_comparator.neighbor_info, find_nearest_if_fail
+        match = ClusterMatcher(
+            reference_local_env.to_cluster(),
+            rtol=rtol,
+            atol=atol,
+        ).match(
+            self.to_cluster(),
+            find_nearest_if_fail=find_nearest_if_fail,
         )
-        
-        # Create a new LocalLatticeStructure with matched ordering
-        # This is a simplified version - in practice you might want to 
-        # reconstruct the full structure with proper ordering
-        matched_local_env = LocalLatticeStructure(
-            template_structure=self.template_structure,
-            center=self.center_site if hasattr(self, 'center_site') else 0,
-            cutoff=self.cutoff,
-            site_mapping=self.site_mapping,
-            basis_type=self.basis_type if hasattr(self, 'basis_type') else 'occupation'
+
+        matched_local_env = self.__class__.__new__(self.__class__)
+        matched_local_env.__dict__.update(self.__dict__.copy())
+        matched_local_env.structure = Molecule.from_sites(
+            [self.structure[index] for index in match.reference_to_candidate]
         )
-        
-        # Update the structure with reordered sites
-        matched_sites = [neighbor["site"] for neighbor in matched_neighbors]
-        matched_local_env.structure = Molecule.from_sites(matched_sites)
-        matched_local_env.structure.translate_sites(
-            list(range(len(matched_local_env.structure))), 
-            -1 * self.center_site.coords
+        matched_local_env.site_indices = [
+            self.site_indices[index] for index in match.reference_to_candidate
+        ]
+        matched_local_env.local_environment_signature = ordered_site_signature(
+            matched_local_env.structure
         )
-        
+        matched_local_env.local_environment_hash = ordered_site_hash(
+            matched_local_env.local_environment_signature
+        )
         return matched_local_env
     
     def get_environment_signature(self) -> tuple:
         """Get a signature that uniquely identifies the environment type."""
-        comparator = self.get_comparator()
-        return comparator.signature
+        return self.to_cluster().signature
 
     def get_ordered_site_signature(self) -> list[dict[str, Any]]:
         """Get an order-sensitive signature for this local environment."""
@@ -259,21 +238,14 @@ class LocalLatticeStructure(LatticeStructure):
             True if environments are equivalent
         """
         try:
-            this_comparator = self.get_comparator(rtol, atol)
-            other_comparator = other_local_env.get_comparator(rtol, atol)
-            
-            # Check signatures first (quick check)
-            if this_comparator.signature != other_comparator.signature:
-                return False
-            
-            # Check distance matrices
-            return np.allclose(
-                this_comparator.distance_matrix,
-                other_comparator.distance_matrix,
-                rtol=rtol, atol=atol
-            )
-        except Exception:
+            ClusterMatcher(
+                self.to_cluster(),
+                rtol=rtol,
+                atol=atol,
+            ).match(other_local_env.to_cluster())
+        except ValueError:
             return False
+        return True
 
     @classmethod
     def from_lattice_structure(cls, lattice_structure: LatticeStructure, center, cutoff,

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
@@ -52,6 +54,60 @@ def test_local_cluster_expansion_serializes_ordering_convention():
     assert reloaded.ordering_convention.name == "nasicon_nat_commun_2022"
 
 
+def test_lce_parameters_are_bound_to_orbit_fingerprints():
+    structure = Structure(
+        Lattice.cubic(20.0),
+        ["Na", "Na", "Si"],
+        [[5, 5, 5], [6, 5, 5], [7, 5, 5]],
+        coords_are_cartesian=True,
+    )
+    local_lattice = LocalLatticeStructure(
+        template_structure=structure,
+        site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.0,
+    )
+    model = LocalClusterExpansion()
+    model.build(local_lattice, cutoff_cluster=[3.0, 3.0, 0.0])
+    orbit_fingerprints = model.get_orbit_fingerprints()
+
+    parameter_payload = {
+        "keci": [0.0] * len(orbit_fingerprints),
+        "empty_cluster": 0.0,
+        "orbit_fingerprints": orbit_fingerprints,
+        "local_environment_hash": model.local_environment_hash,
+        "ordering_convention": model.ordering_convention.as_dict(),
+    }
+    model.set_parameters(parameter_payload)
+
+    assert model.parameter_orbit_fingerprints == orbit_fingerprints
+    assert model.parameter_local_environment_hash == model.local_environment_hash
+
+    with pytest.warns(UserWarning, match="missing orbit_fingerprints"):
+        model.set_parameters(
+            {
+                "keci": [0.0] * len(orbit_fingerprints),
+                "empty_cluster": 0.0,
+            }
+        )
+
+    short_keci = [0.0] * max(len(orbit_fingerprints) - 1, 0)
+    with pytest.raises(ValueError, match="keci length"):
+        model.set_parameters({"keci": short_keci, "empty_cluster": 0.0})
+
+    wrong_fingerprints = list(orbit_fingerprints)
+    wrong_fingerprints[0] = "wrong"
+    with pytest.raises(ValueError, match="orbit_fingerprints"):
+        bad_fingerprint_payload = dict(parameter_payload)
+        bad_fingerprint_payload["orbit_fingerprints"] = wrong_fingerprints
+        model.set_parameters(bad_fingerprint_payload)
+
+    with pytest.raises(ValueError, match="local_environment_hash"):
+        bad_hash_payload = dict(parameter_payload)
+        bad_hash_payload["local_environment_hash"] = "wrong"
+        model.set_parameters(bad_hash_payload)
+
+
 def test_composite_lce_model_as_dict_with_legacy_json_inputs():
     root = Path(__file__).parent / "files" / "input"
     model = CompositeLCEModel.from_json(str(root / "model.json"))
@@ -89,12 +145,23 @@ def test_composite_lce_model_from_file_matches_from_json():
 
 def test_composite_lce_model_from_model_file_without_site(tmp_path):
     root = Path(__file__).parent / "files" / "input"
+    lce_payload = json.loads((root / "lce.json").read_text(encoding="utf-8"))
+    lce_model = LocalClusterExpansion.from_dict(lce_payload)
+    orbit_fingerprints = lce_model.get_orbit_fingerprints()
+    parameters = {
+        "keci": [0.0] * len(orbit_fingerprints),
+        "empty_cluster": 0.0,
+        "orbit_fingerprints": orbit_fingerprints,
+        "local_environment_hash": lce_model.local_environment_hash,
+    }
+    if getattr(lce_model, "ordering_convention", None) is not None:
+        parameters["ordering_convention"] = lce_model.ordering_convention.as_dict()
     model_data = {
         "filetype": "kmcpy.model_file",
         "model_type": "composite_lce",
         "kra": {
-            "lce": json.loads((root / "lce.json").read_text(encoding="utf-8")),
-            "parameters": {"keci": [1.0], "empty_cluster": 0.0},
+            "lce": lce_payload,
+            "parameters": parameters,
             "fit_metadata": {"time_stamp": 1.0, "time": "now"},
         },
     }
@@ -117,7 +184,18 @@ def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
     reloaded = CompositeLCEModel.from_json(str(output_model_file))
 
     assert loaded_model_data["filetype"] == "kmcpy.model_file"
+    assert "orbit_fingerprints" in loaded_model_data["kra"]["parameters"]
+    assert "local_environment_hash" in loaded_model_data["kra"]["parameters"]
+    assert "ordering_convention" in loaded_model_data["kra"]["parameters"]
     assert reloaded.kra_model is not None
+    assert (
+        loaded_model_data["kra"]["parameters"]["orbit_fingerprints"]
+        == reloaded.kra_model.get_orbit_fingerprints()
+    )
+    assert (
+        loaded_model_data["kra"]["parameters"]["local_environment_hash"]
+        == reloaded.kra_model.local_environment_hash
+    )
 
 
 def test_local_env_catalog_from_file_matches_from_json():

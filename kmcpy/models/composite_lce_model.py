@@ -205,10 +205,16 @@ class CompositeLCEModel(CompositeModel):
                 f"Cannot serialize '{label}' model to file: missing fitted parameters "
                 "(expected attributes 'keci' and 'empty_cluster')."
             )
-        return {
+        parameters = {
             "keci": model.keci,
             "empty_cluster": model.empty_cluster,
+            "orbit_fingerprints": model.get_orbit_fingerprints(),
         }
+        if getattr(model, "local_environment_hash", None) is not None:
+            parameters["local_environment_hash"] = model.local_environment_hash
+        if getattr(model, "ordering_convention", None) is not None:
+            parameters["ordering_convention"] = model.ordering_convention.as_dict()
+        return parameters
 
     @staticmethod
     def _validate_model_file_component(name: str, component: dict[str, Any]) -> None:
@@ -301,7 +307,14 @@ class CompositeLCEModel(CompositeModel):
             )
 
         model = LocalClusterExpansion.from_file(lce_file)
-        model.set_parameters({"keci": fit["keci"], "empty_cluster": fit["empty_cluster"]})
+        parameters = {"keci": fit["keci"], "empty_cluster": fit["empty_cluster"]}
+        if fit.get("orbit_fingerprints") is not None:
+            parameters["orbit_fingerprints"] = fit["orbit_fingerprints"]
+        if fit.get("local_environment_hash") is not None:
+            parameters["local_environment_hash"] = fit["local_environment_hash"]
+        if fit.get("ordering_convention") is not None:
+            parameters["ordering_convention"] = fit["ordering_convention"]
+        model.set_parameters(parameters)
         metadata = {
             key: value
             for key, value in fit.items()

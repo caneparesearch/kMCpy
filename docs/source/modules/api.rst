@@ -33,5 +33,4 @@ API Reference Documentation
     local_lattice_structure.rst
     local_environment_enumerator.rst
     local_site_ordering.rst
-    local_environment_comparator.rst
     tracker.rst

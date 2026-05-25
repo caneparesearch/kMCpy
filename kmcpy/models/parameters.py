@@ -57,7 +57,10 @@ class LCEModelParameters(ModelParameters):
     def __init__(self, keci:list[float], empty_cluster:float, 
                  cluster_site_indices:list[int], 
                  weight:list[float], alpha:float, time_stamp:float, time:str, 
-                 rmse:float, loocv:float, normalize:bool=True, **kwargs) -> None:
+                 rmse:float, loocv:float, normalize:bool=True,
+                 orbit_fingerprints:list[str] | None=None,
+                 local_environment_hash:str | None=None,
+                 ordering_convention:dict | None=None, **kwargs) -> None:
         super().__init__(name="LCEModelParameters")
         self.keci = keci
         self.empty_cluster = empty_cluster
@@ -69,9 +72,12 @@ class LCEModelParameters(ModelParameters):
         self.rmse = rmse
         self.loocv = loocv
         self.normalize = normalize
+        self.orbit_fingerprints = orbit_fingerprints
+        self.local_environment_hash = local_environment_hash
+        self.ordering_convention = ordering_convention
 
     def get_parameters(self) -> dict:
-        return {
+        parameters = {
             "keci": self.keci,
             "empty_cluster": self.empty_cluster,
             "cluster_site_indices": self.cluster_site_indices,
@@ -83,6 +89,13 @@ class LCEModelParameters(ModelParameters):
             "loocv": self.loocv,
             "normalize": self.normalize
         }
+        if self.orbit_fingerprints is not None:
+            parameters["orbit_fingerprints"] = self.orbit_fingerprints
+        if self.local_environment_hash is not None:
+            parameters["local_environment_hash"] = self.local_environment_hash
+        if self.ordering_convention is not None:
+            parameters["ordering_convention"] = self.ordering_convention
+        return parameters
 
     @classmethod
     def from_json(cls, filename: str) -> "LCEModelParameters":

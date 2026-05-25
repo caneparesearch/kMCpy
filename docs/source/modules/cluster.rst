@@ -1,7 +1,6 @@
 cluster
 =========================
 
-.. automodule:: kmcpy.models.cluster
+.. automodule:: kmcpy.structure.cluster
     :members:
     :inherited-members:
-                  

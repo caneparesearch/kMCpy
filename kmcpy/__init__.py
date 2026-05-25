@@ -14,7 +14,7 @@ from .models import (
     LocalEnvCatalog,
 )
 from .simulator.kmc import KMC
-from .event import Event, EventGenerator, NeighborInfoMatcher
+from .event import Event, EventGenerator
 from .simulator.config import Configuration, SystemConfig, RuntimeConfig
 from .simulator.state import State
 from .simulator.tracker import Tracker
@@ -35,7 +35,6 @@ __all__ = [
     "KMC",
     "Event",
     "EventGenerator",
-    "NeighborInfoMatcher",
     "Configuration",
     "SystemConfig",
     "RuntimeConfig",

@@ -1,4 +1,5 @@
 import unittest
+import json
 import pytest
 import os
 from kmcpy.simulator.config import (
@@ -68,11 +69,11 @@ def check_file_exists(file_path):
 
 class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("first")
-    def test_NeighborInfoMatcher(self):
-        print("neighbor info matcher testing")
+    def test_cluster_matcher(self):
+        print("cluster matcher testing")
 
-        from kmcpy.event import NeighborInfoMatcher
         import numpy as np
+        from kmcpy.structure.cluster import Cluster, ClusterMatcher
 
         from kmcpy.external.structure import StructureKMCpy
         from kmcpy.external.local_env import CutOffDictNNKMCpy
@@ -93,11 +94,11 @@ class TestNASICONbulk(unittest.TestCase):
         )
 
         np.set_printoptions(precision=2, suppress=True)
-        reference_neighbor = NeighborInfoMatcher.from_neighbor_sequences(
-            neighbor_sequences=reference_neighbor_sequences
+        reference_neighbor = Cluster.from_neighbor_info(
+            reference_neighbor_sequences
         )
 
-        print(reference_neighbor.neighbor_species)
+        print(reference_neighbor.signature)
         print(reference_neighbor.distance_matrix)
 
         wrong_sequence_neighbor = sorted(
@@ -110,8 +111,8 @@ class TestNASICONbulk(unittest.TestCase):
 
         self.assertFalse(
             np.allclose(
-                NeighborInfoMatcher.from_neighbor_sequences(
-                    neighbor_sequences=wrong_sequence_neighbor
+                Cluster.from_neighbor_info(
+                    wrong_sequence_neighbor
                 ).distance_matrix,
                 reference_neighbor.distance_matrix,
                 rtol=0.01,
@@ -119,12 +120,16 @@ class TestNASICONbulk(unittest.TestCase):
             )
         )
 
-        resorted_wrong_sequence = reference_neighbor.brutal_match(
-            wrong_sequence_neighbor, rtol=0.01
+        match = ClusterMatcher(reference_neighbor, rtol=0.01).match(
+            Cluster.from_neighbor_info(wrong_sequence_neighbor)
         )
+        resorted_wrong_sequence = [
+            wrong_sequence_neighbor[index]
+            for index in match.reference_to_candidate
+        ]
 
-        resorted_neighbor = NeighborInfoMatcher.from_neighbor_sequences(
-            neighbor_sequences=resorted_wrong_sequence
+        resorted_neighbor = Cluster.from_neighbor_info(
+            resorted_wrong_sequence
         )
 
         self.assertTrue(
@@ -178,6 +183,12 @@ class TestNASICONbulk(unittest.TestCase):
         )
 
         print("reference_local_env_dict:", reference_local_env_dict)
+
+        with open(f"{file_path}/input/events.json") as expected_file:
+            expected_event_library = json.load(expected_file)
+        with open(f"{file_path}/events.json") as generated_file:
+            generated_event_library = json.load(generated_file)
+        self.assertEqual(generated_event_library, expected_event_library)
 
         self.assertGreaterEqual(len(reference_local_env_dict), 1)
 

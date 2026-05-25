@@ -9,17 +9,19 @@ from .lattice_structure import LatticeStructure
 from .vacancy import Vacancy
 from .active_site_index_map import ActiveSiteIndexMap
 from .local_lattice_structure import LocalLatticeStructure
+from .cluster import (
+    Cluster,
+    Orbit,
+    ClusterMatcher,
+    ClusterMatch,
+    match_clusters,
+)
 from .local_site_ordering import (
     LocalSiteOrderingConvention,
     ordered_site_hash,
     ordered_site_signature,
 )
 from .comparator import SupercellComparator
-from .local_environment_comparator import (
-    LocalEnvironmentComparator,
-    create_environment_comparator,
-    match_local_environments
-)
 from .local_environment_enumerator import (
     LocalEnvironmentEnumeration,
     NEBEndpointPair,
@@ -42,13 +44,15 @@ __all__ = [
     "Vacancy",
     "ActiveSiteIndexMap",
     "LocalLatticeStructure",
+    "Cluster",
+    "Orbit",
+    "ClusterMatcher",
+    "ClusterMatch",
+    "match_clusters",
     "LocalSiteOrderingConvention",
     "ordered_site_hash",
     "ordered_site_signature",
     "SupercellComparator",
-    "LocalEnvironmentComparator",
-    "create_environment_comparator",
-    "match_local_environments",
     "LocalEnvironmentEnumeration",
     "NEBEndpointPair",
     "enumerate_local_environments",

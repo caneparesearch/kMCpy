@@ -66,6 +66,9 @@ class LCEFitter(BaseFitter):
             rmse=payload.get("rmse", 0.0),
             loocv=payload.get("loocv", 0.0),
             normalize=payload.get("normalize", True),
+            orbit_fingerprints=payload.get("orbit_fingerprints"),
+            local_environment_hash=payload.get("local_environment_hash"),
+            ordering_convention=payload.get("ordering_convention"),
         )
 
     @staticmethod
@@ -104,7 +107,12 @@ class LCEFitter(BaseFitter):
             "rmse",
             "loocv",
         ]
-        columns = required_columns + ["normalize"]
+        columns = required_columns + [
+            "normalize",
+            "orbit_fingerprints",
+            "local_environment_hash",
+            "ordering_convention",
+        ]
         row = [
             model_parameters.time_stamp,
             model_parameters.time,
@@ -115,6 +123,9 @@ class LCEFitter(BaseFitter):
             model_parameters.rmse,
             model_parameters.loocv,
             model_parameters.normalize,
+            model_parameters.orbit_fingerprints,
+            model_parameters.local_environment_hash,
+            model_parameters.ordering_convention,
         ]
         try:
             logger.info("Try loading %s ...", fit_results_fname)
@@ -123,6 +134,12 @@ class LCEFitter(BaseFitter):
                 raise ValueError("Unexpected file schema")
             if "normalize" not in df.columns:
                 df["normalize"] = True
+            if "orbit_fingerprints" not in df.columns:
+                df["orbit_fingerprints"] = None
+            if "local_environment_hash" not in df.columns:
+                df["local_environment_hash"] = None
+            if "ordering_convention" not in df.columns:
+                df["ordering_convention"] = None
             new_data = pd.DataFrame([row], columns=columns)
             df2 = pd.concat([df[columns], new_data], ignore_index=True)
             df2.to_json(fit_results_fname, orient="index", indent=4)
@@ -150,6 +167,12 @@ class LCEFitter(BaseFitter):
             "loocv": self.model_parameters.loocv,
             "normalize": self.model_parameters.normalize,
         }
+        if self.model_parameters.orbit_fingerprints is not None:
+            d["orbit_fingerprints"] = self.model_parameters.orbit_fingerprints
+        if self.model_parameters.local_environment_hash is not None:
+            d["local_environment_hash"] = self.model_parameters.local_environment_hash
+        if self.model_parameters.ordering_convention is not None:
+            d["ordering_convention"] = self.model_parameters.ordering_convention
         return d
 
     def to_json(self, fname):

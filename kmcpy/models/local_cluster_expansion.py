@@ -8,6 +8,7 @@ from kmcpy.external.structure import StructureKMCpy
 import numpy as np
 import json
 import logging
+import warnings
 from kmcpy.models.base import BaseModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.fitting.registry import register_fitter
@@ -15,7 +16,12 @@ from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
+from kmcpy.structure.cluster import Cluster, Orbit
+from kmcpy.structure.local_site_ordering import (
+    LocalSiteOrderingConvention,
+    ordered_site_hash,
+    ordered_site_signature,
+)
 import numba as nb
 
 if TYPE_CHECKING:
@@ -86,6 +92,7 @@ class LocalClusterExpansion(BaseModel):
         )
 
         self.orbits = self.build_orbits(self.clusters)
+        self.orbit_fingerprints = self.get_orbit_fingerprints()
 
         self.cluster_site_indices = _to_numba_cluster_site_indices([
             [cluster.site_indices for cluster in orbit.clusters]
@@ -133,8 +140,6 @@ class LocalClusterExpansion(BaseModel):
         Returns:
             LocalClusterExpansion: The loaded LocalClusterExpansion object
         """
-        from kmcpy.models.cluster import Orbit, Cluster
-
         # Create a new instance without calling __init__
         obj = cls.__new__(cls)
         
@@ -155,14 +160,17 @@ class LocalClusterExpansion(BaseModel):
                     for cluster_data in orbit_data.get('clusters', []):
                         # Create cluster from stored data
                         from pymatgen.core.structure import Molecule
-                        cluster = Cluster.__new__(Cluster)
-                        cluster.site_indices = cluster_data.get('site_indices', [])
-                        cluster.type = cluster_data.get('type', 'point')
-                        cluster.structure = Molecule.from_dict(cluster_data.get('structure', {}))
-                        cluster.sym = cluster_data.get('sym', '')
-                        cluster.max_length = cluster_data.get('max_length', 0)
-                        cluster.min_length = cluster_data.get('min_length', 0)
-                        cluster.bond_distances = cluster_data.get('bond_distances', [])
+
+                        cluster = Cluster(
+                            cluster_data.get('site_indices', []),
+                            Molecule.from_dict(cluster_data.get('structure', {})),
+                            roles=cluster_data.get('roles'),
+                            metadata=cluster_data.get('metadata'),
+                            sym=cluster_data.get('sym', ''),
+                        )
+                        cluster.max_length = cluster_data.get('max_length', cluster.max_length)
+                        cluster.min_length = cluster_data.get('min_length', cluster.min_length)
+                        cluster.bond_distances = cluster_data.get('bond_distances', cluster.bond_distances)
                         orbit.clusters.append(cluster)
                     
                     obj.orbits.append(orbit)
@@ -210,6 +218,34 @@ class LocalClusterExpansion(BaseModel):
         # Legacy JSON fixtures may not include `name`; keep serialization robust.
         if not getattr(obj, "name", None):
             obj.name = cls.__name__
+
+        if not hasattr(obj, "ordering_convention"):
+            obj.ordering_convention = LocalSiteOrderingConvention.resolve(None)
+        if not hasattr(obj, "local_environment_signature") and hasattr(
+            obj, "local_env_structure"
+        ):
+            obj.local_environment_signature = ordered_site_signature(
+                obj.local_env_structure
+            )
+        if not hasattr(obj, "local_environment_hash") and hasattr(
+            obj, "local_environment_signature"
+        ):
+            obj.local_environment_hash = ordered_site_hash(
+                obj.local_environment_signature
+            )
+
+        if hasattr(obj, "orbits"):
+            expected_orbit_fingerprints = obj.get_orbit_fingerprints()
+            stored_orbit_fingerprints = getattr(obj, "orbit_fingerprints", None)
+            if (
+                stored_orbit_fingerprints is not None
+                and list(stored_orbit_fingerprints) != expected_orbit_fingerprints
+            ):
+                raise ValueError(
+                    "Serialized LocalClusterExpansion orbit_fingerprints do not "
+                    "match reconstructed orbits."
+                )
+            obj.orbit_fingerprints = expected_orbit_fingerprints
         
         return obj
 
@@ -232,6 +268,69 @@ class LocalClusterExpansion(BaseModel):
             for cluster in orbit:
                 for site_idx in cluster:
                     yield int(site_idx)
+
+    def get_orbit_fingerprints(self) -> list[str]:
+        """Return orbit fingerprints in the same order as the correlation vector."""
+        if not hasattr(self, "orbits"):
+            return []
+        return [orbit.fingerprint for orbit in self.orbits]
+
+    def _validate_parameter_orbits(
+        self,
+        keci,
+        orbit_fingerprints=None,
+        local_environment_hash=None,
+    ) -> list[float]:
+        """Validate that ECI values are aligned with this model's orbit order."""
+        keci_values = list(keci)
+        expected_orbit_fingerprints = self.get_orbit_fingerprints()
+        if expected_orbit_fingerprints and len(keci_values) != len(expected_orbit_fingerprints):
+            raise ValueError(
+                "keci length does not match LocalClusterExpansion orbit count: "
+                f"{len(keci_values)} != {len(expected_orbit_fingerprints)}"
+            )
+        if expected_orbit_fingerprints and orbit_fingerprints is None:
+            warnings.warn(
+                "Parameter payload is missing orbit_fingerprints; keci values "
+                "were only validated by length. Regenerate the parameter or "
+                "model file to bind ECIs to orbit fingerprints.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+        expected_local_environment_hash = getattr(self, "local_environment_hash", None)
+        if expected_local_environment_hash and local_environment_hash is None:
+            warnings.warn(
+                "Parameter payload is missing local_environment_hash; keci "
+                "values were not tied to the LocalSiteOrderingConvention. "
+                "Regenerate the parameter or model file with ordering metadata.",
+                UserWarning,
+                stacklevel=3,
+            )
+        elif (
+            expected_local_environment_hash
+            and str(local_environment_hash) != str(expected_local_environment_hash)
+        ):
+            raise ValueError(
+                "Parameter local_environment_hash does not match this "
+                "LocalClusterExpansion ordering."
+            )
+
+        if orbit_fingerprints is not None:
+            normalized_orbit_fingerprints = [str(value) for value in orbit_fingerprints]
+            if len(normalized_orbit_fingerprints) != len(expected_orbit_fingerprints):
+                raise ValueError(
+                    "orbit_fingerprints length does not match "
+                    "LocalClusterExpansion orbit count: "
+                    f"{len(normalized_orbit_fingerprints)} != "
+                    f"{len(expected_orbit_fingerprints)}"
+                )
+            if normalized_orbit_fingerprints != expected_orbit_fingerprints:
+                raise ValueError(
+                    "Parameter orbit_fingerprints do not match this "
+                    "LocalClusterExpansion orbit order."
+                )
+        return keci_values
 
     def validate_reference_lattice_structure(
         self,
@@ -350,7 +449,6 @@ class LocalClusterExpansion(BaseModel):
         return corr
     
     def build_clusters(self, local_env_structure, indexes, cutoff):  # return a list of Cluster
-        from kmcpy.models.cluster import Cluster
         clusters = []
         logger.info("\nGenerating possible clusters within this migration unit...")
         logger.info(
@@ -361,7 +459,7 @@ class LocalClusterExpansion(BaseModel):
         )
         for site_indices in indexes:
             sites = [local_env_structure[s] for s in site_indices]
-            cluster = Cluster(site_indices, sites)
+            cluster = Cluster(site_indices, sites, analyze_symmetry=True)
             if cluster.max_length < cutoff[len(cluster.site_indices) - 1]:
                 clusters.append(cluster)
         return clusters
@@ -375,8 +473,6 @@ class LocalClusterExpansion(BaseModel):
                 if not, attach the cluster to orbit
                 else,
         """
-        from kmcpy.models.cluster import Orbit
-
         orbit_clusters = []
         grouped_clusters = []
         for i in clusters:
@@ -410,6 +506,11 @@ class LocalClusterExpansion(BaseModel):
         # Check if parameters are stored
         if not hasattr(self, 'keci') or not hasattr(self, 'empty_cluster'):
             raise ValueError("No stored parameters found. Call set_parameters() or load_parameters_from_file() first.")
+        self.keci = self._validate_parameter_orbits(
+            self.keci,
+            getattr(self, "parameter_orbit_fingerprints", None),
+            getattr(self, "parameter_local_environment_hash", None),
+        )
             
         # Get occupation array - prefer simulation_state over occ_global
         if simulation_state is not None:
@@ -449,15 +550,38 @@ class LocalClusterExpansion(BaseModel):
         from kmcpy.models.parameters import LCEModelParameters
         
         if isinstance(parameters, LCEModelParameters):
-            self.keci = parameters.keci
-            self.empty_cluster = parameters.empty_cluster
-            self._parameters = parameters
+            keci = parameters.keci
+            empty_cluster = parameters.empty_cluster
+            orbit_fingerprints = getattr(parameters, "orbit_fingerprints", None)
+            local_environment_hash = getattr(parameters, "local_environment_hash", None)
+            ordering_convention = getattr(parameters, "ordering_convention", None)
         elif isinstance(parameters, dict):
-            self.keci = parameters['keci']
-            self.empty_cluster = parameters['empty_cluster']
-            self._parameters = parameters
+            keci = parameters['keci']
+            empty_cluster = parameters['empty_cluster']
+            orbit_fingerprints = parameters.get("orbit_fingerprints")
+            local_environment_hash = parameters.get("local_environment_hash")
+            ordering_convention = parameters.get("ordering_convention")
         else:
             raise TypeError("Parameters must be LCEModelParameters object or dict")
+
+        self.keci = self._validate_parameter_orbits(
+            keci,
+            orbit_fingerprints,
+            local_environment_hash,
+        )
+        self.empty_cluster = empty_cluster
+        self.parameter_orbit_fingerprints = (
+            [str(value) for value in orbit_fingerprints]
+            if orbit_fingerprints is not None
+            else self.get_orbit_fingerprints()
+        )
+        self.parameter_local_environment_hash = (
+            str(local_environment_hash)
+            if local_environment_hash is not None
+            else getattr(self, "local_environment_hash", None)
+        )
+        self.parameter_ordering_convention = ordering_convention
+        self._parameters = parameters
         
         logger.info(f"Parameters set for LocalClusterExpansion: keci length={len(self.keci)}, empty_cluster={self.empty_cluster}")
 
@@ -520,6 +644,7 @@ class LocalClusterExpansion(BaseModel):
             "@class": self.__class__.__name__,
             "name": self.name,
             "orbits": [orbit.as_dict() for orbit in self.orbits],
+            "orbit_fingerprints": self.get_orbit_fingerprints(),
             "cluster_site_indices": cluster_site_indices,
             "center_site": self.center_site.as_dict(),
             "migration_unit_structure": self.local_env_structure.as_dict()
