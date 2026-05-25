@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pymatgen.core import Lattice, Structure
 
-from kmcpy.io import NEBDataLoader
+from kmcpy.io.neb import NEBDataLoader
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
@@ -179,17 +179,22 @@ def test_loader_uses_reference_active_site_mapping():
     assert loader.get_occupation_matrix().shape == (1, 2)
 
 
-def test_loader_builds_from_structure_files(tmp_path):
+def test_loader_builds_from_structure_paths(tmp_path):
     model, _, structure = _build_reference_model()
     structure_file = tmp_path / "neb_0001.cif"
     structure.to(filename=str(structure_file), fmt="cif")
 
-    loader = NEBDataLoader.from_structure_files(
+    loader = NEBDataLoader(model=model)
+    entry = loader.add_structure(structure_file, 95.0)
+
+    assert len(loader) == 1
+    assert entry.metadata["structure_file"] == str(structure_file)
+    np.testing.assert_allclose(loader.get_properties(), [95.0])
+
+    rebuilt_loader = NEBDataLoader.from_structures(
         [structure_file],
         [95.0],
         model=model,
     )
-
-    assert len(loader) == 1
-    assert loader.neb_entries[0].metadata["structure_file"] == str(structure_file)
-    np.testing.assert_allclose(loader.get_properties(), [95.0])
+    assert len(rebuilt_loader) == 1
+    assert rebuilt_loader.neb_entries[0].metadata["structure_file"] == str(structure_file)

@@ -6,7 +6,7 @@ API Reference Documentation
     :caption: Contents:
 
     high_level_api.rst
-    data_loader.rst
+    neb.rst
     serialization.rst
     model_file.rst
     models_fitting_registry.rst

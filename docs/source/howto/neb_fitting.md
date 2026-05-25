@@ -6,7 +6,7 @@ correlation matrix, and writes the text files consumed by
 `LocalClusterExpansion.fit`.
 
 ```python
-from kmcpy.io import NEBDataLoader
+from kmcpy.io.neb import NEBDataLoader
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
@@ -25,7 +25,7 @@ reference = LocalLatticeStructure(
     basis_type="chebyshev",
 )
 
-loader = NEBDataLoader.from_structure_files(
+loader = NEBDataLoader.from_structures(
     ["neb_0001.cif", "neb_0002.cif"],
     [120.5, 140.1],
     model=model,

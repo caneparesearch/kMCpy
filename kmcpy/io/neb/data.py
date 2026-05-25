@@ -12,7 +12,6 @@ from pathlib import Path
 import numpy as np
 from typing import Any, List, Dict, Optional, Sequence, TYPE_CHECKING
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
 import logging
 from pymatgen.core import Structure
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
@@ -22,6 +21,35 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 logging.getLogger('numba').setLevel(logging.WARNING)
+
+StructureSource = Structure | str | os.PathLike[str]
+
+
+def _load_structure_source(
+    structure: StructureSource,
+    metadata: Optional[Dict[str, Any]] = None,
+    **from_file_kwargs,
+) -> tuple[Structure, Dict[str, Any]]:
+    entry_metadata = dict(metadata or {})
+    if isinstance(structure, Structure):
+        if from_file_kwargs:
+            raise ValueError(
+                "Structure.from_file keyword arguments are only valid when "
+                "structure is a file path."
+            )
+        return structure, entry_metadata
+
+    if isinstance(structure, (str, os.PathLike)):
+        path = Path(structure)
+        loaded_structure = Structure.from_file(str(path), **from_file_kwargs)
+        entry_metadata.setdefault("structure_file", str(path))
+        return loaded_structure, entry_metadata
+
+    raise TypeError(
+        "structure must be a pymatgen Structure or a path readable by "
+        "pymatgen.core.Structure.from_file"
+    )
+
 
 @dataclass
 class NEBEntry:
@@ -43,54 +71,33 @@ class NEBEntry:
     @classmethod
     def from_structure(
         cls,
-        structure: Structure,
-        property_value: float,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> "NEBEntry":
-        """
-        Create an entry from a structure and target property.
-
-        Args:
-            structure: Structure compatible with the reference local lattice.
-            property_value: Target value, typically an NEB barrier.
-            metadata: Optional metadata stored with the entry.
-
-        Returns:
-            NEBEntry: Entry ready to be added to a loader.
-        """
-        return cls(
-            structure=structure,
-            property_value=float(property_value),
-            metadata=dict(metadata or {}),
-        )
-
-    @classmethod
-    def from_structure_file(
-        cls,
-        structure_file: str | os.PathLike[str],
+        structure: StructureSource,
         property_value: float,
         metadata: Optional[Dict[str, Any]] = None,
         **from_file_kwargs,
     ) -> "NEBEntry":
         """
-        Create an entry from a structure file and target property.
+        Create an entry from a structure object or structure file.
 
         Args:
-            structure_file: File readable by ``pymatgen.core.Structure.from_file``.
+            structure: Structure compatible with the reference local lattice, or
+                a path readable by ``pymatgen.core.Structure.from_file``.
             property_value: Target value, typically an NEB barrier.
             metadata: Optional metadata stored with the entry.
-            **from_file_kwargs: Additional keyword arguments passed to pymatgen.
+            **from_file_kwargs: Additional keyword arguments passed to pymatgen
+                when ``structure`` is a file path.
 
         Returns:
             NEBEntry: Entry ready to be added to a loader.
         """
-        path = Path(structure_file)
-        structure = Structure.from_file(str(path), **from_file_kwargs)
-        entry_metadata = dict(metadata or {})
-        entry_metadata.setdefault("structure_file", str(path))
-        return cls.from_structure(
-            structure=structure,
-            property_value=property_value,
+        structure_obj, entry_metadata = _load_structure_source(
+            structure,
+            metadata=metadata,
+            **from_file_kwargs,
+        )
+        return cls(
+            structure=structure_obj,
+            property_value=float(property_value),
             metadata=entry_metadata,
         )
 
@@ -133,26 +140,8 @@ class NEBEntry:
             logger.error(f"Failed to compute occupation and correlation vectors: {e}")
             raise
 
-class DataLoader(ABC):
-    """
-    Base class for data loading operations.
-    
-    This class provides a template for loading data from various sources.
-    Subclasses should implement the `add` method to handle specific data loading logic.
-    """
-    def __init__(self):
-        pass
-    
-    @abstractmethod
-    def add(self, *args, **kwargs):
-        """Add data from the source. Must be implemented by subclasses."""
-        pass
-    
-    def __len__(self) -> int:
-        """Return the number of loaded entries."""
-        return 0
 
-class NEBDataLoader(DataLoader):
+class NEBDataLoader:
     """
     A data loader class for managing and validating databases of structures from NEB (Nudged Elastic Band) calculations,
     intended for Local Cluster Expansion model fitting. This class provides methods to add NEBEntry objects with
@@ -256,50 +245,7 @@ class NEBDataLoader(DataLoader):
 
     def add_structure(
         self,
-        structure: Structure,
-        property_value: float,
-        model: Optional['LocalClusterExpansion'] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
-        tol: float = 1e-2,
-        angle_tol: float = 5,
-    ) -> NEBEntry:
-        """
-        Add a structure and target value directly.
-
-        Args:
-            structure: Structure compatible with the reference local lattice.
-            property_value: Target value, typically an NEB barrier.
-            model: Local Cluster Expansion model instance.
-            metadata: Optional metadata stored with the entry.
-            reference_local_lattice_structure: Reference local lattice used to
-                compute occupation and correlation vectors.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
-            tol: Structure matching tolerance.
-            angle_tol: Structure matching angle tolerance.
-
-        Returns:
-            NEBEntry: Added entry.
-        """
-        entry = NEBEntry.from_structure(
-            structure=structure,
-            property_value=property_value,
-            metadata=metadata,
-        )
-        self.add(
-            entry,
-            model=model,
-            reference_local_lattice_structure=reference_local_lattice_structure,
-            exclude_species=exclude_species,
-            tol=tol,
-            angle_tol=angle_tol,
-        )
-        return entry
-
-    def add_structure_file(
-        self,
-        structure_file: str | os.PathLike[str],
+        structure: StructureSource,
         property_value: float,
         model: Optional['LocalClusterExpansion'] = None,
         metadata: Optional[Dict[str, Any]] = None,
@@ -310,10 +256,11 @@ class NEBDataLoader(DataLoader):
         **from_file_kwargs,
     ) -> NEBEntry:
         """
-        Add a structure file and target value directly.
+        Add a structure object or structure file and target value directly.
 
         Args:
-            structure_file: File readable by ``pymatgen.core.Structure.from_file``.
+            structure: Structure compatible with the reference local lattice, or
+                a path readable by ``pymatgen.core.Structure.from_file``.
             property_value: Target value, typically an NEB barrier.
             model: Local Cluster Expansion model instance.
             metadata: Optional metadata stored with the entry.
@@ -322,13 +269,14 @@ class NEBDataLoader(DataLoader):
             exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
-            **from_file_kwargs: Additional keyword arguments passed to pymatgen.
+            **from_file_kwargs: Additional keyword arguments passed to pymatgen
+                when ``structure`` is a file path.
 
         Returns:
             NEBEntry: Added entry.
         """
-        entry = NEBEntry.from_structure_file(
-            structure_file=structure_file,
+        entry = NEBEntry.from_structure(
+            structure=structure,
             property_value=property_value,
             metadata=metadata,
             **from_file_kwargs,
@@ -343,9 +291,9 @@ class NEBDataLoader(DataLoader):
         )
         return entry
 
-    def add_structure_files(
+    def add_structures(
         self,
-        structure_files: Sequence[str | os.PathLike[str]],
+        structures: Sequence[StructureSource],
         property_values: Sequence[float],
         model: Optional['LocalClusterExpansion'] = None,
         metadata: Optional[Sequence[Dict[str, Any]]] = None,
@@ -356,31 +304,32 @@ class NEBDataLoader(DataLoader):
         **from_file_kwargs,
     ) -> None:
         """
-        Add multiple structure files and target values.
+        Add multiple structure objects or structure files and target values.
 
         Args:
-            structure_files: Structure files readable by pymatgen.
-            property_values: Target values matching ``structure_files``.
+            structures: Structure objects or files readable by pymatgen.
+            property_values: Target values matching ``structures``.
             model: Local Cluster Expansion model instance.
-            metadata: Optional metadata entries matching ``structure_files``.
+            metadata: Optional metadata entries matching ``structures``.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
             exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
-            **from_file_kwargs: Additional keyword arguments passed to pymatgen.
+            **from_file_kwargs: Additional keyword arguments passed to pymatgen
+                for path inputs.
         """
-        if len(structure_files) != len(property_values):
-            raise ValueError("structure_files and property_values must have the same length")
-        if metadata is not None and len(metadata) != len(structure_files):
-            raise ValueError("metadata must have the same length as structure_files")
+        if len(structures) != len(property_values):
+            raise ValueError("structures and property_values must have the same length")
+        if metadata is not None and len(metadata) != len(structures):
+            raise ValueError("metadata must have the same length as structures")
 
-        for index, (structure_file, property_value) in enumerate(
-            zip(structure_files, property_values)
+        for index, (structure, property_value) in enumerate(
+            zip(structures, property_values)
         ):
             entry_metadata = metadata[index] if metadata is not None else None
-            self.add_structure_file(
-                structure_file=structure_file,
+            self.add_structure(
+                structure=structure,
                 property_value=property_value,
                 model=model,
                 metadata=entry_metadata,
@@ -392,9 +341,9 @@ class NEBDataLoader(DataLoader):
             )
 
     @classmethod
-    def from_structure_files(
+    def from_structures(
         cls,
-        structure_files: Sequence[str | os.PathLike[str]],
+        structures: Sequence[StructureSource],
         property_values: Sequence[float],
         model: 'LocalClusterExpansion',
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
@@ -405,19 +354,20 @@ class NEBDataLoader(DataLoader):
         **from_file_kwargs,
     ) -> "NEBDataLoader":
         """
-        Build a loader from structure files and target values.
+        Build a loader from structure objects or structure files.
 
         Args:
-            structure_files: Structure files readable by pymatgen.
-            property_values: Target values matching ``structure_files``.
+            structures: Structure objects or files readable by pymatgen.
+            property_values: Target values matching ``structures``.
             model: Local Cluster Expansion model instance.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
             exclude_species: Removed legacy argument; use site_mapping fixed sites.
-            metadata: Optional metadata entries matching ``structure_files``.
+            metadata: Optional metadata entries matching ``structures``.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
-            **from_file_kwargs: Additional keyword arguments passed to pymatgen.
+            **from_file_kwargs: Additional keyword arguments passed to pymatgen
+                for path inputs.
 
         Returns:
             NEBDataLoader: Loader containing computed fitting data.
@@ -427,8 +377,8 @@ class NEBDataLoader(DataLoader):
             reference_local_lattice_structure=reference_local_lattice_structure,
             exclude_species=exclude_species,
         )
-        loader.add_structure_files(
-            structure_files=structure_files,
+        loader.add_structures(
+            structures=structures,
             property_values=property_values,
             metadata=metadata,
             exclude_species=exclude_species,
