@@ -97,16 +97,16 @@ Run a minimal end-to-end simulation with bundled example files:
 
 ```shell
 uv sync
-uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_fields()"
 uv run python example/minimal_example.py
 ```
 
 `Configuration` routes arguments into two groups:
 
-1. `system` parameters define what you simulate (structure, events, model files).
-2. `runtime` parameters define how you simulate (temperature, passes, random seed).
+1. `system` fields define what you simulate after loader inputs have been read.
+2. `runtime` fields define how you simulate (temperature, passes, random seed).
 
-If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_parameters()`.
+If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_fields()`.
 
 ## Run kMCpy
 ### API usage

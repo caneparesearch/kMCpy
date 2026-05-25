@@ -8,12 +8,12 @@ This quickstart runs a minimal end-to-end kMC simulation using bundled example d
 uv sync
 ```
 
-## 2. Discover parameter names
+## 2. Discover Field Names
 
-Use `Configuration.help_parameters()` to list valid keywords and see the system/runtime split:
+Use `Configuration.help_fields()` to list valid keywords and see the system/runtime split:
 
 ```shell
-uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_fields()"
 ```
 
 ## 3. Run the minimal script
@@ -24,8 +24,8 @@ uv run python example/minimal_example.py
 
 This script uses:
 
-1. System parameters: structure, event, and model files.
-2. Runtime parameters: temperature, pass counts, and random seed.
+1. Loader inputs: structure, event, model, and optional state files.
+2. Runtime fields: temperature, pass counts, and random seed.
 
 It writes output to `example/output/minimal/`.
 
@@ -60,14 +60,14 @@ config = Configuration.from_file("input_template.yaml")
 
 ## Troubleshooting
 
-### Unknown parameter error
+### Unknown Field Error
 
-If you see `Unknown parameters: [...]`, check spelling and compare against:
+If you see `Unknown configuration fields: [...]`, check spelling and compare against:
 
 ```python
 from kmcpy.simulator.config import Configuration
 
-Configuration.help_parameters()
+Configuration.help_fields()
 ```
 
 ### Missing required files

@@ -62,7 +62,7 @@ def build_config() -> Configuration:
     )
 
     return Configuration.create(
-        # System parameters: what to simulate.
+        # System fields: what to simulate.
         structure_file=str(files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),
         model_file=str(files_dir / "input" / "model.json"),
         event_file=str(event_file),
@@ -75,7 +75,7 @@ def build_config() -> Configuration:
         elementary_hop_distance=3.47782,
         immutable_sites=("Zr", "O", "Zr4+", "O2-"),
         convert_to_primitive_cell=False,
-        # Runtime parameters: how to simulate.
+        # Runtime fields: how to simulate.
         temperature=298.0,
         attempt_frequency=5e12,
         equilibration_passes=1,
@@ -86,8 +86,8 @@ def build_config() -> Configuration:
 
 
 def main() -> None:
-    print("Available Configuration keywords:")
-    Configuration.help_parameters()
+    print("Available Configuration fields:")
+    Configuration.help_fields()
 
     config = build_config()
     print(f"\nRunning: {config.summary()}")

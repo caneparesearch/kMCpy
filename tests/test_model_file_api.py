@@ -41,7 +41,7 @@ def test_composite_lce_model_from_legacy_files():
 
 @pytest.mark.unit
 def test_simulation_config_rejects_unknown_model_fields():
-    with pytest.raises(ValueError, match="Unknown parameters"):
+    with pytest.raises(ValueError, match="Unknown configuration fields"):
         Configuration.from_dict(
             {
                 "structure_file": "test.cif",
@@ -54,7 +54,7 @@ def test_simulation_config_rejects_unknown_model_fields():
 
 @pytest.mark.unit
 def test_simulation_config_from_dict_rejects_unknown_fields():
-    with pytest.raises(ValueError, match="Unknown parameters"):
+    with pytest.raises(ValueError, match="Unknown configuration fields"):
         Configuration.from_dict(
             {
                 "structure_file": "test.cif",

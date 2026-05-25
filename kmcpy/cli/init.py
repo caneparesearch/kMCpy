@@ -29,7 +29,7 @@ def build_template() -> str:
         kmc:
           type: default
           default:
-            # ----- Required system inputs -----
+            # ----- Required loader inputs -----
             # Path to crystal structure (CIF/structure file)
             structure_file: "path/to/structure.cif"
             # Path to migration event library JSON
@@ -37,13 +37,13 @@ def build_template() -> str:
             # Path to serialized model JSON
             model_file: "path/to/model.json"
 
-            # ----- Optional system files -----
+            # ----- Optional loader inputs -----
             # Optional serialized initial simulation state file
             initial_state_file: null
             # Optional direct initial occupations list (used if state file is null)
             initial_occupations: null
 
-            # ----- System parameters -----
+            # ----- System fields -----
             # Supercell replication factors [a, b, c]
             supercell_shape: [1, 1, 1]
             # Dimensionality of transport (1, 2, or 3)
@@ -63,7 +63,7 @@ def build_template() -> str:
             # Convert structure to primitive cell before simulation
             convert_to_primitive_cell: false
 
-            # ----- Runtime parameters -----
+            # ----- Runtime fields -----
             # Temperature in Kelvin
             temperature: 300.0
             # Attempt frequency (Hz)
