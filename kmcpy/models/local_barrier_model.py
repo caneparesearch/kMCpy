@@ -1,5 +1,44 @@
 #!/usr/bin/env python
-"""Local barrier model based on simple ordered local-environment rules."""
+"""Direct local-barrier rules for KMC event rates.
+
+``LocalBarrierModel`` is the lightweight alternative to fitting a local cluster
+expansion. It is useful when the migration barrier can be written directly as a
+small set of ordered rules:
+
+* use a constant fallback barrier for every hop;
+* count occupied or vacant sites in an event local environment;
+* count chemical species after mapping occupation states to species labels;
+* match a short wildcard occupation pattern; or
+* match an exact event/local-occupation entry.
+
+The model works with the same compact KMC state used by the simulator. Occupied
+or template-matching sites use ``-1`` and vacant or mismatching sites use
+``+1``. Rule order is significant: the first matching rule supplies the selected
+property, usually ``barrier`` in meV. If no rule matches,
+``default_properties`` are used when present.
+
+Minimal setup::
+
+    from kmcpy.models import LocalBarrierModel
+
+    model = LocalBarrierModel.constant_barrier(300.0)
+    model.to("model.json")
+
+Rule-based setup::
+
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_state_count_rule(
+        name="crowded",
+        sites="local_env",
+        state="occupied",
+        min_count=3,
+        barrier=450.0,
+    )
+
+The saved ``model.json`` can be referenced by ``model_file`` in a simulation
+configuration. ``BaseModel.from_config`` dispatches to this class when the model
+file declares ``model_type: local_barrier``.
+"""
 
 from __future__ import annotations
 
@@ -372,8 +411,95 @@ class LocalBarrierModel(BaseModel):
     """
     Choose migration barriers from ordered local-environment rules.
 
-    Rule order is significant: the first matching rule supplies the requested
-    property. If no rule matches, ``default_properties`` are used when present.
+    ``LocalBarrierModel`` stores a list of simple rule dictionaries and evaluates
+    them against a ``State`` and ``Event``. Each rule returns a dictionary of
+    numeric properties; by default ``compute`` returns the ``barrier`` property.
+    ``compute_probability`` then evaluates the Arrhenius rate
+    ``abs(direction) * attempt_frequency * exp(-barrier / kT)``.
+
+    Parameters:
+        rules: Ordered rule dictionaries. The first matching rule is used.
+        name: Human-readable model name.
+        default_properties: Property dictionary used when no rule matches.
+        default_barrier: Shortcut for ``default_properties={"barrier": value}``.
+        default_property: Property returned by ``compute`` when
+            ``property_name`` is not supplied.
+        probability_mode: Probability calculation mode. Currently only
+            ``"barrier_arrhenius"`` is supported.
+        probability_property: Property used as the barrier in
+            ``compute_probability``.
+        site_species: Mapping used by ``species_count`` rules. The shape is
+            ``{site_index: {occupation_state: species}}``. For example,
+            ``{10: {-1: "P", 1: "Si"}}`` means site 10 is counted as P when
+            its occupation value is ``-1`` and Si when it is ``+1``.
+
+    Supported rule types:
+        ``constant``
+            Always matches and returns its properties. In most cases,
+            ``default_barrier`` is clearer than an explicit constant rule.
+        ``state_count``
+            Counts how many selected sites are ``occupied``/``-1`` or
+            ``vacant``/``+1``.
+        ``species_count``
+            Counts species labels after applying ``site_species``.
+        ``pattern``
+            Matches selected occupations against a pattern containing ``-1``,
+            ``+1``, state names, or ``"*"`` wildcards.
+        ``exact``
+            Matches a specific event and exact occupation vector. This is the
+            direct replacement for catalog-style local-environment tables.
+
+    Site selectors:
+        Rules can use ``sites="local_env"``, ``"mobile_ion"``,
+        ``"canonical"``, ``"from"``, ``"to"``, ``"all"``, or an explicit list
+        of active-site indices. ``canonical`` means ``event.mobile_ion_indices``
+        followed by ``event.local_env_indices`` with duplicates removed.
+
+    Examples:
+        Constant barrier::
+
+            model = LocalBarrierModel.constant_barrier(300.0)
+
+        At least three occupied local-environment sites::
+
+            model = LocalBarrierModel(default_barrier=300.0)
+            model.add_state_count_rule(
+                name="crowded",
+                sites="local_env",
+                state="occupied",
+                min_count=3,
+                barrier=450.0,
+            )
+
+        More than three Si sites in the local environment::
+
+            model = LocalBarrierModel(
+                default_barrier=300.0,
+                site_species={
+                    1: {-1: "P", 1: "Si"},
+                    2: {-1: "Si", 1: "P"},
+                    3: {-1: "Si", 1: "P"},
+                    4: {-1: "Al", 1: "Si"},
+                },
+            )
+            model.add_species_count_rule(
+                name="si_rich",
+                sites="local_env",
+                species="Si",
+                min_count=4,
+                barrier=420.0,
+            )
+
+        Exact event/local-environment match::
+
+            model = LocalBarrierModel.from_exact_entries([
+                {
+                    "mobile_ion_indices": [0, 1],
+                    "local_env_indices": [1, 2, 3],
+                    "occupations": [1, -1, 1, -1],
+                    "properties": {"barrier": 250.0},
+                }
+            ])
     """
 
     MODEL_TYPE = "local_barrier"
@@ -428,7 +554,12 @@ class LocalBarrierModel(BaseModel):
         name: str = "ConstantBarrierModel",
         **kwargs,
     ) -> "LocalBarrierModel":
-        """Construct a model that returns the same barrier for every event."""
+        """Construct a model that returns the same barrier for every event.
+
+        This is the simplest setup for smoke tests, toy simulations, or models
+        where all event rates share one activation barrier. The returned model
+        has no rules; the barrier is stored in ``default_properties``.
+        """
         return cls(name=name, default_barrier=barrier, **kwargs)
 
     @classmethod
@@ -439,7 +570,14 @@ class LocalBarrierModel(BaseModel):
         properties: dict[str, float],
         name: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Build an exact-match rule from a runtime event and state snapshot."""
+        """Build an exact-match rule from a runtime event and state snapshot.
+
+        The occupation vector is sampled in canonical event-site order:
+        ``mobile_ion_indices`` first, then ``local_env_indices`` with duplicate
+        site indices removed. Use this helper when turning a known event/state
+        snapshot into an exact rule without manually constructing the
+        occupation list.
+        """
         mobile_ion_indices, local_env_indices, canonical_sites = _event_indices(event)
         try:
             occupations = [
@@ -472,7 +610,13 @@ class LocalBarrierModel(BaseModel):
         probability_property: str = "barrier",
         site_species: Optional[dict[Any, Any]] = None,
     ) -> "LocalBarrierModel":
-        """Construct from exact event/local-occupation entries."""
+        """Construct from exact event/local-occupation entries.
+
+        Each entry must contain ``mobile_ion_indices``, ``local_env_indices``,
+        ``occupations``, and ``properties``. The ``occupations`` list is in
+        canonical site order: mobile-ion sites first, then local-environment
+        sites with duplicates removed. Duplicate exact entries are rejected.
+        """
         rules: list[dict[str, Any]] = []
         for index, entry in enumerate(entries):
             payload = entry.as_dict() if hasattr(entry, "as_dict") else dict(entry)
@@ -506,7 +650,7 @@ class LocalBarrierModel(BaseModel):
         )
 
     def add_rule(self, rule: dict[str, Any]) -> None:
-        """Add one local barrier rule."""
+        """Add one normalized local barrier rule to the ordered rule list."""
         normalized = _normalize_rule(rule, default_name=f"rule_{len(self.rules)}")
         if normalized["type"] == "exact":
             exact_key = self._exact_key_for_rule(normalized)
@@ -529,7 +673,12 @@ class LocalBarrierModel(BaseModel):
         properties: Optional[dict[str, float]] = None,
         name: Optional[str] = None,
     ) -> str:
-        """Add an event-specific exact occupation rule."""
+        """Add an event-specific exact occupation rule.
+
+        ``occupations`` must follow canonical site order for the supplied
+        ``mobile_ion_indices`` and ``local_env_indices``. Use this rule type
+        when the barrier is known only for one exact event/environment pattern.
+        """
         rule = {
             "type": "exact",
             "mobile_ion_indices": list(mobile_ion_indices),
@@ -555,7 +704,11 @@ class LocalBarrierModel(BaseModel):
         min_count: Optional[int] = None,
         max_count: Optional[int] = None,
     ) -> str:
-        """Add a rule based on the number of sites in an occupation state."""
+        """Add a rule based on the number of sites in an occupation state.
+
+        ``state`` accepts ``"occupied"``/``-1`` or ``"vacant"``/``+1``.
+        Supply exactly one of ``count`` or a ``min_count``/``max_count`` range.
+        """
         rule = {
             "type": "state_count",
             "sites": sites,
@@ -586,7 +739,12 @@ class LocalBarrierModel(BaseModel):
         min_count: Optional[int] = None,
         max_count: Optional[int] = None,
     ) -> str:
-        """Add a rule based on the number of sites currently carrying a species."""
+        """Add a rule based on the number of sites currently carrying a species.
+
+        Species labels are looked up from ``site_species`` using each selected
+        site index and current occupation value. This is appropriate for rules
+        such as "use a higher barrier when at least four selected sites are Si".
+        """
         rule = {
             "type": "species_count",
             "sites": sites,
@@ -614,7 +772,11 @@ class LocalBarrierModel(BaseModel):
         name: Optional[str] = None,
         sites: str | list[int] | tuple[int, ...] = "canonical",
     ) -> str:
-        """Add a wildcard occupation pattern rule."""
+        """Add a wildcard occupation pattern rule.
+
+        Patterns can contain occupation values, state names, or ``"*"``
+        wildcards. The pattern length must match the number of selected sites.
+        """
         rule = {
             "type": "pattern",
             "sites": sites,
