@@ -160,42 +160,59 @@ To print out all arguments, you can run:
 run_kmc --help
 ```
 
-## Build local-environment catalog files (sparse data)
-For sparse datasets, you can use `LocalEnvCatalog` with direct event+occupation lookup.
+## Build local barrier models
+For direct barrier logic, use `LocalBarrierModel`. It supports constant barriers,
+count rules, species-count rules, wildcard patterns, and exact catalog-style
+matches.
 
-First write a raw entries file (`local_env_catalog_entries.json`). The required fields are `mobile_ion_indices`, `local_env_indices`, `occupations`, and `properties`; indices use the active-site index space from generated events.
-```json
-{
-  "entries": [
-    {
-      "mobile_ion_indices": [0, 1],
-      "local_env_indices": [1, 2, 3],
-      "occupations": [1, -1, 1, -1],
-      "properties": {"barrier": 250.0}
-    }
-  ]
-}
-```
-
-Build a model file via API:
+Constant barrier:
 ```python
-from kmcpy.models import LocalEnvCatalog
+from kmcpy.models import LocalBarrierModel
 
-model = LocalEnvCatalog.from_file("local_env_catalog_entries.json")
+model = LocalBarrierModel.constant_barrier(300.0)
 model.to("model.json")
 ```
 
-Build via CLI:
-```shell
-kmcpy pack-local-env-catalog --entries-file local_env_catalog_entries.json --output model.json
+Species-count rule, for example "more than 3 Si in the local environment":
+```python
+model = LocalBarrierModel(
+    default_barrier=300.0,
+    site_species={
+        1: {-1: "P", 1: "Si"},
+        2: {-1: "Si", 1: "P"},
+        3: {-1: "Si", 1: "P"},
+        4: {-1: "Al", 1: "Si"},
+    },
+)
+model.add_species_count_rule(
+    name="si_rich",
+    sites="local_env",
+    species="Si",
+    min_count=4,
+    barrier=420.0,
+)
+model.to("model.json")
 ```
 
-The generated model file contains `filetype: "kmcpy.model_file"` as storage metadata and `model_type: "local_env_catalog"` as model metadata. Use it in simulation config by pointing to the file:
+Exact catalog-style match:
+```python
+model = LocalBarrierModel.from_exact_entries([
+    {
+        "mobile_ion_indices": [0, 1],
+        "local_env_indices": [1, 2, 3],
+        "occupations": [1, -1, 1, -1],
+        "properties": {"barrier": 250.0},
+    }
+])
+```
+
+Use the generated model file in simulation config by pointing to it:
 ```yaml
 model_file: "model.json"
 ```
 
-`LocalEnvCatalog` performs exact lookup only. Unseen configurations raise an error (no extrapolation fallback).
+Exact catalog-style data should be represented as `LocalBarrierModel` exact
+rules rather than a separate catalog model.
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:

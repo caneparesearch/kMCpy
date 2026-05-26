@@ -6,8 +6,8 @@ import pytest
 
 import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
+from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.local_env_catalog import LocalEnvCatalog
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
 
@@ -275,20 +275,21 @@ def test_composite_lce_model_to_is_model_file_compatible(tmp_path):
     )
 
 
-def test_local_env_catalog_from_file_is_repeatable():
-    root = Path(__file__).parent / "files" / "input"
-    first_model = LocalEnvCatalog.from_file(str(root / "local_env_catalog.json"))
-    second_model = LocalEnvCatalog.from_file(str(root / "local_env_catalog.json"))
+def test_local_barrier_model_from_file_is_repeatable(tmp_path):
+    model_file = tmp_path / "local_barrier.json"
+    LocalBarrierModel.constant_barrier(300.0).to(str(model_file))
+    first_model = LocalBarrierModel.from_file(str(model_file))
+    second_model = LocalBarrierModel.from_file(str(model_file))
 
     assert first_model.as_dict() == second_model.as_dict()
-    assert first_model.name == "LocalEnvCatalog"
+    assert first_model.name == "ConstantBarrierModel"
 
 
 def test_exported_concrete_models_expose_pymatgen_style_constructors():
     concrete_models = [
         model_module.LocalClusterExpansion,
         model_module.CompositeLCEModel,
-        model_module.LocalEnvCatalog,
+        model_module.LocalBarrierModel,
     ]
     for model_cls in concrete_models:
         assert callable(getattr(model_cls, "from_dict"))

@@ -28,6 +28,7 @@ def test_public_run_api():
     assert callable(kmcpy.run)
     assert hasattr(kmcpy, "Configuration")
     assert hasattr(kmcpy, "State")
+    assert hasattr(kmcpy, "LocalBarrierModel")
 
 def test_simulation_config_classes():
     """Test that configuration classes can be imported and instantiated."""
@@ -84,3 +85,4 @@ def test_public_aliases():
 
     assert hasattr(kmcpy, "Configuration")
     assert hasattr(kmcpy, "State")
+    assert hasattr(kmcpy, "LocalBarrierModel")

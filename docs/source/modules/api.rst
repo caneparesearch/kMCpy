@@ -13,11 +13,10 @@ API Reference Documentation
     cluster.rst
     composite_lce_model.rst
     local_cluster_expansion.rst
-    local_env_catalog.rst
+    local_barrier_model.rst
     event_base.rst
     models_base.rst
     generators.rst
-    pack_local_env_catalog.rst
     init.rst
     main.rst
     run_kmc.rst

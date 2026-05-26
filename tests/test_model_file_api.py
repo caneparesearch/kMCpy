@@ -4,8 +4,8 @@ import pytest
 
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.fitting.fitter import LCEFitter
+from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.local_env_catalog import LocalEnvCatalog
 from kmcpy.models.base import BaseModel
 from kmcpy.simulator.config import Configuration
 
@@ -90,45 +90,21 @@ def test_lce_model_type_uses_model_file_directly():
 
 
 @pytest.mark.unit
-def test_local_env_catalog_from_raw_entries_writes_model_file(tmp_path: Path):
-    root = Path(__file__).parent / "files" / "input"
-    model = LocalEnvCatalog.from_file(str(root / "local_env_catalog_entries.json"))
-
-    output = tmp_path / "local_env_catalog.json"
-    model.to(str(output))
-    loaded = LocalEnvCatalog.from_file(str(output))
-
-    assert loaded.default_property == "barrier"
-    assert loaded.to_model_file_dict()["filetype"] == "kmcpy.model_file"
-
-
-@pytest.mark.unit
-def test_local_env_catalog_file_validation_error(tmp_path: Path):
-    invalid = tmp_path / "invalid_local_env_catalog.json"
-    invalid.write_text(
-        '{"filetype":"kmcpy.model_file","model_type":"local_env_catalog","local_env_catalog":{"entries":[]}}',
-        encoding="utf-8",
-    )
-
-    with pytest.raises(ValueError, match="non-empty list"):
-        LocalEnvCatalog.from_file(str(invalid))
-
-
-@pytest.mark.unit
-def test_model_type_is_inferred_from_model_file():
-    root = Path(__file__).parent / "files" / "input"
+def test_local_barrier_model_type_is_inferred_from_model_file(tmp_path: Path):
+    model_file = tmp_path / "local_barrier.json"
+    LocalBarrierModel.constant_barrier(300.0).to(str(model_file))
     config = Configuration(
         structure_file="fake_structure.cif",
         event_file="fake_events.json",
-        model_file=str(root / "local_env_catalog.json"),
+        model_file=str(model_file),
     )
 
     model = BaseModel.from_config(config)
-    assert isinstance(model, LocalEnvCatalog)
+    assert isinstance(model, LocalBarrierModel)
 
 
 @pytest.mark.unit
-def test_local_env_catalog_from_entries_rejects_duplicate_entries():
+def test_local_barrier_exact_rules_reject_duplicate_entries():
     entries = [
         {
             "mobile_ion_indices": [0, 1],
@@ -145,6 +121,6 @@ def test_local_env_catalog_from_entries_rejects_duplicate_entries():
     ]
 
     with pytest.raises(
-        ValueError, match="Duplicate local-environment catalog canonical key"
+        ValueError, match="Duplicate exact local-barrier rule"
     ):
-        LocalEnvCatalog.from_entries(entries=entries)
+        LocalBarrierModel.from_exact_entries(entries=entries)

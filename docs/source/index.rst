@@ -38,6 +38,6 @@ This code was recently employed to investigate `the transport properties of Na-i
    howto/local_ordering
    howto/local_environment_enumeration
    howto/neb_fitting
-   howto/local_env_catalog
+   howto/local_barrier_model
    modules/api
    about

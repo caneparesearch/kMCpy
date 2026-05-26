@@ -4,7 +4,7 @@ This section explains the theoretical foundations underlying kMCpy's implementat
 
 ## Overview
 
-kMCpy simulates ion transport in crystalline materials using a rejection-free kinetic Monte Carlo (rf-kMC) algorithm. The hop rates can currently come from two model types: a fitted `LocalClusterExpansion` model or an exact-lookup `LocalEnvCatalog` model. These models provide migration barriers for the same kMC engine, enabling efficient computation of transport properties including diffusivity and ionic conductivity.
+kMCpy simulates ion transport in crystalline materials using a rejection-free kinetic Monte Carlo (rf-kMC) algorithm. The hop rates can come from fitted `LocalClusterExpansion` models or direct local barrier models such as `LocalBarrierModel`. These models provide migration barriers for the same kMC engine, enabling efficient computation of transport properties including diffusivity and ionic conductivity.
 
 ## Kinetic Monte Carlo (kMC)
 
@@ -45,7 +45,7 @@ Kinetic Monte Carlo bridges the gap between ab initio molecular dynamics (which 
 kMCpy currently provides two model families for assigning hop barriers:
 
 - `LocalClusterExpansion`: a fitted model that predicts barriers from local occupation features. Use this when you want interpolation over many local configurations from a fitted training set.
-- `LocalEnvCatalog`: an exact lookup table keyed by event indices and local occupations. Use this when you have sparse, explicitly enumerated barriers and want missing configurations to fail instead of extrapolating.
+- `LocalBarrierModel`: an ordered rule model for constant barriers, count rules, species-count rules, wildcard patterns, and exact catalog-style matches. Use this when barrier logic can be written directly.
 
 Both models operate in the active-site index space used by the event library and simulation state. The simulation config points to a serialized `model_file`; for kMCpy model-file envelopes, the model type is stored in that file.
 
@@ -104,13 +104,13 @@ $$E_{\text{eff}} = E_{\text{KRA}} + \frac{\text{direction} \times \Delta E_{\tex
 
 where direction indicates whether the hop is forward (+1) or backward (-1), and $\Delta E_{\text{site}}$ is the site energy difference between the final and initial sites. This formulation ensures that detailed balance is maintained: the ratio of forward to backward hop rates satisfies the Boltzmann factor for the site energy difference.
 
-## Local Environment Catalog
+## Local Barrier Model
 
-`LocalEnvCatalog` is the exact-lookup alternative to LCE fitting. Each catalog row is keyed by the hopping sites, the local environment sites, and the occupations of the canonical local site list. The stored properties can include a migration barrier, which is then converted to a hop rate with the same Arrhenius expression used by the kMC algorithm.
+`LocalBarrierModel` is the direct-rule alternative to LCE fitting. It checks ordered local rules and returns the first matching barrier. A rule can represent a constant fallback, a count of occupied or vacant sites, a count of chemical species such as "at least 4 Si in the local environment", a wildcard occupation pattern, or an exact event/local-occupation match.
 
-This model is useful when the relevant configurations have already been enumerated, for example from selected NEB calculations. It does not fit coefficients or estimate unseen environments. If a runtime event and occupation pattern is absent from the catalog, the lookup fails so the missing data can be corrected explicitly.
+Exact rules are keyed by the hopping sites, local environment sites, and occupations of the canonical local site list. If no rule matches and no default barrier is provided, lookup fails so missing data can be corrected explicitly.
 
-See the [LocalEnvCatalog how-to](howto/local_env_catalog.md) for the required input fields and packing workflow.
+See the [local barrier model how-to](howto/local_barrier_model.md) for rule examples.
 
 ## Transport Properties
 
