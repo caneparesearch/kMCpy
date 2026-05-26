@@ -6,7 +6,7 @@ initialization, event handling, probability calculations, and simulation loop fo
 loading input data from various sources, updating system states, and tracking simulation results.
 """
 from numba import njit
-from kmcpy.external.structure import StructureKMCpy
+from pymatgen.core import Structure
 import numpy as np
 import importlib
 import warnings
@@ -39,7 +39,7 @@ class KMC:
     managing events, updating system states, and running the simulation loop.
     """
     def __init__(self, 
-                structure: StructureKMCpy,
+                structure: Structure,
                 model: 'BaseModel',
                 event_lib: EventLib,
                 config: "Configuration",
@@ -48,7 +48,7 @@ class KMC:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
         Args:
-            structure (StructureKMCpy): The structure object (already processed).
+            structure (Structure): The structure object (already processed).
             model (BaseModel): The loaded model implementing compute_probability(...).
             event_lib (EventLib): The event library with all events loaded.
             config (Configuration): Configuration object containing all simulation parameters.

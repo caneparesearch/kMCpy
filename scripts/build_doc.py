@@ -11,8 +11,8 @@ excluded_packages = {"gui_wrapper", "api"}
 def write_rst_for_sphinx(
     rst_filename="pymatgen_cif.rst",
     api_doc_path="docs/source/modules/",
-    module="kmcpy.external",
-    package="pymatgen_cif",
+    module="kmcpy.io",
+    package="cif",
     title=None,
 ):
     title = title or package

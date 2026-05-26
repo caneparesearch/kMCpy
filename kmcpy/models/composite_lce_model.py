@@ -369,7 +369,7 @@ class CompositeLCEModel(CompositeModel):
         Get the occupation vector from a structure.
         
         Args:
-            structure (StructureKMCpy): The structure from which to compute the occupation vector.
+            structure (Structure): The structure from which to compute the occupation vector.
             use_model (str): Specify which model to use for occupation calculation ('site_model' or 'kra_model').
         
         Returns:
@@ -387,7 +387,7 @@ class CompositeLCEModel(CompositeModel):
         Get the correlation vector from a structure.
         
         Args:
-            structure (StructureKMCpy): The structure from which to compute the correlation vector.
+            structure (Structure): The structure from which to compute the correlation vector.
             use_model (str): Specify which model to use for correlation calculation ('site_model' or 'kra_model').
             tol (float): Tolerance for occupation comparison.
             angle_tol (float): Angle tolerance for structure matching.

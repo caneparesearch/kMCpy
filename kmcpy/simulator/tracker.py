@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import numpy as np
 import pandas as pd
 
-from kmcpy.external.structure import StructureKMCpy
+from pymatgen.core import Structure
 from monty.json import jsanitize
 from kmcpy.simulator.property import (
     BUILTIN_PROPERTY_FIELDS,
@@ -91,7 +91,7 @@ class Tracker:
     def __init__(
         self,
         config: "Configuration",
-        structure: StructureKMCpy,
+        structure: Structure,
         initial_state: Optional["State"] = None,
     ) -> None:
         """Initialize tracker state, trajectory arrays, and built-in sampling."""
@@ -205,7 +205,7 @@ class Tracker:
     def from_config(
         cls,
         config: "Configuration",
-        structure: StructureKMCpy,
+        structure: Structure,
         occ_initial: list,
     ) -> "Tracker":
         """Construct tracker from config and initial occupations."""

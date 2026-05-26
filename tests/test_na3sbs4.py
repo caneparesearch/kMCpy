@@ -81,11 +81,11 @@ class TestNa3SbS4(unittest.TestCase):
             os.chdir(current_dir)
             from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
             from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-            from kmcpy.external.structure import StructureKMCpy
+            from kmcpy.io.cif import load_labeled_structure_from_cif
 
             mobile_ion_identifier_type = "label"
             mobile_ion_specie_identifier = "Na1"
-            structure = StructureKMCpy.from_cif(
+            structure = load_labeled_structure_from_cif(
                 filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
             )
             a = LocalClusterExpansion()

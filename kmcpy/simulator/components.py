@@ -70,7 +70,7 @@ def create_model_from_config(config: "Configuration"):
 def load_simulation_components(config: "Configuration") -> tuple:
     """Load structure, model, events, and compact active-site state."""
     from kmcpy.event import EventLib
-    from kmcpy.external.structure import StructureKMCpy
+    from kmcpy.io.cif import load_labeled_structure_from_cif
     from kmcpy.simulator.state import State
 
     if config.site_mapping is None:
@@ -79,7 +79,7 @@ def load_simulation_components(config: "Configuration") -> tuple:
             "data use the same active-site index space."
         )
 
-    full_structure = StructureKMCpy.from_cif(
+    full_structure = load_labeled_structure_from_cif(
         config.structure_file,
         primitive=config.convert_to_primitive_cell,
     )

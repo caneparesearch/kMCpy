@@ -2,9 +2,9 @@ import importlib
 import pytest
 
 @pytest.mark.parametrize("module_path", [
-    "kmcpy.external.structure",
-    "kmcpy.external.cif",
-    "kmcpy.external.local_env",
+    "kmcpy.io.cif",
+    "kmcpy.structure.sites",
+    "kmcpy.structure.neighbors",
     "kmcpy.simulator",  # New simulator module
     "kmcpy.simulator.kmc",
     "kmcpy.event",
@@ -20,16 +20,6 @@ def test_module_imports(module_path):
         importlib.import_module(module_path)
     except ImportError as e:
         pytest.fail(f"Failed to import {module_path}: {e}")
-
-@pytest.mark.parametrize("module_path", [
-    "kmcpy.external",
-])
-def test_top_level_imports(module_path):
-    try:
-        importlib.import_module(module_path)
-    except ImportError as e:
-        pytest.fail(f"Failed to import top-level {module_path}: {e}")
-
 
 def test_public_run_api():
     import kmcpy

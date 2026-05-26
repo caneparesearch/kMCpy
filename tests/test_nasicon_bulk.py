@@ -75,19 +75,24 @@ class TestNASICONbulk(unittest.TestCase):
         import numpy as np
         from kmcpy.structure.cluster import Cluster, ClusterMatcher
 
-        from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.external.local_env import CutOffDictNNKMCpy
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+        from kmcpy.structure.neighbors import (
+            get_cutoff_neighbor_info,
+            prepare_cutoff_neighbor_lookup,
+        )
 
-        nasicon = StructureKMCpy.from_cif(
+        nasicon = load_labeled_structure_from_cif(
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True
         )
 
         center_Na1 = [0, 1]
-        local_env_finder = CutOffDictNNKMCpy({("Na+", "Na+"): 4, ("Na+", "Si4+"): 4})
+        local_env_lookup = prepare_cutoff_neighbor_lookup(
+            {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
+        )
 
         reference_neighbor_sequences = sorted(
             sorted(
-                local_env_finder.get_nn_info(nasicon, center_Na1[0]),
+                get_cutoff_neighbor_info(nasicon, center_Na1[0], local_env_lookup),
                 key=lambda x: x["wyckoff_sequence"],
             ),
             key=lambda x: x["label"],
@@ -103,7 +108,7 @@ class TestNASICONbulk(unittest.TestCase):
 
         wrong_sequence_neighbor = sorted(
             sorted(
-                local_env_finder.get_nn_info(nasicon, center_Na1[1]),
+                get_cutoff_neighbor_info(nasicon, center_Na1[1], local_env_lookup),
                 key=lambda x: x["wyckoff_sequence"],
             ),
             key=lambda x: x["label"],
@@ -196,10 +201,13 @@ class TestNASICONbulk(unittest.TestCase):
     def test_generate_local_cluster_exapnsion(self):
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
         from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-        from kmcpy.external.structure import StructureKMCpy
+        from kmcpy.io.cif import load_labeled_structure_from_cif
         mobile_ion_identifier_type = "label"
         mobile_ion_specie_identifier = "Na1"
-        structure = StructureKMCpy.from_cif(filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True)
+        structure = load_labeled_structure_from_cif(
+            filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+            primitive=True,
+        )
         local_lattice_structure = LocalLatticeStructure(template_structure=structure,center=0, cutoff=4.0,site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"},
                                      basis_type = "chebyshev", is_write_basis=True)
         a = LocalClusterExpansion()
@@ -361,7 +369,8 @@ class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("data_gathering")
     def test_gather_mc_data(self):
         from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
-        from kmcpy.external.structure import StructureKMCpy
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+        from kmcpy.structure.sites import make_kmc_supercell
         import numpy as np
 
         structure_from_json = generate_supercell(
@@ -371,12 +380,12 @@ class TestNASICONbulk(unittest.TestCase):
         df.to_json(f"{file_path}/mc_results_json.json", orient="index")
         occ1 = df["occ"]
 
-        structure_from_cif = StructureKMCpy.from_cif(
+        structure_from_cif = load_labeled_structure_from_cif(
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True
         )
         structure_from_cif.remove_species(["Zr", "O", "Zr4+", "O2-"])
         structure_from_cif.remove_oxidation_states()
-        structure_from_cif = structure_from_cif.make_kmc_supercell([8, 8, 8])
+        structure_from_cif = make_kmc_supercell(structure_from_cif, [8, 8, 8])
         df2 = gather_data(f"{file_path}/gather_mc_data/comp*", structure_from_cif)
         df2.to_json(f"{file_path}/mc_results_cif.json", orient="index")
         occ2 = df2["occ"]

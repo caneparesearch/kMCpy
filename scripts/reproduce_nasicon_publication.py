@@ -23,7 +23,7 @@ from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
-from kmcpy.external.structure import StructureKMCpy
+from kmcpy.io.cif import load_labeled_structure_from_cif
 
 
 DEFAULT_SOURCE_REPO = Path("/home/jerry/work/tmp/project_nasicon_kmc")
@@ -373,7 +373,7 @@ def convert_legacy_events(source_repo: Path, output_dir: Path) -> Path:
             )
         )
     event_lib.generate_event_dependencies()
-    primitive_structure = StructureKMCpy.from_cif(
+    primitive_structure = load_labeled_structure_from_cif(
         str(source_repo / NASICON_STRUCTURE), primitive=True
     )
     active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(

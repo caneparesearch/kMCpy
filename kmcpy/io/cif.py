@@ -1,5 +1,6 @@
-"""
-This is inherited from pymatgen.io.cif
+"""CIF loading helpers that preserve kMC site metadata.
+
+The parser implementation is adapted from pymatgen; see cif_LICENSE.rst.
 """
 
 from pymatgen.io.cif import CifParser
@@ -16,9 +17,10 @@ from pymatgen.core.periodic_table import DummySpecies, Element, Species, get_el_
 from pymatgen.symmetry.analyzer import SpacegroupOperations
 from pymatgen.symmetry.structure import SymmetrizedStructure
 from pymatgen.util.coord import find_in_coord_list_pbc
-from kmcpy.external.structure import StructureKMCpy
+from monty.io import zopen
+from pymatgen.core import Structure
 
-class CifParserKMCpy(CifParser):
+class _LabeledCifParser(CifParser):
 
     @staticmethod
     def from_string(cif_string, **kwargs):
@@ -33,7 +35,7 @@ class CifParserKMCpy(CifParser):
             CifParser
         """
         stream = StringIO(cif_string)
-        return CifParserKMCpy(stream, **kwargs)
+        return _LabeledCifParser(stream, **kwargs)
     
     def _get_labeled_structure(self, data, primitive, symmetrized):
         """modified version from _get_structure, which can add the atom label to the site
@@ -270,7 +272,7 @@ class CifParserKMCpy(CifParser):
             if len(site_properties) == 0:
                 site_properties = None
 
-            struct = StructureKMCpy(
+            struct = Structure(
                 lattice, allspecies, allcoords, site_properties=site_properties
             )
 
@@ -425,3 +427,52 @@ class CifParserKMCpy(CifParser):
                 return 0
             raise ex
         raise ValueError(f"{text} cannot be converted to float")
+
+
+def load_labeled_structures_from_cif(
+    filename: str,
+    primitive: bool = False,
+    symmetrized: bool = False,
+    **parser_kwargs,
+) -> list[Structure]:
+    """Load structures from a CIF and preserve label/Wyckoff site metadata."""
+    with zopen(str(filename), "rt") as handle:
+        parser = _LabeledCifParser.from_string(handle.read(), **parser_kwargs)
+    return parser.get_labeled_structures(
+        primitive=primitive,
+        symmetrized=symmetrized,
+    )
+
+
+def load_labeled_structure_from_cif(
+    filename: str,
+    primitive: bool = False,
+    **parser_kwargs,
+) -> Structure:
+    """Load the first labeled structure from a CIF file."""
+    return load_labeled_structures_from_cif(
+        filename,
+        primitive=primitive,
+        **parser_kwargs,
+    )[0]
+
+
+def load_labeled_structure_from_string(
+    cif_string: str,
+    primitive: bool = False,
+    symmetrized: bool = False,
+    **parser_kwargs,
+) -> Structure:
+    """Load a labeled structure from CIF text."""
+    parser = _LabeledCifParser.from_string(cif_string, **parser_kwargs)
+    return parser.get_labeled_structures(
+        primitive=primitive,
+        symmetrized=symmetrized,
+    )[0]
+
+
+__all__ = [
+    "load_labeled_structure_from_cif",
+    "load_labeled_structures_from_cif",
+    "load_labeled_structure_from_string",
+]

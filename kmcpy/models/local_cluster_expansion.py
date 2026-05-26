@@ -4,7 +4,7 @@ This module provides classes and functions to build a Local Cluster Expansion (L
 """
 from itertools import combinations
 from typing import TYPE_CHECKING, Optional, Sequence
-from kmcpy.external.structure import StructureKMCpy
+from pymatgen.core import Structure
 import numpy as np
 import json
 import logging
@@ -60,7 +60,7 @@ class LocalClusterExpansion(BaseModel):
     def build(self, local_lattice_structure:LocalLatticeStructure, 
         cutoff_cluster: list = [6, 6, 6], **kwargs) -> None:
         """
-        Build the LocalClusterExpansion model from a StructureKMCpy object.
+        Build the LocalClusterExpansion model from a Structure object.
 
         There are 2 ways to define the local environment (migration unit):
         1) Use the center of the mobile ion as the center of the local environment (default, center_frac_coord = None), this mobile ion is excluded from the local environment.
@@ -387,7 +387,7 @@ class LocalClusterExpansion(BaseModel):
 
     def get_occ_corr_from_structure(
         self,
-        structure: StructureKMCpy,
+        structure: Structure,
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
         exclude_species: Optional[Sequence[str]] = None,
         tol=1e-2,
@@ -446,7 +446,7 @@ class LocalClusterExpansion(BaseModel):
 
     def get_corr_from_structure(
         self,
-        structure: StructureKMCpy,
+        structure: Structure,
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
         exclude_species: Optional[Sequence[str]] = None,
         tol=1e-2,

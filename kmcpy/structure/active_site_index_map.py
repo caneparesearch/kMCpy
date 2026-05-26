@@ -337,7 +337,7 @@ def _make_supercell_with_properties(
     primitive_active_lookup: Mapping[int, int],
     supercell_shape: tuple[int, int, int],
 ) -> Structure:
-    from kmcpy.external.structure import StructureKMCpy
+    from kmcpy.structure.sites import make_kmc_supercell, structure_from_sites
 
     base = template_structure.copy()
     primitive_indices = list(range(len(base)))
@@ -346,8 +346,9 @@ def _make_supercell_with_properties(
         PRIMITIVE_ACTIVE_SITE_PROPERTY,
         [primitive_active_lookup.get(index, -1) for index in primitive_indices],
     )
-    supercell = StructureKMCpy.from_sites(base.sites).make_kmc_supercell(
-        supercell_shape
+    supercell = make_kmc_supercell(
+        structure_from_sites(base.sites),
+        supercell_shape,
     )
     supercell.add_site_property(
         ORIGINAL_SITE_PROPERTY, list(range(len(supercell)))

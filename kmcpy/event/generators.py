@@ -9,9 +9,20 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from kmcpy.event.base import Event, EventLib
+from kmcpy.io.cif import load_labeled_structure_from_cif
 from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from kmcpy.structure.cluster import Cluster, ClusterMatcher
+from kmcpy.structure.neighbors import (
+    get_cutoff_neighbor_info,
+    prepare_cutoff_neighbor_lookup,
+)
+from kmcpy.structure.sites import (
+    build_site_index,
+    make_kmc_supercell,
+    site_index_key,
+    structure_from_sites,
+)
 
 logger = logging.getLogger(__name__) 
 
@@ -244,7 +255,6 @@ class EventGenerator:
 
     def _export_reference_local_environment(
         self,
-        structure_cls,
         primitive_cell,
         migrating_ion_index: int,
         unsorted_neighbor_sequence: List[Dict],
@@ -256,9 +266,7 @@ class EventGenerator:
             [neighbor["site"] for neighbor in unsorted_neighbor_sequence]
         )
 
-        reference_local_env_structure = structure_cls.from_sites(
-            sites=reference_local_env_sites
-        )
+        reference_local_env_structure = structure_from_sites(reference_local_env_sites)
         reference_local_env_structure.to(
             fmt="cif",
             filename=f"{reference_local_env_type}th_reference_local_env.cif",
@@ -317,8 +325,6 @@ class EventGenerator:
         site_mapping is always required because generated events are stored in the
         active-site index space.
         """
-        from kmcpy.external.local_env import CutOffDictNNKMCpy
-        from kmcpy.external.structure import StructureKMCpy
         import kmcpy
 
         (
@@ -354,7 +360,7 @@ class EventGenerator:
             )
 
         logger.info(kmcpy.get_logo())
-        full_primitive_cell = StructureKMCpy.from_cif(
+        full_primitive_cell = load_labeled_structure_from_cif(
             structure_file, primitive=convert_to_primitive_cell
         )
         full_primitive_cell.add_oxidation_state_by_guess()
@@ -366,7 +372,7 @@ class EventGenerator:
             site_mapping,
             supercell_shape=supercell_shape,
         )
-        primitive_cell = StructureKMCpy.from_sites(
+        primitive_cell = structure_from_sites(
             primitive_active_site_index_map.active_structure().sites
         )
 
@@ -392,7 +398,7 @@ class EventGenerator:
             atom_identifier=mobile_ion_identifiers[0],
         )
 
-        local_env_finder = CutOffDictNNKMCpy(local_env_cutoff_dict)
+        local_env_cutoff_lookup = prepare_cutoff_neighbor_lookup(local_env_cutoff_dict)
         reference_local_env_dict: Dict = {}
         local_env_info_dict: Dict[int, List[Dict]] = {}
 
@@ -401,9 +407,11 @@ class EventGenerator:
 
         reference_local_env_type = 0
         for index, migrating_ion_index in enumerate(migrating_ion_indices, start=1):
-            unsorted_neighbor_sequences = (
-                LocalLatticeStructure.ordered_neighbor_info_from_finder(
-                    primitive_cell, migrating_ion_index, local_env_finder
+            unsorted_neighbor_sequences = LocalLatticeStructure.sort_neighbor_info(
+                get_cutoff_neighbor_info(
+                    primitive_cell,
+                    migrating_ion_index,
+                    local_env_cutoff_lookup,
                 )
             )
 
@@ -420,7 +428,6 @@ class EventGenerator:
 
             if is_new_type and export_local_env_structure:
                 reference_local_env_type = self._export_reference_local_environment(
-                    StructureKMCpy,
                     primitive_cell,
                     migrating_ion_index,
                     unsorted_neighbor_sequences,
@@ -439,7 +446,7 @@ class EventGenerator:
                 len(migrating_ion_indices),
             )
 
-        supercell = primitive_cell.make_kmc_supercell(supercell_shape)
+        supercell = make_kmc_supercell(primitive_cell, supercell_shape)
         logger.info("supercell is created")
         logger.info(str(supercell))
 
@@ -448,7 +455,7 @@ class EventGenerator:
             mobile_ion_identifier_type=mobile_ion_identifier_type,
             atom_identifier=mobile_ion_identifiers[0],
         )
-        indices_dict_from_identifier = supercell.kmc_build_dict(skip_check=False)
+        indices_dict_from_identifier = build_site_index(supercell, skip_check=False)
 
         events: List[Event] = []
         for supercell_migrating_ion_index in supercell_migrating_ion_indices:
@@ -468,7 +475,7 @@ class EventGenerator:
                     image_of_site=neighbor_site_in_primitive_cell["image"],
                     supercell_shape=supercell_shape,
                 )
-                tuple_key_of_neighbor_site = supercell.site_index_vector(
+                tuple_key_of_neighbor_site = site_index_key(
                     local_index=neighbor_site_in_primitive_cell["local_index"],
                     label=neighbor_site_in_primitive_cell["label"],
                     supercell=normalized_supercell_tuple,
@@ -531,7 +538,7 @@ def find_atom_indices(
     """a function for generating a list of site indices that satisfies the identifier
 
     Args:
-        structure (kmcpy.external.structure.StructureKMCpy): structure object to work on
+        structure (Structure): structure object to work on
         mobile_ion_identifier_type (str, optional): elect from: ["specie","label"]. Defaults to "specie".
         atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
 
