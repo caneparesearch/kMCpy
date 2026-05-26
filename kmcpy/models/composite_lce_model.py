@@ -116,10 +116,18 @@ class CompositeLCEModel(CompositeModel):
             dict: Mapping of component name to fitter result tuple
                 ``(model_parameters, y_pred, y_true)``.
         """
-        kra_fit_result = LocalClusterExpansion().fit(**kra_fit_kwargs)
+        kra_fit_model = (
+            self.kra_model if self.kra_model is not None else LocalClusterExpansion()
+        )
+        kra_fit_result = kra_fit_model.fit(**kra_fit_kwargs)
         results = {"kra": kra_fit_result}
         if site_fit_kwargs is not None:
-            results["site"] = LocalClusterExpansion().fit(**site_fit_kwargs)
+            site_fit_model = (
+                self.site_model
+                if self.site_model is not None
+                else LocalClusterExpansion()
+            )
+            results["site"] = site_fit_model.fit(**site_fit_kwargs)
 
         if self.kra_model is not None:
             self.kra_model.set_parameters(results["kra"][0])
@@ -212,8 +220,6 @@ class CompositeLCEModel(CompositeModel):
         }
         if getattr(model, "local_environment_hash", None) is not None:
             parameters["local_environment_hash"] = model.local_environment_hash
-        if getattr(model, "ordering_convention", None) is not None:
-            parameters["ordering_convention"] = model.ordering_convention.as_dict()
         return parameters
 
     @staticmethod

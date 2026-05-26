@@ -43,6 +43,20 @@ class LocalClusterExpansion(BaseModel):
         """
         self.name = "LocalClusterExpansion"
 
+    def fit(self, *args, **kwargs):
+        """Fit parameters and include this model's compatibility metadata."""
+        orbit_fingerprints = getattr(self, "orbit_fingerprints", None)
+        if orbit_fingerprints is None and hasattr(self, "orbits"):
+            orbit_fingerprints = self.get_orbit_fingerprints()
+        if orbit_fingerprints is not None:
+            kwargs.setdefault("orbit_fingerprints", orbit_fingerprints)
+
+        local_environment_hash = getattr(self, "local_environment_hash", None)
+        if local_environment_hash is not None:
+            kwargs.setdefault("local_environment_hash", str(local_environment_hash))
+
+        return super().fit(*args, **kwargs)
+
     def build(self, local_lattice_structure:LocalLatticeStructure, 
         cutoff_cluster: list = [6, 6, 6], **kwargs) -> None:
         """
@@ -302,8 +316,9 @@ class LocalClusterExpansion(BaseModel):
         if expected_local_environment_hash and local_environment_hash is None:
             warnings.warn(
                 "Parameter payload is missing local_environment_hash; keci "
-                "values were not tied to the LocalSiteOrderingConvention. "
-                "Regenerate the parameter or model file with ordering metadata.",
+                "values were not tied to a specific ordered local environment. "
+                "Regenerate the parameter or model file with local-environment "
+                "metadata.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -313,7 +328,7 @@ class LocalClusterExpansion(BaseModel):
         ):
             raise ValueError(
                 "Parameter local_environment_hash does not match this "
-                "LocalClusterExpansion ordering."
+                "LocalClusterExpansion local environment."
             )
 
         if orbit_fingerprints is not None:

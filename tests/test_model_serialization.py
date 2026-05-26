@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import kmcpy.models as model_module
@@ -52,6 +53,81 @@ def test_local_cluster_expansion_serializes_ordering_convention():
     assert payload["ordering_convention"]["name"] == "nasicon_nat_commun_2022"
     assert "local_environment_hash" in payload
     assert reloaded.ordering_convention.name == "nasicon_nat_commun_2022"
+
+
+def test_lce_fit_writes_local_environment_hash_not_ordering_convention(tmp_path):
+    structure = Structure(
+        Lattice.cubic(20.0),
+        ["Na", "Na", "Si"],
+        [[5, 5, 5], [6, 5, 5], [7, 5, 5]],
+        coords_are_cartesian=True,
+    )
+    local_lattice = LocalLatticeStructure(
+        template_structure=structure,
+        site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+        center=0,
+        cutoff=3.0,
+        ordering_convention="nasicon_nat_commun_2022",
+    )
+    model = LocalClusterExpansion()
+    model.build(local_lattice, cutoff_cluster=[3.0, 3.0, 0.0])
+    orbit_fingerprints = model.get_orbit_fingerprints()
+    assert orbit_fingerprints
+
+    n_features = len(orbit_fingerprints)
+    n_samples = max(4, n_features + 2)
+    correlation_matrix = np.array(
+        [
+            [
+                ((sample + 1) * (feature + 2)) % 7 + 0.1 * feature
+                for feature in range(n_features)
+            ]
+            for sample in range(n_samples)
+        ],
+        dtype=float,
+    )
+    coefficients = np.linspace(0.1, 0.2, n_features)
+    e_kra = correlation_matrix @ coefficients + 0.3
+    weight = np.ones(n_samples)
+
+    corr_file = tmp_path / "correlation_matrix.txt"
+    ekra_file = tmp_path / "e_kra.txt"
+    weight_file = tmp_path / "weight.txt"
+    keci_file = tmp_path / "keci.txt"
+    fit_results_file = tmp_path / "fitting_results.json"
+    params_file = tmp_path / "lce_params.json"
+
+    np.savetxt(corr_file, correlation_matrix)
+    np.savetxt(ekra_file, e_kra)
+    np.savetxt(weight_file, weight)
+
+    params, _, _ = model.fit(
+        alpha=1e-8,
+        max_iter=10000,
+        ekra_fname=str(ekra_file),
+        keci_fname=str(keci_file),
+        weight_fname=str(weight_file),
+        corr_fname=str(corr_file),
+        fit_results_fname=str(fit_results_file),
+        lce_params_fname=str(params_file),
+        lce_params_history_fname=None,
+        normalize=False,
+    )
+
+    assert params.local_environment_hash == model.local_environment_hash
+    assert params.orbit_fingerprints == orbit_fingerprints
+    assert params.ordering_convention is None
+
+    params_payload = json.loads(params_file.read_text(encoding="utf-8"))
+    assert params_payload["local_environment_hash"] == model.local_environment_hash
+    assert params_payload["orbit_fingerprints"] == orbit_fingerprints
+    assert "ordering_convention" not in params_payload
+
+    fit_results_payload = json.loads(fit_results_file.read_text(encoding="utf-8"))
+    latest_row = fit_results_payload[max(fit_results_payload, key=int)]
+    assert latest_row["local_environment_hash"] == model.local_environment_hash
+    assert latest_row["orbit_fingerprints"] == orbit_fingerprints
+    assert "ordering_convention" not in latest_row
 
 
 def test_lce_parameters_are_bound_to_orbit_fingerprints():
@@ -154,8 +230,6 @@ def test_composite_lce_model_from_model_file_without_site(tmp_path):
         "orbit_fingerprints": orbit_fingerprints,
         "local_environment_hash": lce_model.local_environment_hash,
     }
-    if getattr(lce_model, "ordering_convention", None) is not None:
-        parameters["ordering_convention"] = lce_model.ordering_convention.as_dict()
     model_data = {
         "filetype": "kmcpy.model_file",
         "model_type": "composite_lce",
@@ -186,7 +260,8 @@ def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
     assert loaded_model_data["filetype"] == "kmcpy.model_file"
     assert "orbit_fingerprints" in loaded_model_data["kra"]["parameters"]
     assert "local_environment_hash" in loaded_model_data["kra"]["parameters"]
-    assert "ordering_convention" in loaded_model_data["kra"]["parameters"]
+    assert "ordering_convention" not in loaded_model_data["kra"]["parameters"]
+    assert "ordering_convention" in loaded_model_data["kra"]["lce"]
     assert reloaded.kra_model is not None
     assert (
         loaded_model_data["kra"]["parameters"]["orbit_fingerprints"]

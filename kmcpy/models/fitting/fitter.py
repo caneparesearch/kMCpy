@@ -68,6 +68,8 @@ class LCEFitter(BaseFitter):
             normalize=payload.get("normalize", True),
             orbit_fingerprints=payload.get("orbit_fingerprints"),
             local_environment_hash=payload.get("local_environment_hash"),
+            # Legacy payloads may contain this provenance field. New fitted
+            # parameter files rely on local_environment_hash for validation.
             ordering_convention=payload.get("ordering_convention"),
         )
 
@@ -111,7 +113,6 @@ class LCEFitter(BaseFitter):
             "normalize",
             "orbit_fingerprints",
             "local_environment_hash",
-            "ordering_convention",
         ]
         row = [
             model_parameters.time_stamp,
@@ -125,7 +126,6 @@ class LCEFitter(BaseFitter):
             model_parameters.normalize,
             model_parameters.orbit_fingerprints,
             model_parameters.local_environment_hash,
-            model_parameters.ordering_convention,
         ]
         try:
             logger.info("Try loading %s ...", fit_results_fname)
@@ -138,8 +138,6 @@ class LCEFitter(BaseFitter):
                 df["orbit_fingerprints"] = None
             if "local_environment_hash" not in df.columns:
                 df["local_environment_hash"] = None
-            if "ordering_convention" not in df.columns:
-                df["ordering_convention"] = None
             new_data = pd.DataFrame([row], columns=columns)
             df2 = pd.concat([df[columns], new_data], ignore_index=True)
             df2.to_json(fit_results_fname, orient="index", indent=4)
@@ -171,8 +169,6 @@ class LCEFitter(BaseFitter):
             d["orbit_fingerprints"] = self.model_parameters.orbit_fingerprints
         if self.model_parameters.local_environment_hash is not None:
             d["local_environment_hash"] = self.model_parameters.local_environment_hash
-        if self.model_parameters.ordering_convention is not None:
-            d["ordering_convention"] = self.model_parameters.ordering_convention
         return d
 
     def to_json(self, fname):
@@ -286,6 +282,8 @@ class LCEFitter(BaseFitter):
         lce_params_history_fname="lce_params_history.json",
         fit_results_fname=None,
         normalize=True,
+        orbit_fingerprints=None,
+        local_environment_hash=None,
     ) -> tuple[LCEModelParameters, object, object]:
         """Main fitting function
 
@@ -300,6 +298,10 @@ class LCEFitter(BaseFitter):
             lce_params_history_fname (str, optional): File name for LCE parameters history storage. Defaults to 'lce_params_history.json'.
             fit_results_fname (str | None, optional): Legacy fitting history file
                 in orient=index JSON format. If None, skip writing.
+            orbit_fingerprints (list[str] | None, optional): Orbit fingerprints
+                associated with the fitted coefficient order.
+            local_environment_hash (str | None, optional): Hash of the ordered
+                local environment used to validate fitted parameters later.
 
         Returns:
             tuple[LCEModelParameters, numpy.ndarray, numpy.ndarray]:
@@ -336,6 +338,11 @@ class LCEFitter(BaseFitter):
             max_iter=max_iter,
             normalize=normalize,
         )
+        if orbit_fingerprints is not None and len(keci) != len(orbit_fingerprints):
+            raise ValueError(
+                "orbit_fingerprints length does not match fitted keci length: "
+                f"{len(orbit_fingerprints)} != {len(keci)}"
+            )
         logger.info("Lasso Results:")
         logger.info("KECI = \n%s", np.round(keci, 2))
         logger.info(
@@ -378,6 +385,8 @@ class LCEFitter(BaseFitter):
             rmse=rmse,
             loocv=loocv,
             normalize=normalize,
+            orbit_fingerprints=orbit_fingerprints,
+            local_environment_hash=local_environment_hash,
         )
         self.model_parameters = lce_model_params
 

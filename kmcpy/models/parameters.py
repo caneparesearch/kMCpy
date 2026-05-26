@@ -93,8 +93,6 @@ class LCEModelParameters(ModelParameters):
             parameters["orbit_fingerprints"] = self.orbit_fingerprints
         if self.local_environment_hash is not None:
             parameters["local_environment_hash"] = self.local_environment_hash
-        if self.ordering_convention is not None:
-            parameters["ordering_convention"] = self.ordering_convention
         return parameters
 
     @classmethod
