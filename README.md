@@ -108,6 +108,11 @@ uv run python example/minimal_example.py
 
 If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_fields()`.
 
+Unit conventions are explicit in code via `kmcpy.units`,
+`Configuration.field_units()`, and `tracker.result_units`. Common units are:
+barriers in meV, rates/probabilities in Hz, time in s, distance in Angstrom,
+diffusivity in cm^2/s, and conductivity in mS/cm.
+
 ## Run kMCpy
 ### API usage
 You can run kMC through API. See the `example` directory for scripts and notebook workflows covering setup, event generation, and simulations.
@@ -163,7 +168,7 @@ run_kmc --help
 ## Build local barrier models
 For direct barrier logic, use `LocalBarrierModel`. It supports constant barriers,
 count rules, species-count rules, wildcard patterns, and exact catalog-style
-matches.
+matches. Barrier values are in meV.
 
 Constant barrier:
 ```python

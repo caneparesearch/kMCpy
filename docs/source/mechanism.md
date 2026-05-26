@@ -49,6 +49,29 @@ kMCpy currently provides two model families for assigning hop barriers:
 
 Both models operate in the active-site index space used by the event library and simulation state. The simulation config points to a serialized `model_file`; for kMCpy model-file envelopes, the model type is stored in that file.
 
+## Unit Conventions
+
+kMCpy numeric APIs use fixed units. The conventions are exposed in code through
+`kmcpy.units`, `Configuration.field_units()`, and `Tracker.result_units`.
+
+| Quantity | Unit |
+|---|---|
+| migration barrier and fitted energy terms | meV |
+| event probability/rate and attempt frequency | Hz |
+| temperature | K |
+| simulation time | s |
+| length, displacement, elementary hop distance | Angstrom |
+| volume | Angstrom^3 |
+| mean squared displacement | Angstrom^2 |
+| jump/tracer diffusivity | cm^2/s |
+| conductivity | mS/cm |
+| mobile ion charge | `|e|` |
+| Haven ratio and correlation factor | dimensionless |
+
+`Tracker.write_results(...)` writes the usual result CSV and a
+`results_units*.json.gz` sidecar so result columns remain machine-readable
+without changing their historical names.
+
 ## Local Cluster Expansion (LCE)
 
 ### Purpose
@@ -139,7 +162,10 @@ A value of $H_R = 1$ indicates uncorrelated motion. Values away from 1 indicate 
 **Ionic Conductivity** ($\sigma$) relates diffusion to charge transport:
 $$\sigma = \frac{n q^2}{k_B T} D_J$$
 
-where $n$ is the mobile ion concentration and $q$ is the ionic charge. kMCpy reports conductivity in mS/cm.
+where $n$ is the mobile ion concentration and $q$ is the ionic charge. kMCpy
+uses $D_J$ in cm<sup>2</sup>/s, carrier concentration in
+1/Angstrom<sup>3</sup>, charge in `|e|`, $k_B T$ in meV, and reports
+conductivity in mS/cm.
 
 **Correlation Factor** ($f$) compares the net displacement of diffusing ions to an uncorrelated random walk with the same total number of hops:
 $$f = \frac{\sum_i |\Delta R_i|^2}{a^2 \sum_i n_i}$$

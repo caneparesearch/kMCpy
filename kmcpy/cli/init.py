@@ -80,11 +80,17 @@ def build_template() -> str:
             # ----- Optional property sampling controls -----
             # Global property sampling event-step interval (null = default once per pass)
             property_sampling_interval: null
-            # Global property sampling time interval (null = disabled)
+            # Global property sampling time interval in seconds (null = disabled)
             property_sampling_time_interval: null
             # Built-in property toggles (defaults to enabled for all fields)
             # Supported keys: msd, jump_diffusivity, tracer_diffusivity,
             #                 conductivity, havens_ratio, correlation_factor
+            # Output units:
+            #   time: s
+            #   msd: Angstrom^2
+            #   jump_diffusivity, tracer_diffusivity: cm^2/s
+            #   conductivity: mS/cm
+            #   havens_ratio, correlation_factor: dimensionless
             builtin_property_enabled: {}
             # Optional custom callback definitions resolved by import path.
             # Example:

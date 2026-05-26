@@ -31,7 +31,7 @@ def callback(state, step, sim_time):
 
 - `state`: `State` object (current mutable simulation state)
 - `step`: production event step index
-- `sim_time`: current simulation time
+- `sim_time`: current simulation time in seconds
 
 ## Sampling frequency
 
@@ -52,12 +52,12 @@ kmc.attach(other_property, time_interval=1e-8)
 
 Built-ins are enabled by default and written to `results_<label>.csv.gz`:
 
-- `msd`
-- `jump_diffusivity`
-- `tracer_diffusivity`
-- `conductivity`
-- `havens_ratio`
-- `correlation_factor`
+- `msd` (Angstrom^2)
+- `jump_diffusivity` (cm^2/s)
+- `tracer_diffusivity` (cm^2/s)
+- `conductivity` (mS/cm)
+- `havens_ratio` (dimensionless)
+- `correlation_factor` (dimensionless)
 
 Disable/enable built-ins individually:
 
@@ -85,12 +85,14 @@ kmc.attach(calc_occupation, interval=100, on_error=on_error)
 ## Output files
 
 - Built-in properties: `results_<label>.csv.gz` (legacy format)
+- Built-in property units: `results_units_<label>.json.gz`
 - Attached callback records: `properties_<label>.json.gz`
 
 Retrieve custom records from the returned tracker object:
 
 ```python
 records = tracker.get_property_records("calc_occupation")
+tracker.result_units
 ```
 
 List current property calculations (built-in + attached):

@@ -24,6 +24,7 @@ API Reference Documentation
     kmc.rst
     property.rst
     state.rst
+    units.rst
     basis.rst
     comparator.rst
     lattice_structure.rst

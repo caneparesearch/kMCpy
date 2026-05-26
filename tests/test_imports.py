@@ -13,6 +13,7 @@ import pytest
     "kmcpy.cli.main",
     "kmcpy.cli.init",
     "kmcpy.simulator.tracker",
+    "kmcpy.units",
 ])
 def test_module_imports(module_path):
     """Test that modules can be imported without circular import errors."""
@@ -29,6 +30,7 @@ def test_public_run_api():
     assert hasattr(kmcpy, "Configuration")
     assert hasattr(kmcpy, "State")
     assert hasattr(kmcpy, "LocalBarrierModel")
+    assert hasattr(kmcpy, "UNIT_CONVENTIONS")
 
 def test_simulation_config_classes():
     """Test that configuration classes can be imported and instantiated."""
@@ -86,3 +88,4 @@ def test_public_aliases():
     assert hasattr(kmcpy, "Configuration")
     assert hasattr(kmcpy, "State")
     assert hasattr(kmcpy, "LocalBarrierModel")
+    assert kmcpy.unit_for("conductivity") == "mS/cm"

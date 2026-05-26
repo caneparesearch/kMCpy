@@ -17,6 +17,7 @@ from .event import Event, EventGenerator
 from .simulator.config import Configuration, SystemConfig, RuntimeConfig
 from .simulator.state import State
 from .simulator.tracker import Tracker
+from .units import UNIT_CONVENTIONS, TRANSPORT_PROPERTY_UNITS, unit_for
 
 __author__ = "kMCpy Development Team"
 __author_email__ = "dengzeyu@gmail.com"
@@ -37,7 +38,10 @@ __all__ = [
     "SystemConfig",
     "RuntimeConfig",
     "State",
-    "Tracker"
+    "Tracker",
+    "UNIT_CONVENTIONS",
+    "TRANSPORT_PROPERTY_UNITS",
+    "unit_for",
 ]
 
 

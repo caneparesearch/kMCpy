@@ -8,6 +8,7 @@ from kmcpy.models.base import BaseModel
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.simulator.config import Configuration, RuntimeConfig
 from kmcpy.simulator.state import State
+from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def test_local_barrier_constant_barrier(event):
         runtime_config=runtime_config,
         simulation_state=state,
     )
-    expected = 1e13 * np.exp(-300.0 / (8.617333262145e-2 * 300.0))
+    expected = 1e13 * np.exp(-300.0 / (BOLTZMANN_CONSTANT_MEV_PER_K * 300.0))
     assert np.isclose(probability, expected)
 
 

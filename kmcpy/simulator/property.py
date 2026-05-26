@@ -7,6 +7,13 @@ from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional
 
 import numpy as np
 
+from kmcpy.units import (
+    ANGSTROM_SQUARED_TO_CM_SQUARED,
+    BOLTZMANN_CONSTANT_MEV_PER_K,
+    CONDUCTIVITY_MS_PER_CM_FACTOR,
+    TRANSPORT_PROPERTY_UNITS,
+)
+
 if TYPE_CHECKING:
     from kmcpy.simulator.state import State
 
@@ -100,6 +107,10 @@ BUILTIN_PROPERTY_FIELDS = (
     "havens_ratio",
     "correlation_factor",
 )
+
+BUILTIN_PROPERTY_UNITS = {
+    field: TRANSPORT_PROPERTY_UNITS[field] for field in BUILTIN_PROPERTY_FIELDS
+}
 
 
 class PropertyPlan:
@@ -277,7 +288,24 @@ def compute_transport_properties(
     temperature: float,
     enabled: Mapping[str, bool] | None = None,
 ) -> dict[str, float]:
-    """Compute built-in transport properties from trajectory state."""
+    """Compute built-in transport properties from trajectory state.
+
+    Unit conventions:
+        displacement: Angstrom
+        sim_time: s
+        elementary_hop_distance: Angstrom
+        volume: Angstrom^3
+        mobile_ion_charge: units of the absolute elementary charge
+        temperature: K
+
+    Returned units are defined by ``TRANSPORT_PROPERTY_UNITS``:
+        msd: Angstrom^2
+        jump_diffusivity: cm^2/s
+        tracer_diffusivity: cm^2/s
+        conductivity: mS/cm
+        havens_ratio: dimensionless
+        correlation_factor: dimensionless
+    """
     nan = float("nan")
 
     displacement_norm_sq = np.linalg.norm(displacement, axis=1) ** 2
@@ -288,12 +316,12 @@ def compute_transport_properties(
         jump_diffusivity_internal = (
             displacement_vector_tot**2
             / (2 * dimension * sim_time * n_mobile_ion_specie)
-            * 10 ** (-16)
+            * ANGSTROM_SQUARED_TO_CM_SQUARED
         )
         tracer_diffusivity_internal = (
             msd_internal
             / (2 * dimension * sim_time)
-            * 10 ** (-16)
+            * ANGSTROM_SQUARED_TO_CM_SQUARED
         )
     else:
         jump_diffusivity_internal = nan
@@ -301,15 +329,13 @@ def compute_transport_properties(
 
     conductivity_internal = nan
     if np.isfinite(jump_diffusivity_internal):
-        k = 8.617333262145 * 10 ** (-2)  # meV/K
         n_carrier = n_mobile_ion_specie / volume
         conductivity_internal = (
             jump_diffusivity_internal
             * n_carrier
             * mobile_ion_charge**2
-            / (k * temperature)
-            * 1.602
-            * 10**11
+            / (BOLTZMANN_CONSTANT_MEV_PER_K * temperature)
+            * CONDUCTIVITY_MS_PER_CM_FACTOR
         )
 
     havens_ratio_internal = nan

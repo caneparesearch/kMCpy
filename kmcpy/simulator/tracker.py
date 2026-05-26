@@ -17,6 +17,7 @@ from pymatgen.core import Structure
 from monty.json import jsanitize
 from kmcpy.simulator.property import (
     BUILTIN_PROPERTY_FIELDS,
+    BUILTIN_PROPERTY_UNITS,
     PropertyPlan,
     PropertyRecord,
     PropertySpec,
@@ -42,6 +43,11 @@ RESULT_FIELDS = (
     "havens_ratio",
     "msd",
 )
+
+RESULT_UNITS = {
+    "time": "s",
+    **BUILTIN_PROPERTY_UNITS,
+}
 
 SUMMARY_PROPERTY_NAME = "_built_in_summary"
 
@@ -87,7 +93,11 @@ def _to_json_safe(value: Any) -> Any:
 
 
 class Tracker:
-    """Track trajectories and evaluate attached properties for each sampling point."""
+    """Track trajectories and evaluate attached properties for each sampling point.
+
+    Built-in result units are available through ``Tracker.result_units`` and are
+    also written next to the result CSV by ``write_results``.
+    """
 
     def __init__(
         self,
@@ -208,6 +218,11 @@ class Tracker:
     def mobile_ion_specie(self) -> str:
         """Return tracked mobile ion species label."""
         return self.config.mobile_ion_specie
+
+    @property
+    def result_units(self) -> dict[str, str]:
+        """Return units for built-in result fields."""
+        return dict(RESULT_UNITS)
 
     @classmethod
     def from_config(
@@ -577,25 +592,53 @@ class Tracker:
             return
 
         rows = [
-            ["pass", self.current_pass],
-            ["time", self.results["time"][-1]],
-            ["msd", self.results["msd"][-1]],
-            ["jump_diffusivity", self.results["jump_diffusivity"][-1]],
-            ["tracer_diffusivity", self.results["tracer_diffusivity"][-1]],
-            ["conductivity", self.results["conductivity"][-1]],
-            ["havens_ratio", self.results["havens_ratio"][-1]],
-            ["correlation_factor", self.results["correlation_factor"][-1]],
+            ["pass", self.current_pass, ""],
+            ["time", self.results["time"][-1], RESULT_UNITS["time"]],
+            ["msd", self.results["msd"][-1], RESULT_UNITS["msd"]],
+            [
+                "jump_diffusivity",
+                self.results["jump_diffusivity"][-1],
+                RESULT_UNITS["jump_diffusivity"],
+            ],
+            [
+                "tracer_diffusivity",
+                self.results["tracer_diffusivity"][-1],
+                RESULT_UNITS["tracer_diffusivity"],
+            ],
+            [
+                "conductivity",
+                self.results["conductivity"][-1],
+                RESULT_UNITS["conductivity"],
+            ],
+            [
+                "havens_ratio",
+                self.results["havens_ratio"][-1],
+                RESULT_UNITS["havens_ratio"],
+            ],
+            [
+                "correlation_factor",
+                self.results["correlation_factor"][-1],
+                RESULT_UNITS["correlation_factor"],
+            ],
         ]
 
         for name in self.list_attachments():
             value = self._latest_property_value(name)
-            rows.append([name, value])
+            rows.append([name, value, "user-defined"])
 
-        table = "\n" + pd.DataFrame(rows, columns=["Property", "Value"]).to_string(index=False)
+        table = "\n" + pd.DataFrame(
+            rows,
+            columns=["Property", "Value", "Unit"],
+        ).to_string(index=False)
         logger.info("Tracker Summary:%s", table)
 
     def return_current_info(self) -> tuple[float, float, float, float, float, float, float]:
-        """Return latest sampled summary values for testing/reporting."""
+        """Return latest sampled summary values for testing/reporting.
+
+        Units follow ``Tracker.result_units`` and tuple order is:
+        ``time``, ``msd``, ``jump_diffusivity``, ``tracer_diffusivity``,
+        ``conductivity``, ``havens_ratio``, ``correlation_factor``.
+        """
         if not self.results["time"]:
             raise ValueError("No property samples are available. Increase sampling frequency.")
 
@@ -633,12 +676,16 @@ class Tracker:
 
         if label:
             results_file = f"results_{label}.csv.gz"
+            results_units_file = f"results_units_{label}.json.gz"
             properties_file = f"properties_{label}.json.gz"
         else:
             results_file = "results.csv.gz"
+            results_units_file = "results_units.json.gz"
             properties_file = "properties.json.gz"
 
         pd.DataFrame(self.results).to_csv(results_file, compression="gzip", index=False)
+        with gzip.open(results_units_file, "wt", encoding="utf-8") as fhandle:
+            json.dump(self.result_units, fhandle, indent=2)
 
         flat_records: list[dict[str, Any]] = []
         for name, records in self._property_records.items():

@@ -116,6 +116,9 @@ def test_configuration_field_serialization():
     assert config_dict["kmc_passes"] == config.kmc_passes
     assert config_dict["elementary_hop_distance"] == config.elementary_hop_distance
     assert config_dict["mobile_ion_charge"] == config.mobile_ion_charge
+    assert config.field_units()["temperature"] == "K"
+    assert config.field_units()["attempt_frequency"] == "Hz"
+    assert config.field_units()["elementary_hop_distance"] == "Angstrom"
 
     new_config = Configuration.from_dict(config_dict)
     assert new_config.name == config.name

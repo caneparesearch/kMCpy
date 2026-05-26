@@ -13,6 +13,14 @@ This model is designed for direct barrier rules, not fitting. It can represent:
 - wildcard occupation patterns, and
 - exact event/local-environment matches.
 
+## Units
+
+All barrier-like numeric values in `LocalBarrierModel` are in meV. This includes
+`default_barrier`, rule-level `barrier`, and `properties: {"barrier": ...}`.
+`compute_probability(...)` returns an event rate in Hz because it multiplies the
+Arrhenius factor by `attempt_frequency`, which is also in Hz. Temperature is in
+K.
+
 ## Basic Setup
 
 The usual workflow is:

@@ -15,7 +15,8 @@ The model works with the same compact KMC state used by the simulator. Occupied
 or template-matching sites use ``-1`` and vacant or mismatching sites use
 ``+1``. Rule order is significant: the first matching rule supplies the selected
 property, usually ``barrier`` in meV. If no rule matches,
-``default_properties`` are used when present.
+``default_properties`` are used when present. ``compute_probability`` returns an
+event rate in Hz using temperature in K and attempt frequency in Hz.
 
 Minimal setup::
 
@@ -51,6 +52,7 @@ from kmcpy.event import Event
 from kmcpy.models.base import BaseModel
 from kmcpy.models.schema import MODEL_FILETYPE, require_model_type
 from kmcpy.simulator.state import State
+from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K as K_B_MEV_PER_K
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import RuntimeConfig
@@ -505,7 +507,7 @@ class LocalBarrierModel(BaseModel):
     MODEL_TYPE = "local_barrier"
     PAYLOAD_KEY = "local_barrier"
     SUPPORTED_PROBABILITY_MODE = "barrier_arrhenius"
-    BOLTZMANN_CONSTANT_MEV_PER_K = 8.617333262145e-2
+    BOLTZMANN_CONSTANT_MEV_PER_K = K_B_MEV_PER_K
 
     def __init__(
         self,
@@ -988,7 +990,7 @@ class LocalBarrierModel(BaseModel):
         runtime_config: "RuntimeConfig",
         simulation_state: State,
     ) -> float:
-        """Compute event probability from a selected barrier using Arrhenius form."""
+        """Compute event rate in Hz from a selected meV barrier."""
         self._validate_probability_mode()
         barrier = self.compute(
             simulation_state=simulation_state,

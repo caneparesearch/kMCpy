@@ -19,6 +19,7 @@ from pathlib import Path
 
 from monty.serialization import dumpfn, loadfn
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
+from kmcpy.units import UNIT_CONVENTIONS
 
 LOADER_FIELD_NAMES = {
     "structure_file",
@@ -57,6 +58,25 @@ RUNTIME_FIELD_NAMES = {
 }
 
 CONFIG_FIELD_NAMES = SYSTEM_FIELD_NAMES | RUNTIME_FIELD_NAMES
+
+SYSTEM_FIELD_UNITS = {
+    "dimension": UNIT_CONVENTIONS["dimension"],
+    "mobile_ion_charge": UNIT_CONVENTIONS["mobile_ion_charge"],
+    "elementary_hop_distance": UNIT_CONVENTIONS["elementary_hop_distance"],
+}
+
+RUNTIME_FIELD_UNITS = {
+    "temperature": UNIT_CONVENTIONS["temperature"],
+    "attempt_frequency": UNIT_CONVENTIONS["attempt_frequency"],
+    "property_sampling_time_interval": UNIT_CONVENTIONS[
+        "property_sampling_time_interval"
+    ],
+}
+
+CONFIG_FIELD_UNITS = {
+    **SYSTEM_FIELD_UNITS,
+    **RUNTIME_FIELD_UNITS,
+}
 
 
 def _detect_config_file_format(filepath: str) -> str:
@@ -129,12 +149,12 @@ class SystemConfig:
     # Structure definition
     structure_file: str = ""
     supercell_shape: tuple[int, int, int] = (1, 1, 1)
-    dimension: int = 3
+    dimension: int = 3  # dimensionless
     
     # Mobile ion properties
     mobile_ion_specie: str = "Li"
-    mobile_ion_charge: float = 1.0
-    elementary_hop_distance: float = 1.0
+    mobile_ion_charge: float = 1.0  # |e|
+    elementary_hop_distance: float = 1.0  # Angstrom
     
     # Model configuration
     model_type: str = "composite_lce"
@@ -188,7 +208,7 @@ class RuntimeConfig:
     This defines HOW you're simulating.
     """
     # Thermodynamic conditions
-    temperature: float = 300.0  # Kelvin
+    temperature: float = 300.0  # K
     attempt_frequency: float = 1e13  # Hz
     
     # KMC algorithm fields
@@ -201,7 +221,7 @@ class RuntimeConfig:
 
     # Optional property sampling controls
     property_sampling_interval: Optional[int] = None
-    property_sampling_time_interval: Optional[float] = None
+    property_sampling_time_interval: Optional[float] = None  # s
     builtin_property_enabled: dict[str, bool] = field(default_factory=dict)
     property_callbacks: list[dict[str, Any]] = field(default_factory=list)
     
@@ -382,6 +402,11 @@ class Configuration:
     def as_input_dict(self) -> dict[str, Any]:
         """Return a reloadable input dictionary including loader path fields."""
         return self.as_dict(include_loader_paths=True)
+
+    @classmethod
+    def field_units(cls) -> dict[str, str]:
+        """Return configured units for numeric configuration fields."""
+        return dict(CONFIG_FIELD_UNITS)
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "Configuration":
@@ -652,12 +677,16 @@ class Configuration:
         print("SYSTEM FIELDS (physical setup):")
         system_fields = sorted(SYSTEM_FIELD_NAMES)
         for field_name in system_fields:
-            print(f"  - {field_name}")
+            unit = CONFIG_FIELD_UNITS.get(field_name)
+            suffix = f" [{unit}]" if unit else ""
+            print(f"  - {field_name}{suffix}")
 
         print("\nRUNTIME FIELDS (simulation settings):")
         runtime_fields = sorted(RUNTIME_FIELD_NAMES)
         for field_name in runtime_fields:
-            print(f"  - {field_name}")
+            unit = CONFIG_FIELD_UNITS.get(field_name)
+            suffix = f" [{unit}]" if unit else ""
+            print(f"  - {field_name}{suffix}")
 
         print("\nUsage examples:")
         print("  config = Configuration(structure_file='x.cif', temperature=400)")

@@ -302,6 +302,14 @@ def test_tracker_write_results_includes_custom_records(tmp_path):
     assert payload[0]["name"] == "custom"
     assert payload[0]["step"] == 1
 
+    units_file = tmp_path / "results_units_unit.json.gz"
+    assert units_file.exists()
+    with gzip.open(units_file, "rt", encoding="utf-8") as fhandle:
+        units = json.load(fhandle)
+    assert units == tracker.result_units
+    assert units["time"] == "s"
+    assert units["conductivity"] == "mS/cm"
+
 
 @pytest.mark.unit
 def test_kmc_attachment_management():

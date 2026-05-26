@@ -18,6 +18,7 @@ from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.schema import MODEL_FILETYPE, require_model_type
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
+from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration, RuntimeConfig
@@ -114,12 +115,12 @@ class CompositeLCEModel(CompositeModel):
         simulation_state: State,
     ) -> float:
         """
-        Compute the transition probability for a given event using the composite LCE model.
+        Compute the transition probability/rate in Hz for a given event using the composite LCE model.
 
         This method calculates the transition probability for a migration event by:
         
-        - Computing the site energy (e_site) using the site LocalClusterExpansion model and its stored parameters.
-        - Computing the barrier energy (e_kra) using the barrier LocalClusterExpansion model and its stored parameters.
+        - Computing the site energy (e_site, meV) using the site LocalClusterExpansion model and its stored parameters.
+        - Computing the barrier energy (e_kra, meV) using the barrier LocalClusterExpansion model and its stored parameters.
         - Determining the direction of the event from the occupation vector in the State.
         - Calculating the effective barrier as: e_barrier = e_kra + direction * e_site / 2
         - Using the Arrhenius equation to compute the probability:
@@ -131,11 +132,11 @@ class CompositeLCEModel(CompositeModel):
             simulation_state (State): Contains the current occupation vector.
 
         Returns:
-            float: The computed transition probability for the event.
+            float: The computed transition probability/rate in Hz.
         """
 
-        # Boltzmann constant in meV/K (matching event.py)
-        k = 8.617333262145 * 10 ** (-2)
+        # Boltzmann constant in meV/K.
+        k = BOLTZMANN_CONSTANT_MEV_PER_K
         # Compute site energy (esite) using stored parameters
         e_site = self.site_model.compute(simulation_state=simulation_state, event=event)
         # Compute barrier energy (ekra) using stored parameters
