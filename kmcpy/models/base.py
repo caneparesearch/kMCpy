@@ -9,10 +9,36 @@ from monty.serialization import loadfn
 
 from kmcpy.io.registry import MODEL_CLASS_REGISTRY
 from kmcpy.models.fitting.registry import get_fitter_for_model
-from kmcpy.models.schema import MODEL_FILETYPE, require_model_file_payload
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
+
+
+MODEL_FILETYPE = "kmcpy.model_file"
+SUPPORTED_MODEL_FILETYPES = frozenset({MODEL_FILETYPE})
+
+
+def require_model_file_payload(payload):
+    """Validate and return a serialized model envelope dictionary."""
+    if not isinstance(payload, dict):
+        raise ValueError("Model file must be a JSON object")
+
+    if payload.get("filetype") not in SUPPORTED_MODEL_FILETYPES:
+        raise ValueError(
+            f"Unsupported model filetype. Expected '{MODEL_FILETYPE}'."
+        )
+
+    return payload
+
+
+def require_model_type(payload, model_type: str):
+    """Validate that a serialized model envelope declares the expected type."""
+    data = require_model_file_payload(payload)
+    observed = data.get("model_type")
+    if observed != model_type:
+        raise ValueError(f"Expected model_type '{model_type}', got '{observed}'")
+    return data
+
 
 class BaseModel(ABC):
     """

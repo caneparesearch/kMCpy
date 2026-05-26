@@ -13,9 +13,8 @@ import logging
 from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
-from kmcpy.models.base import CompositeModel
+from kmcpy.models.base import CompositeModel, MODEL_FILETYPE, require_model_type
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.schema import MODEL_FILETYPE, require_model_type
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
