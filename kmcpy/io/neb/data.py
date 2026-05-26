@@ -406,7 +406,7 @@ class NEBDataLoader:
             raise ValueError("No entries available")
         return np.array([entry.property_value for entry in self.neb_entries])
         
-    def to_json(self, output_dir: str = ".", prefix: str = "ekra") -> str:
+    def to(self, output_dir: str = ".", prefix: str = "ekra") -> str:
         """
         Save training data to JSON file.
         

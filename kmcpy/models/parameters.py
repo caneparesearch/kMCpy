@@ -96,9 +96,9 @@ class LCEModelParameters(ModelParameters):
         return parameters
 
     @classmethod
-    def from_json(cls, filename: str) -> "LCEModelParameters":
+    def from_file(cls, filename: str) -> "LCEModelParameters":
         """
-        Load parameters from a JSON file.
+        Load parameters from a file.
         
         :param filename: The name of the file to load the parameters from.
         """

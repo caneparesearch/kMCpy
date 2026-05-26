@@ -183,27 +183,53 @@ class KMC:
         
     @classmethod
     def from_config(cls, config: "Configuration") -> "KMC":
-        """Create KMC instance from Configuration (recommended initialization method).
+        """Create a KMC instance from a Configuration."""
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+        from kmcpy.models.base import BaseModel
+        from kmcpy.simulator.state import State
+        from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 
-        This is the main initialization method that uses the component loader
-        for all component loading operations and provides a clean interface.
+        if config.site_mapping is None:
+            raise ValueError(
+                "site_mapping is required so kMC state, events, and model "
+                "data use the same active-site index space."
+            )
 
-        Args:
-            config (Configuration): Configuration object containing all necessary parameters.
+        full_structure = load_labeled_structure_from_cif(
+            config.structure_file,
+            primitive=config.convert_to_primitive_cell,
+        )
+        active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+            full_structure,
+            config.site_mapping,
+            supercell_shape=config.supercell_shape,
+        )
+        structure = active_site_index_map.active_structure()
 
-        Returns:
-            KMC: An instance of the KMC class.
-        """
-        from kmcpy.simulator.components import load_simulation_components
-        
-        structure, model, event_lib, simulation_state = load_simulation_components(config)
-        
+        model = BaseModel.from_config(config)
+        event_lib = EventLib.from_file(config.event_file)
+        event_lib.validate_index_metadata(active_site_index_map)
+
+        if config.initial_occupations is not None:
+            simulation_state = State.from_occupations(
+                config.initial_occupations,
+                active_site_index_map=active_site_index_map,
+            )
+        elif config.initial_state_file:
+            simulation_state = State.from_file(
+                config.initial_state_file,
+                supercell_shape=config.supercell_shape,
+                active_site_index_map=active_site_index_map,
+            )
+        else:
+            raise ValueError("Initial occupations could not be determined.")
+
         return cls(
             structure=structure,
             model=model,
             event_lib=event_lib,
             config=config,
-            simulation_state=simulation_state
+            simulation_state=simulation_state,
         )
 
     def show_project_info(self):
@@ -575,16 +601,16 @@ class KMC:
         }
         return d
 
-    def to_json(self, fname)-> None:
-        """Write serialized KMC state to a JSON file."""
-        logger.info(f"Saving: {fname}")
-        dumpfn(self.as_dict(), fname, indent=4)
+    def to(self, filename)-> None:
+        """Write serialized KMC state to a file."""
+        logger.info(f"Saving: {filename}")
+        dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
-    def from_json(cls, fname)-> "KMC":
-        """Load a serialized KMC object state from JSON."""
-        logger.info(f"Loading: {fname}")
-        objDict = loadfn(fname, cls=None)
+    def from_file(cls, filename)-> "KMC":
+        """Load a serialized KMC object state from a file."""
+        logger.info(f"Loading: {filename}")
+        objDict = loadfn(filename, cls=None)
         obj = KMC()
         obj.__dict__ = objDict
         logger.info("load complete")

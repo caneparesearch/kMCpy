@@ -139,7 +139,7 @@ class TestNa3SbS4(unittest.TestCase):
             self.fail(f"Configuration creation failed: {e}")
         
         # Test dictionary conversion
-        config_dict = config.to_dict()
+        config_dict = config.as_dict()
         self.assertIn('name', config_dict)
         self.assertIn('temperature', config_dict)
         self.assertIn('equilibration_passes', config_dict)

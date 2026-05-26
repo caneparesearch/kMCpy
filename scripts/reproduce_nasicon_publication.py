@@ -384,7 +384,7 @@ def convert_legacy_events(source_repo: Path, output_dir: Path) -> Path:
     event_lib.set_index_metadata(active_site_index_map)
 
     event_json = artifacts_dir / "events_222_double.json"
-    event_lib.to_json(str(event_json))
+    event_lib.to(str(event_json))
     return event_json
 
 

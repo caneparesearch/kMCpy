@@ -283,10 +283,6 @@ class CompositeLCEModel(CompositeModel):
         logger.info("Saving composite model file to: %s", filename)
         dumpfn(self.to_model_file_dict(), filename, indent=indent)
 
-    def to_json(self, fname: str) -> None:
-        """Compatibility alias for JSON model writing."""
-        self.to(fname)
-
     @staticmethod
     def _latest_fit_record(fit_file: str) -> dict[str, Any]:
         from monty.serialization import loadfn
@@ -450,23 +446,3 @@ class CompositeLCEModel(CompositeModel):
 
         logger.info("Loading composite model file from: %s", model_file)
         return cls.from_model_file_dict(loadfn(model_file, cls=None))
-
-    @classmethod
-    def from_json(cls, model_file: str) -> "CompositeLCEModel":
-        """
-        Compatibility alias for JSON model loading.
-        """
-        return cls.from_file(model_file)
-
-    @classmethod
-    def from_config(cls, config: 'Configuration') -> "CompositeLCEModel":
-        """
-        Create a CompositeLCEModel from a Configuration object.
-        
-        Args:
-            config: Configuration containing `model_file` path
-            
-        Returns:
-            CompositeLCEModel: Configured composite model with loaded parameters
-        """
-        return cls.from_file(model_file=config.model_file)

@@ -180,10 +180,6 @@ class SystemConfig:
                 data.pop(key, None)
         return data
 
-    def to_dict(self, include_loader_paths: bool = False) -> dict[str, Any]:
-        """Compatibility alias for :meth:`as_dict`."""
-        return self.as_dict(include_loader_paths=include_loader_paths)
-
 
 @dataclass(frozen=True)
 class RuntimeConfig:
@@ -285,10 +281,6 @@ class RuntimeConfig:
             "property_callbacks": [dict(callback) for callback in self.property_callbacks],
         }
 
-    def to_dict(self) -> dict[str, Any]:
-        """Compatibility alias for :meth:`as_dict`."""
-        return self.as_dict()
-
 
 @dataclass(frozen=True)
 class Configuration:
@@ -372,7 +364,7 @@ class Configuration:
 
         By default, loader-only path fields such as structure_file, model_file,
         event_file, and initial_state_file are omitted because they are only
-        needed to construct the loaded components. Use
+        needed to construct the loaded simulation inputs. Use
         ``include_loader_paths=True`` when writing a reloadable simulation input
         file.
         """
@@ -383,25 +375,13 @@ class Configuration:
         result.update(self.runtime_config.as_dict())
         return result
 
-    def to_dict(self, include_loader_paths: bool = False) -> dict[str, Any]:
-        """Compatibility alias for :meth:`as_dict`."""
-        return self.as_dict(include_loader_paths=include_loader_paths)
-
     def as_record_dict(self) -> dict[str, Any]:
-        """Return metadata suitable for recording after components are loaded."""
+        """Return metadata suitable for recording after simulation inputs are loaded."""
         return self.as_dict(include_loader_paths=False)
 
     def as_input_dict(self) -> dict[str, Any]:
         """Return a reloadable input dictionary including loader path fields."""
         return self.as_dict(include_loader_paths=True)
-
-    def to_record_dict(self) -> dict[str, Any]:
-        """Compatibility alias for :meth:`as_record_dict`."""
-        return self.as_record_dict()
-
-    def to_input_dict(self) -> dict[str, Any]:
-        """Compatibility alias for :meth:`as_input_dict`."""
-        return self.as_input_dict()
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "Configuration":
@@ -467,16 +447,6 @@ class Configuration:
         )
         return cls.from_dict(config_data)
     
-    @classmethod
-    def from_yaml_section(
-        cls,
-        filepath: str | Path,
-        section: str = "kmc",
-        task_type: Optional[str] = None,
-    ) -> "Configuration":
-        """Compatibility wrapper for ``from_file(..., section=...)``."""
-        return cls.from_file(filepath, section=section, task_type=task_type)
-
     def to(
         self,
         filename: str | Path,
@@ -525,25 +495,6 @@ class Configuration:
             dumpfn(config_data, filename, indent=indent)
         else:
             dumpfn(config_data, filename)
-
-    def save(self, filepath: str | Path, include_loader_paths: bool = False, **kwargs) -> None:
-        """Compatibility wrapper for :meth:`to`."""
-        self.to(filepath, include_loader_paths=include_loader_paths, **kwargs)
-
-    def save_yaml_section(
-        self,
-        filepath: str | Path,
-        section: str = "kmc",
-        task_type: str = "default",
-        include_loader_paths: bool = False,
-    ) -> None:
-        """Compatibility wrapper for ``to(..., section=...)``."""
-        self.to(
-            filepath,
-            include_loader_paths=include_loader_paths,
-            section=section,
-            task_type=task_type,
-        )
     
     def with_runtime_changes(self, **changes) -> "Configuration":
         """Create new config with runtime field changes."""

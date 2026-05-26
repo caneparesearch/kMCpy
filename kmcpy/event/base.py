@@ -51,14 +51,14 @@ class Event:
         }
         return d
 
-    def to_json(self, fname: str):
-        logger.info("Saving: %s", fname)
-        dumpfn(self.as_dict(), fname, indent=4)
+    def to(self, filename: str):
+        logger.info("Saving: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
-    def from_json(cls, fname: str):
-        logger.info("Loading: %s", fname)
-        return cls.from_dict(loadfn(fname, cls=None))
+    def from_file(cls, filename: str):
+        logger.info("Loading: %s", filename)
+        return cls.from_dict(loadfn(filename, cls=None))
 
     @classmethod
     def from_dict(cls, event_dict:dict):
@@ -186,7 +186,7 @@ class EventLib(ABC):
 
     def set_index_metadata(self, active_site_index_map):
         """Attach active-site index metadata to this event library."""
-        self.index_metadata = active_site_index_map.to_dict()
+        self.index_metadata = active_site_index_map.as_dict()
         self._validate_event_indices(active_site_index_map)
 
     def validate_index_metadata(self, active_site_index_map):
@@ -293,14 +293,14 @@ class EventLib(ABC):
             "index_metadata": self.index_metadata,
         }
 
-    def to_json(self, fname):
-        """Save EventLib to JSON file."""
+    def to(self, filename):
+        """Write EventLib to a serialized event file."""
         if self.index_metadata is None:
             raise ValueError(
                 "Event library cannot be saved without active-site index metadata"
             )
-        logger.info("Saving EventLib to: %s", fname)
-        dumpfn(self.as_dict(), fname, indent=4)
+        logger.info("Saving EventLib to: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
     def from_dict(cls, data):
@@ -340,25 +340,10 @@ class EventLib(ABC):
 
 
     @classmethod
-    def from_json(cls, fname):
-        """
-        Load EventLib from a JSON file.
-
-        Supports two formats:
-        - Bundled format (dict): events + event_dependencies + site_to_events
-        - Legacy format (list): just events, dependencies regenerated
-
-        For bundled format, embedded dependencies are used directly (fast).
-        For legacy format, dependencies are regenerated (slower).
-
-        Args:
-            fname: The name of the file to load the EventLib from.
-
-        Returns:
-            EventLib: Loaded EventLib with event dependencies available.
-        """
-        logger.info("Loading EventLib from: %s", fname)
-        data = loadfn(fname, cls=None)
+    def from_file(cls, filename):
+        """Load EventLib from a serialized event file."""
+        logger.info("Loading EventLib from: %s", filename)
+        data = loadfn(filename, cls=None)
 
         # Handle both old format (list of events) and new format (dict with events and deps)
         if isinstance(data, list):

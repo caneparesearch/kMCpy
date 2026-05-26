@@ -445,10 +445,6 @@ class LocalEnvCatalog(BaseModel):
 
         dumpfn(self.to_model_file_dict(), filename, indent=indent)
 
-    def to_json(self, fname: str) -> None:
-        """Alias for JSON model writing."""
-        self.to(fname)
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "LocalEnvCatalog":
         """Deserialize from in-memory payload."""
@@ -567,13 +563,3 @@ class LocalEnvCatalog(BaseModel):
             probability_mode=probability_mode,
             probability_property=probability_property,
         )
-
-    @classmethod
-    def from_json(cls, model_file: str) -> "LocalEnvCatalog":
-        """Alias for JSON loading."""
-        return cls.from_file(model_file)
-
-    @classmethod
-    def from_config(cls, config: "Configuration") -> "LocalEnvCatalog":
-        """Create model from simulation configuration."""
-        return cls.from_file(config.model_file)

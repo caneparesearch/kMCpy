@@ -218,7 +218,7 @@ class TestNASICONbulk(unittest.TestCase):
             cutoff_region=4,
             convert_to_primitive_cell=True,
         )
-        a.to_json(f"{file_path}/lce.json")
+        a.to(f"{file_path}/lce.json")
         # Basic test - should verify object creation
         self.assertEqual(1, 1)
 
@@ -652,7 +652,7 @@ class TestNASICONbulk(unittest.TestCase):
             print("✓ Configuration modification for parameter studies works")
 
             # Test 5: Show serialization capabilities
-            config_dict = config.to_dict()
+            config_dict = config.as_dict()
             self.assertIn("temperature", config_dict)
             self.assertIn("kmc_passes", config_dict)
 

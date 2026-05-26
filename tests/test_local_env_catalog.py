@@ -91,7 +91,7 @@ def test_local_env_catalog_rejects_duplicate_canonical_keys():
 def test_local_env_catalog_roundtrip_direct_json(tmp_path: Path, local_env_catalog_entries):
     model = LocalEnvCatalog(entries=local_env_catalog_entries)
     output = tmp_path / "local_env_catalog.json"
-    model.to_json(str(output))
+    model.to(str(output))
 
     reloaded = LocalEnvCatalog.from_file(str(output))
     state = State(occupations=[1, -1, 1, -1])

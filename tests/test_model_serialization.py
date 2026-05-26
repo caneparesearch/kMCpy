@@ -12,9 +12,9 @@ from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
 
 
-def test_local_cluster_expansion_from_legacy_json_sets_name():
+def test_local_cluster_expansion_from_file_sets_name():
     root = Path(__file__).parent / "files" / "input"
-    model = LocalClusterExpansion.from_json(str(root / "lce.json"))
+    model = LocalClusterExpansion.from_file(str(root / "lce.json"))
 
     payload = model.as_dict()
 
@@ -22,12 +22,12 @@ def test_local_cluster_expansion_from_legacy_json_sets_name():
     assert payload["name"] == "LocalClusterExpansion"
 
 
-def test_local_cluster_expansion_from_file_matches_from_json():
+def test_local_cluster_expansion_from_file_is_repeatable():
     root = Path(__file__).parent / "files" / "input"
-    from_file_model = LocalClusterExpansion.from_file(str(root / "lce.json"))
-    from_json_model = LocalClusterExpansion.from_json(str(root / "lce.json"))
+    first_model = LocalClusterExpansion.from_file(str(root / "lce.json"))
+    second_model = LocalClusterExpansion.from_file(str(root / "lce.json"))
 
-    assert from_file_model.as_dict() == from_json_model.as_dict()
+    assert first_model.as_dict() == second_model.as_dict()
 
 
 def test_local_cluster_expansion_serializes_ordering_convention():
@@ -186,7 +186,7 @@ def test_lce_parameters_are_bound_to_orbit_fingerprints():
 
 def test_composite_lce_model_as_dict_with_legacy_json_inputs():
     root = Path(__file__).parent / "files" / "input"
-    model = CompositeLCEModel.from_json(str(root / "model.json"))
+    model = CompositeLCEModel.from_file(str(root / "model.json"))
 
     payload = model.as_dict()
 
@@ -206,17 +206,17 @@ def test_composite_lce_model_from_dict_reconstructs_submodels():
     assert reloaded.kra_model.name == "LocalClusterExpansion"
     assert reloaded.site_model.name == "LocalClusterExpansion"
 
-def test_composite_lce_model_from_file_matches_from_json():
+def test_composite_lce_model_from_file_is_repeatable():
     root = Path(__file__).parent / "files" / "input"
-    from_file_model = CompositeLCEModel.from_file(str(root / "model.json"))
-    from_json_model = CompositeLCEModel.from_json(str(root / "model.json"))
+    first_model = CompositeLCEModel.from_file(str(root / "model.json"))
+    second_model = CompositeLCEModel.from_file(str(root / "model.json"))
 
-    assert from_file_model.kra_model is not None
-    assert from_json_model.kra_model is not None
-    assert from_file_model.site_model is not None
-    assert from_json_model.site_model is not None
-    assert from_file_model.kra_model.name == from_json_model.kra_model.name
-    assert from_file_model.site_model.name == from_json_model.site_model.name
+    assert first_model.kra_model is not None
+    assert second_model.kra_model is not None
+    assert first_model.site_model is not None
+    assert second_model.site_model is not None
+    assert first_model.kra_model.name == second_model.kra_model.name
+    assert first_model.site_model.name == second_model.site_model.name
 
 
 def test_composite_lce_model_from_model_file_without_site(tmp_path):
@@ -242,20 +242,20 @@ def test_composite_lce_model_from_model_file_without_site(tmp_path):
     model_data_file = tmp_path / "model_file_no_site.json"
     model_data_file.write_text(json.dumps(model_data), encoding="utf-8")
 
-    model = CompositeLCEModel.from_json(str(model_data_file))
+    model = CompositeLCEModel.from_file(str(model_data_file))
     assert model.kra_model is not None
     assert model.site_model is None
 
 
-def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
+def test_composite_lce_model_to_is_model_file_compatible(tmp_path):
     root = Path(__file__).parent / "files" / "input"
-    model = CompositeLCEModel.from_json(str(root / "model.json"))
+    model = CompositeLCEModel.from_file(str(root / "model.json"))
 
     output_model_file = tmp_path / "saved_model_file.json"
-    model.to_json(str(output_model_file))
+    model.to(str(output_model_file))
 
     loaded_model_data = json.loads(output_model_file.read_text(encoding="utf-8"))
-    reloaded = CompositeLCEModel.from_json(str(output_model_file))
+    reloaded = CompositeLCEModel.from_file(str(output_model_file))
 
     assert loaded_model_data["filetype"] == "kmcpy.model_file"
     assert "orbit_fingerprints" in loaded_model_data["kra"]["parameters"]
@@ -273,13 +273,13 @@ def test_composite_lce_model_to_json_is_model_file_compatible(tmp_path):
     )
 
 
-def test_local_env_catalog_from_file_matches_from_json():
+def test_local_env_catalog_from_file_is_repeatable():
     root = Path(__file__).parent / "files" / "input"
-    from_file_model = LocalEnvCatalog.from_file(str(root / "local_env_catalog.json"))
-    from_json_model = LocalEnvCatalog.from_json(str(root / "local_env_catalog.json"))
+    first_model = LocalEnvCatalog.from_file(str(root / "local_env_catalog.json"))
+    second_model = LocalEnvCatalog.from_file(str(root / "local_env_catalog.json"))
 
-    assert from_file_model.as_dict() == from_json_model.as_dict()
-    assert from_file_model.name == "LocalEnvCatalog"
+    assert first_model.as_dict() == second_model.as_dict()
+    assert first_model.name == "LocalEnvCatalog"
 
 
 def test_exported_concrete_models_expose_pymatgen_style_constructors():
@@ -291,5 +291,4 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
     for model_cls in concrete_models:
         assert callable(getattr(model_cls, "from_dict"))
         assert callable(getattr(model_cls, "from_file"))
-        assert callable(getattr(model_cls, "from_json"))
         assert callable(getattr(model_cls, "to"))

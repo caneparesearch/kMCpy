@@ -221,7 +221,7 @@ def main():
             template_cif_fname=args.prim_cif_name,
             **vars(args)
         )
-        a.to_json(args.local_cluster_expansion_json)
+        a.to(args.local_cluster_expansion_json)
 
     if args.command == "GenerateEvents":
         np.set_printoptions(precision=2)

@@ -171,14 +171,14 @@ class LCEFitter(BaseFitter):
             d["local_environment_hash"] = self.model_parameters.local_environment_hash
         return d
 
-    def to_json(self, fname):
-        logger.info("Saving: %s", fname)
-        dumpfn(self.as_dict(), fname, indent=4)
+    def to(self, filename):
+        logger.info("Saving: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
-    def from_json(cls, fname):
-        logger.info("Loading: %s", fname)
-        payload = loadfn(fname, cls=None)
+    def from_file(cls, filename):
+        logger.info("Loading: %s", filename)
+        payload = loadfn(filename, cls=None)
         if not isinstance(payload, dict):
             raise ValueError("Serialized fitter payload must be a JSON object.")
 

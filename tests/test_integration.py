@@ -215,10 +215,10 @@ def test_eventlib_bundled_format():
         bundled_file = f.name
 
     try:
-        event_lib.to_json(bundled_file)
+        event_lib.to(bundled_file)
 
         # Load back and verify deps are preserved (not regenerated)
-        loaded = EventLib.from_json(bundled_file)
+        loaded = EventLib.from_file(bundled_file)
         assert len(loaded) == 2
         assert loaded.has_event_dependencies()
 
@@ -248,6 +248,6 @@ def test_eventlib_legacy_format():
 
     try:
         with pytest.raises(ValueError, match="Legacy list-format event files"):
-            EventLib.from_json(legacy_file)
+            EventLib.from_file(legacy_file)
     finally:
         os.unlink(legacy_file)

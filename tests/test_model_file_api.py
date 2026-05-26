@@ -5,7 +5,7 @@ import pytest
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.local_env_catalog import LocalEnvCatalog
-from kmcpy.simulator.components import create_model_from_config
+from kmcpy.models.base import BaseModel
 from kmcpy.simulator.config import Configuration
 
 
@@ -75,7 +75,7 @@ def test_lce_model_type_uses_model_file_directly():
         model_file=str(root / "lce.json"),
     )
 
-    model = create_model_from_config(config)
+    model = BaseModel.from_config(config)
     assert isinstance(model, LocalClusterExpansion)
 
 
@@ -113,7 +113,7 @@ def test_model_type_is_inferred_from_model_file():
         model_file=str(root / "local_env_catalog.json"),
     )
 
-    model = create_model_from_config(config)
+    model = BaseModel.from_config(config)
     assert isinstance(model, LocalEnvCatalog)
 
 

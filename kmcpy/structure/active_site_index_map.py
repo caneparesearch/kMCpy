@@ -181,7 +181,7 @@ class ActiveSiteIndexMap:
             for active_index, original_index in enumerate(self.primitive_active_indices)
         }
 
-    def to_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Serialize map metadata without storing the full structure."""
         return {
             "format": INDEX_MAP_FORMAT,

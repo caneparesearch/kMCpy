@@ -137,13 +137,6 @@ class LocalClusterExpansion(BaseModel):
         return cls.from_dict(data)
 
     @classmethod
-    def from_json(cls, filename: str):
-        """
-        Compatibility alias for JSON model loading.
-        """
-        return cls.from_file(filename)
-
-    @classmethod
     def from_dict(cls, data: dict):
         """
         Load a LocalClusterExpansion object from a dictionary payload.
@@ -262,19 +255,6 @@ class LocalClusterExpansion(BaseModel):
             obj.orbit_fingerprints = expected_orbit_fingerprints
         
         return obj
-
-    @classmethod
-    def from_config(cls, config: 'Configuration'):
-        """
-        Create a LocalClusterExpansion from a Configuration object.
-        
-        Args:
-            config: Configuration containing `model_file` path
-            
-        Returns:
-            LocalClusterExpansion: Loaded LocalClusterExpansion instance
-        """
-        return cls.from_file(config.model_file)
 
     @staticmethod
     def _iter_cluster_site_indices(cluster_site_indices):
@@ -609,7 +589,7 @@ class LocalClusterExpansion(BaseModel):
         """
         from kmcpy.models.parameters import LCEModelParameters
         
-        parameters = LCEModelParameters.from_json(filename)
+        parameters = LCEModelParameters.from_file(filename)
         self.set_parameters(parameters)
 
     def write_representative_clusters(self, filename='representative_clusters.txt'):

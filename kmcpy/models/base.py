@@ -2,9 +2,14 @@
 Base model classes used across kMCpy.
 """
 from abc import ABC, abstractmethod
+import importlib
 import logging
 
+from monty.serialization import loadfn
+
+from kmcpy.io.registry import MODEL_CLASS_REGISTRY
 from kmcpy.models.fitting.registry import get_fitter_for_model
+from kmcpy.models.schema import MODEL_FILETYPE, require_model_file_payload
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -17,8 +22,8 @@ class BaseModel(ABC):
     including serialization, deserialization, and computation methods.
 
     Constructor convention (pymatgen-style):
-    - `from_dict` and `from_file` are the primary constructors.
-    - `from_json` is retained as a compatibility alias to `from_file`.
+    - `as_dict` and `from_dict` handle structured data.
+    - `to` and `from_file` handle file I/O.
     
     Attributes:
         name (str, optional): Name of the model instance.
@@ -48,6 +53,50 @@ class BaseModel(ABC):
         """Fit model parameters using the model-specific fitter implementation."""
         fitter = self.__class__.get_fitter_class()()
         return fitter.fit(*args, **kwargs)
+
+    @classmethod
+    def from_config(cls, config):
+        """Load the configured model.
+
+        Called on ``BaseModel``, this dispatches to the concrete model class
+        declared by the model file or ``config.model_type``. Called on a
+        concrete subclass, it loads that subclass directly from
+        ``config.model_file``.
+        """
+        if cls is not BaseModel:
+            return cls.from_file(config.model_file)
+
+        model_file = getattr(config, "model_file", "")
+        model_type = None
+        if model_file:
+            payload = loadfn(model_file, cls=None)
+            if isinstance(payload, dict) and "filetype" in payload:
+                require_model_file_payload(payload)
+                if payload.get("filetype") == MODEL_FILETYPE:
+                    model_type = payload.get("model_type")
+                    if not isinstance(model_type, str) or not model_type.strip():
+                        raise ValueError(
+                            "Model file must include a non-empty 'model_type'"
+                        )
+
+        if model_type is None:
+            model_type = getattr(config, "model_type", None) or "composite_lce"
+
+        if model_type not in MODEL_CLASS_REGISTRY:
+            available_types = list(MODEL_CLASS_REGISTRY.keys())
+            raise ValueError(
+                f"Unknown model type '{model_type}'. Available types: {available_types}"
+            )
+
+        model_class_path = MODEL_CLASS_REGISTRY[model_type]
+        module_path, class_name = model_class_path.rsplit(".", 1)
+        try:
+            module = importlib.import_module(module_path)
+            model_class = getattr(module, class_name)
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Cannot import model class '{model_class_path}': {e}")
+
+        return model_class.from_config(config)
 
     @abstractmethod
     def __str__(self):
@@ -121,16 +170,6 @@ class BaseModel(ABC):
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
-    @classmethod
-    def from_json(cls, fname):
-        """
-        Compatibility alias for JSON-backed model loading.
-
-        Notes:
-            This delegates to `from_file` to align with pymatgen-style constructors.
-        """
-        return cls.from_file(fname)
-    
     def to(self, fname):
         """
         Save the model object to a JSON file.
@@ -139,10 +178,6 @@ class BaseModel(ABC):
 
         logger.info("Saving model to: %s", fname)
         dumpfn(self.as_dict(), fname, indent=4)
-
-    def to_json(self, fname):
-        """Compatibility alias for JSON-backed model writing."""
-        self.to(fname)
 
 
 class CompositeModel(BaseModel):

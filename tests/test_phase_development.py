@@ -322,8 +322,8 @@ class TestPhase4InputSetMigration:
         )
         config = Configuration(system_config=system, runtime_config=runtime)
         
-        # Test the to_dict method for migration
-        config_dict = config.to_dict()
+        # Test the as_dict method for migration
+        config_dict = config.as_dict()
         
         # Test that parameters are correctly set
         assert config_dict['temperature'] == 300.0

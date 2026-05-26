@@ -517,7 +517,7 @@ class EventGenerator:
 
         # Save in bundled format (events + dependencies in single file)
         logger.info("Saving bundled event library to: %s", event_file)
-        event_lib.to_json(event_file)
+        event_lib.to(event_file)
 
         stats = event_lib.get_dependency_statistics()
         logger.info(
