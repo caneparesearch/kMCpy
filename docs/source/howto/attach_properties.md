@@ -1,6 +1,8 @@
 # Custom Properties During KMC Runs
 
-`KMC` supports attachable property functions with an API similar to ASE-style callbacks.
+`KMC` exposes a convenience API for attachable property functions with an API
+similar to ASE-style callbacks. During a run, the returned `Tracker` owns the
+active property callbacks, sampling state, and stored records.
 
 ## Quick start
 

@@ -17,6 +17,7 @@ from pymatgen.core import Structure
 from monty.json import jsanitize
 from kmcpy.simulator.property import (
     BUILTIN_PROPERTY_FIELDS,
+    PropertyPlan,
     PropertyRecord,
     PropertySpec,
     append_record,
@@ -93,6 +94,8 @@ class Tracker:
         config: "Configuration",
         structure: Structure,
         initial_state: Optional["State"] = None,
+        property_plan: Optional[PropertyPlan] = None,
+        default_property_interval: Optional[int] = None,
     ) -> None:
         """Initialize tracker state, trajectory arrays, and built-in sampling."""
         logger.info("Initializing Tracker ...")
@@ -122,6 +125,11 @@ class Tracker:
             name=SUMMARY_PROPERTY_NAME,
             store=False,
         )
+        if property_plan is not None:
+            self.apply_property_plan(
+                property_plan,
+                default_interval=default_property_interval,
+            )
 
         logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
         logger.info(
@@ -224,6 +232,29 @@ class Tracker:
         self._global_interval = interval
         self._global_time_interval = time_interval
 
+    def apply_property_plan(
+        self,
+        property_plan: PropertyPlan,
+        default_interval: Optional[int] = None,
+    ) -> None:
+        """Apply a property sampling recipe to this tracker."""
+        interval = property_plan.global_interval
+        time_interval = property_plan.global_time_interval
+
+        if interval is None and time_interval is None and default_interval is not None:
+            interval = default_interval
+
+        self.set_global_property_frequency(
+            interval=interval,
+            time_interval=time_interval,
+        )
+
+        for property_name, enabled in property_plan.builtin_enabled.items():
+            self.set_property_enabled(property_name, enabled)
+
+        for spec in property_plan.fresh_attachment_specs():
+            self.attach_spec(spec)
+
     def attach(
         self,
         func: Callable[["State", int, float], Any],
@@ -263,6 +294,19 @@ class Tracker:
         self._properties[property_name] = spec
         self._property_records[property_name] = []
         return property_name
+
+    def attach_spec(self, spec: PropertySpec) -> str:
+        """Attach a prevalidated property specification to this tracker."""
+        return self.attach(
+            spec.callback,
+            interval=spec.interval,
+            time_interval=spec.time_interval,
+            name=spec.name,
+            store=spec.store,
+            max_records=spec.max_records,
+            on_error=spec.on_error,
+            enabled=spec.enabled,
+        )
 
     def detach(self, name: str) -> None:
         """Detach a previously attached property callback."""

@@ -1,12 +1,9 @@
 from pymatgen.core.structure import Structure, Species
 import numpy as np
-from kmcpy.structure.basis import Occupation, get_basis, BasisFunction
-from pymatgen.analysis.structure_matcher import StructureMatcher
+from kmcpy.structure.basis import Occupation, get_basis
 from abc import ABC
 import logging
 from kmcpy.structure.vacancy import Vacancy
-from kmcpy.structure.comparator import SupercellComparator
-from typing import List, Union
 
 logger = logging.getLogger(__name__) 
 
@@ -94,21 +91,33 @@ class LatticeStructure(ABC):
         active_lattice_structure.source_active_site_index_map = active_site_index_map
         return active_lattice_structure
 
-    def get_occ_from_structure(self, structure: Structure, tol=0.1, angle_tol=5, sc_matrix=None) -> Occupation:
+    def get_occ_from_structure(
+        self,
+        structure: Structure,
+        tol=0.1,
+        angle_tol=5,
+        sc_matrix=None,
+        structure_site_mapping=None,
+    ) -> Occupation:
         """
         get_occ_from_structure() returns an Occupation object based on a
         comparison with the instance's template_structure.
 
-        This implementation uses pymatgen's StructureMatcher to robustly find
-        the supercell relationship and the site mapping between the input
-        structure and the template.
+        The supercell relationship is inferred from lattice vectors unless
+        ``sc_matrix`` is provided. Site mapping is inferred from fractional
+        coordinates unless ``structure_site_mapping`` is provided.
 
         Args:
             structure (Structure): The input structure, which may be a supercell
                 of the template and may contain vacancies.
             tol (float): Tolerance for structure matching.
-            angle_tol (float): Angle tolerance for structure matching.
+            angle_tol (float): Kept for API compatibility.
             sc_matrix (np.ndarray, optional): Supercell matrix if known.
+            structure_site_mapping (Sequence[int], optional): Explicit mapping
+                from each input structure site to a site in the supercell
+                template. If provided, ``structure_site_mapping[j]`` is the
+                supercell-template index occupied by ``structure[j]``. Passing
+                this skips automatic site matching.
 
         Returns:
             Occupation: The occupation object for the structure with proper basis.
@@ -166,38 +175,37 @@ class LatticeStructure(ABC):
             logger.debug("Empty structure - all sites are vacant")
             return Occupation(occ_data, basis=self.basis, validate=False)
         
-        # 3. Set up StructureMatcher with OrderDisorderElementComparator for vacancy handling
-        from pymatgen.analysis.structure_matcher import OrderDisorderElementComparator
-        matcher = StructureMatcher(ltol=tol, stol=tol, angle_tol=angle_tol,
-                                 primitive_cell=False, allow_subset=True,
-                                 scale=True,
-                                 comparator=OrderDisorderElementComparator())
-        
-        # 4. Validate structure compatibility
+        # 3. Validate structure compatibility
         # Check lattice compatibility
         if not np.allclose(supercell_template.lattice.matrix, structure.lattice.matrix,
                           rtol=tol, atol=tol):
             logger.debug("Lattice mismatch detected")
             raise ValueError("No mapping found: lattice parameters don't match within tolerance")
 
-        # 4.5. Use distance-based mapping to find which template sites correspond to structure sites
-        # For each structure site, find the nearest template site
-        from scipy.spatial.distance import cdist
-        template_coords = supercell_template.frac_coords
-        structure_coords = structure.frac_coords
-
-        # distances[i, j] = distance from template site i to structure site j
-        distances = cdist(template_coords, structure_coords, metric='euclidean')
-
-        # For each structure site j, find the closest template site
-        # This gives us which template sites are occupied
-        template_site_indices = np.argmin(distances, axis=0)
-
-        # Validate that all mappings are within tolerance
-        min_distances = np.min(distances, axis=0)
-        if np.any(min_distances > tol):
-            logger.debug(f"Some sites exceed tolerance: max distance = {np.max(min_distances)}")
-            raise ValueError(f"No mapping found: some atoms are too far from template sites (max distance: {np.max(min_distances):.4f}, tolerance: {tol})")
+        if structure_site_mapping is None:
+            template_site_indices = self._infer_structure_site_mapping(
+                supercell_template,
+                structure,
+                tol=tol,
+            )
+        else:
+            template_site_indices = np.array(structure_site_mapping, dtype=int)
+            if len(template_site_indices) != len(structure):
+                raise ValueError(
+                    "structure_site_mapping length must match the number of "
+                    "input structure sites"
+                )
+            if (
+                len(template_site_indices) > 0
+                and (
+                    np.min(template_site_indices) < 0
+                    or np.max(template_site_indices) >= len(supercell_template)
+                )
+            ):
+                raise ValueError(
+                    "structure_site_mapping contains indices outside the "
+                    "supercell template"
+                )
 
         logger.debug(f"Structure sites map to template sites: {template_site_indices}")
 
@@ -235,6 +243,36 @@ class LatticeStructure(ABC):
         
         # Return Occupation object
         return Occupation(occ_data, basis=self.basis, validate=False)
+
+    @staticmethod
+    def _infer_structure_site_mapping(
+        supercell_template: Structure,
+        structure: Structure,
+        tol: float,
+    ) -> np.ndarray:
+        """Infer structure-site to supercell-template indices from fractional coordinates."""
+        template_coords = supercell_template.frac_coords
+        structure_coords = structure.frac_coords
+
+        # distances[i, j] = minimum-image fractional distance from template site
+        # i to structure site j. This keeps the historical tolerance semantics
+        # while handling sites close to periodic boundaries.
+        deltas = template_coords[:, None, :] - structure_coords[None, :, :]
+        deltas -= np.round(deltas)
+        distances = np.linalg.norm(deltas, axis=2)
+
+        template_site_indices = np.argmin(distances, axis=0)
+        min_distances = np.min(distances, axis=0)
+        if np.any(min_distances > tol):
+            logger.debug(
+                "Some sites exceed tolerance: max distance = %s",
+                np.max(min_distances),
+            )
+            raise ValueError(
+                "No mapping found: some atoms are too far from template sites "
+                f"(max distance: {np.max(min_distances):.4f}, tolerance: {tol})"
+            )
+        return template_site_indices
 
     @staticmethod
     def _species_matches(actual, expected) -> bool:

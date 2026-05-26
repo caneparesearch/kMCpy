@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional
 
 import numpy as np
@@ -100,6 +100,161 @@ BUILTIN_PROPERTY_FIELDS = (
     "havens_ratio",
     "correlation_factor",
 )
+
+
+class PropertyPlan:
+    """
+    Property sampling recipe for a KMC run.
+
+    The plan stores user intent: global cadence, enabled built-in fields, and
+    custom callback registrations. Runtime sampling state and stored records
+    belong to the Tracker.
+    """
+
+    def __init__(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        builtin_enabled: Mapping[str, bool] | None = None,
+    ) -> None:
+        validate_schedule(interval=interval, time_interval=time_interval)
+        self._global_interval = interval
+        self._global_time_interval = time_interval
+        self._enabled_builtin_properties = {
+            name: True for name in BUILTIN_PROPERTY_FIELDS
+        }
+        self._attached_properties: dict[str, PropertySpec] = {}
+        if builtin_enabled:
+            for name, enabled in builtin_enabled.items():
+                self.set_property_enabled(name, bool(enabled))
+
+    @property
+    def global_interval(self) -> Optional[int]:
+        """Return the configured global step interval."""
+        return self._global_interval
+
+    @property
+    def global_time_interval(self) -> Optional[float]:
+        """Return the configured global simulation-time interval."""
+        return self._global_time_interval
+
+    @property
+    def builtin_enabled(self) -> dict[str, bool]:
+        """Return a copy of built-in property enablement flags."""
+        return self._enabled_builtin_properties.copy()
+
+    def set_frequency(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+    ) -> None:
+        """Set the global sampling cadence for built-ins and callbacks."""
+        validate_schedule(interval=interval, time_interval=time_interval)
+        self._global_interval = interval
+        self._global_time_interval = time_interval
+
+    def attach(
+        self,
+        func: Callable[["State", int, float], Any],
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        name: Optional[str] = None,
+        store: bool = True,
+        max_records: Optional[int] = None,
+        on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
+        enabled: bool = True,
+    ) -> str:
+        """Register a custom property callback in the plan."""
+        if not callable(func):
+            raise TypeError("func must be callable")
+
+        validate_schedule(interval=interval, time_interval=time_interval)
+        validate_max_records(max_records=max_records)
+
+        property_name = name or getattr(func, "__name__", "attached_property")
+        if property_name in BUILTIN_PROPERTY_FIELDS:
+            raise ValueError(
+                f"'{property_name}' is reserved for built-in properties"
+            )
+        if property_name in self._attached_properties:
+            raise ValueError(f"Callback '{property_name}' is already attached")
+
+        self._attached_properties[property_name] = PropertySpec(
+            name=property_name,
+            callback=func,
+            interval=interval,
+            time_interval=time_interval,
+            store=store,
+            max_records=max_records,
+            enabled=bool(enabled),
+            on_error=on_error,
+        )
+        return property_name
+
+    def detach(self, name: str) -> None:
+        """Remove a custom property callback from the plan."""
+        if name not in self._attached_properties:
+            raise ValueError(f"Callback '{name}' is not attached")
+        del self._attached_properties[name]
+
+    def clear_attachments(self) -> None:
+        """Remove all custom callbacks while preserving built-in settings."""
+        self._attached_properties.clear()
+
+    def list_attachments(self) -> list[str]:
+        """Return registered custom callback names."""
+        return list(self._attached_properties.keys())
+
+    def list_property_calculations(self) -> dict[str, list[str]]:
+        """Return enabled/disabled built-ins and custom callbacks."""
+        built_in_enabled = [
+            name
+            for name in BUILTIN_PROPERTY_FIELDS
+            if self._enabled_builtin_properties.get(name, True)
+        ]
+        built_in_disabled = [
+            name
+            for name in BUILTIN_PROPERTY_FIELDS
+            if not self._enabled_builtin_properties.get(name, True)
+        ]
+        attached_enabled = [
+            name
+            for name, spec in self._attached_properties.items()
+            if spec.enabled
+        ]
+        attached_disabled = [
+            name
+            for name, spec in self._attached_properties.items()
+            if not spec.enabled
+        ]
+        return {
+            "built_in_enabled": built_in_enabled,
+            "built_in_disabled": built_in_disabled,
+            "attached_enabled": attached_enabled,
+            "attached_disabled": attached_disabled,
+        }
+
+    def set_property_enabled(self, name: str, enabled: bool) -> None:
+        """Enable or disable one built-in field or custom callback."""
+        if name in self._enabled_builtin_properties:
+            self._enabled_builtin_properties[name] = bool(enabled)
+            return
+
+        if name not in self._attached_properties:
+            raise ValueError(f"Unknown property '{name}'")
+        self._attached_properties[name].enabled = bool(enabled)
+
+    def fresh_attachment_specs(self) -> list[PropertySpec]:
+        """
+        Return callback specs with runtime sampling counters reset.
+
+        Trackers mutate ``last_trigger_step`` and ``last_trigger_time`` while
+        sampling, so each run must receive fresh spec objects.
+        """
+        return [
+            replace(spec, last_trigger_step=0, last_trigger_time=None)
+            for spec in self._attached_properties.values()
+        ]
 
 
 def _is_enabled(enabled: Mapping[str, bool] | None, name: str) -> bool:

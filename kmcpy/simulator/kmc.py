@@ -11,11 +11,10 @@ import numpy as np
 import importlib
 import warnings
 from kmcpy.simulator.tracker import (
-    BUILTIN_PROPERTY_FIELDS,
     CallbackExecutionError,
     Tracker,
 )
-from kmcpy.simulator.property import validate_max_records, validate_schedule
+from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, PropertyPlan
 from kmcpy.event import Event, EventLib
 from monty.serialization import dumpfn, loadfn
 import logging
@@ -120,17 +119,9 @@ class KMC:
         logger.info("kMC initialization complete!")
 
     def _ensure_property_state(self) -> None:
-        """Initialize KMC property attachment state if missing."""
-        if not hasattr(self, "_attached_properties"):
-            self._attached_properties: dict[str, dict[str, Any]] = {}
-        if not hasattr(self, "_property_frequency_interval"):
-            self._property_frequency_interval: Optional[int] = None
-        if not hasattr(self, "_property_frequency_time_interval"):
-            self._property_frequency_time_interval: Optional[float] = None
-        if not hasattr(self, "_property_enabled"):
-            self._property_enabled = {
-                name: True for name in BUILTIN_PROPERTY_FIELDS
-            }
+        """Initialize the KMC property plan if missing."""
+        if not hasattr(self, "property_plan"):
+            self.property_plan = PropertyPlan()
         if not hasattr(self, "_active_tracker"):
             self._active_tracker: Optional[Tracker] = None
 
@@ -255,9 +246,10 @@ class KMC:
             time_interval: Global simulation-time interval.
         """
         self._ensure_property_state()
-        validate_schedule(interval=interval, time_interval=time_interval)
-        self._property_frequency_interval = interval
-        self._property_frequency_time_interval = time_interval
+        self.property_plan.set_frequency(
+            interval=interval,
+            time_interval=time_interval,
+        )
 
         if self._active_tracker is not None:
             self._active_tracker.set_global_property_frequency(
@@ -292,44 +284,35 @@ class KMC:
             str: The callback name used for registration.
         """
         self._ensure_property_state()
-        if not callable(func):
-            raise TypeError("func must be callable")
-        validate_schedule(interval=interval, time_interval=time_interval)
-        validate_max_records(max_records=max_records)
-
-        callback_name = name or getattr(func, "__name__", "attached_property")
-        if callback_name in BUILTIN_PROPERTY_FIELDS:
-            raise ValueError(
-                f"'{callback_name}' is reserved for built-in properties"
-            )
-        if callback_name in self._attached_properties:
-            raise ValueError(f"Callback '{callback_name}' is already attached")
-
-        attachment = {
-            "func": func,
-            "interval": interval,
-            "time_interval": time_interval,
-            "name": callback_name,
-            "store": store,
-            "max_records": max_records,
-            "on_error": on_error,
-            "enabled": enabled,
-        }
-        self._attached_properties[callback_name] = attachment
-        self._property_enabled[callback_name] = bool(enabled)
+        callback_name = self.property_plan.attach(
+            func,
+            interval=interval,
+            time_interval=time_interval,
+            name=name,
+            store=store,
+            max_records=max_records,
+            on_error=on_error,
+            enabled=enabled,
+        )
 
         if self._active_tracker is not None:
-            self._active_tracker.attach(**attachment)
+            self._active_tracker.attach(
+                func,
+                interval=interval,
+                time_interval=time_interval,
+                name=callback_name,
+                store=store,
+                max_records=max_records,
+                on_error=on_error,
+                enabled=enabled,
+            )
 
         return callback_name
 
     def detach(self, name: str) -> None:
         """Detach a previously attached custom property callback."""
         self._ensure_property_state()
-        if name not in self._attached_properties:
-            raise ValueError(f"Callback '{name}' is not attached")
-        del self._attached_properties[name]
-        self._property_enabled.pop(name, None)
+        self.property_plan.detach(name)
 
         if self._active_tracker is not None:
             self._active_tracker.detach(name)
@@ -359,78 +342,35 @@ class KMC:
     def clear_attachments(self) -> None:
         """Remove all attached custom property callbacks."""
         self._ensure_property_state()
-        self._attached_properties.clear()
-        self._property_enabled = {
-            key: value
-            for key, value in self._property_enabled.items()
-            if key in BUILTIN_PROPERTY_FIELDS
-        }
+        self.property_plan.clear_attachments()
         if self._active_tracker is not None:
             self._active_tracker.clear_attachments()
 
     def list_attachments(self) -> list[str]:
         """Return names of currently attached custom property callbacks."""
         self._ensure_property_state()
-        return list(self._attached_properties.keys())
+        return self.property_plan.list_attachments()
 
     def list_property_calculations(self) -> dict[str, list[str]]:
         """Return enabled/disabled built-ins and currently attached callbacks."""
         self._ensure_property_state()
-        built_in_enabled = [
-            name for name in BUILTIN_PROPERTY_FIELDS if self._property_enabled.get(name, True)
-        ]
-        built_in_disabled = [
-            name for name in BUILTIN_PROPERTY_FIELDS if not self._property_enabled.get(name, True)
-        ]
-        attached_enabled = [
-            name for name in self._attached_properties if self._property_enabled.get(name, True)
-        ]
-        attached_disabled = [
-            name for name in self._attached_properties if not self._property_enabled.get(name, True)
-        ]
-        return {
-            "built_in_enabled": built_in_enabled,
-            "built_in_disabled": built_in_disabled,
-            "attached_enabled": attached_enabled,
-            "attached_disabled": attached_disabled,
-        }
+        return self.property_plan.list_property_calculations()
 
     def set_property_enabled(self, name: str, enabled: bool) -> None:
         """Enable or disable a built-in summary field or attached callback."""
         self._ensure_property_state()
-
-        if name not in self._property_enabled and name not in self._attached_properties:
-            raise ValueError(f"Unknown property '{name}'")
-
-        self._property_enabled[name] = bool(enabled)
-        if name in self._attached_properties:
-            self._attached_properties[name]["enabled"] = bool(enabled)
+        self.property_plan.set_property_enabled(name, bool(enabled))
 
         if self._active_tracker is not None:
             self._active_tracker.set_property_enabled(name, bool(enabled))
 
     def _configure_tracker_properties(self, tracker: Tracker, pass_length: int) -> None:
-        """Apply KMC-side property settings and attachments to a tracker instance."""
+        """Apply the KMC property plan to a tracker instance."""
         self._ensure_property_state()
-
-        global_interval = self._property_frequency_interval
-        global_time_interval = self._property_frequency_time_interval
-
-        # Preserve previous behavior: built-ins sampled once per pass by default.
-        if global_interval is None and global_time_interval is None:
-            global_interval = max(pass_length, 1)
-
-        tracker.set_global_property_frequency(
-            interval=global_interval,
-            time_interval=global_time_interval,
+        tracker.apply_property_plan(
+            self.property_plan,
+            default_interval=max(pass_length, 1),
         )
-
-        for property_name, enabled in self._property_enabled.items():
-            if property_name in BUILTIN_PROPERTY_FIELDS:
-                tracker.set_property_enabled(property_name, enabled)
-
-        for attachment in self._attached_properties.values():
-            tracker.attach(**attachment)
 
     def propose(
         self,
@@ -558,8 +498,14 @@ class KMC:
         logger.info("Start running kMC ...")
 
         # Create Tracker using clean State architecture
-        tracker = Tracker(config=config, structure=self.structure, initial_state=self.simulation_state)
-        self._configure_tracker_properties(tracker=tracker, pass_length=pass_length)
+        self._ensure_property_state()
+        tracker = Tracker(
+            config=config,
+            structure=self.structure,
+            initial_state=self.simulation_state,
+            property_plan=self.property_plan,
+            default_property_interval=max(pass_length, 1),
+        )
         self._active_tracker = tracker
         logger.info("Using clean State architecture")
         

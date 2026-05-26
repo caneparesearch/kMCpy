@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from kmcpy.simulator.kmc import KMC, CallbackExecutionError
+from kmcpy.simulator.property import PropertyPlan
 from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker
 
@@ -77,10 +78,19 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     class FakeTracker:
         last_instance = None
 
-        def __init__(self, config, structure, initial_state):
+        def __init__(
+            self,
+            config,
+            structure,
+            initial_state,
+            property_plan=None,
+            default_property_interval=None,
+        ):
             self.config = config
             self.structure = structure
             self.state = initial_state
+            self.property_plan = property_plan
+            self.default_property_interval = default_property_interval
             self.observed_times = []
             self.received_dts = []
             self.attachments = {}
@@ -182,6 +192,25 @@ def test_tracker_custom_property_step_interval():
     records = tracker.get_property_records("custom")
     assert [record["step"] for record in records] == [2, 4]
     assert records[-1]["value"]["sites"] == 3
+
+
+@pytest.mark.unit
+def test_tracker_applies_property_plan_with_fresh_specs():
+    plan = PropertyPlan()
+    plan.set_frequency(interval=3, time_interval=None)
+    plan.set_property_enabled("msd", False)
+    plan.attach(lambda sim_state, step, sim_time: step, name="custom")
+
+    tracker, _ = _make_tracker()
+    tracker.apply_property_plan(plan, default_interval=100)
+    assert tracker._global_interval == 3
+    assert tracker._enabled_builtin_properties["msd"] is False
+    assert tracker.list_attachments() == ["custom"]
+
+    tracker._properties["custom"].last_trigger_step = 99
+    tracker2, _ = _make_tracker()
+    tracker2.apply_property_plan(plan, default_interval=100)
+    assert tracker2._properties["custom"].last_trigger_step == 0
 
 
 @pytest.mark.unit
@@ -288,10 +317,10 @@ def test_kmc_attachment_management():
     assert kmc.list_property_calculations()["attached_enabled"] == ["p1"]
 
     kmc.set_property_frequency(interval=5, time_interval=None)
-    assert kmc._property_frequency_interval == 5
+    assert kmc.property_plan.global_interval == 5
 
     kmc.set_property_enabled("msd", False)
-    assert kmc._property_enabled["msd"] is False
+    assert kmc.property_plan.builtin_enabled["msd"] is False
 
     with pytest.deprecated_call():
         kmc.disable_property("p1")
@@ -299,7 +328,7 @@ def test_kmc_attachment_management():
 
     with pytest.deprecated_call():
         kmc.disable_property("conductivity")
-    assert kmc._property_enabled["conductivity"] is False
+    assert kmc.property_plan.builtin_enabled["conductivity"] is False
 
     name = kmc.attach(custom_prop, interval=3, name="p1")
     assert name == "p1"
@@ -331,7 +360,7 @@ def test_kmc_runtime_property_config_application():
     )
     kmc._configure_properties_from_runtime_config(runtime_config)
 
-    assert kmc._property_frequency_interval == 7
-    assert kmc._property_enabled["msd"] is False
-    assert kmc._property_enabled["conductivity"] is False
+    assert kmc.property_plan.global_interval == 7
+    assert kmc.property_plan.builtin_enabled["msd"] is False
+    assert kmc.property_plan.builtin_enabled["conductivity"] is False
     assert kmc.list_attachments() == ["cfg_callback"]
