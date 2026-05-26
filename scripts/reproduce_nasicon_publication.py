@@ -18,6 +18,7 @@ import numpy as np
 from kmcpy.event import Event, EventLib
 from monty.serialization import dumpfn
 from kmcpy.models.composite_lce_model import CompositeLCEModel
+from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
@@ -328,14 +329,22 @@ def convert_legacy_lce_model(source_repo: Path, output_dir: Path) -> dict[str, P
     _json_dump(lce_json, _legacy_lce_to_dict(legacy_lce, "NASICONLegacyLCE"))
 
     model_json = artifacts_dir / "model.json"
-    model = CompositeLCEModel.from_legacy_files(
-        kra_lce=str(lce_json),
-        kra_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_ekra.json"),
-        site_lce=str(lce_json),
-        site_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_esite.json"),
+    kra_fit_file = source_repo / "local_cluster_expansion_new" / "fitting_ekra.json"
+    site_fit_file = source_repo / "local_cluster_expansion_new" / "fitting_esite.json"
+
+    kra_model = LocalClusterExpansion.from_file(str(lce_json))
+    kra_model.set_parameters(LCEFitter.from_file(str(kra_fit_file)).model_parameters)
+    site_model = LocalClusterExpansion.from_file(str(lce_json))
+    site_model.set_parameters(LCEFitter.from_file(str(site_fit_file)).model_parameters)
+
+    model = CompositeLCEModel(
+        site_model=site_model,
+        kra_model=kra_model,
+        kra_fit_metadata=_latest_fit_record(kra_fit_file),
+        site_fit_metadata=_latest_fit_record(site_fit_file),
     )
     model.to(str(model_json))
-    model_data = model.to_model_file_dict()
+    model_data = model.as_dict()
 
     keci_length = len(model_data["kra"]["parameters"]["keci"])
     cluster_count = len(model_data["kra"]["lce"]["cluster_site_indices"])

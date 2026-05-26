@@ -3,10 +3,17 @@ from pathlib import Path
 import pytest
 
 from kmcpy.models.composite_lce_model import CompositeLCEModel
+from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.local_env_catalog import LocalEnvCatalog
 from kmcpy.models.base import BaseModel
 from kmcpy.simulator.config import Configuration
+
+
+def _load_lce_with_latest_fit(lce_file: Path, fit_file: Path) -> LocalClusterExpansion:
+    model = LocalClusterExpansion.from_file(str(lce_file))
+    model.set_parameters(LCEFitter.from_file(str(fit_file)).model_parameters)
+    return model
 
 
 @pytest.mark.unit
@@ -22,16 +29,19 @@ def test_composite_model_file_validation_error(tmp_path: Path):
 
 
 @pytest.mark.unit
-def test_composite_lce_model_from_legacy_files():
+def test_composite_lce_model_joins_prepared_lce_models():
     root = Path(__file__).parent / "files" / "input"
 
-    model = CompositeLCEModel.from_legacy_files(
-        kra_lce=str(root / "lce.json"),
-        kra_fit=str(root / "fitting_results.json"),
-        site_lce=str(root / "lce_site.json"),
-        site_fit=str(root / "fitting_results_site.json"),
+    kra_model = _load_lce_with_latest_fit(
+        root / "lce.json",
+        root / "fitting_results.json",
     )
-    model_data = model.to_model_file_dict()
+    site_model = _load_lce_with_latest_fit(
+        root / "lce_site.json",
+        root / "fitting_results_site.json",
+    )
+    model = CompositeLCEModel(site_model=site_model, kra_model=kra_model)
+    model_data = model.as_dict()
 
     assert model_data["filetype"] == "kmcpy.model_file"
     assert model_data["model_type"] == "composite_lce"

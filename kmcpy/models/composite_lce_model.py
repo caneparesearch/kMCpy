@@ -67,7 +67,7 @@ class CompositeLCEModel(CompositeModel):
         **kwargs,
     ):
         """
-        Initialize a composite LCE model with two component models.
+        Initialize a composite LCE model with two submodels.
         
         Args:
             site_model: model for site energy difference calculations
@@ -99,42 +99,13 @@ class CompositeLCEModel(CompositeModel):
         """
         raise NotImplementedError("CompositeLCEModel does not support direct compute method. Use compute_probability instead.")
 
-    def fit(
-        self,
-        kra_fit_kwargs: dict,
-        site_fit_kwargs: Optional[dict] = None,
-    ) -> dict:
-        """
-        Fit component models and apply fitted parameters to attached submodels.
-
-        Args:
-            kra_fit_kwargs: Keyword arguments for fitting the KRA LocalClusterExpansion.
-            site_fit_kwargs: Keyword arguments for fitting the site LocalClusterExpansion.
-                If None, site fitting is skipped.
-
-        Returns:
-            dict: Mapping of component name to fitter result tuple
-                ``(model_parameters, y_pred, y_true)``.
-        """
-        kra_fit_model = (
-            self.kra_model if self.kra_model is not None else LocalClusterExpansion()
+    def fit(self, *args, **kwargs):
+        """Composite models are assembled from separately fitted LCE models."""
+        raise NotImplementedError(
+            "Fit LocalClusterExpansion models separately, apply their "
+            "parameters with set_parameters(...), then pass them to "
+            "CompositeLCEModel(site_model=..., kra_model=...)."
         )
-        kra_fit_result = kra_fit_model.fit(**kra_fit_kwargs)
-        results = {"kra": kra_fit_result}
-        if site_fit_kwargs is not None:
-            site_fit_model = (
-                self.site_model
-                if self.site_model is not None
-                else LocalClusterExpansion()
-            )
-            results["site"] = site_fit_model.fit(**site_fit_kwargs)
-
-        if self.kra_model is not None:
-            self.kra_model.set_parameters(results["kra"][0])
-        if self.site_model is not None and "site" in results:
-            self.site_model.set_parameters(results["site"][0])
-
-        return results
 
     def compute_probability(
         self,
@@ -194,23 +165,35 @@ class CompositeLCEModel(CompositeModel):
         return f"CompositeLCEModel(site_model={self.site_model}, kra_model={self.kra_model})"
 
     def as_dict(self):
-        """
-        Convert the CompositeLCEModel to a dictionary representation.
-        """
-        return {
-            "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
-            "site_model": self.site_model.as_dict() if self.site_model else None,
-            "kra_model": self.kra_model.as_dict() if self.kra_model else None,
-            "name": self.name,
+        """Serialize this composite model to the standard model-file payload."""
+        if self.kra_model is None:
+            raise ValueError("Cannot serialize composite model: kra_model is missing")
+
+        data = {
+            "filetype": MODEL_FILETYPE,
+            "model_type": "composite_lce",
+            "kra": self._submodel_as_dict(
+                self.kra_model,
+                fit_metadata=self.kra_fit_metadata,
+                label="kra",
+            ),
         }
+        if self.site_model is not None:
+            data["site"] = self._submodel_as_dict(
+                self.site_model,
+                fit_metadata=self.site_fit_metadata,
+                label="site",
+            )
+
+        self._validate_dict(data)
+        return data
 
     @staticmethod
-    def _extract_parameters_for_model_file(model: LocalClusterExpansion, label: str) -> dict:
-        """Extract fitted parameters from a local model for model-file serialization."""
+    def _parameter_payload(model: LocalClusterExpansion, label: str) -> dict:
+        """Extract fitted parameters from one LCE submodel."""
         if not hasattr(model, "keci") or not hasattr(model, "empty_cluster"):
             raise ValueError(
-                f"Cannot serialize '{label}' model to file: missing fitted parameters "
+                f"Cannot serialize '{label}' model: missing fitted parameters "
                 "(expected attributes 'keci' and 'empty_cluster')."
             )
         parameters = {
@@ -222,143 +205,64 @@ class CompositeLCEModel(CompositeModel):
             parameters["local_environment_hash"] = model.local_environment_hash
         return parameters
 
-    @staticmethod
-    def _validate_model_file_component(name: str, component: dict[str, Any]) -> None:
-        if not isinstance(component, dict):
-            raise ValueError(f"Model component '{name}' must be an object")
-        if "lce" not in component or not isinstance(component["lce"], dict):
-            raise ValueError(f"Model component '{name}' must contain object key 'lce'")
+    @classmethod
+    def _submodel_as_dict(
+        cls,
+        model: LocalClusterExpansion,
+        fit_metadata: dict[str, Any],
+        label: str,
+    ) -> dict[str, Any]:
+        return {
+            "lce": model.as_dict(),
+            "parameters": cls._parameter_payload(model, label),
+            "fit_metadata": fit_metadata,
+        }
 
-        parameters = component.get("parameters")
+    @staticmethod
+    def _validate_submodel_payload(name: str, data: dict[str, Any]) -> None:
+        if not isinstance(data, dict):
+            raise ValueError(f"Composite LCE submodel '{name}' must be an object")
+        if "lce" not in data or not isinstance(data["lce"], dict):
+            raise ValueError(
+                f"Composite LCE submodel '{name}' must contain object key 'lce'"
+            )
+
+        parameters = data.get("parameters")
         if not isinstance(parameters, dict):
             raise ValueError(
-                f"Model component '{name}' must contain object key 'parameters'"
+                f"Composite LCE submodel '{name}' must contain object key "
+                "'parameters'"
             )
         if "keci" not in parameters or "empty_cluster" not in parameters:
             raise ValueError(
-                f"Model component '{name}.parameters' must contain keys "
-                "'keci' and 'empty_cluster'"
+                f"Composite LCE submodel '{name}.parameters' must contain "
+                "keys 'keci' and 'empty_cluster'"
             )
 
     @classmethod
-    def validate_model_file_dict(cls, model_data: dict[str, Any]) -> None:
-        """Validate a composite LCE model-file payload."""
-        data = require_model_type(model_data, "composite_lce")
-        if "kra" not in data:
-            raise ValueError("Composite model file must contain required key 'kra'")
+    def _validate_dict(cls, data: dict[str, Any]) -> None:
+        """Validate a composite LCE serialized payload."""
+        payload = require_model_type(data, "composite_lce")
+        if "kra" not in payload:
+            raise ValueError("Composite LCE model must contain required key 'kra'")
 
-        cls._validate_model_file_component("kra", data["kra"])
-        if "site" in data and data["site"] is not None:
-            cls._validate_model_file_component("site", data["site"])
-
-    def to_model_file_dict(self) -> dict:
-        """Convert this composite model into a model-file payload."""
-        if self.kra_model is None:
-            raise ValueError("Cannot serialize composite model: kra_model is missing")
-
-        model_data = {
-            "filetype": MODEL_FILETYPE,
-            "model_type": "composite_lce",
-            "kra": {
-                "lce": self.kra_model.as_dict(),
-                "parameters": self._extract_parameters_for_model_file(self.kra_model, "kra"),
-                "fit_metadata": self.kra_fit_metadata,
-            },
-        }
-
-        if self.site_model is not None:
-            model_data["site"] = {
-                "lce": self.site_model.as_dict(),
-                "parameters": self._extract_parameters_for_model_file(self.site_model, "site"),
-                "fit_metadata": self.site_fit_metadata,
-            }
-
-        self.validate_model_file_dict(model_data)
-        return model_data
+        cls._validate_submodel_payload("kra", payload["kra"])
+        if "site" in payload and payload["site"] is not None:
+            cls._validate_submodel_payload("site", payload["site"])
 
     def to(self, filename: str, indent: int = 2) -> None:
-        """Write this composite model as a serialized model file."""
+        """Write this composite model to a serialized model file."""
         from monty.serialization import dumpfn
 
         logger.info("Saving composite model file to: %s", filename)
-        dumpfn(self.to_model_file_dict(), filename, indent=indent)
-
-    @staticmethod
-    def _latest_fit_record(fit_file: str) -> dict[str, Any]:
-        from monty.serialization import loadfn
-
-        payload = loadfn(fit_file, cls=None)
-        if not isinstance(payload, dict):
-            raise ValueError(f"Fitting results file {fit_file} must contain a JSON object")
-        rows = [row for row in payload.values() if isinstance(row, dict)]
-        if not rows:
-            raise ValueError(f"No fitting rows found in {fit_file}")
-        rows_with_ts = [row for row in rows if row.get("time_stamp") is not None]
-        return max(rows_with_ts, key=lambda row: row["time_stamp"]) if rows_with_ts else rows[-1]
-
-    @classmethod
-    def _component_from_legacy_files(
-        cls,
-        lce_file: str,
-        fit_file: str,
-    ) -> tuple[LocalClusterExpansion, dict[str, Any]]:
-        fit = cls._latest_fit_record(fit_file)
-        if "keci" not in fit or "empty_cluster" not in fit:
-            raise ValueError(
-                f"Fitting results file {fit_file} must contain keys keci and empty_cluster"
-            )
-
-        model = LocalClusterExpansion.from_file(lce_file)
-        parameters = {"keci": fit["keci"], "empty_cluster": fit["empty_cluster"]}
-        if fit.get("orbit_fingerprints") is not None:
-            parameters["orbit_fingerprints"] = fit["orbit_fingerprints"]
-        if fit.get("local_environment_hash") is not None:
-            parameters["local_environment_hash"] = fit["local_environment_hash"]
-        if fit.get("ordering_convention") is not None:
-            parameters["ordering_convention"] = fit["ordering_convention"]
-        model.set_parameters(parameters)
-        metadata = {
-            key: value
-            for key, value in fit.items()
-            if key not in {"keci", "empty_cluster"}
-        }
-        return model, metadata
-
-    @classmethod
-    def from_legacy_files(
-        cls,
-        kra_lce: str,
-        kra_fit: str,
-        site_lce: str | None = None,
-        site_fit: str | None = None,
-    ) -> "CompositeLCEModel":
-        """Build a composite LCE model from legacy LCE and fitting JSON files."""
-        kra_model, kra_fit_metadata = cls._component_from_legacy_files(kra_lce, kra_fit)
-        site_model = None
-        site_fit_metadata = None
-        if site_lce is not None or site_fit is not None:
-            if site_lce is None or site_fit is None:
-                raise ValueError("Both site_lce and site_fit are required for a site model")
-            site_model, site_fit_metadata = cls._component_from_legacy_files(
-                site_lce, site_fit
-            )
-
-        return cls(
-            site_model=site_model,
-            kra_model=kra_model,
-            kra_fit_metadata=kra_fit_metadata,
-            site_fit_metadata=site_fit_metadata,
-        )
+        dumpfn(self.as_dict(), filename, indent=indent)
 
     def build(self, *args, **kwargs):
-        """
-        Build the composite model based on the provided parameters.
-        
-        This method is a placeholder and does not perform any specific actions.
-        It is provided to maintain compatibility with the BaseModel interface.
-        """
-        self.site_model.build(*args, **kwargs) if self.site_model else None
-        self.kra_model.build(*args, **kwargs) if self.kra_model else None
+        """Composite models are assembled from separately built LCE models."""
+        raise NotImplementedError(
+            "Build LocalClusterExpansion models separately, then pass them to "
+            "CompositeLCEModel(site_model=..., kra_model=...)."
+        )
 
     def get_occ_from_structure(self, structure, use_model='site_model'):
         """
@@ -399,43 +303,26 @@ class CompositeLCEModel(CompositeModel):
             raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
         
     @classmethod
-    def from_dict(cls, d):
-        """
-        Create a CompositeLCEModel from a dictionary.
-        """
-        site_model = (
-            LocalClusterExpansion.from_dict(d["site_model"])
-            if d.get("site_model")
-            else None
-        )
-        kra_model = (
-            LocalClusterExpansion.from_dict(d["kra_model"])
-            if d.get("kra_model")
-            else None
-        )
-        return cls(site_model=site_model, kra_model=kra_model, name=d.get("name"))
+    def from_dict(cls, data: dict[str, Any]) -> "CompositeLCEModel":
+        """Create a CompositeLCEModel from a serialized payload."""
+        cls._validate_dict(data)
 
-    @classmethod
-    def from_model_file_dict(cls, model_data: dict[str, Any]) -> "CompositeLCEModel":
-        """Create a CompositeLCEModel from an in-memory model-file payload."""
-        cls.validate_model_file_dict(model_data)
-
-        kra_component = model_data["kra"]
-        kra_model = LocalClusterExpansion.from_dict(kra_component["lce"])
-        kra_model.set_parameters(kra_component["parameters"])
+        kra_data = data["kra"]
+        kra_model = LocalClusterExpansion.from_dict(kra_data["lce"])
+        kra_model.set_parameters(kra_data["parameters"])
 
         site_model = None
         site_fit_metadata = None
-        if model_data.get("site") is not None:
-            site_component = model_data["site"]
-            site_model = LocalClusterExpansion.from_dict(site_component["lce"])
-            site_model.set_parameters(site_component["parameters"])
-            site_fit_metadata = site_component.get("fit_metadata")
+        if data.get("site") is not None:
+            site_data = data["site"]
+            site_model = LocalClusterExpansion.from_dict(site_data["lce"])
+            site_model.set_parameters(site_data["parameters"])
+            site_fit_metadata = site_data.get("fit_metadata")
 
         return cls(
             site_model=site_model,
             kra_model=kra_model,
-            kra_fit_metadata=kra_component.get("fit_metadata"),
+            kra_fit_metadata=kra_data.get("fit_metadata"),
             site_fit_metadata=site_fit_metadata,
         )
 
@@ -445,4 +332,4 @@ class CompositeLCEModel(CompositeModel):
         from monty.serialization import loadfn
 
         logger.info("Loading composite model file from: %s", model_file)
-        return cls.from_model_file_dict(loadfn(model_file, cls=None))
+        return cls.from_dict(loadfn(model_file, cls=None))

@@ -184,15 +184,16 @@ def test_lce_parameters_are_bound_to_orbit_fingerprints():
         model.set_parameters(bad_hash_payload)
 
 
-def test_composite_lce_model_as_dict_with_legacy_json_inputs():
+def test_composite_lce_model_as_dict_uses_model_file_payload():
     root = Path(__file__).parent / "files" / "input"
     model = CompositeLCEModel.from_file(str(root / "model.json"))
 
     payload = model.as_dict()
 
-    assert payload["site_model"]["name"] == "LocalClusterExpansion"
-    assert payload["kra_model"]["name"] == "LocalClusterExpansion"
-
+    assert payload["filetype"] == "kmcpy.model_file"
+    assert payload["model_type"] == "composite_lce"
+    assert payload["site"]["lce"]["name"] == "LocalClusterExpansion"
+    assert payload["kra"]["lce"]["name"] == "LocalClusterExpansion"
 
 
 def test_composite_lce_model_from_dict_reconstructs_submodels():
@@ -205,6 +206,7 @@ def test_composite_lce_model_from_dict_reconstructs_submodels():
     assert isinstance(reloaded.site_model, LocalClusterExpansion)
     assert reloaded.kra_model.name == "LocalClusterExpansion"
     assert reloaded.site_model.name == "LocalClusterExpansion"
+
 
 def test_composite_lce_model_from_file_is_repeatable():
     root = Path(__file__).parent / "files" / "input"

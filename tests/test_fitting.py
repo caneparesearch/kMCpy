@@ -8,50 +8,14 @@ from kmcpy.models.fitting.registry import get_fitter_for_model, register_fitter
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 
 
-def test_composite_lce_model_fit_dispatches_to_lce_fitters(monkeypatch):
-    calls = []
-
-    def fake_fit(self, **kwargs):
-        calls.append(kwargs)
-        return {"keci": [1.0], "empty_cluster": 0.0}, np.array([1.0]), np.array([1.0])
-
-    monkeypatch.setattr(LocalClusterExpansion, "fit", fake_fit)
-
-    results = CompositeLCEModel().fit(
-        kra_fit_kwargs={"alpha": 1.0},
-        site_fit_kwargs={"alpha": 2.0},
-    )
-
-    assert "kra" in results
-    assert "site" in results
-    assert calls == [{"alpha": 1.0}, {"alpha": 2.0}]
+def test_composite_lce_model_fit_is_not_a_combined_submodel_fitter():
+    with pytest.raises(NotImplementedError, match="Fit LocalClusterExpansion models separately"):
+        CompositeLCEModel().fit()
 
 
-def test_composite_lce_model_instance_fit_updates_submodel_parameters(monkeypatch):
-    def fake_fit(self, **kwargs):
-        alpha = kwargs["alpha"]
-        return {
-            "keci": [alpha],
-            "empty_cluster": alpha + 1.0,
-        }, np.array([alpha]), np.array([alpha])
-
-    monkeypatch.setattr(LocalClusterExpansion, "fit", fake_fit)
-
-    composite = CompositeLCEModel(
-        site_model=LocalClusterExpansion(),
-        kra_model=LocalClusterExpansion(),
-    )
-    results = composite.fit(
-        kra_fit_kwargs={"alpha": 1.5},
-        site_fit_kwargs={"alpha": 0.5},
-    )
-
-    assert np.allclose(results["kra"][1], np.array([1.5]))
-    assert np.allclose(results["site"][1], np.array([0.5]))
-    assert composite.kra_model.keci == [1.5]
-    assert composite.kra_model.empty_cluster == 2.5
-    assert composite.site_model.keci == [0.5]
-    assert composite.site_model.empty_cluster == 1.5
+def test_composite_lce_model_build_is_not_a_combined_submodel_builder():
+    with pytest.raises(NotImplementedError, match="Build LocalClusterExpansion models separately"):
+        CompositeLCEModel().build()
 
 
 def test_lce_fitter_default_normalization_matches_legacy_values(tmp_path):
