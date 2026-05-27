@@ -29,8 +29,8 @@ understand, document, and extend for research workflows.
   tracker result metadata.
 - Documentation for local barrier models, site-order mapping, external
   site-energy models, and property attachment.
-- Conda build recipe and CI install checks for wheel, `uv pip`, and local Conda
-  package installs.
+- CI install checks for built wheels, `uv pip`, and pip installs inside Conda
+  environments.
 
 ### Changed
 
@@ -47,3 +47,5 @@ understand, document, and extend for research workflows.
 - Full test suite: `256 passed`.
 - Documentation build succeeds.
 - Wheel and source distribution pass `twine check`.
+- Built wheel installs successfully with `pip` and `uv pip` in fresh Python
+  3.13 environments.

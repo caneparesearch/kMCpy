@@ -107,32 +107,6 @@ jobs:
                 python-version: [3.11, 3.12]
 
         steps:
-            - name: Set up Miniconda
-              uses: conda-incubator/setup-miniconda@v3
-              with:
-                  auto-update-conda: true
-                  python-version: ${{ matrix.python-version }}
-                  channels: conda-forge,defaults
-
-            - name: Install from PyPI using conda
-              run: |
-                  conda install pip
-                  python -m pip install --upgrade pip
-                  python -m pip install kmcpy
-              shell: bash -el {0}
-            
-            - name: Test import
-              run: python -c "import kmcpy; print('kmcpy imported successfully')"
-              shell: bash -el {0}
-
-    test-conda-package:
-        runs-on: ubuntu-latest
-        strategy:
-            max-parallel: 5
-            matrix:
-                python-version: [3.11, 3.12]
-
-        steps:
             - uses: actions/checkout@v4
             - name: Set up Miniconda
               uses: conda-incubator/setup-miniconda@v3
@@ -141,17 +115,20 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   channels: conda-forge,defaults
 
-            - name: Build conda package
+            - name: Build wheel
               run: |
-                  conda install -y conda-build
-                  conda build conda/recipe
+                  python -m pip install --upgrade pip build
+                  python -m build --wheel
               shell: bash -el {0}
 
-            - name: Install local conda package
+            - name: Install wheel with pip inside Conda
               run: |
-                  conda create -y -n kmcpy-conda-install python=${{ matrix.python-version }}
-                  conda install -y -n kmcpy-conda-install --use-local kmcpy
-                  conda run -n kmcpy-conda-install python -c "import kmcpy; print(kmcpy.__version__)"
-                  conda run -n kmcpy-conda-install kmcpy --help
-                  conda run -n kmcpy-conda-install run_kmc --help
+                  python -m pip install dist/kmcpy-*.whl
+              shell: bash -el {0}
+            
+            - name: Test import and CLI
+              run: |
+                  python -c "import kmcpy; print(kmcpy.__version__)"
+                  kmcpy --help
+                  run_kmc --help
               shell: bash -el {0}

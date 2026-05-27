@@ -61,15 +61,8 @@ uv pip install kmcpy
 
 ### Install with Conda
 
-After kMCpy is published to a Conda channel, install it directly with Conda:
-
-```shell
-conda install -c conda-forge kmcpy
-```
-
-The repository includes a Conda recipe under `conda/recipe` so release builds
-can be validated before publishing. If the current kMCpy release is not yet
-available on Conda, use a Conda environment with the PyPI package:
+Use Conda to create the Python environment, then install the PyPI package
+inside that environment:
 
 ```shell
 conda create -n kmcpy python=3.11 pip
