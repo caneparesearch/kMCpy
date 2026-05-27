@@ -1,5 +1,9 @@
 # Prepare NEB Fitting Inputs
 
+For a first pass through the workflow, start with the beginner page
+[Local Environments And NEB Data](../tutorial/local_environments_neb.md). This
+page gives lower-level details for `NEBDataLoader`.
+
 Use `NEBDataLoader` when you have NEB barriers for a list of structures and
 want to fit a `LocalClusterExpansion`.
 

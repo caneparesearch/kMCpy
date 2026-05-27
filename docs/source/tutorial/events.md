@@ -2,7 +2,9 @@
 
 The event library contains the allowed hops and the dependency information
 needed to update affected rates after a hop. Events are stored in the same
-active-site order as the simulation occupations.
+active-site order as the simulation occupations. Build it after the
+[`site_mapping`](structure.md) is fixed and before writing the final
+[`Configuration`](run_kmc.md).
 
 ## Generate Events
 
@@ -30,6 +32,21 @@ generator.generate_events(
 
 `event_file` is a bundled event library. It contains both events and event
 dependencies, so a separate dependency CSV is not needed for new workflows.
+
+The important [`EventGenerator.generate_events(...)`](../modules/generators.rst)
+arguments are:
+
+- `structure_file`: CIF or structure file containing all possible mobile-ion
+  sites.
+- `site_mapping`: same active-site convention used by the structure, model, and
+  simulation configuration.
+- `supercell_shape`: event-library supercell relative to the input structure.
+- `mobile_species`: species that can hop.
+- `mobile_ion_identifiers`: optional pair of labels or species identifiers used
+  to restrict hop endpoints.
+- `local_env_cutoff`: local-environment cutoff in angstrom used for event
+  dependencies and local model updates.
+- `event_file`: output event-library JSON.
 
 ## Species And Label Selection
 
@@ -79,3 +96,8 @@ After generation, inspect:
 - whether the supercell shape is large enough for the desired kMC cell,
 - whether the event library was generated with the same `site_mapping` used by
   the simulation.
+
+Next:
+
+- local barrier branch: [Prepare Input And Run kMC](run_kmc.md);
+- LCE branch: [Local Environments And NEB Data](local_environments_neb.md).

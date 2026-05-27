@@ -31,15 +31,15 @@ print(tracker.result_units)
 
 ## Model Units
 
-`LocalBarrierModel` barriers are in meV.
+[`LocalBarrierModel`](../modules/local_barrier_model.rst) barriers are in meV.
 
-`LocalClusterExpansion` fitted targets are in meV. If the LCE is used as a
-`kra_model`, the fitted target is `E_KRA`. If it is used as a `site_model`, the
-fitted target is the site-energy-difference contribution expected by the
-composite model.
+[`LocalClusterExpansion`](../modules/local_cluster_expansion.rst) fitted targets
+are in meV. If the LCE is used as a `kra_model`, the fitted target is `E_KRA`.
+If it is used as a `site_model`, the fitted target is the site-energy-difference
+contribution expected by the composite model.
 
-`SiteEnergyModel` can accept external values in `eV` or `meV` through its
-`units` argument and converts them to meV for kMCpy.
+[`SiteEnergyModel`](../modules/site_energy.rst) can accept external values in
+`eV` or `meV` through its `units` argument and converts them to meV for kMCpy.
 
 ## Differences From Other Codes
 

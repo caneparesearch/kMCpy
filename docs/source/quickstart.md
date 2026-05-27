@@ -69,7 +69,7 @@ A kMC run needs:
 - initial occupations,
 - runtime settings such as temperature, attempt frequency, and number of passes.
 
-The beginner tutorial explains how to prepare each part.
+The workflow tutorial explains how to prepare each part.
 
 ## Inspect Configuration Fields
 
