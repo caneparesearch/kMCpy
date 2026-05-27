@@ -1,215 +1,156 @@
 # Theory
 
-This section explains the theoretical foundations underlying kMCpy's implementation of kinetic Monte Carlo simulations for ion transport in crystalline materials.
+## Kinetic Monte Carlo
 
-## Overview
+Kinetic Monte Carlo is a stochastic method for systems that evolve through
+discrete events with known rates. In kMCpy, the events are mobile-ion hops
+between crystallographic sites. Each accepted hop changes the occupation state,
+advances the simulation clock, and updates the affected event rates.
 
-kMCpy simulates ion transport in crystalline materials using a rejection-free kinetic Monte Carlo (rf-kMC) algorithm. The hop rates can come from fitted `LocalClusterExpansion` models or direct local barrier models such as `LocalBarrierModel`. These models provide migration barriers for the same kMC engine, enabling efficient computation of transport properties including diffusivity and ionic conductivity.
+This page focuses on the equations. For how to prepare structures, event
+libraries, and models, see the [beginner tutorial](tutorial/index.md).
 
-## Kinetic Monte Carlo (kMC)
+## Rejection-Free Algorithm
 
-### What is kMC?
+kMCpy uses the rejection-free algorithm, also called the n-fold way or
+Bortz-Kalos-Lebowitz algorithm. Every kMC step executes one event.
 
-Kinetic Monte Carlo is a stochastic simulation method for modeling the time evolution of systems where discrete events occur at known rates. For ion transport simulations, these events are individual ion hops between crystallographic sites. The rate at which each hop occurs depends on the migration barrier and temperature. By selecting and executing events probabilistically, the system evolves through a sequence of states that captures the thermally activated diffusion process.
+For each available event $i$, the rate is
 
-### Rejection-Free Algorithm
+$$
+r_i = \nu \exp\left(-\frac{E_i}{k_B T}\right)
+$$
 
-kMCpy uses the rejection-free algorithm (also called the "n-fold way" or "Bortz-Kalos-Lebowitz (BKL) algorithm"), which is more efficient than rejection-based Monte Carlo methods. In this approach, every simulation step executes an event—there are no rejected moves. The algorithm proceeds as follows:
+where $\nu$ is the attempt frequency, $E_i$ is the effective event barrier,
+$k_B$ is Boltzmann's constant, and $T$ is temperature.
 
-1. **Calculate rates**: For each possible event *i*, compute the rate *r<sub>i</sub>* using transition state theory:
+The probability of selecting event $j$ is
 
-   $$r_i = \nu \exp\left(-\frac{E_b}{k_B T}\right)$$
+$$
+P_j = \frac{r_j}{\sum_i r_i}
+$$
 
-   where $\nu$ is the attempt frequency (typically 10<sup>12</sup> - 10<sup>13</sup> Hz), $E_b$ is the migration barrier, $k_B$ is Boltzmann's constant, and $T$ is temperature.
+The simulation time increment is sampled as
 
-2. **Select event**: Choose an event *j* with probability proportional to its rate:
+$$
+\Delta t = \frac{-\ln(u)}{\sum_i r_i}
+$$
 
-   $$P_j = \frac{r_j}{\sum_i r_i}$$
+where $u$ is a uniform random number in $(0, 1)$.
 
-3. **Advance time**: Update the simulation time by drawing a random time interval:
+After the selected hop is applied, only events affected by the state change need
+updated rates.
 
-   $$\Delta t = \frac{-\ln(u)}{\sum_i r_i}$$
+## Barrier And Site-Energy Contributions
 
-   where $u$ is a uniform random number in (0, 1).
+kMCpy model objects ultimately provide the barrier used in the Arrhenius rate.
+For local cluster expansion workflows, the effective barrier is usually written
 
-4. **Execute event**: Update the system state by performing the selected hop.
+$$
+E_{\mathrm{eff}} = E_{\mathrm{KRA}} + \frac{\Delta E_{\mathrm{site}}}{2}
+$$
 
-5. **Update rates**: Recalculate rates for events affected by the state change and repeat.
+where $E_{\mathrm{KRA}}$ is the kinetic resolved activation barrier and
+$\Delta E_{\mathrm{site}} = E_{\mathrm{after}} - E_{\mathrm{before}}$ is the
+signed site-energy difference for the event. This form keeps forward and
+backward rates consistent with the Boltzmann factor for the site-energy
+difference.
 
-### Why Use kMC?
-
-Kinetic Monte Carlo bridges the gap between ab initio molecular dynamics (which is computationally too expensive for long timescales) and continuum diffusion models (which lack atomic-level detail). kMC simulations can reach microseconds to seconds—far beyond the nanosecond timescales accessible to molecular dynamics. At the same time, kMC maintains atomic resolution, tracking individual ions and capturing how local environment affects transport. This makes kMC particularly valuable for studying thermally activated processes where rare events dominate the long-time behavior.
-
-## Barrier Models
-
-kMCpy currently provides two model families for assigning hop barriers:
-
-- `LocalClusterExpansion`: a fitted model that predicts barriers from local occupation features. Use this when you want interpolation over many local configurations from a fitted training set.
-- `LocalBarrierModel`: an ordered rule model for constant barriers, count rules, species-count rules, wildcard patterns, and exact catalog-style matches. Use this when barrier logic can be written directly.
-
-Both models operate in the active-site index space used by the event library and simulation state. The simulation config points to a serialized `model_file`; files written by `model.to(...)` include enough class metadata for kMCpy to load the right model.
-
-## Unit Conventions
-
-kMCpy numeric APIs use fixed units. The conventions are exposed in code through
-`kmcpy.units`, `Configuration.field_units()`, and `Tracker.result_units`.
-
-| Quantity | Unit |
-|---|---|
-| migration barrier and fitted energy terms | meV |
-| event probability/rate and attempt frequency | Hz |
-| temperature | K |
-| simulation time | s |
-| length, displacement, elementary hop distance | Angstrom |
-| volume | Angstrom^3 |
-| mean squared displacement | Angstrom^2 |
-| jump/tracer diffusivity | cm^2/s |
-| conductivity | mS/cm |
-| mobile ion charge | `|e|` |
-| Haven ratio and correlation factor | dimensionless |
-
-`Tracker.write_results(...)` writes the usual result CSV and a
-`results_units*.json.gz` sidecar so result columns remain machine-readable
-without changing their historical names.
-
-## Local Cluster Expansion (LCE)
-
-### Purpose
-
-Computing migration barriers for every possible local configuration in a crystal is computationally prohibitive. The LCE model solves this problem by predicting migration barriers on-the-fly during simulations based on the local environment around each hop. This eliminates the need to pre-compute and store barriers for all configurations.
-
-### Model Formulation
-
-The LCE model expresses the migration barrier as a sum of basis functions that describe the local environment:
-
-$$E_b = E_0 + \sum_i \alpha_i f_i(\sigma)$$
-
-where $E_0$ is the base barrier for an empty cluster, $\alpha_i$ are fitted expansion coefficients, $f_i(\sigma)$ are basis functions evaluated on the local environment, and $\sigma$ represents the occupation state of neighboring sites. The basis functions sum over all symmetry-equivalent configurations within each cluster orbit.
-
-### Basis Functions
-
-kMCpy supports multiple types of basis functions to represent the local environment:
-
-**Chebyshev site functions** encode the discrete species state on each active
-site. If a site allows `q` species, kMCpy stores the species as state indices
-`0..q-1` and evaluates `q - 1` non-constant Chebyshev functions for that site.
-Cluster features are then decorated products of the selected site functions,
-so a pair of two four-species sites contributes up to `3 x 3` decorated pair
-functions.
-
-**Indicator functions** are binary functions that signal the presence or absence of specific atomic configurations. These are useful for capturing discrete structural features that affect migration barriers.
-
-The basis functions encode information about which sites around the hop are occupied, how far neighboring ions are from the hopping ion, and crystallographic symmetry equivalences.
-
-### Local Site Order
-
-The LCE correlation vector is order-sensitive: each fitted coefficient corresponds to a specific component of the local occupation vector. kMCpy records this feature order through `local_site_order`. The center itself is chosen by `LocalLatticeStructure(center=...)`; `local_site_order` only controls whether a matching real center site is excluded and how the remaining local sites are sorted. The default order preserves current kMCpy behavior, while `nasicon_nat_commun_2022` reproduces the historical NASICON single-unit order when the selected Na site is supplied as the center: remove that real center site from the occupation vector, then sort the remaining local sites by species and Cartesian `x` coordinate.
-
-Old fitted coefficients should only be reused with the same `cluster_site_indices` and local site order, or with an explicitly verified remapping. See the [local order how-to](howto/local_site_order.md) for usage.
-
-### Training the LCE Model
-
-The expansion coefficients $\alpha_i$ are determined by fitting to training data, typically obtained from ab initio calculations such as Nudged Elastic Band (NEB) or Climbing Image NEB (CI-NEB) methods, or from empirical potentials using classical molecular dynamics.
-
-The fitting procedure involves:
-
-1. Computing barriers for a diverse set of local configurations to create training data.
-2. Evaluating the basis functions for each training sample to build a correlation matrix.
-3. Using ridge regression (L2 regularization) to fit the coefficients $\alpha_i$ while avoiding overfitting.
-4. Validating the model by checking the root mean squared error (RMSE) and leave-one-out cross-validation (LOOCV) score.
-
-### Composite LCE Model
-
-kMCpy uses a composite model that combines two LCE components: one for migration
-barriers ($E_{\text{KRA}}$) and one for site-energy differences. This
-separation is important because the rate of an ion hop depends both on the
-barrier height and on the relative stability before and after the hop.
-
-The **site model** does not represent an absolute single-site energy. In a local
-environment model, that quantity is not well defined by one site alone because it
-depends on the surrounding occupation. Instead, the site model supplies the
-site-energy difference contribution for the event.
-
-The **barrier model** ($E_{\text{KRA}}$) predicts the barrier height at the
-transition state, representing the energy cost of moving an ion through the
-activated complex between sites.
-
-kMCpy combines these contributions to compute the effective barrier for each hop:
-
-$$E_{\text{eff}} = E_{\text{KRA}} + \frac{\Delta E_{\text{event}}}{2}$$
-
-where $\Delta E_{\text{event}} = E_{\text{after}} - E_{\text{before}}$ is the
-signed site-energy difference for the current event. `LocalClusterExpansion`
-always uses one evaluator, `compute(simulation_state=..., event=...)`. A LCE
-passed as `kra_model` returns $E_{\text{KRA}}$; a LCE passed as
-`site_model` returns the site-energy-difference contribution for the canonical
-event orientation. kMCpy then applies the current event direction (+1 for
-forward, -1 for backward, 0 when unavailable). Callable and mapped
-site-energy-difference adapters return $E_{\text{after}} - E_{\text{before}}$
-directly through `compute(...)`. This formulation ensures that detailed balance is
-maintained: the ratio of forward to backward hop rates satisfies the Boltzmann
-factor for the site-energy difference. See the [site-energy-difference how-to](howto/external_site_energy.md)
-for adapter details.
-
-## Local Barrier Model
-
-`LocalBarrierModel` is the direct-rule alternative to LCE fitting. It checks ordered local rules and returns the first matching barrier. A rule can represent a constant fallback, a count of occupied or vacant sites, a count of chemical species such as "at least 4 Si in the local environment", a wildcard occupation pattern, or an exact event/local-occupation match.
-
-Exact rules are keyed by the hopping sites, local environment sites, and occupations of the canonical local site list. If no rule matches and no default barrier is provided, lookup fails so missing data can be corrected explicitly.
-
-See the [local barrier model how-to](howto/local_barrier_model.md) for rule examples.
+The [model tutorial](tutorial/models.md) explains how kMCpy's model classes
+provide these quantities.
 
 ## Transport Properties
 
-From a kMC trajectory, kMCpy computes several quantities that characterize ion transport:
+From a kMC trajectory, kMCpy computes several quantities that characterize ion
+transport.
 
-**Mean Squared Displacement (MSD)** tracks how far ions move over time:
+### Mean Squared Displacement
 
-$$\text{MSD}(t) = \langle |r_i(t) - r_i(0)|^2 \rangle$$
+Mean squared displacement tracks how far mobile ions move over time:
 
-This quantity increases linearly with time in the diffusive regime.
+$$
+\mathrm{MSD}(t) = \left\langle |R_i(t) - R_i(0)|^2 \right\rangle
+$$
 
-**Tracer Diffusivity** ($D_{\text{tracer}}$) measures how individual ions diffuse:
+In a diffusive regime, MSD grows approximately linearly with time.
 
-$$D_{\text{tracer}} = \lim_{t\to\infty} \frac{\text{MSD}(t)}{6t}$$
+### Tracer Diffusivity
 
-This quantity, also called self-diffusivity, tracks each ion's displacement independently. It describes how fast a tagged particle diffuses through the lattice and represents the diffusion coefficient you would measure in a tracer experiment.
+Tracer diffusivity measures individual-ion diffusion:
 
-**Jump Diffusivity** ($D_J$) measures the collective motion of all mobile ions:
+$$
+D_{\mathrm{tracer}} = \lim_{t\to\infty}
+\frac{\mathrm{MSD}(t)}{2 d t}
+$$
 
-$$D_J = \lim_{t\to\infty} \frac{\langle \Delta r_{\text{cm}}^2 \rangle}{6t}$$
+where $d$ is the simulation dimension. This quantity is also called
+self-diffusivity.
 
-Unlike tracer diffusivity, jump diffusivity accounts for correlations between ion movements. This is the diffusivity that enters the Nernst-Einstein relation connecting diffusion to ionic conductivity. When ions move in a correlated fashion (for example, if one ion's motion tends to block another), jump diffusivity can be significantly different from tracer diffusivity.
+### Jump Diffusivity
 
-**Haven Ratio** ($H_R$) quantifies correlations:
+Jump diffusivity measures collective charge motion:
 
-$$H_R = \frac{D_{\text{tracer}}}{D_J}$$
+$$
+D_J = \lim_{t\to\infty}
+\frac{\left\langle \Delta R_{\mathrm{cm}}^2 \right\rangle}{2 d t}
+$$
 
-A value of $H_R = 1$ indicates uncorrelated motion. Values away from 1 indicate correlated charge and tracer transport.
+This is the diffusivity used in the Nernst-Einstein relation for ionic
+conductivity.
 
-**Ionic Conductivity** ($\sigma$) relates diffusion to charge transport:
+### Haven Ratio
 
-$$\sigma = \frac{n q^2}{k_B T} D_J$$
+The Haven ratio compares tracer and jump diffusion:
 
-where $n$ is the mobile ion concentration and $q$ is the ionic charge. kMCpy
-uses $D_J$ in cm<sup>2</sup>/s, carrier concentration in
-1/Angstrom<sup>3</sup>, charge in `|e|`, $k_B T$ in meV, and reports
-conductivity in mS/cm.
+$$
+H_R = \frac{D_{\mathrm{tracer}}}{D_J}
+$$
 
-**Correlation Factor** ($f$) compares the net displacement of diffusing ions to an uncorrelated random walk with the same total number of hops:
+A value near 1 suggests weak correlation between tracer and collective charge
+motion. Values away from 1 indicate correlated transport.
 
-$$f = \frac{\sum_i |\Delta R_i|^2}{a^2 \sum_i n_i}$$
+### Ionic Conductivity
 
-where $\Delta R_i$ connects the endpoints of ion $i$'s trajectory, $n_i$ is the number of hops made by that ion, and $a$ is the elementary hop distance. This aggregate form is equivalent to a hop-count-weighted average of the single-particle correlation factors, so ions with zero hops naturally do not contribute. The correlation factor measures correlations between successive hops of the same ion and is distinct from the Haven ratio.
+kMCpy reports ionic conductivity using the jump diffusivity:
 
-### Convergence Requirements
+$$
+\sigma = \frac{n q^2}{k_B T} D_J
+$$
 
-Obtaining reliable transport properties requires careful attention to simulation parameters. The system must first reach steady state through equilibration passes before production passes can be used for averaging. The supercell must be large enough to minimize finite-size effects, and the simulation must run long enough to reach the diffusive regime where MSD grows linearly with time ($\text{MSD} \propto t$). Many production passes are needed to reduce statistical uncertainty in the computed transport coefficients.
+where $n$ is the mobile-ion concentration and $q$ is the mobile-ion charge.
+kMCpy reports conductivity in mS/cm.
+
+### Correlation Factor
+
+The correlation factor compares the net displacement of diffusing ions to an
+uncorrelated random walk with the same number of hops:
+
+$$
+f = \frac{\sum_i |\Delta R_i|^2}{a^2 \sum_i n_i}
+$$
+
+where $\Delta R_i$ is the net displacement of ion $i$, $n_i$ is the number of
+hops made by ion $i$, and $a$ is the elementary hop distance.
+
+## Convergence Requirements
+
+Reliable transport properties require enough equilibration and enough production
+sampling. The production trajectory should reach a diffusive regime where MSD is
+approximately linear in time. Supercells should be large enough to reduce
+finite-size effects, and independent seeds are useful for estimating statistical
+uncertainty.
+
+## Unit Conventions
+
+kMCpy numeric APIs use fixed units. See
+[Units And Interoperability](tutorial/units_interoperability.md) for the full
+table and for notes about external-code adapters.
 
 ## Further Reading
 
-For detailed theoretical background and validation, please see:
-
-- **kMCpy methodology**: [Deng et al., *Comp. Mater. Sci.* **229**, 112394 (2023)](https://doi.org/10.1016/j.commatsci.2023.112394)
-- **Application to NASICON**: [Deng et al., *Nat. Commun.* **13**, 4470 (2022)](https://doi.org/10.1038/s41467-022-32190-7)
-- **First-principles methods for ion transport**: [van der Ven et al., *Chem. Rev.* **120**, 6977-7019 (2020)](https://doi.org/10.1021/acs.chemrev.9b00601)
+- kMCpy methodology: [Deng et al., *Computational Materials Science* **229**,
+  112394 (2023)](https://doi.org/10.1016/j.commatsci.2023.112394)
+- NASICON application: [Deng et al., *Nature Communications* **13**, 4470
+  (2022)](https://doi.org/10.1038/s41467-022-32190-7)
+- First-principles methods for ion transport: [van der Ven et al., *Chemical
+  Reviews* **120**, 6977-7019 (2020)](https://doi.org/10.1021/acs.chemrev.9b00601)

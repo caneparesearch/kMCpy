@@ -2,7 +2,8 @@
 
 Use the reference section when you need exact API names, class signatures, or
 module-level documentation. For task-oriented workflows, start with the
-[how-to guides](../howto/index.md).
+[beginner tutorial](../tutorial/index.md) or
+[advanced tutorials](../howto/index.md).
 
 ## API Reference
 
