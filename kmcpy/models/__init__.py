@@ -9,9 +9,8 @@ from .base import BaseModel
 from .local_cluster_expansion import LocalClusterExpansion
 from .local_barrier_model import LocalBarrierModel
 from .site_energy import (
-    CallableSiteEnergyModel,
     MappedOccupationChange,
-    MappedSiteEnergyModel,
+    SiteEnergyModel,
 )
 from .composite_lce_model import CompositeLCEModel
 from .fitting.fitter import BaseFitter, LCEFitter
@@ -21,9 +20,8 @@ __all__ = [
     'BaseModel',
     'LocalClusterExpansion',
     'LocalBarrierModel',
-    'CallableSiteEnergyModel',
     'MappedOccupationChange',
-    'MappedSiteEnergyModel',
+    'SiteEnergyModel',
     'CompositeLCEModel',
     'BaseFitter',
     'LCEFitter',

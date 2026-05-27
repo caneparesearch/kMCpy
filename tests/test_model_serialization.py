@@ -9,7 +9,7 @@ from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.site_energy import (
-    CallableSiteEnergyModel,
+    SiteEnergyModel,
 )
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
@@ -278,23 +278,23 @@ def test_composite_lce_model_to_is_model_file_compatible(tmp_path):
     )
 
 
-def test_composite_lce_model_serializes_callable_site_energy_model():
+def test_composite_lce_model_serializes_site_energy_model():
     root = Path(__file__).parent / "files" / "input"
     model = CompositeLCEModel.from_file(str(root / "model.json"))
-    model.site_model = CallableSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
+    model.site_model = SiteEnergyModel(
+        compute_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="eV",
-        kwargs={"value": 0.04},
+        compute_kwargs={"value": 0.04},
     )
 
     payload = model.as_dict()
     reloaded = CompositeLCEModel.from_dict(payload)
 
-    assert payload["site"]["model_type"] == "callable_site_energy"
+    assert payload["site"]["model_type"] == "site_energy"
     assert payload["site"]["delta_convention"] == "after_minus_before"
-    assert isinstance(reloaded.site_model, CallableSiteEnergyModel)
+    assert isinstance(reloaded.site_model, SiteEnergyModel)
     assert reloaded.site_model.units == "eV"
-    assert reloaded.site_model.kwargs == {"value": 0.04}
+    assert reloaded.site_model.compute_kwargs == {"value": 0.04}
 
 
 def test_local_barrier_model_from_file_is_repeatable(tmp_path):
@@ -312,8 +312,7 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
         model_module.LocalClusterExpansion,
         model_module.CompositeLCEModel,
         model_module.LocalBarrierModel,
-        model_module.CallableSiteEnergyModel,
-        model_module.MappedSiteEnergyModel,
+        model_module.SiteEnergyModel,
     ]
     for model_cls in concrete_models:
         assert callable(getattr(model_cls, "from_dict"))

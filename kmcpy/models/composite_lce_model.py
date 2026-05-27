@@ -47,9 +47,9 @@ class CompositeLCEModel(BaseModel):
     ``compute(simulation_state=..., event=...)``; its meaning comes from the
     role it is passed into. As ``kra_model`` it returns ``E_KRA``. As
     ``site_model`` it returns the site-energy-difference contribution for the
-    canonical event orientation. Callable and mapped site-energy models also
-    expose ``compute(event=..., simulation_state=...)`` and return the signed
-    event energy change, ``E_after_hop - E_before_hop``, in meV.
+    canonical event orientation. ``SiteEnergyModel`` exposes the same
+    ``compute(event=..., simulation_state=...)`` interface and returns the
+    signed event energy change, ``E_after_hop - E_before_hop``, in meV.
     
     The composite model provides:
     
@@ -120,8 +120,8 @@ class CompositeLCEModel(BaseModel):
     def fit(self, *args, **kwargs):
         """Composite models are assembled from separately fitted LCE models."""
         raise NotImplementedError(
-            "Fit LocalClusterExpansion models separately, build callable or "
-            "mapped site-energy-difference adapters separately, then pass them to "
+            "Fit LocalClusterExpansion models separately, build SiteEnergyModel "
+            "objects separately when needed, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
@@ -353,7 +353,7 @@ class CompositeLCEModel(BaseModel):
             return
         if "model" not in data or not isinstance(data["model"], dict):
             raise ValueError(
-                "Composite LCE external site model must contain object key 'model'"
+                "Composite LCE site model must contain object key 'model'"
             )
 
     @classmethod
@@ -377,8 +377,8 @@ class CompositeLCEModel(BaseModel):
     def build(self, *args, **kwargs):
         """Composite models are assembled from separately built LCE models."""
         raise NotImplementedError(
-            "Build LocalClusterExpansion models separately, build callable or "
-            "mapped site-energy-difference adapters separately, then pass them to "
+            "Build LocalClusterExpansion models separately, build SiteEnergyModel "
+            "objects separately when needed, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 

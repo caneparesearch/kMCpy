@@ -7,10 +7,7 @@ from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.site_energy import (
-    CallableSiteEnergyModel,
-    MappedSiteEnergyModel,
-)
+from kmcpy.models.site_energy import SiteEnergyModel
 from kmcpy.models.base import BaseModel
 from kmcpy.simulator.config import Configuration
 
@@ -112,14 +109,14 @@ def test_local_barrier_model_type_is_inferred_from_model_file(tmp_path: Path):
 
 
 @pytest.mark.unit
-def test_callable_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
-    model_file = tmp_path / "callable_site_energy.json"
-    CallableSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
-        kwargs={"value": 10.0},
+def test_site_energy_model_direct_callable_type_is_inferred_from_model_file(tmp_path: Path):
+    model_file = tmp_path / "direct_site_energy.json"
+    SiteEnergyModel(
+        compute_ref="kmcpy.models.site_energy:constant_site_energy_difference",
+        compute_kwargs={"value": 10.0},
     ).to(str(model_file))
     payload = json.loads(model_file.read_text(encoding="utf-8"))
-    assert payload["@class"] == "CallableSiteEnergyModel"
+    assert payload["@class"] == "SiteEnergyModel"
     assert "filetype" not in payload
     config = Configuration(
         structure_file="fake_structure.cif",
@@ -128,19 +125,19 @@ def test_callable_site_energy_model_type_is_inferred_from_model_file(tmp_path: P
     )
 
     model = BaseModel.from_config(config)
-    assert isinstance(model, CallableSiteEnergyModel)
+    assert isinstance(model, SiteEnergyModel)
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
-    model_file = tmp_path / "mapped_site_energy.json"
-    MappedSiteEnergyModel(
-        delta_ref="tests.test_site_energy_models:smol_runtime_delta",
-        delta_kwargs={"coefficients": [1.0]},
+def test_site_energy_model_mapped_type_is_inferred_from_model_file(tmp_path: Path):
+    model_file = tmp_path / "site_energy_with_mapping.json"
+    SiteEnergyModel(
+        compute_ref="tests.test_site_energy_models:smol_runtime_delta",
+        compute_kwargs={"coefficients": [1.0]},
         state_mapping={0: 0, 1: 1},
     ).to(str(model_file))
     payload = json.loads(model_file.read_text(encoding="utf-8"))
-    assert payload["@class"] == "MappedSiteEnergyModel"
+    assert payload["@class"] == "SiteEnergyModel"
     assert "filetype" not in payload
     config = Configuration(
         structure_file="fake_structure.cif",
@@ -149,7 +146,7 @@ def test_mapped_site_energy_model_type_is_inferred_from_model_file(tmp_path: Pat
     )
 
     model = BaseModel.from_config(config)
-    assert isinstance(model, MappedSiteEnergyModel)
+    assert isinstance(model, SiteEnergyModel)
 
 
 @pytest.mark.unit

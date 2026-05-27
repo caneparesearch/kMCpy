@@ -5,10 +5,7 @@ from pymatgen.core import Lattice, Structure
 from kmcpy.event import Event
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.site_energy import (
-    CallableSiteEnergyModel,
-    MappedSiteEnergyModel,
-)
+from kmcpy.models.site_energy import SiteEnergyModel
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import RuntimeConfig
 from kmcpy.simulator.state import State
@@ -191,11 +188,11 @@ def test_composite_lce_applies_event_direction_to_site_lce_difference(hop_event)
 
 
 @pytest.mark.unit
-def test_callable_site_energy_model_converts_ev_to_mev(hop_event):
-    model = CallableSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
+def test_site_energy_model_converts_ev_to_mev(hop_event):
+    model = SiteEnergyModel(
+        compute_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="eV",
-        kwargs={"value": 0.04},
+        compute_kwargs={"value": 0.04},
     )
 
     delta = model.compute(
@@ -207,14 +204,14 @@ def test_callable_site_energy_model_converts_ev_to_mev(hop_event):
 
 
 @pytest.mark.unit
-def test_callable_site_energy_model_roundtrip_keeps_callable(hop_event):
-    model = CallableSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
+def test_site_energy_model_roundtrip_keeps_callable(hop_event):
+    model = SiteEnergyModel(
+        compute_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="meV",
-        kwargs={"value": 35.0},
+        compute_kwargs={"value": 35.0},
     )
 
-    reloaded = CallableSiteEnergyModel.from_dict(model.as_dict())
+    reloaded = SiteEnergyModel.from_dict(model.as_dict())
 
     assert reloaded.as_dict() == model.as_dict()
     assert reloaded.compute(
@@ -257,12 +254,12 @@ def test_kmc_update_commits_model_hook_after_state_update(hop_event):
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_uses_cached_occupation_and_local_flips(hop_event):
+def test_site_energy_model_uses_cached_occupation_and_local_flips(hop_event):
     processor = FakeSmolProcessor()
-    model = MappedSiteEnergyModel(
+    model = SiteEnergyModel(
         runtime=processor,
-        delta_fn=smol_runtime_delta,
-        delta_kwargs={"coefficients": np.array([0.5])},
+        compute_fn=smol_runtime_delta,
+        compute_kwargs={"coefficients": np.array([0.5])},
         site_mapping={0: 2, 1: 4},
         state_mapping_by_site={
             0: {0: 10, 1: 20},
@@ -300,18 +297,18 @@ def test_mapped_site_energy_model_uses_cached_occupation_and_local_flips(hop_eve
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_records_site_order_hashes(hop_event):
+def test_site_energy_model_records_site_order_hashes(hop_event):
     index_map = _active_site_index_map()
-    model = MappedSiteEnergyModel(
-        delta_fn=smol_runtime_delta,
-        delta_kwargs={"coefficients": np.array([1.0])},
+    model = SiteEnergyModel(
+        compute_fn=smol_runtime_delta,
+        compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 4, 1: 2},
         active_site_index_map=index_map,
         external_size=5,
     )
 
     payload = model.as_dict()
-    reloaded = MappedSiteEnergyModel.from_dict(payload)
+    reloaded = SiteEnergyModel.from_dict(payload)
 
     assert payload["active_site_index_map"]["fingerprint"] == index_map.fingerprint
     assert payload["kmcpy_site_order_hash"] == index_map.fingerprint
@@ -321,11 +318,11 @@ def test_mapped_site_energy_model_records_site_order_hashes(hop_event):
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_rejects_wrong_active_site_order(hop_event):
+def test_site_energy_model_rejects_wrong_active_site_order(hop_event):
     index_map = _active_site_index_map()
-    model = MappedSiteEnergyModel(
-        delta_fn=smol_runtime_delta,
-        delta_kwargs={"coefficients": np.array([1.0])},
+    model = SiteEnergyModel(
+        compute_fn=smol_runtime_delta,
+        compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 0, 1: 1},
         active_site_index_map=index_map,
     )
@@ -335,11 +332,11 @@ def test_mapped_site_energy_model_rejects_wrong_active_site_order(hop_event):
 
 
 @pytest.mark.unit
-def test_composite_lce_forwards_active_site_order_to_mapped_site_model(hop_event):
+def test_composite_lce_forwards_active_site_order_to_site_energy_model(hop_event):
     index_map = _active_site_index_map()
-    site_model = MappedSiteEnergyModel(
-        delta_fn=smol_runtime_delta,
-        delta_kwargs={"coefficients": np.array([1.0])},
+    site_model = SiteEnergyModel(
+        compute_fn=smol_runtime_delta,
+        compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 0, 1: 1},
         active_site_index_map=None,
     )
@@ -355,11 +352,11 @@ def test_composite_lce_forwards_active_site_order_to_mapped_site_model(hop_event
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_can_commit_runtime_object(hop_event):
+def test_site_energy_model_can_commit_runtime_object(hop_event):
     evaluator = FakeCleaseEvaluator(energy=5.0, proposed_delta=0.025)
-    model = MappedSiteEnergyModel(
+    model = SiteEnergyModel(
         runtime=evaluator,
-        delta_fn=clease_runtime_delta,
+        compute_fn=clease_runtime_delta,
         apply_fn=clease_runtime_apply,
         site_mapping={0: 3, 1: 5},
         state_mapping={0: "Li", 1: "X"},
@@ -394,10 +391,10 @@ def test_mapped_site_energy_model_can_commit_runtime_object(hop_event):
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_validates_site_mapping_coverage(hop_event):
-    model = MappedSiteEnergyModel(
-        delta_fn=smol_runtime_delta,
-        delta_kwargs={"coefficients": np.array([1.0])},
+def test_site_energy_model_validates_site_mapping_coverage(hop_event):
+    model = SiteEnergyModel(
+        compute_fn=smol_runtime_delta,
+        compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 2},
         external_size=3,
     )
@@ -407,10 +404,10 @@ def test_mapped_site_energy_model_validates_site_mapping_coverage(hop_event):
 
 
 @pytest.mark.unit
-def test_mapped_site_energy_model_validates_event_state_mappings(hop_event):
-    model = MappedSiteEnergyModel(
-        delta_fn=smol_runtime_delta,
-        delta_kwargs={"coefficients": np.array([1.0])},
+def test_site_energy_model_validates_event_state_mappings(hop_event):
+    model = SiteEnergyModel(
+        compute_fn=smol_runtime_delta,
+        compute_kwargs={"coefficients": np.array([1.0])},
         state_mapping_by_site={
             0: {0: 10},
             1: {1: 20},

@@ -1,10 +1,11 @@
-"""Site-energy-difference adapters for composite KMC models."""
+"""Site-energy-difference models for composite KMC simulations."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import hashlib
+import inspect
 import importlib
 import json
 import logging
@@ -44,157 +45,49 @@ class MappedOccupationChange:
         return (self.external_site, self.old_value, self.new_value)
 
 
-class CallableSiteEnergyModel(BaseModel):
-    """Adapter for direct kMCpy-native site-energy-difference callables.
+class SiteEnergyModel(BaseModel):
+    """Site-energy-difference model with optional external-site mapping.
 
-    The wrapped callable must return the event energy change
-    ``E_after_hop - E_before_hop`` for the current ``simulation_state`` and
-    ``event``. It receives kMCpy site indices and kMCpy occupation labels. Use
-    :class:`MappedSiteEnergyModel` instead when an external code has a different
-    site order, state encoding, or live runtime object.
-
-    kMCpy consumes this value in meV, so the adapter converts from ``eV`` when
-    requested.
-
-    The callable is resolved from a string reference such as
-    ``"package.module:function"`` or ``"package.module.function"`` and is called
-    as::
-
-        callable(event=event, simulation_state=simulation_state, **kwargs)
-    """
-
-    MODEL_TYPE = "callable_site_energy"
-    PAYLOAD_KEY = "callable_site_energy"
-
-    def __init__(
-        self,
-        callable_ref: str,
-        units: str = "meV",
-        kwargs: Optional[dict[str, Any]] = None,
-        name: str = "CallableSiteEnergyModel",
-    ) -> None:
-        super().__init__(name=name)
-        if not isinstance(callable_ref, str) or not callable_ref.strip():
-            raise ValueError("'callable_ref' must be a non-empty string")
-        self.callable_ref = callable_ref.strip()
-        self.units = _normalize_energy_units(units)
-        self.kwargs = dict(kwargs or {})
-        self._callable = None
-
-    @property
-    def unit_factor_to_mev(self) -> float:
-        """Conversion factor from configured units to meV."""
-        return _unit_factor_to_mev(self.units)
-
-    def _resolve_callable(self):
-        if self._callable is None:
-            self._callable = resolve_callable_reference(self.callable_ref)
-        return self._callable
-
-    def compute(self, event, simulation_state) -> float:
-        """Return ``E_after_hop - E_before_hop`` in meV."""
-        raw_value = self._resolve_callable()(
-            event=event,
-            simulation_state=simulation_state,
-            **self.kwargs,
-        )
-        return _numeric_delta_to_mev(raw_value, self.unit_factor_to_mev)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
-            "name": self.name,
-            "callable_ref": self.callable_ref,
-            "units": self.units,
-            "kwargs": dict(self.kwargs),
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CallableSiteEnergyModel":
-        if not isinstance(data, dict):
-            raise ValueError("CallableSiteEnergyModel payload must be a JSON object")
-        if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
-            data = data[cls.PAYLOAD_KEY]
-        if not isinstance(data, dict):
-            raise ValueError("CallableSiteEnergyModel payload must be a JSON object")
-        return cls(
-            callable_ref=data.get("callable_ref") or data.get("callable"),
-            units=data.get("units", "meV"),
-            kwargs=data.get("kwargs"),
-            name=data.get("name", "CallableSiteEnergyModel"),
-        )
-
-    @classmethod
-    def from_file(cls, filename: str) -> "CallableSiteEnergyModel":
-        data = loadfn(filename, cls=None)
-        if isinstance(data, dict) and data.get("filetype") == MODEL_FILETYPE:
-            data = require_model_type(data, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
-        return cls.from_dict(data)
-
-    def to(self, filename: str, indent: int = 2) -> None:
-        from monty.serialization import dumpfn
-
-        logger.info(
-            "Saving callable site-energy-difference adapter to: %s",
-            filename,
-        )
-        dumpfn(self.as_dict(), filename, indent=indent)
-
-    def __str__(self) -> str:
-        return (
-            f"CallableSiteEnergyModel(callable_ref={self.callable_ref!r}, "
-            f"units={self.units!r})"
-        )
-
-    def __repr__(self) -> str:
-        return (
-            "CallableSiteEnergyModel("
-            f"callable_ref={self.callable_ref!r}, units={self.units!r}, "
-            f"kwargs={self.kwargs!r})"
-        )
-
-
-class MappedSiteEnergyModel(BaseModel):
-    """Stateful site-energy-difference adapter with precomputed mappings.
-
-    This adapter is intentionally external-code agnostic. kMCpy owns only the
-    cheap, reusable translation from active-site occupations to an external
-    occupation representation. The user supplies the actual runtime object and
-    delta function for smol, CLEASE, ASE, or project-specific code.
+    The model returns ``E_after_hop - E_before_hop`` for a proposed event. If
+    ``site_mapping`` and state mappings are omitted, the callable receives kMCpy
+    active-site indices and occupation labels. If an external code has a
+    different site order or state encoding, provide mappings once before KMC
+    starts; per-event evaluation then touches only the two event endpoints.
 
     ``initialize_state`` validates the mapping once, builds the external
     occupation once, and caches active-site lookups. ``compute`` passes only
-    the two endpoint changes for the proposed event to ``delta_fn``.
+    the two endpoint changes for the proposed event to ``compute_fn``.
     ``apply_event`` updates only accepted endpoints and optionally calls
     ``apply_fn`` to keep a live external evaluator synchronized.
 
-    ``delta_fn`` is called as::
+    ``compute_fn`` is called as::
 
-        delta_fn(
+        compute_fn(
             runtime=runtime,
             external_occupation=external_occupation,
             changes=changes,
             event=event,
             simulation_state=simulation_state,
-            **delta_kwargs,
+            **compute_kwargs,
         )
 
     where ``changes`` is a list of :class:`MappedOccupationChange` objects.
-    It must return ``E_after_hop - E_before_hop`` in ``units``.
+    Simple callables may also accept only the subset they need, such as
+    ``event`` and ``simulation_state``. It must return
+    ``E_after_hop - E_before_hop`` in ``units``.
 
     ``apply_fn`` is optional and is called before the cached external
     occupation is updated in place.
     """
 
-    MODEL_TYPE = "mapped_site_energy"
-    PAYLOAD_KEY = "mapped_site_energy"
+    MODEL_TYPE = "site_energy"
+    PAYLOAD_KEY = "site_energy"
 
     def __init__(
         self,
-        delta_fn=None,
-        delta_ref: str | None = None,
-        delta_kwargs: Optional[dict[str, Any]] = None,
+        compute_fn=None,
+        compute_ref: str | None = None,
+        compute_kwargs: Optional[dict[str, Any]] = None,
         apply_fn=None,
         apply_ref: str | None = None,
         apply_kwargs: Optional[dict[str, Any]] = None,
@@ -211,12 +104,12 @@ class MappedSiteEnergyModel(BaseModel):
         active_site_index_map: ActiveSiteIndexMap | Mapping[str, Any] | None = None,
         kmcpy_site_order_hash: str | None = None,
         units: str = "eV",
-        name: str = "MappedSiteEnergyModel",
+        name: str = "SiteEnergyModel",
     ) -> None:
         super().__init__(name=name)
-        self.delta_fn = delta_fn
-        self.delta_ref = _normalize_optional_ref(delta_ref)
-        self.delta_kwargs = dict(delta_kwargs or {})
+        self.compute_fn = compute_fn
+        self.compute_ref = _normalize_optional_ref(compute_ref)
+        self.compute_kwargs = dict(compute_kwargs or {})
         self.apply_fn = apply_fn
         self.apply_ref = _normalize_optional_ref(apply_ref)
         self.apply_kwargs = dict(apply_kwargs or {})
@@ -244,7 +137,7 @@ class MappedSiteEnergyModel(BaseModel):
             and normalized_site_order_hash != self.active_site_index_map.fingerprint
         ):
             raise ValueError(
-                "MappedSiteEnergyModel kmcpy_site_order_hash does not match "
+                "SiteEnergyModel kmcpy_site_order_hash does not match "
                 "the active_site_index_map fingerprint."
             )
         self.kmcpy_site_order_hash = (
@@ -256,7 +149,7 @@ class MappedSiteEnergyModel(BaseModel):
 
         self.external_occupation: np.ndarray | None = None
         self._site_lookup: np.ndarray | None = None
-        self._delta_callable = None
+        self._compute_callable = None
         self._apply_callable = None
 
     @property
@@ -280,17 +173,17 @@ class MappedSiteEnergyModel(BaseModel):
             )
         return self.runtime
 
-    def _resolve_delta_fn(self):
-        if self.delta_fn is not None:
-            return self.delta_fn
-        if self._delta_callable is None:
-            if self.delta_ref is None:
+    def _resolve_compute_fn(self):
+        if self.compute_fn is not None:
+            return self.compute_fn
+        if self._compute_callable is None:
+            if self.compute_ref is None:
                 raise RuntimeError(
-                    "MappedSiteEnergyModel requires delta_fn or delta_ref "
+                    "SiteEnergyModel requires compute_fn or compute_ref "
                     "before compute() can run"
                 )
-            self._delta_callable = resolve_callable_reference(self.delta_ref)
-        return self._delta_callable
+            self._compute_callable = resolve_callable_reference(self.compute_ref)
+        return self._compute_callable
 
     def _resolve_apply_fn(self):
         if self.apply_fn is not None:
@@ -333,7 +226,7 @@ class MappedSiteEnergyModel(BaseModel):
             and normalized.fingerprint != self.kmcpy_site_order_hash
         ):
             raise ValueError(
-                "MappedSiteEnergyModel active-site order hash does not "
+                "SiteEnergyModel active-site order hash does not "
                 "match the current kMCpy active-site index map."
             )
         self.active_site_index_map = normalized
@@ -344,7 +237,7 @@ class MappedSiteEnergyModel(BaseModel):
             return
         if self.active_site_index_map.active_site_count != int(occupation_count):
             raise ValueError(
-                "MappedSiteEnergyModel active-site index map contains "
+                "SiteEnergyModel active-site index map contains "
                 f"{self.active_site_index_map.active_site_count} active sites, "
                 f"but the simulation state contains {occupation_count} occupations."
             )
@@ -384,7 +277,7 @@ class MappedSiteEnergyModel(BaseModel):
 
     def _external_site(self, kmcpy_site: int) -> int:
         if self._site_lookup is None:
-            raise RuntimeError("MappedSiteEnergyModel has not been initialized")
+            raise RuntimeError("SiteEnergyModel has not been initialized")
         return int(self._site_lookup[int(kmcpy_site)])
 
     def _external_value(self, kmcpy_site: int, state_value: int):
@@ -448,7 +341,7 @@ class MappedSiteEnergyModel(BaseModel):
                 self._changes_from_pre_state(event, occupations)
             except (IndexError, KeyError, ValueError) as exc:
                 raise ValueError(
-                    "MappedSiteEnergyModel occupation mapping is incompatible "
+                    "SiteEnergyModel occupation mapping is incompatible "
                     f"with event {event_index}"
                 ) from exc
 
@@ -458,13 +351,17 @@ class MappedSiteEnergyModel(BaseModel):
         changes = self._changes_from_pre_state(event, simulation_state.occupations)
         if not changes:
             return 0.0
-        raw_value = self._resolve_delta_fn()(
-            runtime=self._resolve_runtime(),
-            external_occupation=self.external_occupation,
-            changes=changes,
-            event=event,
-            simulation_state=simulation_state,
-            **self.delta_kwargs,
+        raw_value = _call_with_supported_keywords(
+            self._resolve_compute_fn(),
+            {
+                "runtime": self._resolve_runtime(),
+                "external_occupation": self.external_occupation,
+                "changes": changes,
+                "event": event,
+                "simulation_state": simulation_state,
+                **self.compute_kwargs,
+            },
+            user_kwarg_names=set(self.compute_kwargs),
         )
         return _numeric_delta_to_mev(raw_value, self.unit_factor_to_mev)
 
@@ -494,8 +391,8 @@ class MappedSiteEnergyModel(BaseModel):
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "name": self.name,
-            "delta_ref": self.delta_ref,
-            "delta_kwargs": dict(self.delta_kwargs),
+            "compute_ref": self.compute_ref,
+            "compute_kwargs": dict(self.compute_kwargs),
             "apply_ref": self.apply_ref,
             "apply_kwargs": dict(self.apply_kwargs),
             "runtime_ref": self.runtime_ref,
@@ -518,14 +415,14 @@ class MappedSiteEnergyModel(BaseModel):
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "MappedSiteEnergyModel":
+    def from_dict(cls, data: dict[str, Any]) -> "SiteEnergyModel":
         if not isinstance(data, dict):
-            raise ValueError("MappedSiteEnergyModel payload must be a JSON object")
+            raise ValueError("SiteEnergyModel payload must be a JSON object")
         if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
             data = data[cls.PAYLOAD_KEY]
         model = cls(
-            delta_ref=data.get("delta_ref"),
-            delta_kwargs=data.get("delta_kwargs"),
+            compute_ref=data.get("compute_ref"),
+            compute_kwargs=data.get("compute_kwargs"),
             apply_ref=data.get("apply_ref"),
             apply_kwargs=data.get("apply_kwargs"),
             runtime_ref=data.get("runtime_ref"),
@@ -540,7 +437,7 @@ class MappedSiteEnergyModel(BaseModel):
             active_site_index_map=data.get("active_site_index_map"),
             kmcpy_site_order_hash=data.get("kmcpy_site_order_hash"),
             units=data.get("units", "eV"),
-            name=data.get("name", "MappedSiteEnergyModel"),
+            name=data.get("name", "SiteEnergyModel"),
         )
         stored_external_hash = data.get("external_site_order_hash")
         if (
@@ -548,13 +445,13 @@ class MappedSiteEnergyModel(BaseModel):
             and str(stored_external_hash) != model.external_site_order_hash
         ):
             raise ValueError(
-                "MappedSiteEnergyModel external_site_order_hash does not "
+                "SiteEnergyModel external_site_order_hash does not "
                 "match its site_mapping/external_size metadata."
             )
         return model
 
     @classmethod
-    def from_file(cls, filename: str) -> "MappedSiteEnergyModel":
+    def from_file(cls, filename: str) -> "SiteEnergyModel":
         data = loadfn(filename, cls=None)
         if isinstance(data, dict) and data.get("filetype") == MODEL_FILETYPE:
             data = require_model_type(data, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
@@ -563,22 +460,19 @@ class MappedSiteEnergyModel(BaseModel):
     def to(self, filename: str, indent: int = 2) -> None:
         from monty.serialization import dumpfn
 
-        logger.info(
-            "Saving mapped site-energy-difference adapter to: %s",
-            filename,
-        )
+        logger.info("Saving site-energy-difference model to: %s", filename)
         dumpfn(self.as_dict(), filename, indent=indent)
 
     def __str__(self) -> str:
         return (
-            "MappedSiteEnergyModel("
-            f"delta_ref={self.delta_ref!r}, units={self.units!r})"
+            "SiteEnergyModel("
+            f"compute_ref={self.compute_ref!r}, units={self.units!r})"
         )
 
     def __repr__(self) -> str:
         return (
-            "MappedSiteEnergyModel("
-            f"delta_ref={self.delta_ref!r}, runtime_ref={self.runtime_ref!r}, "
+            "SiteEnergyModel("
+            f"compute_ref={self.compute_ref!r}, runtime_ref={self.runtime_ref!r}, "
             f"units={self.units!r})"
         )
 
@@ -603,10 +497,47 @@ def resolve_callable_reference(callable_ref: str):
     return obj
 
 
+def _call_with_supported_keywords(
+    func,
+    kwargs: dict[str, Any],
+    *,
+    user_kwarg_names: set[str],
+):
+    """Call a user function with only the keyword arguments it accepts."""
+    try:
+        parameters = inspect.signature(func).parameters
+    except (TypeError, ValueError):
+        return func(**kwargs)
+
+    if any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    ):
+        return func(**kwargs)
+
+    accepted = {
+        name
+        for name, parameter in parameters.items()
+        if parameter.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        )
+    }
+    unused_user_kwargs = sorted(user_kwarg_names - accepted)
+    if unused_user_kwargs:
+        raise TypeError(
+            "SiteEnergyModel compute_kwargs contains keys not accepted by "
+            f"{func}: {unused_user_kwargs}"
+        )
+    return func(**{key: value for key, value in kwargs.items() if key in accepted})
+
+
 def constant_site_energy_difference(
-    event,
-    simulation_state,
+    event=None,
+    simulation_state=None,
     value: float = 0.0,
+    **kwargs,
 ) -> float:
     """Small helper used by examples/tests to return a constant difference."""
     return float(value)
@@ -700,7 +631,7 @@ def _external_site_order_hash(
         int(len(initial_occupation)) if initial_occupation is not None else None
     )
     payload = {
-        "format": "kmcpy.mapped_site_energy.external_site_order.v1",
+        "format": "kmcpy.site_energy.external_site_order.v1",
         "site_mapping": (
             [
                 [int(site), int(external_site)]
