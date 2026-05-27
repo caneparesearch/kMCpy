@@ -1,10 +1,8 @@
 """
 Composite Local Cluster Expansion Model
 
-This module implements a composite model that combines two LocalClusterExpansion
-models to provide a unified interface for different energy contributions (e.g., site
-energies and barrier energies). This follows an ASE-like design where the model is
-composable and generic.
+This module combines a KRA model with an optional site-energy-difference model
+for transition-rate calculations.
 
 Author: Zeyu Deng
 """
@@ -36,9 +34,9 @@ class CompositeLCEModel(BaseModel):
     ``compute(simulation_state=..., event=...)``; its meaning comes from the
     role it is passed into. As ``kra_model`` it returns ``E_KRA``. As
     ``site_model`` it returns the site-energy-difference contribution for the
-    canonical event orientation. External smol/CLEASE adapters expose
-    ``compute_delta(event=..., simulation_state=...)`` and return the signed
-    event energy change, ``E_after_hop - E_before_hop``, in meV.
+    canonical event orientation. External smol/CLEASE adapters also expose
+    ``compute(event=..., simulation_state=...)`` and return the signed event
+    energy change, ``E_after_hop - E_before_hop``, in meV.
     
     The composite model provides:
     
@@ -80,18 +78,16 @@ class CompositeLCEModel(BaseModel):
             site_model: model for site-energy-difference calculations. A
                 ``LocalClusterExpansion`` is evaluated with ``compute`` and
                 interpreted in the event's canonical orientation. Other models
-                must expose ``compute_delta`` and return
+                must expose ``compute`` and return
                 ``E_after_hop - E_before_hop`` in meV.
             kra_model: model for E_KRA calculations
         """
         if kra_model is not None and not isinstance(kra_model, LocalClusterExpansion):
             raise TypeError(f"KRA model must be a LocalClusterExpansion instance, got {type(kra_model)}")
-        if site_model is not None and not isinstance(
-            site_model, LocalClusterExpansion
-        ) and not callable(getattr(site_model, "compute_delta", None)):
+        if site_model is not None and not callable(getattr(site_model, "compute", None)):
             raise TypeError(
-                "Site model must be a LocalClusterExpansion or expose "
-                f"compute_delta(event=..., simulation_state=...), got {type(site_model)}"
+                "Site model must expose "
+                f"compute(event=..., simulation_state=...), got {type(site_model)}"
             )
 
         models = []
@@ -112,7 +108,7 @@ class CompositeLCEModel(BaseModel):
         """Composite models are assembled from separately fitted LCE models."""
         raise NotImplementedError(
             "Fit LocalClusterExpansion models separately, build external "
-            "site-energy adapters separately, then pass them to "
+            "site-energy-difference adapters separately, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
@@ -125,23 +121,16 @@ class CompositeLCEModel(BaseModel):
         """Return ``E_after_hop - E_before_hop`` in meV."""
         if self.site_model is None:
             return 0.0
+        value = self.site_model.compute(
+            simulation_state=simulation_state,
+            event=event,
+        )
         if isinstance(self.site_model, LocalClusterExpansion):
             # LCE uses one evaluator. A site LCE returns the fitted
             # site-energy-difference contribution for the canonical event
             # orientation; the current occupation determines the event sign.
-            return float(
-                direction
-                * self.site_model.compute(
-                    simulation_state=simulation_state,
-                    event=event,
-                )
-            )
-        return float(
-            self.site_model.compute_delta(
-                event=event,
-                simulation_state=simulation_state,
-            )
-        )
+            value = direction * value
+        return float(value)
 
     def initialize_state(
         self,
@@ -369,7 +358,7 @@ class CompositeLCEModel(BaseModel):
         """Composite models are assembled from separately built LCE models."""
         raise NotImplementedError(
             "Build LocalClusterExpansion models separately, build external "
-            "site-energy adapters separately, then pass them to "
+            "site-energy-difference adapters separately, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
@@ -416,10 +405,10 @@ class CompositeLCEModel(BaseModel):
                 "must provide from_dict()."
             )
         model = model_cls.from_dict(payload)
-        if not callable(getattr(model, "compute_delta", None)):
+        if not callable(getattr(model, "compute", None)):
             raise TypeError(
                 f"External site model '{module_path}.{class_name}' must expose "
-                "compute_delta(event=..., simulation_state=...)."
+                "compute(event=..., simulation_state=...)."
             )
         return model
 

@@ -115,7 +115,7 @@ def test_local_barrier_model_type_is_inferred_from_model_file(tmp_path: Path):
 def test_external_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
     model_file = tmp_path / "external_site_energy.json"
     ExternalSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
+        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         kwargs={"value": 10.0},
     ).to(str(model_file))
     payload = json.loads(model_file.read_text(encoding="utf-8"))

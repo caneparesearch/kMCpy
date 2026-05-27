@@ -26,7 +26,7 @@ Use one of these three options:
 
 | Use case | Interface |
 | --- | --- |
-| No site-energy term | `site_model=None` |
+| No site-energy-difference term | `site_model=None` |
 | A simple function already returns `E_after - E_before` | `ExternalSiteEnergyModel` |
 | A live smol/CLEASE/ASE object must stay synchronized during KMC | `MappedSiteEnergyModel` |
 
@@ -37,7 +37,7 @@ When the site contribution is another kMCpy `LocalClusterExpansion`, it still
 uses the regular `compute(simulation_state=..., event=...)` method. Its role in
 `CompositeLCEModel` determines the meaning: as `kra_model` it returns
 `E_KRA`, and as `site_model` it returns the site-energy-difference
-contribution. The `compute_delta(...)` method is only for external adapters that
+contribution. External adapters use the same public `compute(...)` method and
 return `E_after_hop - E_before_hop` directly.
 
 ## What kMCpy Stores
@@ -156,7 +156,7 @@ model = CompositeLCEModel(
 )
 ```
 
-`compute_delta(...)` does not mutate `external_occupation`. kMCpy updates the
+`compute(...)` does not mutate `external_occupation`. kMCpy updates the
 cached external occupation only after the event is accepted.
 
 ## CLEASE-Style Example
@@ -244,7 +244,7 @@ state and returns the signed event energy difference:
 from kmcpy.models import ExternalSiteEnergyModel
 
 site_model = ExternalSiteEnergyModel(
-    callable_ref="my_project.site_energy:compute_delta",
+    callable_ref="my_project.site_energy:site_energy_difference",
     units="eV",
     kwargs={"model_file": "site_ce.json"},
 )
@@ -253,7 +253,7 @@ site_model = ExternalSiteEnergyModel(
 The callable receives:
 
 ```python
-def compute_delta(event, simulation_state, model_file):
+def site_energy_difference(event, simulation_state, model_file):
     return 0.04  # E_after - E_before, in eV
 ```
 
@@ -283,4 +283,4 @@ Before running a simulation, check:
 - `delta_fn` does not mutate the external occupation for proposed events.
 - `apply_fn` mutates only accepted events.
 - Full occupation conversion happens in `initialize_state(...)`, not in
-  `compute_delta(...)`.
+  `compute(...)`.

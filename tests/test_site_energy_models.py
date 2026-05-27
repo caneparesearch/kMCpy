@@ -23,19 +23,19 @@ class FixedLCE(LocalClusterExpansion):
         return self.value
 
 
-class FixedDeltaSiteModel:
-    MODEL_TYPE = "fixed_delta_site_model"
+class FixedSiteDifferenceModel:
+    MODEL_TYPE = "fixed_site_difference_model"
 
-    def __init__(self, delta):
-        self.delta = float(delta)
+    def __init__(self, energy_difference):
+        self.energy_difference = float(energy_difference)
 
-    def compute_delta(self, event, simulation_state):
-        return self.delta
+    def compute(self, event, simulation_state):
+        return self.energy_difference
 
 
-class StatefulDeltaSiteModel(FixedDeltaSiteModel):
-    def __init__(self, delta):
-        super().__init__(delta)
+class StatefulSiteDifferenceModel(FixedSiteDifferenceModel):
+    def __init__(self, energy_difference):
+        super().__init__(energy_difference)
         self.initialized_occupations = None
         self.applied_occupations = []
 
@@ -118,10 +118,10 @@ def hop_event():
 
 
 @pytest.mark.unit
-def test_composite_lce_accepts_external_site_delta_model(hop_event):
+def test_composite_lce_accepts_external_site_difference_model(hop_event):
     model = CompositeLCEModel(
         kra_model=FixedLCE(200.0),
-        site_model=FixedDeltaSiteModel(40.0),
+        site_model=FixedSiteDifferenceModel(40.0),
     )
     runtime_config = RuntimeConfig(temperature=300.0, attempt_frequency=1e13)
     state = State(occupations=[0, 1])
@@ -179,12 +179,12 @@ def test_composite_lce_applies_event_direction_to_site_lce_difference(hop_event)
 @pytest.mark.unit
 def test_external_site_energy_model_converts_ev_to_mev(hop_event):
     model = ExternalSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
+        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="eV",
         kwargs={"value": 0.04},
     )
 
-    delta = model.compute_delta(
+    delta = model.compute(
         event=hop_event,
         simulation_state=State(occupations=[0, 1]),
     )
@@ -195,7 +195,7 @@ def test_external_site_energy_model_converts_ev_to_mev(hop_event):
 @pytest.mark.unit
 def test_external_site_energy_model_roundtrip_keeps_callable(hop_event):
     model = ExternalSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
+        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="meV",
         kwargs={"value": 35.0},
     )
@@ -203,7 +203,7 @@ def test_external_site_energy_model_roundtrip_keeps_callable(hop_event):
     reloaded = ExternalSiteEnergyModel.from_dict(model.as_dict())
 
     assert reloaded.as_dict() == model.as_dict()
-    assert reloaded.compute_delta(
+    assert reloaded.compute(
         event=hop_event,
         simulation_state=State(occupations=[0, 1]),
     ) == 35.0
@@ -211,7 +211,7 @@ def test_external_site_energy_model_roundtrip_keeps_callable(hop_event):
 
 @pytest.mark.unit
 def test_composite_lce_delegates_stateful_site_model_hooks(hop_event):
-    site_model = StatefulDeltaSiteModel(40.0)
+    site_model = StatefulSiteDifferenceModel(40.0)
     model = CompositeLCEModel(kra_model=FixedLCE(200.0), site_model=site_model)
     state = State(occupations=[0, 1])
 
@@ -261,7 +261,7 @@ def test_mapped_site_energy_model_uses_cached_occupation_and_local_flips(hop_eve
     state = State(occupations=[0, 1])
 
     model.initialize_state(simulation_state=state)
-    delta = model.compute_delta(event=hop_event, simulation_state=state)
+    delta = model.compute(event=hop_event, simulation_state=state)
 
     assert np.array_equal(
         model.external_occupation,
@@ -300,7 +300,7 @@ def test_mapped_site_energy_model_can_commit_runtime_object(hop_event):
     state = State(occupations=[0, 1])
 
     model.initialize_state(simulation_state=state)
-    delta = model.compute_delta(event=hop_event, simulation_state=state)
+    delta = model.compute(event=hop_event, simulation_state=state)
 
     assert np.isclose(delta, 25.0)
     proposed = evaluator.proposed_changes[0]

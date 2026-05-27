@@ -282,7 +282,7 @@ def test_composite_lce_model_serializes_external_site_energy_model():
     root = Path(__file__).parent / "files" / "input"
     model = CompositeLCEModel.from_file(str(root / "model.json"))
     model.site_model = ExternalSiteEnergyModel(
-        callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
+        callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="eV",
         kwargs={"value": 0.04},
     )

@@ -42,7 +42,7 @@ class MappedOccupationChange:
 
 
 class ExternalSiteEnergyModel(BaseModel):
-    """Adapter for simple external site-energy difference callables.
+    """Adapter for simple external site-energy-difference callables.
 
     The wrapped callable must return the event energy change
     ``E_after_hop - E_before_hop`` for the current ``simulation_state`` and
@@ -84,7 +84,7 @@ class ExternalSiteEnergyModel(BaseModel):
             self._callable = resolve_callable_reference(self.callable_ref)
         return self._callable
 
-    def compute_delta(self, event, simulation_state) -> float:
+    def compute(self, event, simulation_state) -> float:
         """Return ``E_after_hop - E_before_hop`` in meV."""
         raw_value = self._resolve_callable()(
             event=event,
@@ -128,7 +128,10 @@ class ExternalSiteEnergyModel(BaseModel):
     def to(self, filename: str, indent: int = 2) -> None:
         from monty.serialization import dumpfn
 
-        logger.info("Saving external site-energy model to: %s", filename)
+        logger.info(
+            "Saving external site-energy-difference adapter to: %s",
+            filename,
+        )
         dumpfn(self.as_dict(), filename, indent=indent)
 
     def __str__(self) -> str:
@@ -146,7 +149,7 @@ class ExternalSiteEnergyModel(BaseModel):
 
 
 class MappedSiteEnergyModel(BaseModel):
-    """Stateful runtime adapter with precomputed site and state mappings.
+    """Stateful site-energy-difference adapter with precomputed mappings.
 
     This adapter is intentionally external-code agnostic. kMCpy owns only the
     cheap, reusable translation from active-site occupations to an external
@@ -154,8 +157,8 @@ class MappedSiteEnergyModel(BaseModel):
     delta function for smol, CLEASE, ASE, or project-specific code.
 
     ``initialize_state`` validates the mapping once, builds the external
-    occupation once, and caches active-site lookups. ``compute_delta`` passes
-    only the two endpoint changes for the proposed event to ``delta_fn``.
+    occupation once, and caches active-site lookups. ``compute`` passes only
+    the two endpoint changes for the proposed event to ``delta_fn``.
     ``apply_event`` updates only accepted endpoints and optionally calls
     ``apply_fn`` to keep a live external evaluator synchronized.
 
@@ -248,7 +251,7 @@ class MappedSiteEnergyModel(BaseModel):
             if self.delta_ref is None:
                 raise RuntimeError(
                     "MappedSiteEnergyModel requires delta_fn or delta_ref "
-                    "before compute_delta() can run"
+                    "before compute() can run"
                 )
             self._delta_callable = resolve_callable_reference(self.delta_ref)
         return self._delta_callable
@@ -385,7 +388,7 @@ class MappedSiteEnergyModel(BaseModel):
                     f"with event {event_index}"
                 ) from exc
 
-    def compute_delta(self, event, simulation_state) -> float:
+    def compute(self, event, simulation_state) -> float:
         """Return ``E_after_hop - E_before_hop`` in meV."""
         self._ensure_initialized(simulation_state)
         changes = self._changes_from_pre_state(event, simulation_state.occupations)
@@ -477,7 +480,10 @@ class MappedSiteEnergyModel(BaseModel):
     def to(self, filename: str, indent: int = 2) -> None:
         from monty.serialization import dumpfn
 
-        logger.info("Saving mapped site-energy model to: %s", filename)
+        logger.info(
+            "Saving mapped site-energy-difference adapter to: %s",
+            filename,
+        )
         dumpfn(self.as_dict(), filename, indent=indent)
 
     def __str__(self) -> str:
@@ -514,15 +520,19 @@ def resolve_callable_reference(callable_ref: str):
     return obj
 
 
-def constant_site_energy_delta(event, simulation_state, value: float = 0.0) -> float:
-    """Small helper used by examples/tests to return a constant delta."""
+def constant_site_energy_difference(
+    event,
+    simulation_state,
+    value: float = 0.0,
+) -> float:
+    """Small helper used by examples/tests to return a constant difference."""
     return float(value)
 
 
 def _normalize_energy_units(units: str) -> str:
     token = str(units).strip()
     if token.lower() not in _UNIT_FACTORS_TO_MEV:
-        raise ValueError("Site-energy units must be 'meV' or 'eV'")
+        raise ValueError("Site-energy-difference units must be 'meV' or 'eV'")
     return "meV" if token.lower() == "mev" else "eV"
 
 
@@ -532,7 +542,9 @@ def _unit_factor_to_mev(units: str) -> float:
 
 def _numeric_delta_to_mev(value, unit_factor_to_mev: float) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float, np.number)):
-        raise TypeError("Site-energy delta callable must return a numeric value")
+        raise TypeError(
+            "Site-energy-difference callable must return a numeric value"
+        )
     return float(value) * unit_factor_to_mev
 
 
