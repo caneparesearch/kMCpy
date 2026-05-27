@@ -28,6 +28,8 @@ Advantages of using kMCpy:
 >
 > APIs and serialized file formats may change before a stable release. Check the release notes and current documentation when updating existing workflows.
 
+Release notes are maintained in the [changelog](https://github.com/caneparesearch/kmcpy/blob/master/CHANGELOG.md).
+
 ## Installation
 
 ### Method 1: Install using `pip` (recommended)

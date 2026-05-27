@@ -39,4 +39,6 @@ API Reference Documentation
     config.rst
     kmc.rst
     results.rst
+    high_level_api.rst
     units.rst
+    neb.rst

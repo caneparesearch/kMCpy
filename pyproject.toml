@@ -1,6 +1,6 @@
 [build-system]
 # Specifies the build tools needed to build your package.
-requires = ["setuptools>=65.0.0", "wheel"]
+requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,7 +9,8 @@ version = "0.3.0" # << REMEMBER TO UPDATE THIS FOR EACH RELEASE
 description = "Kinetic Monte Carlo Simulation using Python (kMCpy)"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" } # Standard way to specify license, assumes LICENSE file exists
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "kMCpy Development Team", email = "dengzeyu@gmail.com" }]
 maintainers = [{name = "Zeyu Deng", email = "dengzeyu@gmail.com"},
                {name = "Weihang Xie", email = "david.xie1998@gmail.com"},
@@ -19,7 +20,6 @@ classifiers = [ # Standard PyPI classifiers, helps users find your package
     "Development Status :: 4 - Beta", # Or "3 - Alpha", "5 - Production/Stable"
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

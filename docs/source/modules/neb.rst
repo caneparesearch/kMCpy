@@ -1,5 +1,5 @@
-NEB data loading
-================
+neb
+===
 
 .. automodule:: kmcpy.io.neb
     :members:

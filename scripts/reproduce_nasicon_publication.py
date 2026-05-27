@@ -443,7 +443,7 @@ def run_quick_kmc(
     original_cwd = Path.cwd()
     try:
         os.chdir(run_dir)
-        tracker = kmc.run(config)
+        tracker = kmc.run()
     finally:
         os.chdir(original_cwd)
 

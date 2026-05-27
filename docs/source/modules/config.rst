@@ -16,4 +16,3 @@ fields are split between ``system_config`` and ``runtime_config``.
 .. automodule:: kmcpy.simulator.config
     :members:
     :inherited-members:
-                  

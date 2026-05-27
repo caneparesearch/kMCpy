@@ -5,7 +5,10 @@ import sys
 api_doc_path = "docs/source/modules/"
 # `api.rst` is the generated toctree index page; exclude module `api.py` to
 # avoid self-referential toctree entry (`api.rst` including `api.rst`).
-excluded_packages = {"gui_wrapper", "api"}
+excluded_packages = {"gui_wrapper"}
+special_rst_stems = {
+    ("kmcpy", "api"): "high_level_api",
+}
 
 
 def write_rst_for_sphinx(
@@ -39,7 +42,7 @@ fields are split between ``system_config`` and ``runtime_config``.
             """.. automodule:: modulename.package
     :members:
     :inherited-members:
-                  """.replace(
+""".replace(
                 "modulename", module
             )
             .replace("package", package)
@@ -48,6 +51,9 @@ fields are split between ``system_config`` and ``runtime_config``.
 
 
 def rst_stem_for_module(module_name, package, duplicate_packages):
+    special_stem = special_rst_stems.get((module_name, package))
+    if special_stem:
+        return special_stem
     if package not in duplicate_packages:
         return package
     module_suffix = module_name.replace("kmcpy.", "").replace(".", "_")
@@ -78,6 +84,8 @@ for root, dirs, files in os.walk("./kmcpy", topdown=False):
 
             module_name = root.replace("./", "").replace("/", ".")
             module_entries.append((module_name, package))
+
+module_entries.append(("kmcpy.io", "neb"))
 
 package_counts = {}
 for _, package in module_entries:
