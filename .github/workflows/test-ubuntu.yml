@@ -117,6 +117,7 @@ jobs:
 
             - name: Build wheel
               run: |
+                  conda install -y pip
                   python -m pip install --upgrade pip build
                   python -m build --wheel
               shell: bash -el {0}
