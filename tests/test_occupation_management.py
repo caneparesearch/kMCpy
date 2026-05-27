@@ -114,28 +114,28 @@ class TestOccupationManagement:
 
     def test_state_from_occupations_filters_full_structure_values(self, test_structure):
         """Test State.from_occupations handles full-structure occupation input."""
-        index_map = ActiveSiteOrder.from_structure_and_mapping(
+        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             test_structure,
             {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
         )
 
         state = State.from_occupations(
             [0, 1, 1, 1],
-            active_site_order=index_map,
+            active_site_order=active_site_order,
         )
 
         assert state.occupations == [0, 1]
 
     def test_state_from_file_loads_initial_state(self, tmp_path, test_structure):
         """Test initial-state files load through State.from_file."""
-        index_map = ActiveSiteOrder.from_structure_and_mapping(
+        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             test_structure,
             {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
         )
         state_file = tmp_path / "initial_state.json"
         state_file.write_text('{"occupation": [0, 1, 1, 0]}', encoding="utf-8")
 
-        state = State.from_file(str(state_file), active_site_order=index_map)
+        state = State.from_file(str(state_file), active_site_order=active_site_order)
 
         assert state.occupations == [0, 1]
 

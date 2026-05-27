@@ -18,7 +18,7 @@ from kmcpy.structure.species import (
 )
 
 
-INDEX_MAP_FORMAT = "kmcpy.active_site_order.v1"
+ACTIVE_SITE_ORDER_FORMAT = "kmcpy.active_site_order.v1"
 ORIGINAL_SITE_PROPERTY = "_kmcpy_original_site_index"
 PRIMITIVE_SITE_PROPERTY = "_kmcpy_primitive_site_index"
 PRIMITIVE_ACTIVE_SITE_PROPERTY = "_kmcpy_primitive_active_site_index"
@@ -63,7 +63,7 @@ class ActiveSiteOrder(MSONable):
         site_mapping: Mapping[Any, Any],
         supercell_shape: Sequence[int] | None = None,
     ) -> "ActiveSiteOrder":
-        """Build an active-site map from a full template and site mapping."""
+        """Build an active-site order from a full template and site mapping."""
         shape = _normalize_supercell_shape(supercell_shape)
         allowed_species = _allowed_species_by_site(
             template_structure, site_mapping
@@ -108,7 +108,7 @@ class ActiveSiteOrder(MSONable):
         )
         fingerprint = _fingerprint(
             {
-                "format": INDEX_MAP_FORMAT,
+                "format": ACTIVE_SITE_ORDER_FORMAT,
                 "primitive_site_count": len(template_structure),
                 "original_site_count": len(full_structure),
                 "primitive_active_indices": primitive_active_indices,
@@ -137,8 +137,8 @@ class ActiveSiteOrder(MSONable):
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "ActiveSiteOrder":
-        """Restore serialized index metadata."""
-        if data.get("format") != INDEX_MAP_FORMAT:
+        """Restore serialized active-site order metadata."""
+        if data.get("format") != ACTIVE_SITE_ORDER_FORMAT:
             raise ValueError(
                 f"Unsupported active-site order format: {data.get('format')}"
             )
@@ -187,9 +187,9 @@ class ActiveSiteOrder(MSONable):
         }
 
     def as_dict(self) -> dict[str, Any]:
-        """Serialize map metadata without storing the full structure."""
+        """Serialize active-site order metadata without storing the full structure."""
         return {
-            "format": INDEX_MAP_FORMAT,
+            "format": ACTIVE_SITE_ORDER_FORMAT,
             "primitive_site_count": self.primitive_site_count,
             "original_site_count": self.original_site_count,
             "primitive_active_indices": list(self.primitive_active_indices),
@@ -249,7 +249,9 @@ class ActiveSiteOrder(MSONable):
     def full_structure_with_properties(self) -> Structure:
         """Return the full supercell with index-space site properties."""
         if self.template_structure is None:
-            raise ValueError("Cannot build structures from serialized index metadata only")
+            raise ValueError(
+                "Cannot build structures from serialized active-site order metadata only"
+            )
         primitive_active_lookup = self.primitive_to_active
         return _make_supercell_with_properties(
             template_structure=self.template_structure,

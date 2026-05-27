@@ -10,6 +10,7 @@ API Reference Documentation
     run_kmc.rst
     event_base.rst
     generators.rst
+    hop.rst
     comparator.rst
     basis.rst
     lattice_structure.rst
@@ -37,5 +38,4 @@ API Reference Documentation
     property.rst
     config.rst
     kmc.rst
-    hop.rst
     units.rst

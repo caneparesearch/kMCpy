@@ -26,7 +26,7 @@ from kmcpy.simulator.property import (
     validate_max_records,
     validate_schedule,
 )
-from kmcpy.simulator.hop import INVALID_STATE, event_direction
+from kmcpy.event import INVALID_STATE, event_direction
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration

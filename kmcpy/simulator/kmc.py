@@ -14,9 +14,8 @@ from kmcpy.simulator.tracker import (
     CallbackExecutionError,
     Tracker,
 )
-from kmcpy.simulator.hop import HopStateLookup
 from kmcpy.simulator.property import PropertyPlan
-from kmcpy.event import Event, EventLib
+from kmcpy.event import Event, EventLib, HopStateLookup
 import logging
 import kmcpy
 from typing import TYPE_CHECKING, Any, Callable, Optional

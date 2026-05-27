@@ -315,13 +315,13 @@ class EventLib(ABC):
 
         event_lib = cls()
         event_lib.index_metadata = data["index_metadata"]
-        index_map = ActiveSiteOrder.from_dict(event_lib.index_metadata)
+        active_site_order = ActiveSiteOrder.from_dict(event_lib.index_metadata)
 
         # Load events
         for event_dict in data["events"]:
             event = Event.from_dict(event_dict)
             event_lib.events.append(event)
-        event_lib._validate_event_indices(index_map)
+        event_lib._validate_event_indices(active_site_order)
 
         # Load event dependencies if present and convert back to numba Lists
         if data.get("event_dependencies"):

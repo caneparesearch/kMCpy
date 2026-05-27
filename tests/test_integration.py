@@ -204,10 +204,10 @@ def test_eventlib_bundled_format():
         [[i, 0, 0] for i in range(6)],
         coords_are_cartesian=True,
     )
-    index_map = ActiveSiteOrder.from_structure_and_mapping(
+    active_site_order = ActiveSiteOrder.from_structure_and_mapping(
         index_structure, {"Na": ["Na", "X"]}
     )
-    event_lib.set_index_metadata(index_map)
+    event_lib.set_index_metadata(active_site_order)
 
     # Generate dependencies
     event_lib.generate_event_dependencies()

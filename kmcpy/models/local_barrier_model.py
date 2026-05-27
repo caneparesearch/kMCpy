@@ -50,9 +50,8 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import numpy as np
 
-from kmcpy.event import Event
+from kmcpy.event import Event, event_direction
 from kmcpy.models.base import BaseModel, require_model_type
-from kmcpy.simulator.hop import event_direction
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K as K_B_MEV_PER_K
 

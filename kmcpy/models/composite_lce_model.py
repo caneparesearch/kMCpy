@@ -15,8 +15,7 @@ import numpy as np
 
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.event import Event
-from kmcpy.simulator.hop import event_direction
+from kmcpy.event import Event, event_direction
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 

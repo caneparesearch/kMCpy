@@ -4,7 +4,7 @@ import numpy as np
 from pymatgen.core import Lattice, Structure
 
 from kmcpy.event import Event, EventLib
-from kmcpy.simulator.hop import (
+from kmcpy.event import (
     HopStateLookup,
     endpoint_direction_from_codes,
     event_direction,
@@ -36,11 +36,11 @@ def test_hop_state_lookup_annotates_multistate_mobile_sites():
         ["Na", "Na"],
         [[0, 0, 0], [0.5, 0.5, 0.5]],
     )
-    index_map = ActiveSiteOrder.from_structure_and_mapping(
+    active_site_order = ActiveSiteOrder.from_structure_and_mapping(
         structure,
         {"Na": ["Mg", "X", "Na"]},
     )
-    lookup = HopStateLookup.from_active_site_order(index_map, "Na")
+    lookup = HopStateLookup.from_active_site_order(active_site_order, "Na")
     event = Event(mobile_ion_indices=(0, 1), local_env_indices=())
 
     lookup.annotate_event(event)

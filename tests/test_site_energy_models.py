@@ -304,33 +304,33 @@ def test_site_energy_model_uses_cached_occupation_and_local_flips(hop_event):
 
 @pytest.mark.unit
 def test_site_energy_model_records_site_order_hashes(hop_event):
-    index_map = _active_site_order()
+    active_site_order = _active_site_order()
     model = SiteEnergyModel(
         compute_fn=smol_runtime_delta,
         compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 4, 1: 2},
-        active_site_order=index_map,
+        active_site_order=active_site_order,
         external_size=5,
     )
 
     payload = model.as_dict()
     reloaded = SiteEnergyModel.from_dict(payload)
 
-    assert payload["active_site_order"]["fingerprint"] == index_map.fingerprint
-    assert payload["active_site_order_hash"] == index_map.fingerprint
+    assert payload["active_site_order"]["fingerprint"] == active_site_order.fingerprint
+    assert payload["active_site_order_hash"] == active_site_order.fingerprint
     assert payload["external_site_order_hash"] == model.external_site_order_hash
-    assert reloaded.active_site_order_hash == index_map.fingerprint
+    assert reloaded.active_site_order_hash == active_site_order.fingerprint
     assert reloaded.external_site_order_hash == model.external_site_order_hash
 
 
 @pytest.mark.unit
 def test_site_energy_model_rejects_wrong_active_site_order(hop_event):
-    index_map = _active_site_order()
+    active_site_order = _active_site_order()
     model = SiteEnergyModel(
         compute_fn=smol_runtime_delta,
         compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 0, 1: 1},
-        active_site_order=index_map,
+        active_site_order=active_site_order,
     )
 
     with pytest.raises(ValueError, match="active-site order contains"):
@@ -339,7 +339,7 @@ def test_site_energy_model_rejects_wrong_active_site_order(hop_event):
 
 @pytest.mark.unit
 def test_composite_lce_forwards_active_site_order_to_site_energy_model(hop_event):
-    index_map = _active_site_order()
+    active_site_order = _active_site_order()
     site_model = SiteEnergyModel(
         compute_fn=smol_runtime_delta,
         compute_kwargs={"coefficients": np.array([1.0])},
@@ -351,10 +351,10 @@ def test_composite_lce_forwards_active_site_order_to_site_energy_model(hop_event
     model.initialize_state(
         simulation_state=State(occupations=[0, 1]),
         event_lib=MinimalEventLib(hop_event),
-        active_site_order=index_map,
+        active_site_order=active_site_order,
     )
 
-    assert site_model.active_site_order_hash == index_map.fingerprint
+    assert site_model.active_site_order_hash == active_site_order.fingerprint
 
 
 @pytest.mark.unit

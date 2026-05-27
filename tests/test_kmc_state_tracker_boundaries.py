@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from kmcpy.simulator.kmc import KMC, CallbackExecutionError
-from kmcpy.simulator.hop import HopStateLookup
+from kmcpy.event import HopStateLookup
 from kmcpy.simulator.property import PropertyPlan
 from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker

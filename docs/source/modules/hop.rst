@@ -1,7 +1,6 @@
 hop
 ===
 
-.. automodule:: kmcpy.simulator.hop
+.. automodule:: kmcpy.event.hop
     :members:
     :inherited-members:
-                  
