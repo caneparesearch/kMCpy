@@ -18,6 +18,13 @@ kMCpy is an open-source Python package for studying atomic migration using the k
 
 Key features include a local cluster expansion model toolkit, a rejection-free kinetic Monte Carlo (rf-kMC) solver, and tools to extract ion transport properties like diffusivities and conductivities. The local cluster expansion model toolkit facilitates model fitting from ab initio or empirical barrier calculations. Post-training, the local cluster expansion model can compute migration barriers in crystalline materials within the transition state theory.
 
+Where to start:
+
+1. Use :doc:`quickstart` to run the bundled example and verify your installation.
+2. Use :doc:`tutorial` for a guided notebook-style walkthrough.
+3. Use :doc:`howto/index` when you have a specific task, such as attaching properties, preparing NEB fitting inputs, or using external site-energy models.
+4. Use :doc:`reference/index` when you need API documentation or field-level details.
+
 Advantages of using kMCpy:
 
 1.  Written entirely in Python with a modular design, promoting developer-centricity and easy feature addition.
@@ -28,17 +35,32 @@ This code was recently employed to investigate `the transport properties of Na-i
 
 .. toctree::
    :maxdepth: 1
-   :hidden:
+   :caption: Start Here
 
    install
    quickstart
-   mechanism
    tutorial
-   howto/attach_properties
-   howto/local_ordering
-   howto/local_environment_enumeration
-   howto/neb_fitting
-   howto/local_barrier_model
-   howto/external_site_energy
-   modules/api
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Learn
+
+   mechanism
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Workflows
+
+   howto/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Reference
+
+   reference/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Project
+
    about

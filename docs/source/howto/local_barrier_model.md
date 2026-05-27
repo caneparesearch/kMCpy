@@ -1,17 +1,32 @@
 # Local Barrier Models
 
-`LocalBarrierModel` chooses a migration barrier from simple ordered local
-environment rules. Use it when a full local cluster expansion is unnecessary or
-when the barrier logic is known directly from chemistry, a small table, or a
-simple local-environment criterion.
+Use `LocalBarrierModel` when the migration barrier can be chosen from explicit
+local rules instead of a fitted local cluster expansion.
 
-This model is designed for direct barrier rules, not fitting. It can represent:
+Good examples are:
 
-- one constant barrier for every hop,
-- "if the local environment has at least N sites in a given state, use this barrier",
-- "if the local environment has more than N Si sites, use this barrier",
-- wildcard occupation patterns, and
-- exact event/local-environment matches.
+- every hop has the same barrier,
+- the barrier changes when the local environment is crowded,
+- the barrier depends on how many Si/P/Mg sites are nearby,
+- a few exact local environments are known from NEB calculations,
+- you want a transparent rule-based model before fitting an LCE.
+
+`LocalBarrierModel` is not a fitting tool. It is a direct rule engine: for each
+candidate event, it checks the rules in order and uses the first match.
+
+## Choose A Rule Type
+
+Start with the simplest rule that describes the physics:
+
+| Question | Rule type |
+| --- | --- |
+| Is every hop the same? | constant barrier |
+| Does the barrier depend on how many sites have a state index? | `state_count` |
+| Does the barrier depend on how many sites are a species, such as Si? | `species_count` |
+| Does the barrier depend on a local pattern with wildcards? | `pattern` |
+| Do you have a catalog of exact local environments? | `exact` |
+
+Put specific rules before broad rules. The first matching rule wins.
 
 ## Units
 
@@ -512,9 +527,9 @@ model = LocalBarrierModel(
 This produces the same model as calling `add_species_count_rule(...)` and
 `add_state_count_rule(...)`.
 
-## Choosing A Rule Type
+## Rule Type Tradeoffs
 
-Use this rule type when:
+Use this section as a quick check after reading the detailed examples:
 
 - `constant_barrier`: every event has the same barrier.
 - `state_count`: the rule only cares about counts of one occupation state.

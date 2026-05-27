@@ -1,12 +1,17 @@
-# Local Site Ordering
+# Control Local Site Ordering
 
-Local cluster expansion (LCE) coefficients are tied to the order of the local
-occupation vector used during fitting. If the same physical sites are ordered
-differently, the correlation vector components change meaning and old fitted
+Local cluster expansion coefficients depend on the order of the local
+occupation vector. If the same physical sites are ordered differently, the
+correlation-vector components no longer mean the same thing, and fitted
 coefficients should not be reused.
 
-`LocalLatticeStructure` records this rule as an ordering convention. The default
-is unchanged:
+Use this page when you need to reproduce an existing fitted model or compare
+correlation vectors across workflows.
+
+## Default Ordering
+
+For new models, use the default ordering unless you need to reproduce an older
+dataset:
 
 ```python
 from kmcpy.structure import LocalLatticeStructure
@@ -19,10 +24,15 @@ local_lattice = LocalLatticeStructure(
 )
 ```
 
-For reproducing the NASICON results from Deng et al.,
+The chosen ordering is serialized with the LCE model, together with a local
+environment hash.
+
+## Reproduce The NASICON 2022 Convention
+
+To reproduce the NASICON local environments from Deng et al.,
 [*Fundamental investigations on the sodium-ion transport properties of mixed
 polyanion solid-state battery electrolytes*](https://www.nature.com/articles/s41467-022-32190-7),
-opt into the historical convention:
+request the historical convention explicitly:
 
 ```python
 local_lattice = LocalLatticeStructure(
@@ -40,14 +50,19 @@ local_lattice = LocalLatticeStructure(
 )
 ```
 
-`nasicon_nat_commun_2022` uses the selected active-site Na as the geometric center,
-removes that center site from the local occupation vector, and sorts the
-remaining local sites by species and Cartesian `x` coordinate. This matches the
-single-unit local environment convention used by the original NASICON code.
+This convention:
 
-When an LCE is serialized, kMCpy includes the convention metadata and an
-order-sensitive local environment hash. These fields make the fitted model's
-feature ordering explicit:
+- uses the selected active-site Na as the geometric center,
+- removes that center site from the local occupation vector,
+- sorts the remaining local sites by species and Cartesian `x` coordinate.
+
+That matches the single-unit local-environment convention used by the original
+NASICON workflow.
+
+## Serialized Metadata
+
+When an LCE is serialized, kMCpy records the ordering convention and an
+order-sensitive local environment hash:
 
 ```json
 {
@@ -60,7 +75,21 @@ feature ordering explicit:
 }
 ```
 
-For exact reproduction of that paper's model inputs, prefer converted legacy
-artifacts because they preserve the original `cluster_site_indices`.
-Regenerating local correlation vectors with a different ordering convention and
-reusing old `keci` values can change predicted barriers substantially.
+Fitted parameter files also keep the local environment hash. This lets kMCpy
+detect when ECIs are being attached to a different ordered local environment.
+
+## Practical Rule
+
+For exact reproduction of older published or generated inputs, prefer converted
+legacy artifacts because they preserve the original `cluster_site_indices`.
+
+Do not regenerate local correlation vectors with a different ordering convention
+and reuse old `keci` values. The model may run, but predicted barriers can
+change because the coefficient order no longer matches the feature order.
+
+## Checklist
+
+- Use the default ordering for new models.
+- Set `ordering_convention` only when reproducing a specific workflow.
+- Keep model files and fitted parameter files together.
+- Treat a changed `local_environment_hash` as a model-compatibility warning.
