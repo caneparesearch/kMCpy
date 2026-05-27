@@ -26,6 +26,11 @@ class BasisFunction(ABC):
     
     def __init__(self):
         self.name = self.__class__.__name__.lower().replace('basis', '')
+
+    @property
+    def uses_state_indices(self) -> bool:
+        """Whether occupations store discrete species-state indices."""
+        return False
     
     @property
     @abstractmethod
@@ -50,6 +55,32 @@ class BasisFunction(ABC):
     def basis_function(self) -> List[Union[int, float]]:
         """List defining the basis function values."""
         pass
+
+    def num_site_basis_functions(self, n_states: int) -> int:
+        """Return number of non-constant site basis functions."""
+        return 1
+
+    def state_value(self, state_index: int, n_states: int | None = None) -> Union[int, float]:
+        """Return the occupation value used for a species-state index."""
+        return self.match_value if int(state_index) == 0 else self.mismatch_value
+
+    def site_basis_values(self, n_states: int) -> np.ndarray:
+        """Return basis values with shape ``(n_states, n_basis_functions)``."""
+        return np.array(
+            [
+                [self.state_value(state_index, n_states)]
+                for state_index in range(int(n_states))
+            ],
+            dtype=float,
+        )
+
+    def as_dict(self) -> dict:
+        """Serialize the basis definition."""
+        return {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
+            "name": self.name,
+        }
     
     def flip(self, value: Union[int, float]) -> Union[int, float]:
         """Flip between match and mismatch values."""
@@ -138,28 +169,39 @@ class OccupationBasis(BasisFunction):
         return value == self.vacant_value
 
     def to_chebyshev(self, value: int) -> int:
-        """Convert occupation value to the binary site-state Chebyshev basis."""
-        return 1 if value == self.vacant_value else -1
+        """Convert occupation value to the Chebyshev species-state basis."""
+        return 1 if value == self.vacant_value else 0
 
     def from_chebyshev(self, value: int) -> int:
-        """Convert the binary site-state Chebyshev value to occupation basis."""
-        return self.occupied_value if value == -1 else self.vacant_value
+        """Convert the Chebyshev species-state value to occupation basis."""
+        return self.occupied_value if value == 0 else self.vacant_value
 
 
 @register_basis('chebyshev')
 class ChebyshevBasis(BasisFunction):
     """
-    Binary site-state Chebyshev basis used for cluster expansion.
+    Discrete site-state Chebyshev basis used for cluster expansion.
 
-    In Chebyshev basis:
-    - -1 = site matches the first species in the site mapping
-    - +1 = site is missing or matches another allowed species
+    kMCpy stores occupations as species-state indices. A site with ``q``
+    allowed species has states ``0`` through ``q - 1`` and ``q - 1``
+    non-constant Chebyshev basis functions.
     """
+
+    def __init__(self, max_states: int = 2):
+        super().__init__()
+        if int(max_states) < 2:
+            raise ValueError("ChebyshevBasis requires at least two states")
+        self.max_states = int(max_states)
+
+    @property
+    def uses_state_indices(self) -> bool:
+        """Chebyshev occupations are stored as species-state indices."""
+        return True
 
     @property
     def match_value(self) -> int:
         """Value when site matches the first mapped species."""
-        return -1
+        return 0
 
     @property
     def mismatch_value(self) -> int:
@@ -178,15 +220,15 @@ class ChebyshevBasis(BasisFunction):
 
     @property
     def valid_values(self) -> set:
-        return {-1, 1}
+        return set(range(self.max_states))
 
     @property
-    def basis_function(self) -> List[int]:
-        return [-1, 1]
+    def basis_function(self) -> List[Union[int, float, list]]:
+        return self.site_basis_values(self.max_states).tolist()
 
     def flip(self, value: int) -> int:
         """Flip between match and mismatch."""
-        return -value
+        return self.mismatch_value if value == self.match_value else self.match_value
 
     def flip_value(self, value: int) -> int:
         """Alias for flip for backward compatibility."""
@@ -204,7 +246,7 @@ class ChebyshevBasis(BasisFunction):
         """
         Convert Chebyshev value to occupation basis.
 
-        Chebyshev: -1 (first species), +1 (missing/second species)
+        Chebyshev: 0 (first species), 1 (missing/second species)
         Occupation: 0 (vacant), 1 (occupied)
         """
         return 1 if value == self.occupied_value else 0
@@ -214,12 +256,42 @@ class ChebyshevBasis(BasisFunction):
         Convert occupation value to Chebyshev basis.
 
         Occupation: 0 (vacant), 1 (occupied)
-        Chebyshev: -1 (first species), +1 (missing/second species)
+        Chebyshev: 0 (first species), 1 (missing/second species)
         """
         return self.occupied_value if value == 1 else self.vacant_value
 
+    def num_site_basis_functions(self, n_states: int) -> int:
+        """Return ``q - 1`` non-constant basis functions for ``q`` states."""
+        n_states = int(n_states)
+        if n_states < 2:
+            return 1
+        return n_states - 1
 
-def get_basis(name: str) -> BasisFunction:
+    def state_value(self, state_index: int, n_states: int | None = None) -> int:
+        """Return the occupation value for a species-state index."""
+        return int(state_index)
+
+    def site_basis_values(self, n_states: int) -> np.ndarray:
+        """
+        Return discrete Chebyshev values for a site's allowed species.
+
+        The species states are encoded as equally spaced points in ``[-1, 1]``.
+        For ``q`` species, the returned columns are ``T_1`` through
+        ``T_{q-1}`` evaluated at those points.
+        """
+        n_states = int(n_states)
+        if n_states < 2:
+            return np.ones((n_states, 1), dtype=float)
+        encoded = np.linspace(-1.0, 1.0, n_states)
+        return np.polynomial.chebyshev.chebvander(encoded, n_states - 1)[:, 1:]
+
+    def as_dict(self) -> dict:
+        payload = super().as_dict()
+        payload["max_states"] = self.max_states
+        return payload
+
+
+def get_basis(name: str, **kwargs) -> BasisFunction:
     """
     Get a basis function instance by name.
     
@@ -234,7 +306,7 @@ def get_basis(name: str) -> BasisFunction:
     """
     if name not in BASIS_REGISTRY:
         raise ValueError(f"Unknown basis '{name}'. Available: {list(BASIS_REGISTRY.keys())}")
-    return BASIS_REGISTRY[name]()
+    return BASIS_REGISTRY[name](**kwargs)
 
 
 class Occupation:

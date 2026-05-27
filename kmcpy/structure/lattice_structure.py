@@ -19,9 +19,9 @@ class LatticeStructure(ABC):
             template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
             site_mapping: a dictionary mapping template species to allowed species; fixed sites have a single allowed species,
             e.g. {"Na":["Na","X"],"X":["Na","X"],"Sb":["Sb","W"],"W":["Sb","W"]} X is the vacancy site
-            basis_type: str, the type of basis function: 'occupation':[0,1]
-                or 'chebyshev'[-1,+1]. Chebyshev maps the first species in
-                each site mapping to -1 and missing/other allowed species to +1.
+            basis_type: str, the type of basis function. For 'chebyshev',
+                occupations store species-state indices and the LCE evaluates
+                q - 1 Chebyshev site functions for q allowed species.
         '''
         self.template_structure = template_structure
 
@@ -48,13 +48,6 @@ class LatticeStructure(ABC):
                 ]
         self.site_mapping = site_mapping
                 
-        # Initialize basis using new registry system
-        try:
-            self.basis = get_basis(basis_type)
-            self.basis_type = basis_type
-        except ValueError as e:
-            raise ValueError(f'Basis type {basis_type} not supported. {e}')
-        
         # Initialization of species for LatticeStructure
         # allowed_species is like [["Na","Va"],["Na","Va"],["Na","Va"],["Na","Va"], ... ,["Sb","W"],["Sb","W"],["Sb","W"]]
         self.allowed_species = []
@@ -66,6 +59,20 @@ class LatticeStructure(ABC):
 
         if len(self.allowed_species) != len(self.template_structure):
             raise ValueError(f"Species length {len(self.allowed_species)} does not match template structure length {len(self.template_structure)}!")
+
+        # Initialize basis using the registry.
+        max_states = max(
+            2,
+            max(len(species) for species in self.allowed_species if species),
+        )
+        try:
+            if basis_type == "chebyshev":
+                self.basis = get_basis(basis_type, max_states=max_states)
+            else:
+                self.basis = get_basis(basis_type)
+            self.basis_type = basis_type
+        except ValueError as e:
+            raise ValueError(f'Basis type {basis_type} not supported. {e}')
 
         try:
             self.active_site_index_map = self.get_active_site_index_map()
@@ -166,9 +173,14 @@ class LatticeStructure(ABC):
         logger.debug(f"Supercell template has {len(supercell_template)} sites")
         logger.debug(f"Input structure has {len(structure)} sites")
         
-        # Initialize all sites as mismatch (vacant - no atom present)
-        occ_data = np.full(len(supercell_template), self.basis.mismatch_value,
-                          dtype=type(self.basis.mismatch_value))
+        # Initialize missing sites as the vacancy state when available.
+        occ_data = np.array(
+            [
+                self._missing_occupation_value(allowed_species)
+                for allowed_species in supercell_allowed_species
+            ],
+            dtype=type(self.basis.match_value),
+        )
 
         # Handle empty structure case (all sites are vacant)
         if len(structure) == 0:
@@ -225,19 +237,18 @@ class LatticeStructure(ABC):
                 )
 
             actual_species = structure[structure_site_index].specie
-            if self._species_matches(actual_species, allowed_species[0]):
-                occ_data[template_site_index] = self.basis.match_value
-            elif any(
-                self._species_matches(actual_species, allowed)
-                for allowed in allowed_species[1:]
-            ):
-                occ_data[template_site_index] = self.basis.mismatch_value
-            else:
+            try:
+                occ_data[template_site_index] = self.occupation_value_for_species(
+                    template_site_index,
+                    actual_species,
+                    allowed_species=allowed_species,
+                )
+            except ValueError:
                 raise ValueError(
                     "No mapping found: species "
                     f"{actual_species} is not allowed at template site "
                     f"{template_site_index}"
-                )
+                ) from None
         
         logger.debug(f"Occupation vector: {occ_data}")
         
@@ -276,13 +287,66 @@ class LatticeStructure(ABC):
 
     @staticmethod
     def _species_matches(actual, expected) -> bool:
-        if actual == expected:
-            return True
-        if isinstance(expected, Vacancy):
-            return isinstance(actual, Vacancy)
-        actual_element = getattr(actual, "element", actual)
-        expected_element = getattr(expected, "element", expected)
-        return actual_element == expected_element
+        return bool(
+            LatticeStructure._species_tokens(actual).intersection(
+                LatticeStructure._species_tokens(expected)
+            )
+        )
+
+    @staticmethod
+    def _is_vacancy_species(specie) -> bool:
+        return isinstance(specie, Vacancy) or specie == "X" or getattr(specie, "symbol", None) == "X"
+
+    @staticmethod
+    def _species_tokens(specie) -> set[str]:
+        if LatticeStructure._is_vacancy_species(specie):
+            return {"X", "Vacancy"}
+        tokens = {str(specie)}
+        symbol = getattr(specie, "symbol", None)
+        if symbol is not None:
+            tokens.add(str(symbol))
+        element = getattr(specie, "element", None)
+        if element is not None:
+            tokens.add(str(element))
+        return tokens
+
+    def _missing_occupation_value(self, allowed_species):
+        if not allowed_species:
+            return self.basis.mismatch_value
+        for state_index, specie in enumerate(allowed_species):
+            if self._is_vacancy_species(specie):
+                return self.basis.state_value(state_index, len(allowed_species))
+        fallback_state = 1 if len(allowed_species) > 1 else 0
+        return self.basis.state_value(fallback_state, len(allowed_species))
+
+    def occupation_value_for_species(
+        self,
+        site_index: int,
+        specie,
+        allowed_species=None,
+    ):
+        """Return the occupation value for a species at a template site."""
+        allowed_species = (
+            self.allowed_species[int(site_index)]
+            if allowed_species is None
+            else allowed_species
+        )
+        if not allowed_species:
+            raise ValueError(f"No allowed species defined for site {site_index}")
+        for state_index, allowed in enumerate(allowed_species):
+            if self._species_matches(specie, allowed):
+                return self.basis.state_value(state_index, len(allowed_species))
+        raise ValueError(f"Species {specie} is not allowed at site {site_index}")
+
+    def species_for_occupation_value(self, site_index: int, value):
+        """Return the allowed species represented by an occupation value."""
+        allowed_species = self.allowed_species[int(site_index)]
+        if not allowed_species:
+            raise ValueError(f"No allowed species defined for site {site_index}")
+        for state_index, specie in enumerate(allowed_species):
+            if value == self.basis.state_value(state_index, len(allowed_species)):
+                return specie
+        raise ValueError(f"Unsupported occupation value {value} at site {site_index}")
         
     def get_structure_from_occ(self, occ: Occupation, sc_matrix=None) -> Structure:
         '''get_structure_from_occ() takes an Occupation object and returns a pymatgen Structure
@@ -311,16 +375,10 @@ class LatticeStructure(ABC):
         # Iterate through the sites and set species based on occupation
         for i, site in enumerate(new_lattice_structure.template_structure):
             occ_value = occ[i]  # Get occupation value at site i
-            if occ_value == self.basis.mismatch_value:
-                # If mismatch, set to the second allowed species for this site
-                site.species = self.allowed_species[i][1]
-            elif occ_value == self.basis.match_value:
-                # If match, set to the first allowed species (template)
-                site.species = self.allowed_species[i][0]
-                # if isinstance(self.allowed_species[i][0], Vacancy):
-                #     # If it's a vacancy, we should remove the site
-                #     # Note: This needs to be done carefully to avoid index issues
-                #     pass  # Handle vacancy removal in a separate step
+            site.species = new_lattice_structure.species_for_occupation_value(
+                i,
+                occ_value,
+            )
         
         # Remove vacancy sites in reverse order to avoid index shifting issues
         vacancy_indices = []

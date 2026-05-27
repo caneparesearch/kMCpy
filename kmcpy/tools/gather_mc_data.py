@@ -87,7 +87,7 @@ def get_occ(mc_poscar, template_structure):
         casm_frac_coords, template_frac_coords, casm_species, template_species, lattice
     )
     print(occ)
-    print(len(np.where(occ == -1)[0]))
+    print(len(np.where(occ == 0)[0]))
 
     print("Finished", mc_poscar)
     return np.array(occ)

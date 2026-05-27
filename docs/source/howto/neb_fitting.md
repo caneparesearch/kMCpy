@@ -45,7 +45,11 @@ If the model was just built in memory with `LocalClusterExpansion.build(...)`,
 the reference local lattice is already attached to the model and
 `reference_local_lattice_structure` can be omitted.
 
-With `basis_type="chebyshev"`, kMCpy uses the binary site-state convention:
-the first species in each mapping is `-1`, and the second or missing state is
-`+1`. For example, `{"Na": ["Na", "X"], "Si": ["Si", "P"]}` gives
-`Na=-1`, `X=+1`, `Si=-1`, and `P=+1`.
+With `basis_type="chebyshev"`, kMCpy chooses the site basis from the number of
+allowed species on each active site. Occupations are stored as discrete
+species-state indices: `{"Na": ["Na", "X"]}` gives `Na=0` and `X=1`.
+Mappings with more than two species use the same convention and add `q - 1`
+Chebyshev basis functions for a site with `q` allowed species. For example,
+`{"Al": ["Al", "X", "Mg", "Si"]}` stores `Al=0`, `X=1`, `Mg=2`, and `Si=3`,
+and contributes three non-constant site basis functions to decorated LCE
+cluster features.

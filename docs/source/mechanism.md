@@ -90,7 +90,12 @@ where $E_0$ is the base barrier for an empty cluster, $\alpha_i$ are fitted expa
 
 kMCpy supports multiple types of basis functions to represent the local environment:
 
-**Chebyshev polynomials** are orthogonal polynomials that efficiently represent smooth variations in barrier height as a function of the local environment. These are particularly useful when the barrier depends continuously on factors like the distance to neighboring ions.
+**Chebyshev site functions** encode the discrete species state on each active
+site. If a site allows `q` species, kMCpy stores the species as state indices
+`0..q-1` and evaluates `q - 1` non-constant Chebyshev functions for that site.
+Cluster features are then decorated products of the selected site functions,
+so a pair of two four-species sites contributes up to `3 x 3` decorated pair
+functions.
 
 **Indicator functions** are binary functions that signal the presence or absence of specific atomic configurations. These are useful for capturing discrete structural features that affect migration barriers.
 
@@ -125,7 +130,13 @@ kMCpy combines these contributions to compute the effective barrier for each hop
 
 $$E_{\text{eff}} = E_{\text{KRA}} + \frac{\text{direction} \times \Delta E_{\text{site}}}{2}$$
 
-where direction indicates whether the hop is forward (+1) or backward (-1), and $\Delta E_{\text{site}}$ is the site energy difference between the final and initial sites. This formulation ensures that detailed balance is maintained: the ratio of forward to backward hop rates satisfies the Boltzmann factor for the site energy difference.
+where direction indicates whether the hop is forward (+1), backward (-1), or
+currently unavailable (0). kMCpy derives this from precomputed mobile/vacancy
+state codes for each event endpoint, so multistate active sites do not rely on
+numeric subtraction of occupation labels. $\Delta E_{\text{site}}$ is the site
+energy difference between the final and initial sites. This formulation ensures
+that detailed balance is maintained: the ratio of forward to backward hop rates
+satisfies the Boltzmann factor for the site energy difference.
 
 ## Local Barrier Model
 

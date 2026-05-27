@@ -14,6 +14,7 @@ from kmcpy.simulator.tracker import (
     CallbackExecutionError,
     Tracker,
 )
+from kmcpy.simulator.hop import HopStateLookup
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, PropertyPlan
 from kmcpy.event import Event, EventLib
 from monty.serialization import dumpfn, loadfn
@@ -43,6 +44,7 @@ class KMC:
                 event_lib: EventLib,
                 config: "Configuration",
                 simulation_state: "State" = None,
+                hop_state_lookup: HopStateLookup | None = None,
                 **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
@@ -77,6 +79,11 @@ class KMC:
         
         # Store the event library (already loaded)
         self.event_lib = event_lib
+
+        # Store and apply precomputed hop-state metadata for fast direction checks.
+        self.hop_state_lookup = hop_state_lookup
+        if self.hop_state_lookup is not None:
+            self.hop_state_lookup.annotate_event_lib(self.event_lib)
         
         # Initialize occupation state from simulation_state.
         if simulation_state is not None:
@@ -200,6 +207,10 @@ class KMC:
         model = BaseModel.from_config(config)
         event_lib = EventLib.from_file(config.event_file)
         event_lib.validate_index_metadata(active_site_index_map)
+        hop_state_lookup = HopStateLookup.from_active_site_index_map(
+            active_site_index_map,
+            config.mobile_ion_specie,
+        )
 
         if config.initial_occupations is not None:
             simulation_state = State.from_occupations(
@@ -221,6 +232,7 @@ class KMC:
             event_lib=event_lib,
             config=config,
             simulation_state=simulation_state,
+            hop_state_lookup=hop_state_lookup,
         )
 
     def show_project_info(self):
@@ -505,6 +517,7 @@ class KMC:
             initial_state=self.simulation_state,
             property_plan=self.property_plan,
             default_property_interval=max(pass_length, 1),
+            hop_state_lookup=getattr(self, "hop_state_lookup", None),
         )
         self._active_tracker = tracker
         logger.info("Using clean State architecture")

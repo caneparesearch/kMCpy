@@ -16,6 +16,7 @@ import numpy as np
 from kmcpy.models.base import CompositeModel, MODEL_FILETYPE, require_model_type
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
+from kmcpy.simulator.hop import event_direction
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
@@ -144,7 +145,7 @@ class CompositeLCEModel(CompositeModel):
         occ = simulation_state.occupations
         
         # Determine the direction of the event
-        direction = (occ[event.mobile_ion_indices[1]] - occ[event.mobile_ion_indices[0]])/2
+        direction = event_direction(occ, event)
 
         # Calculate effective barrier
         e_barrier = e_kra + direction * e_site / 2

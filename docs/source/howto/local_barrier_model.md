@@ -116,24 +116,26 @@ model.add_state_count_rule(
 `compute_probability(...)` uses the selected barrier in the Arrhenius form:
 
 ```text
-rate = abs(direction) * attempt_frequency * exp(-barrier / (kB * temperature))
+rate = hop_available * attempt_frequency * exp(-barrier / (kB * temperature))
 ```
 
-where the temperature and attempt frequency come from `RuntimeConfig`.
+where `hop_available` is 1 only when the current endpoint states match a
+mobile-vacancy hop, and the temperature and attempt frequency come from
+`RuntimeConfig`.
 
 ## Occupation Values
 
 The compact KMC occupation vector uses two values:
 
-- `occupied`, `match`, and `template` mean `-1`
-- `vacant`, `vacancy`, `mismatch`, and `other` mean `+1`
+- `occupied`, `match`, and `template` mean `0`
+- `vacant`, `vacancy`, `mismatch`, and `other` mean `1`
 
 Rules can use either the names or the integer values:
 
 ```python
 model.add_state_count_rule(
     sites="local_env",
-    state=-1,
+    state=0,
     min_count=2,
     barrier=410.0,
 )
@@ -271,10 +273,10 @@ site and occupation value into a species label.
 model = LocalBarrierModel(
     default_barrier=300.0,
     site_species={
-        1: {-1: "P", 1: "Si"},
-        2: {-1: "Si", 1: "P"},
-        3: {-1: "Si", 1: "P"},
-        4: {-1: "Al", 1: "Si"},
+        1: {0: "P", 1: "Si"},
+        2: {0: "Si", 1: "P"},
+        3: {0: "Si", 1: "P"},
+        4: {0: "Al", 1: "Si"},
     },
 )
 model.add_species_count_rule(
@@ -295,10 +297,10 @@ model_type: local_barrier
 local_barrier:
   default_barrier: 300.0
   site_species:
-    "1": {"-1": P, "1": Si}
-    "2": {"-1": Si, "1": P}
-    "3": {"-1": Si, "1": P}
-    "4": {"-1": Al, "1": Si}
+    "1": {"0": P, "1": Si}
+    "2": {"0": Si, "1": P}
+    "3": {"0": Si, "1": P}
+    "4": {"0": Al, "1": Si}
   rules:
     - name: si_rich
       type: species_count
@@ -394,7 +396,7 @@ model = LocalBarrierModel.from_exact_entries(
         {
             "mobile_ion_indices": [0, 1],
             "local_env_indices": [1, 2, 3],
-            "occupations": [1, -1, 1, -1],
+            "occupations": [1, 0, 1, 0],
             "properties": {"barrier": 250.0},
         }
     ]
@@ -424,7 +426,7 @@ model.add_exact_rule(
     name="known_environment_0",
     mobile_ion_indices=[0, 1],
     local_env_indices=[1, 2, 3],
-    occupations=[1, -1, 1, -1],
+    occupations=[1, 0, 1, 0],
     barrier=250.0,
 )
 ```

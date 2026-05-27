@@ -12,8 +12,8 @@ small set of ordered rules:
 * match an exact event/local-occupation entry.
 
 The model works with the same compact KMC state used by the simulator. Occupied
-or template-matching sites use ``-1`` and vacant or mismatching sites use
-``+1``. Rule order is significant: the first matching rule supplies the selected
+or template-matching sites use state ``0`` and vacant or mismatching sites use
+state ``1``. Rule order is significant: the first matching rule supplies the selected
 property, usually ``barrier`` in meV. If no rule matches,
 ``default_properties`` are used when present. ``compute_probability`` returns an
 event rate in Hz using temperature in K and attempt frequency in Hz.
@@ -50,6 +50,7 @@ import numpy as np
 
 from kmcpy.event import Event
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
+from kmcpy.simulator.hop import event_direction
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K as K_B_MEV_PER_K
 
@@ -60,9 +61,9 @@ logger = logging.getLogger(__name__)
 
 
 STATE_VALUE_ALIASES = {
-    "occupied": -1,
-    "match": -1,
-    "template": -1,
+    "occupied": 0,
+    "match": 0,
+    "template": 0,
     "vacant": 1,
     "vacancy": 1,
     "mismatch": 1,
@@ -134,19 +135,19 @@ def _event_indices(event: Event) -> tuple[tuple[int, ...], tuple[int, ...], tupl
 
 def _normalize_state_value(value: Any, field_name: str = "state") -> int:
     if isinstance(value, bool):
-        raise TypeError(f"'{field_name}' must be -1, 1, or a state string")
+        raise TypeError(f"'{field_name}' must be 0, 1, or a state string")
     if isinstance(value, int):
-        if value not in (-1, 1):
-            raise ValueError(f"'{field_name}' must be -1 or 1")
+        if value not in (0, 1):
+            raise ValueError(f"'{field_name}' must be 0 or 1")
         return int(value)
     if isinstance(value, str):
         token = value.strip().lower()
         if token in STATE_VALUE_ALIASES:
             return STATE_VALUE_ALIASES[token]
-        if token in {"-1", "+1", "1"}:
+        if token in {"0", "1"}:
             return int(token)
     raise ValueError(
-        f"'{field_name}' must be -1, 1, or one of "
+        f"'{field_name}' must be 0, 1, or one of "
         f"{sorted(STATE_VALUE_ALIASES)}"
     )
 
@@ -415,8 +416,8 @@ class LocalBarrierModel(BaseModel):
     ``LocalBarrierModel`` stores a list of simple rule dictionaries and evaluates
     them against a ``State`` and ``Event``. Each rule returns a dictionary of
     numeric properties; by default ``compute`` returns the ``barrier`` property.
-    ``compute_probability`` then evaluates the Arrhenius rate
-    ``abs(direction) * attempt_frequency * exp(-barrier / kT)``.
+    ``compute_probability`` then evaluates the Arrhenius rate when the current
+    endpoint states match a mobile-vacancy hop.
 
     Parameters:
         rules: Ordered rule dictionaries. The first matching rule is used.
@@ -431,21 +432,21 @@ class LocalBarrierModel(BaseModel):
             ``compute_probability``.
         site_species: Mapping used by ``species_count`` rules. The shape is
             ``{site_index: {occupation_state: species}}``. For example,
-            ``{10: {-1: "P", 1: "Si"}}`` means site 10 is counted as P when
-            its occupation value is ``-1`` and Si when it is ``+1``.
+            ``{10: {0: "P", 1: "Si"}}`` means site 10 is counted as P when
+            its occupation value is ``0`` and Si when it is ``1``.
 
     Supported rule types:
         ``constant``
             Always matches and returns its properties. In most cases,
             ``default_barrier`` is clearer than an explicit constant rule.
         ``state_count``
-            Counts how many selected sites are ``occupied``/``-1`` or
-            ``vacant``/``+1``.
+            Counts how many selected sites are ``occupied``/``0`` or
+            ``vacant``/``1``.
         ``species_count``
             Counts species labels after applying ``site_species``.
         ``pattern``
-            Matches selected occupations against a pattern containing ``-1``,
-            ``+1``, state names, or ``"*"`` wildcards.
+            Matches selected occupations against a pattern containing ``0``,
+            ``1``, state names, or ``"*"`` wildcards.
         ``exact``
             Matches a specific event and exact occupation vector. This is the
             direct replacement for catalog-style local-environment tables.
@@ -477,10 +478,10 @@ class LocalBarrierModel(BaseModel):
             model = LocalBarrierModel(
                 default_barrier=300.0,
                 site_species={
-                    1: {-1: "P", 1: "Si"},
-                    2: {-1: "Si", 1: "P"},
-                    3: {-1: "Si", 1: "P"},
-                    4: {-1: "Al", 1: "Si"},
+                    1: {0: "P", 1: "Si"},
+                    2: {0: "Si", 1: "P"},
+                    3: {0: "Si", 1: "P"},
+                    4: {0: "Al", 1: "Si"},
                 },
             )
             model.add_species_count_rule(
@@ -497,7 +498,7 @@ class LocalBarrierModel(BaseModel):
                 {
                     "mobile_ion_indices": [0, 1],
                     "local_env_indices": [1, 2, 3],
-                    "occupations": [1, -1, 1, -1],
+                    "occupations": [1, 0, 1, 0],
                     "properties": {"barrier": 250.0},
                 }
             ])
@@ -707,7 +708,7 @@ class LocalBarrierModel(BaseModel):
     ) -> str:
         """Add a rule based on the number of sites in an occupation state.
 
-        ``state`` accepts ``"occupied"``/``-1`` or ``"vacant"``/``+1``.
+        ``state`` accepts ``"occupied"``/``0`` or ``"vacant"``/``1``.
         Supply exactly one of ``count`` or a ``min_count``/``max_count`` range.
         """
         rule = {
@@ -996,13 +997,12 @@ class LocalBarrierModel(BaseModel):
             event=event,
             property_name=self.probability_property,
         )
-        from_site, to_site = event.mobile_ion_indices
         occupations = simulation_state.occupations
-        direction = (occupations[to_site] - occupations[from_site]) / 2
+        hop_factor = 1.0 if event_direction(occupations, event) != 0 else 0.0
         temperature = runtime_config.temperature
         attempt_frequency = runtime_config.attempt_frequency
 
-        probability = abs(direction) * attempt_frequency * np.exp(
+        probability = hop_factor * attempt_frequency * np.exp(
             -barrier / (self.BOLTZMANN_CONSTANT_MEV_PER_K * temperature)
         )
         return float(probability)

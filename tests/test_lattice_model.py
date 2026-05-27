@@ -339,7 +339,7 @@ def test_get_occ_from_structure_allowed_substitution_is_mismatch():
     assert occ.array_equal([model.basis.mismatch_value])
 
 
-def test_get_occ_from_structure_chebyshev_sign_convention():
+def test_get_occ_from_structure_chebyshev_state_indices():
     lattice = Lattice.cubic(5.0)
     template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
     model = LatticeStructure(
@@ -352,7 +352,7 @@ def test_get_occ_from_structure_chebyshev_sign_convention():
     substituted_structure = Structure(lattice, ["P"], [[0, 0, 0]])
     vacant_structure = Structure(lattice, [], [])
 
-    assert model.get_occ_from_structure(matching_structure).array_equal([-1])
+    assert model.get_occ_from_structure(matching_structure).array_equal([0])
     assert model.get_occ_from_structure(substituted_structure).array_equal([1])
     assert model.get_occ_from_structure(vacant_structure).array_equal([1])
 

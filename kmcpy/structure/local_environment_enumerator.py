@@ -434,10 +434,6 @@ def _allowed_choices(
     allowed = lattice_structure.allowed_species[site_index]
     if not allowed:
         raise ValueError(f"No allowed species defined for site {site_index}")
-    if len(allowed) > 2:
-        raise ValueError(
-            "Only binary site mappings are supported by kmcpy occupations"
-        )
 
     choices = tuple(allowed)
     if variable_species is not None:
@@ -742,16 +738,7 @@ def _species_for_occupation(
     site_index: int,
     value: int,
 ) -> Any:
-    allowed = lattice_structure.allowed_species[site_index]
-    if not allowed:
-        raise ValueError(f"No allowed species defined for site {site_index}")
-    if value == lattice_structure.basis.match_value:
-        return allowed[0]
-    if len(allowed) < 2:
-        return allowed[0]
-    if value == lattice_structure.basis.mismatch_value:
-        return allowed[1]
-    raise ValueError(f"Unsupported occupation value {value} at site {site_index}")
+    return lattice_structure.species_for_occupation_value(site_index, value)
 
 
 def _occupation_value_for_species(
@@ -759,12 +746,7 @@ def _occupation_value_for_species(
     site_index: int,
     specie: Any,
 ) -> int:
-    allowed = lattice_structure.allowed_species[site_index]
-    if _species_equivalent(specie, allowed[0]):
-        return lattice_structure.basis.match_value
-    if len(allowed) > 1 and _species_equivalent(specie, allowed[1]):
-        return lattice_structure.basis.mismatch_value
-    raise ValueError(f"Species {_species_label(specie)} is not allowed at site {site_index}")
+    return lattice_structure.occupation_value_for_species(site_index, specie)
 
 
 def _first_allowed_species(lattice_structure: LatticeStructure, site_index: int) -> Any:

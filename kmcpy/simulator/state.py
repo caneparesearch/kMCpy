@@ -53,8 +53,7 @@ class State:
         """
         Convert an initial-state ``occupation`` payload into active-site values.
 
-        Initial-state files use site-state indices: ``0`` maps to ``-1``
-        and all nonzero values map to ``+1`` in the Chebyshev basis.
+        Initial-state files use site-state indices directly.
         """
         occupation_raw_data = np.array(occupation_raw_data)
 
@@ -95,14 +94,12 @@ class State:
             ].flatten("C")
             selected = list(select_sites)
 
-        occupation_chebyshev = np.where(occupation == 0, -1, 1)
-
         logger.debug("Selected active sites are %s", selected)
         logger.debug(
-            "Occupation in compact active-site basis: %s", occupation_chebyshev
+            "Occupation in compact active-site basis: %s", occupation
         )
 
-        return occupation_chebyshev.tolist()
+        return occupation.tolist()
 
     @classmethod
     def from_file(
@@ -149,8 +146,10 @@ class State:
     def apply_event(self, event: Event, dt: float) -> None:
         """Apply one event transition and advance simulation counters."""
         from_site, to_site = event.mobile_ion_indices
-        self.occupations[from_site] *= -1
-        self.occupations[to_site] *= -1
+        self.occupations[from_site], self.occupations[to_site] = (
+            self.occupations[to_site],
+            self.occupations[from_site],
+        )
         self.time += dt
         self.step += 1
 

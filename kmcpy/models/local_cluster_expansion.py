@@ -2,11 +2,12 @@
 """
 This module provides classes and functions to build a Local Cluster Expansion (LCE) model for kinetic Monte Carlo (KMC) simulations, particularly for ionic conductors such as NaSICON materials. The main class, `LocalClusterExpansion`, reads a crystal structure file (e.g., CIF format), processes the structure to define a local migration unit, and generates clusters (points, pairs, triplets, quadruplets) within a specified cutoff. The clusters are grouped into orbits based on symmetry, and the resulting model can be serialized to JSON for use in KMC simulations.
 """
-from itertools import combinations
+from itertools import combinations, product
 from typing import TYPE_CHECKING, Optional, Sequence
 from pymatgen.core import Structure
 import numpy as np
 import json
+import hashlib
 import logging
 import warnings
 from kmcpy.models.base import BaseModel
@@ -106,12 +107,8 @@ class LocalClusterExpansion(BaseModel):
         )
 
         self.orbits = self.build_orbits(self.clusters)
+        self._configure_correlation_terms(local_lattice_structure)
         self.orbit_fingerprints = self.get_orbit_fingerprints()
-
-        self.cluster_site_indices = _to_numba_cluster_site_indices([
-            [cluster.site_indices for cluster in orbit.clusters]
-            for orbit in self.orbits
-        ])  # cluster_site_indices[orbit,cluster,site]
         
                 
         logger.info(
@@ -198,18 +195,24 @@ class LocalClusterExpansion(BaseModel):
                 from pymatgen.core.structure import Structure
                 obj.template_structure = Structure.from_dict(value)
             elif key == 'basis':
+                if value is None:
+                    continue
                 # Reconstruct basis if present, default to ChebyshevBasis if unknown
                 basis_class = value.get('@class', 'ChebyshevBasis')
                 if basis_class == 'ChebyshevBasis':
                     from kmcpy.structure.basis import ChebyshevBasis
-                    obj.basis = ChebyshevBasis()
+                    obj.basis = ChebyshevBasis(
+                        max_states=int(value.get("max_states", 2))
+                    )
                 elif basis_class == 'OccupationBasis':
                     from kmcpy.structure.basis import OccupationBasis
                     obj.basis = OccupationBasis()
                 else:
                     # Default to ChebyshevBasis if class is not recognized
                     from kmcpy.structure.basis import ChebyshevBasis
-                    obj.basis = ChebyshevBasis()
+                    obj.basis = ChebyshevBasis(
+                        max_states=int(value.get("max_states", 2))
+                    )
             elif key == 'ordering_convention':
                 obj.ordering_convention = LocalSiteOrderingConvention.resolve(value)
             else:
@@ -221,8 +224,35 @@ class LocalClusterExpansion(BaseModel):
             obj.cluster_site_indices = _to_numba_cluster_site_indices(
                 obj.cluster_site_indices
             )
+        if getattr(obj, "correlation_basis_indices", None) is not None:
+            obj.correlation_basis_indices = _to_numba_cluster_basis_indices(
+                obj.correlation_basis_indices
+            )
+        if getattr(obj, "site_basis_values", None) is not None:
+            obj.site_basis_values = np.asarray(obj.site_basis_values, dtype=float)
 
-        # Legacy JSON fixtures may not include `name`; keep serialization robust.
+        if not hasattr(obj, "basis"):
+            from kmcpy.structure.basis import ChebyshevBasis
+
+            basis_site_state_counts = getattr(obj, "basis_site_state_counts", None) or [2]
+            max_states = max(2, max(basis_site_state_counts))
+            obj.basis = ChebyshevBasis(max_states=max_states)
+
+        if (
+            getattr(obj.basis, "uses_state_indices", False)
+            and hasattr(obj, "cluster_site_indices")
+            and (
+                getattr(obj, "correlation_basis_indices", None) is None
+                or getattr(obj, "site_basis_values", None) is None
+            )
+        ):
+            raise ValueError(
+                "Chebyshev LocalClusterExpansion model files must include "
+                "correlation_basis_indices and site_basis_values. Regenerate "
+                "or resave the model with the current kMCpy schema."
+            )
+
+        # Minimal JSON payloads may not include `name`; keep serialization robust.
         if not getattr(obj, "name", None):
             obj.name = cls.__name__
 
@@ -242,15 +272,34 @@ class LocalClusterExpansion(BaseModel):
             )
 
         if hasattr(obj, "orbits"):
-            expected_orbit_fingerprints = obj.get_orbit_fingerprints()
             stored_orbit_fingerprints = getattr(obj, "orbit_fingerprints", None)
+            if (
+                not hasattr(obj, "correlation_fingerprints")
+                and getattr(obj, "correlation_feature_metadata", None) is not None
+            ):
+                obj.correlation_fingerprints = [
+                    obj._decorated_feature_fingerprint(
+                        obj.orbits[int(metadata["orbit_index"])],
+                        metadata,
+                    )
+                    for metadata in obj.correlation_feature_metadata
+                ]
+            elif (
+                not hasattr(obj, "correlation_fingerprints")
+                and stored_orbit_fingerprints is not None
+                and len(stored_orbit_fingerprints) != len(obj.orbits)
+            ):
+                obj.correlation_fingerprints = [
+                    str(value) for value in stored_orbit_fingerprints
+                ]
+            expected_orbit_fingerprints = obj.get_orbit_fingerprints()
             if (
                 stored_orbit_fingerprints is not None
                 and list(stored_orbit_fingerprints) != expected_orbit_fingerprints
             ):
                 raise ValueError(
                     "Serialized LocalClusterExpansion orbit_fingerprints do not "
-                    "match reconstructed orbits."
+                    "match reconstructed correlation features."
                 )
             obj.orbit_fingerprints = expected_orbit_fingerprints
         
@@ -265,6 +314,8 @@ class LocalClusterExpansion(BaseModel):
 
     def get_orbit_fingerprints(self) -> list[str]:
         """Return orbit fingerprints in the same order as the correlation vector."""
+        if hasattr(self, "correlation_fingerprints"):
+            return [str(value) for value in self.correlation_fingerprints]
         if not hasattr(self, "orbits"):
             return []
         return [orbit.fingerprint for orbit in self.orbits]
@@ -280,7 +331,7 @@ class LocalClusterExpansion(BaseModel):
         expected_orbit_fingerprints = self.get_orbit_fingerprints()
         if expected_orbit_fingerprints and len(keci_values) != len(expected_orbit_fingerprints):
             raise ValueError(
-                "keci length does not match LocalClusterExpansion orbit count: "
+                "keci length does not match LocalClusterExpansion feature count: "
                 f"{len(keci_values)} != {len(expected_orbit_fingerprints)}"
             )
         if expected_orbit_fingerprints and orbit_fingerprints is None:
@@ -316,7 +367,7 @@ class LocalClusterExpansion(BaseModel):
             if len(normalized_orbit_fingerprints) != len(expected_orbit_fingerprints):
                 raise ValueError(
                     "orbit_fingerprints length does not match "
-                    "LocalClusterExpansion orbit count: "
+                    "LocalClusterExpansion feature count: "
                     f"{len(normalized_orbit_fingerprints)} != "
                     f"{len(expected_orbit_fingerprints)}"
                 )
@@ -421,7 +472,7 @@ class LocalClusterExpansion(BaseModel):
         )
         local_occ = occ[reference.site_indices]
         corr = np.empty(shape=len(self.cluster_site_indices))
-        _calc_corr(corr, local_occ.array, self.cluster_site_indices)
+        self._calculate_correlation(corr, local_occ.array)
         return occ, corr
 
     def get_corr_from_structure(
@@ -432,7 +483,7 @@ class LocalClusterExpansion(BaseModel):
         tol=1e-2,
         angle_tol=5,
     ):
-        '''get_corr_from_structure() returns a correlation numpy array of correlation 0/-1 is the same as template and +1 is different
+        '''get_corr_from_structure() returns a correlation numpy array.
         '''
         _, corr = self.get_occ_corr_from_structure(
             structure,
@@ -484,6 +535,127 @@ class LocalClusterExpansion(BaseModel):
             orbits.append(orbit)
         return orbits
 
+    def _configure_correlation_terms(
+        self,
+        local_lattice_structure: LocalLatticeStructure,
+    ) -> None:
+        """Configure correlation-vector terms for the selected site basis."""
+        local_site_indices = [int(index) for index in local_lattice_structure.site_indices]
+        self.basis_site_state_counts = [
+            len(local_lattice_structure.allowed_species[site_index])
+            for site_index in local_site_indices
+        ]
+
+        if not getattr(self.basis, "uses_state_indices", False):
+            self.cluster_site_indices = _to_numba_cluster_site_indices(
+                [
+                    [cluster.site_indices for cluster in orbit.clusters]
+                    for orbit in self.orbits
+                ]
+            )
+            self.correlation_basis_indices = None
+            self.site_basis_values = None
+            self.correlation_feature_metadata = None
+            self.correlation_fingerprints = [orbit.fingerprint for orbit in self.orbits]
+            return
+
+        self.site_basis_values = self._build_site_basis_values(
+            self.basis_site_state_counts
+        )
+        cluster_site_indices = []
+        cluster_basis_indices = []
+        feature_metadata = []
+        feature_fingerprints = []
+
+        for orbit_index, orbit in enumerate(self.orbits):
+            representative = orbit.clusters[0]
+            site_count = len(representative.site_indices)
+            basis_counts = []
+            for position in range(site_count):
+                counts_for_position = [
+                    self.basis.num_site_basis_functions(
+                        self.basis_site_state_counts[int(cluster.site_indices[position])]
+                    )
+                    for cluster in orbit.clusters
+                ]
+                basis_counts.append(min(counts_for_position))
+
+            for decoration in product(*(range(count) for count in basis_counts)):
+                decoration = tuple(int(index) for index in decoration)
+                cluster_site_indices.append(
+                    [cluster.site_indices for cluster in orbit.clusters]
+                )
+                cluster_basis_indices.append(
+                    [decoration for _cluster in orbit.clusters]
+                )
+                site_state_counts = [
+                    self.basis_site_state_counts[int(site_index)]
+                    for site_index in representative.site_indices
+                ]
+                metadata = {
+                    "orbit_index": int(orbit_index),
+                    "basis_indices": list(decoration),
+                    "site_state_counts": site_state_counts,
+                }
+                feature_metadata.append(metadata)
+                feature_fingerprints.append(
+                    self._decorated_feature_fingerprint(orbit, metadata)
+                )
+
+        self.cluster_site_indices = _to_numba_cluster_site_indices(cluster_site_indices)
+        self.correlation_basis_indices = _to_numba_cluster_basis_indices(
+            cluster_basis_indices
+        )
+        self.correlation_feature_metadata = feature_metadata
+        self.correlation_fingerprints = feature_fingerprints
+
+    def _build_site_basis_values(self, site_state_counts: Sequence[int]) -> np.ndarray:
+        """Return padded per-local-site basis lookup values."""
+        max_states = max(int(count) for count in site_state_counts)
+        max_basis_count = max(
+            self.basis.num_site_basis_functions(int(count))
+            for count in site_state_counts
+        )
+        values = np.zeros(
+            (len(site_state_counts), max_states, max_basis_count),
+            dtype=float,
+        )
+        for site_index, n_states in enumerate(site_state_counts):
+            site_values = self.basis.site_basis_values(int(n_states))
+            values[
+                site_index,
+                : site_values.shape[0],
+                : site_values.shape[1],
+            ] = site_values
+        return values
+
+    @staticmethod
+    def _decorated_feature_fingerprint(orbit: Orbit, metadata: dict) -> str:
+        """Return a stable fingerprint for a decorated orbit feature."""
+        payload = {
+            "orbit_fingerprint": orbit.fingerprint,
+            "basis_indices": metadata["basis_indices"],
+            "site_state_counts": metadata["site_state_counts"],
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    def _calculate_correlation(self, corr: np.ndarray, occupation: np.ndarray) -> None:
+        """Fill a correlation vector for an occupation array."""
+        if (
+            getattr(self, "correlation_basis_indices", None) is not None
+            and getattr(self, "site_basis_values", None) is not None
+        ):
+            _calc_corr_decorated(
+                corr,
+                occupation.astype(np.int64),
+                self.cluster_site_indices,
+                self.correlation_basis_indices,
+                self.site_basis_values,
+            )
+        else:
+            _calc_corr(corr, occupation, self.cluster_site_indices)
+
     def compute(self, simulation_state:State, event:Event):
         """
         Compute energy value using stored parameters and correlation coefficients.
@@ -526,7 +698,7 @@ class LocalClusterExpansion(BaseModel):
         # Extract local occupation using event's local environment indices
         occ_sublat = deepcopy(occ_global[list(event.local_env_indices)])
             
-        _calc_corr(corr, occ_sublat, self.cluster_site_indices)
+        self._calculate_correlation(corr, occ_sublat)
         
         # Compute energy using stored parameters
         result = np.inner(corr, self.keci) + self.empty_cluster
@@ -633,17 +805,34 @@ class LocalClusterExpansion(BaseModel):
                 [[int(site_idx) for site_idx in cluster] for cluster in orbit]
                 for orbit in self.cluster_site_indices
             ]
+        correlation_basis_indices = None
+        if getattr(self, "correlation_basis_indices", None) is not None:
+            correlation_basis_indices = [
+                [[int(index) for index in cluster] for cluster in feature]
+                for feature in self.correlation_basis_indices
+            ]
 
         payload = {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "name": self.name,
+            "basis": self.basis.as_dict() if hasattr(self.basis, "as_dict") else None,
             "orbits": [orbit.as_dict() for orbit in self.orbits],
             "orbit_fingerprints": self.get_orbit_fingerprints(),
             "cluster_site_indices": cluster_site_indices,
             "center_site": self.center_site.as_dict(),
             "migration_unit_structure": self.local_env_structure.as_dict()
         }
+        if hasattr(self, "basis_site_state_counts"):
+            payload["basis_site_state_counts"] = [
+                int(count) for count in self.basis_site_state_counts
+            ]
+        if correlation_basis_indices is not None:
+            payload["correlation_basis_indices"] = correlation_basis_indices
+        if getattr(self, "site_basis_values", None) is not None:
+            payload["site_basis_values"] = self.site_basis_values.tolist()
+        if getattr(self, "correlation_feature_metadata", None) is not None:
+            payload["correlation_feature_metadata"] = self.correlation_feature_metadata
         if hasattr(self, "ordering_convention"):
             payload["ordering_convention"] = self.ordering_convention.as_dict()
         if hasattr(self, "local_environment_signature"):
@@ -667,6 +856,18 @@ def _to_numba_cluster_site_indices(cluster_site_indices):
     )
 
 
+def _to_numba_cluster_basis_indices(cluster_basis_indices):
+    """Convert nested cluster basis-function indices into numba typed lists."""
+    from numba.typed import List
+
+    return List(
+        [
+            List([List([int(basis_idx) for basis_idx in cluster]) for cluster in feature])
+            for feature in cluster_basis_indices
+        ]
+    )
+
+
 @nb.njit
 def _calc_corr(corr, occ_latt, cluster_site_indices):
     """
@@ -684,5 +885,34 @@ def _calc_corr(corr, occ_latt, cluster_site_indices):
             corr_cluster = 1
             for occ_site in sublat_ind_cluster:
                 corr_cluster *= occ_latt[occ_site]
+            corr[i] += corr_cluster
+        i += 1
+
+
+@nb.njit
+def _calc_corr_decorated(
+    corr,
+    occ_latt,
+    cluster_site_indices,
+    cluster_basis_indices,
+    site_basis_values,
+):
+    """
+    Calculate decorated multicomponent correlation functions.
+
+    ``occ_latt`` stores species-state indices. ``site_basis_values`` maps
+    ``[local_site, state_index, basis_index]`` to the scalar basis value.
+    """
+    i = 0
+    for sublat_ind_orbit in cluster_site_indices:
+        corr[i] = 0.0
+        basis_ind_orbit = cluster_basis_indices[i]
+        for cluster_index, sublat_ind_cluster in enumerate(sublat_ind_orbit):
+            corr_cluster = 1.0
+            basis_ind_cluster = basis_ind_orbit[cluster_index]
+            for site_position, occ_site in enumerate(sublat_ind_cluster):
+                state_index = int(occ_latt[occ_site])
+                basis_index = int(basis_ind_cluster[site_position])
+                corr_cluster *= site_basis_values[occ_site, state_index, basis_index]
             corr[i] += corr_cluster
         i += 1

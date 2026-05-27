@@ -30,7 +30,7 @@ def test_run_kmc_direct_args_accept_model_file(monkeypatch):
         temperature=300.0,
         convert_to_primitive_cell=False,
         site_mapping={"Na": ["Na", "X"]},
-        initial_occupations=[1, -1],
+        initial_occupations=[0, 1],
     )
 
     run_kmc_module.run_kmc(args)

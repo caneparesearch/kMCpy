@@ -27,6 +27,7 @@ from kmcpy.simulator.property import (
     validate_max_records,
     validate_schedule,
 )
+from kmcpy.simulator.hop import INVALID_STATE, event_direction
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration
@@ -106,6 +107,7 @@ class Tracker:
         initial_state: Optional["State"] = None,
         property_plan: Optional[PropertyPlan] = None,
         default_property_interval: Optional[int] = None,
+        hop_state_lookup: Any = None,
     ) -> None:
         """Initialize tracker state, trajectory arrays, and built-in sampling."""
         logger.info("Initializing Tracker ...")
@@ -115,6 +117,7 @@ class Tracker:
         self.config = config
         self.structure = structure
         self.state = initial_state
+        self.hop_state_lookup = hop_state_lookup
 
         self._initialize_mobile_ion_tracking(initial_state.occupations)
 
@@ -150,12 +153,21 @@ class Tracker:
 
     def _initialize_mobile_ion_tracking(self, initial_occ: list[int]) -> None:
         """Initialize mobile ion tracking arrays."""
-        self.n_mobile_ion_specie_site = len(
-            [el.symbol for el in self.structure.species if self.mobile_ion_specie in el.symbol]
-        )
-        self.mobile_ion_specie_locations = np.where(
-            np.array(initial_occ[0 : self.n_mobile_ion_specie_site]) == -1
-        )[0]
+        if self.hop_state_lookup is None:
+            self.n_mobile_ion_specie_site = len(
+                [el.symbol for el in self.structure.species if self.mobile_ion_specie in el.symbol]
+            )
+            initial_active_occ = np.array(initial_occ[0 : self.n_mobile_ion_specie_site])
+            mobile_state_mask = initial_active_occ == 0
+        else:
+            mobile_states = self.hop_state_lookup.mobile_state_by_site
+            self.n_mobile_ion_specie_site = int(np.sum(mobile_states != INVALID_STATE))
+            initial_active_occ = np.array(initial_occ[0 : len(mobile_states)])
+            mobile_state_mask = (
+                (mobile_states != INVALID_STATE)
+                & (initial_active_occ == mobile_states)
+            )
+        self.mobile_ion_specie_locations = np.where(mobile_state_mask)[0]
         self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
 
         logger.debug("Initial mobile ion locations = %s", self.mobile_ion_specie_locations)
@@ -230,12 +242,18 @@ class Tracker:
         config: "Configuration",
         structure: Structure,
         occ_initial: list,
+        hop_state_lookup: Any = None,
     ) -> "Tracker":
         """Construct tracker from config and initial occupations."""
         from kmcpy.simulator.state import State
 
         initial_state = State(occupations=occ_initial)
-        return cls(config=config, structure=structure, initial_state=initial_state)
+        return cls(
+            config=config,
+            structure=structure,
+            initial_state=initial_state,
+            hop_state_lookup=hop_state_lookup,
+        )
 
     def set_global_property_frequency(
         self,
@@ -548,7 +566,7 @@ class Tracker:
                 np.array2string(current_occ, precision=0, separator=", "),
             )
 
-        direction = int((mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2)
+        direction = event_direction(current_occ, event)
         displacement_frac = copy(direction * (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord))
         displacement_frac -= np.array([int(round(i)) for i in displacement_frac])
         displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))

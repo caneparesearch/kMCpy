@@ -67,8 +67,8 @@ def test_enumerates_local_environments_in_deterministic_order():
         "1:P|2:P",
     ]
     assert all(isinstance(result, LocalEnvironmentEnumeration) for result in results)
-    assert results[0].full_occupation.array_equal([-1, -1, -1])
-    assert results[-1].full_occupation.array_equal([-1, 1, 1])
+    assert results[0].full_occupation.array_equal([0, 0, 0])
+    assert results[-1].full_occupation.array_equal([0, 1, 1])
     assert results[1].local_site_indices == tuple(results[1].local_site_indices)
     assert results[1].variable_site_indices == (1, 2)
 
@@ -102,8 +102,8 @@ def test_enumeration_handles_vacancy_sites():
 
     assert [result.label for result in results] == ["0:Na|1:X", "0:X|1:Na"]
     assert [len(result.structure) for result in results] == [3, 3]
-    assert results[0].full_occupation.array_equal([-1, 1, -1])
-    assert results[1].full_occupation.array_equal([1, -1, -1])
+    assert results[0].full_occupation.array_equal([0, 1, 0])
+    assert results[1].full_occupation.array_equal([1, 0, 0])
 
 
 def test_enumeration_infers_fixed_sites_from_mapping():
@@ -153,15 +153,15 @@ def test_enumeration_uses_provided_pymatgen_transformation():
 
 def test_neb_endpoint_pair_uses_mobile_ion_indices_and_preserves_atom_order():
     model = _mobile_lattice_model()
-    occupation = Occupation([-1, -1, 1, -1], basis=model.basis)
+    occupation = Occupation([0, 0, 1, 0], basis=model.basis)
     generated_event = Event(mobile_ion_indices=(0, 2), local_env_indices=(0, 1, 2))
 
     pair = generate_neb_endpoint_pair(model, occupation, generated_event)
 
     assert isinstance(pair, NEBEndpointPair)
     assert pair.mobile_ion_indices == (0, 2)
-    assert pair.initial_occupation.array_equal([-1, -1, 1])
-    assert pair.final_occupation.array_equal([1, -1, -1])
+    assert pair.initial_occupation.array_equal([0, 0, 1])
+    assert pair.final_occupation.array_equal([1, 0, 0])
     assert [site.species_string for site in pair.initial] == ["Na", "Na", "Cl"]
     assert [site.species_string for site in pair.final] == ["Na", "Na", "Cl"]
     np.testing.assert_allclose(pair.initial.cart_coords[0], [0, 0, 0])
@@ -217,7 +217,7 @@ def test_enumerate_neb_endpoint_pairs_merges_enumeration_and_endpoint_building()
 
 def test_neb_endpoint_pair_rejects_invalid_hops():
     model = _mobile_lattice_model()
-    occupation = Occupation([-1, -1, 1, -1], basis=model.basis)
+    occupation = Occupation([0, 0, 1, 0], basis=model.basis)
 
     with pytest.raises(ValueError, match="two distinct"):
         generate_neb_endpoint_pair(model, occupation, (0, 0))
@@ -226,6 +226,6 @@ def test_neb_endpoint_pair_rejects_invalid_hops():
         generate_neb_endpoint_pair(model, occupation, (0, 3))
 
     chemical_model = _chemical_lattice_model()
-    chemical_occupation = Occupation([-1, -1, -1], basis=chemical_model.basis)
+    chemical_occupation = Occupation([0, 0, 0], basis=chemical_model.basis)
     with pytest.raises(ValueError, match="same first allowed mobile species"):
         generate_neb_endpoint_pair(chemical_model, chemical_occupation, (0, 1))

@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from kmcpy.simulator.kmc import KMC, CallbackExecutionError
+from kmcpy.simulator.hop import HopStateLookup
 from kmcpy.simulator.property import PropertyPlan
 from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker
@@ -46,7 +47,7 @@ def _make_tracker():
         attempt_frequency=1e13,
     )
     structure = _DummyStructure(["Na", "Na", "O"])
-    state = State(occupations=[-1, 1, 1], time=0.0, step=0)
+    state = State(occupations=[0, 1, 1], time=0.0, step=0)
     return Tracker(config=config, structure=structure, initial_state=state), state
 
 
@@ -61,13 +62,44 @@ def test_tracker_update_does_not_advance_state_time():
         attempt_frequency=1e13,
     )
     structure = _DummyStructure(["Na", "Na", "O"])
-    state = State(occupations=[-1, 1, 1], time=0.0, step=0)
+    state = State(occupations=[0, 1, 1], time=0.0, step=0)
     tracker = Tracker(config=config, structure=structure, initial_state=state)
     event = types.SimpleNamespace(mobile_ion_indices=(0, 1), probability=1.0)
 
     tracker.update(event=event, current_occ=state.occupations, dt=0.25)
 
     assert state.time == 0.0
+    assert int(np.sum(tracker.hop_counter)) == 1
+
+
+@pytest.mark.unit
+def test_tracker_uses_precomputed_nonzero_mobile_state():
+    config = types.SimpleNamespace(
+        mobile_ion_specie="Na",
+        dimension=3,
+        mobile_ion_charge=1.0,
+        elementary_hop_distance=1.0,
+        temperature=300.0,
+        attempt_frequency=1e13,
+    )
+    structure = _DummyStructure(["Na", "Na", "O"])
+    state = State(occupations=[2, 1, 0], time=0.0, step=0)
+    lookup = HopStateLookup(
+        mobile_state_by_site=np.array([2, 2, -1], dtype=np.int64),
+        vacancy_state_by_site=np.array([1, 1, -1], dtype=np.int64),
+    )
+    event = types.SimpleNamespace(mobile_ion_indices=(0, 1), probability=1.0)
+    lookup.annotate_event(event)
+    tracker = Tracker(
+        config=config,
+        structure=structure,
+        initial_state=state,
+        hop_state_lookup=lookup,
+    )
+
+    tracker.update(event=event, current_occ=state.occupations, dt=0.25)
+
+    assert tracker.mobile_ion_specie_locations.tolist() == [1]
     assert int(np.sum(tracker.hop_counter)) == 1
 
 
@@ -85,12 +117,14 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
             initial_state,
             property_plan=None,
             default_property_interval=None,
+            hop_state_lookup=None,
         ):
             self.config = config
             self.structure = structure
             self.state = initial_state
             self.property_plan = property_plan
             self.default_property_interval = default_property_interval
+            self.hop_state_lookup = hop_state_lookup
             self.observed_times = []
             self.received_dts = []
             self.attachments = {}
@@ -139,7 +173,7 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     kmc = KMC.__new__(KMC)
     kmc.structure = _DummyStructure(["Li", "Li", "O"])
     kmc.event_lib = types.SimpleNamespace(events=[types.SimpleNamespace(mobile_ion_indices=(0, 1))])
-    kmc.simulation_state = State(occupations=[-1, 1, 1], time=0.0, step=0)
+    kmc.simulation_state = State(occupations=[0, 1, 1], time=0.0, step=0)
 
     config = types.SimpleNamespace(
         name="unit-test",

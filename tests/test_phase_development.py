@@ -113,23 +113,23 @@ class TestSimulationStateArchitecture:
         config = Configuration(system_config=system, runtime_config=runtime)
         
         # Create State (mutable) with initial occupations  
-        initial_occ = [1, -1, 1, -1]
+        initial_occ = [0, 1, 0, 1]
         state = State(
             occupations=initial_occ,
         )
         
         # Test that State manages all mutable state
-        assert state.occupations == [1, -1, 1, -1]
+        assert state.occupations == [0, 1, 0, 1]
         assert state.time == 0.0
         assert state.step == 0
         
         # Test state updates without complex event handling
         state.time = 0.1
         state.step = 1
-        state.occupations = [-1, 1, 1, -1]
+        state.occupations = [1, 0, 0, 1]
         
         # Verify state was updated correctly
-        assert state.occupations == [-1, 1, 1, -1]
+        assert state.occupations == [1, 0, 0, 1]
         assert state.time == 0.1
         assert state.step == 1
         
@@ -152,7 +152,7 @@ class TestSimulationStateArchitecture:
         
         # State should be mutable
         state = State(
-            occupations=[1, -1, 1, -1],
+            occupations=[0, 1, 0, 1],
         )
         
         # Configuration should not change during simulation
@@ -205,7 +205,7 @@ class TestKMCIntegrationImprovements:
         assert config.runtime_config.attempt_frequency == 1e13
         
         # Create initial occupations for state
-        initial_occ = [1, -1, 1, -1]
+        initial_occ = [0, 1, 0, 1]
         state = State(occupations=initial_occ)
         
         # Test parameter mapping for KMC
@@ -230,7 +230,7 @@ class TestKMCIntegrationImprovements:
         
         # Create State for optimized loop
         state = State(
-            occupations=[1, -1, 1, -1],
+            occupations=[0, 1, 0, 1],
         )
         
         # Test optimized state updates
@@ -238,9 +238,9 @@ class TestKMCIntegrationImprovements:
         
         # Simulate multiple state changes without complex event handling
         state_changes = [
-            ([-1, 1, 1, -1], 0.1),
-            ([1, -1, -1, 1], 0.2),
-            ([-1, -1, 1, 1], 0.3)
+            ([1, 0, 0, 1], 0.1),
+            ([0, 1, 1, 0], 0.2),
+            ([1, 1, 0, 0], 0.3)
         ]
         
         # Process state changes efficiently
@@ -253,7 +253,7 @@ class TestKMCIntegrationImprovements:
         # Verify final state
         assert state.step == len(state_changes)
         assert abs(state.time - 0.6) < 1e-10
-        assert state.occupations == [-1, -1, 1, 1]
+        assert state.occupations == [1, 1, 0, 0]
         
         print("✓ Optimized simulation loop working correctly")
 
@@ -342,7 +342,7 @@ class TestOccupationManagement:
     def test_occupation_state_management(self, test_structure):
         """Test that State properly manages occupations."""
         
-        initial_occ = [1, -1, 1, -1]  # Sites 0,2 occupied, sites 1,3 vacant
+        initial_occ = [0, 1, 0, 1]  # Sites 0,2 occupied, sites 1,3 vacant
         
         state = State(
             occupations=initial_occ,
@@ -352,21 +352,21 @@ class TestOccupationManagement:
         assert state.occupations == initial_occ
         
         # Get occupied and vacant sites manually for testing
-        occupied_sites = [i for i, occ in enumerate(state.occupations) if occ == 1]
-        vacant_sites = [i for i, occ in enumerate(state.occupations) if occ == -1]
+        occupied_sites = [i for i, occ in enumerate(state.occupations) if occ == 0]
+        vacant_sites = [i for i, occ in enumerate(state.occupations) if occ == 1]
         
         assert occupied_sites == [0, 2]
         assert vacant_sites == [1, 3]
         
         # Test occupation updates by directly modifying occupations
-        state.occupations = [-1, 1, 1, -1]  # Move ion from site 0 to site 1
+        state.occupations = [1, 0, 0, 1]  # Move ion from site 0 to site 1
         
         # Check updated occupations
-        assert state.occupations == [-1, 1, 1, -1]
+        assert state.occupations == [1, 0, 0, 1]
         
         # Verify updated occupied/vacant sites
-        new_occupied_sites = [i for i, occ in enumerate(state.occupations) if occ == 1]
-        new_vacant_sites = [i for i, occ in enumerate(state.occupations) if occ == -1]
+        new_occupied_sites = [i for i, occ in enumerate(state.occupations) if occ == 0]
+        new_vacant_sites = [i for i, occ in enumerate(state.occupations) if occ == 1]
         
         assert new_occupied_sites == [1, 2]
         assert new_vacant_sites == [0, 3]
@@ -376,7 +376,7 @@ class TestOccupationManagement:
     def test_no_state_duplication(self, test_structure):
         """Test that there's no duplication of occupation state."""
         
-        initial_occ = [1, -1, 1, -1]
+        initial_occ = [0, 1, 0, 1]
         
         state = State(
             occupations=initial_occ,
@@ -388,10 +388,10 @@ class TestOccupationManagement:
         
         # Modifications should be direct
         original_occ = state.occupations.copy()
-        state.occupations[0] = -1
+        state.occupations[0] = 1
         
         # Should be modified directly
-        assert state.occupations[0] == -1
+        assert state.occupations[0] == 1
         assert state.occupations != original_occ
         
         print("✓ No state duplication verified")

@@ -49,8 +49,8 @@ def test_active_site_map_selects_active_values_and_rejects_wrong_lengths():
         _structure(), {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
     )
 
-    assert index_map.select_active_values([-1, 1, -1]) == [-1, 1, -1]
-    assert index_map.select_active_values([-1, 9, 1, -1]) == [-1, 1, -1]
+    assert index_map.select_active_values([0, 1, 0]) == [0, 1, 0]
+    assert index_map.select_active_values([0, 9, 1, 0]) == [0, 1, 0]
     with pytest.raises(ValueError, match="Occupation length"):
         index_map.select_active_values([1, 2])
 

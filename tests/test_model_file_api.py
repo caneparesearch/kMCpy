@@ -109,13 +109,13 @@ def test_local_barrier_exact_rules_reject_duplicate_entries():
         {
             "mobile_ion_indices": [0, 1],
             "local_env_indices": [1, 2, 3],
-            "occupations": [1, -1, 1, -1],
+            "occupations": [1, 0, 1, 0],
             "properties": {"barrier": 100.0},
         },
         {
             "mobile_ion_indices": [0, 1],
             "local_env_indices": [1, 2, 3],
-            "occupations": [1, -1, 1, -1],
+            "occupations": [1, 0, 1, 0],
             "properties": {"barrier": 110.0},
         },
     ]

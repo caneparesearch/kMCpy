@@ -41,9 +41,10 @@ for environment in environments:
 ```
 
 `species_counts` is an exact count over the variable sites. With
-`basis_type="chebyshev"`, the first species in a site mapping is `-1`, while the
-second species or vacancy is `+1`. For example, `{"Si": ["Si", "P"]}` gives
-`Si=-1` and `P=+1`.
+`basis_type="chebyshev"`, every allowed species is stored as a state index.
+For example, `{"Si": ["Si", "P", "Ge"]}` gives `Si=0`, `P=1`, and `Ge=2` in
+the occupation vector; the LCE basis then evaluates two non-constant
+Chebyshev functions for that site.
 
 ## Pymatgen Transformations
 
