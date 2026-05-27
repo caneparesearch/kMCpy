@@ -1,7 +1,7 @@
-Active Site Index Map
+active_site_index_map
 =====================
 
 .. automodule:: kmcpy.structure.active_site_index_map
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :inherited-members:
+                  

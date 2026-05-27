@@ -1,5 +1,5 @@
 basis
-=========================
+=====
 
 .. automodule:: kmcpy.structure.basis
     :members:

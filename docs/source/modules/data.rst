@@ -1,7 +1,7 @@
-main
+data
 ====
 
-.. automodule:: kmcpy.cli.main
+.. automodule:: kmcpy.io.neb.data
     :members:
     :inherited-members:
                   

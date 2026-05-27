@@ -1,7 +1,7 @@
-Units
+units
 =====
 
 .. automodule:: kmcpy.units
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :inherited-members:
+                  

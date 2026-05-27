@@ -1,5 +1,5 @@
 fitter
-=========================
+======
 
 .. automodule:: kmcpy.models.fitting.fitter
     :members:

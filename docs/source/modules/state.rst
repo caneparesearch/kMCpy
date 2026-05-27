@@ -1,5 +1,5 @@
 state
-=========================
+=====
 
 .. automodule:: kmcpy.simulator.state
     :members:

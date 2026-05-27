@@ -1,7 +1,7 @@
-Local Environment Enumerator
+local_environment_enumerator
 ============================
 
 .. automodule:: kmcpy.structure.local_environment_enumerator
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :inherited-members:
+                  

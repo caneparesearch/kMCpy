@@ -1,7 +1,7 @@
-main
-====
+hop
+===
 
-.. automodule:: kmcpy.cli.main
+.. automodule:: kmcpy.simulator.hop
     :members:
     :inherited-members:
                   

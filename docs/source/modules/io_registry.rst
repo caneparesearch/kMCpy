@@ -1,7 +1,7 @@
-models_base
+io_registry
 ===========
 
-.. automodule:: kmcpy.models.base
+.. automodule:: kmcpy.io.registry
     :members:
     :inherited-members:
                   

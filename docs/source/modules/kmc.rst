@@ -1,5 +1,5 @@
 kmc
-=========================
+===
 
 .. automodule:: kmcpy.simulator.kmc
     :members:

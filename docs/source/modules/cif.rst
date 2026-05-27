@@ -1,7 +1,7 @@
-main
-====
+cif
+===
 
-.. automodule:: kmcpy.cli.main
+.. automodule:: kmcpy.io.cif
     :members:
     :inherited-members:
                   

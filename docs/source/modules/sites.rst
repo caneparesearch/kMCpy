@@ -1,7 +1,7 @@
-main
-====
+sites
+=====
 
-.. automodule:: kmcpy.cli.main
+.. automodule:: kmcpy.structure.sites
     :members:
     :inherited-members:
                   

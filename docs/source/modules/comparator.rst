@@ -1,5 +1,5 @@
 comparator
-=========================
+==========
 
 .. automodule:: kmcpy.structure.comparator
     :members:

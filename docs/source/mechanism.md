@@ -151,26 +151,31 @@ See the [local barrier model how-to](howto/local_barrier_model.md) for rule exam
 From a kMC trajectory, kMCpy computes several quantities that characterize ion transport:
 
 **Mean Squared Displacement (MSD)** tracks how far ions move over time:
+
 $$\text{MSD}(t) = \langle |r_i(t) - r_i(0)|^2 \rangle$$
 
 This quantity increases linearly with time in the diffusive regime.
 
 **Tracer Diffusivity** ($D_{\text{tracer}}$) measures how individual ions diffuse:
+
 $$D_{\text{tracer}} = \lim_{t\to\infty} \frac{\text{MSD}(t)}{6t}$$
 
 This quantity, also called self-diffusivity, tracks each ion's displacement independently. It describes how fast a tagged particle diffuses through the lattice and represents the diffusion coefficient you would measure in a tracer experiment.
 
 **Jump Diffusivity** ($D_J$) measures the collective motion of all mobile ions:
+
 $$D_J = \lim_{t\to\infty} \frac{\langle \Delta r_{\text{cm}}^2 \rangle}{6t}$$
 
 Unlike tracer diffusivity, jump diffusivity accounts for correlations between ion movements. This is the diffusivity that enters the Nernst-Einstein relation connecting diffusion to ionic conductivity. When ions move in a correlated fashion (for example, if one ion's motion tends to block another), jump diffusivity can be significantly different from tracer diffusivity.
 
 **Haven Ratio** ($H_R$) quantifies correlations:
+
 $$H_R = \frac{D_{\text{tracer}}}{D_J}$$
 
 A value of $H_R = 1$ indicates uncorrelated motion. Values away from 1 indicate correlated charge and tracer transport.
 
 **Ionic Conductivity** ($\sigma$) relates diffusion to charge transport:
+
 $$\sigma = \frac{n q^2}{k_B T} D_J$$
 
 where $n$ is the mobile ion concentration and $q$ is the ionic charge. kMCpy
@@ -179,6 +184,7 @@ uses $D_J$ in cm<sup>2</sup>/s, carrier concentration in
 conductivity in mS/cm.
 
 **Correlation Factor** ($f$) compares the net displacement of diffusing ions to an uncorrelated random walk with the same total number of hops:
+
 $$f = \frac{\sum_i |\Delta R_i|^2}{a^2 \sum_i n_i}$$
 
 where $\Delta R_i$ connects the endpoints of ion $i$'s trajectory, $n_i$ is the number of hops made by that ion, and $a$ is the elementary hop distance. This aggregate form is equivalent to a hop-count-weighted average of the single-particle correlation factors, so ions with zero hops naturally do not contribute. The correlation factor measures correlations between successive hops of the same ion and is distinct from the Haven ratio.

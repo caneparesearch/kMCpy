@@ -1,5 +1,5 @@
 parameters
-=========================
+==========
 
 .. automodule:: kmcpy.models.parameters
     :members:
