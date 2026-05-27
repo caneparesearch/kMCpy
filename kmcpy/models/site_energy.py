@@ -23,6 +23,7 @@ _UNIT_FACTORS_TO_MEV = {
     "mev": 1.0,
     "ev": 1000.0,
 }
+_MISSING_STATE_VALUE = object()
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,14 @@ class MappedOccupationChange:
         return (self.external_site, self.old_value, self.new_value)
 
 
+@dataclass(frozen=True)
+class _StateLookup:
+    """Dense lookup array for kMCpy state index to external occupation value."""
+
+    values: np.ndarray
+    offset: int
+
+
 class SiteEnergyModel(BaseModel):
     """Site-energy-difference model with optional external-site mapping.
 
@@ -55,8 +64,9 @@ class SiteEnergyModel(BaseModel):
     starts; per-event evaluation then touches only the two event endpoints.
 
     ``initialize_state`` validates the mapping once, builds the external
-    occupation once, and caches active-site lookups. ``compute`` passes only
-    the two endpoint changes for the proposed event to ``compute_fn``.
+    occupation once, and caches site/state mapping dictionaries as lookup
+    arrays. ``compute`` passes only the two endpoint changes for the proposed
+    event to ``compute_fn``.
     ``apply_event`` updates only accepted endpoints and optionally calls
     ``apply_fn`` to keep a live external evaluator synchronized.
 
@@ -149,6 +159,8 @@ class SiteEnergyModel(BaseModel):
 
         self.external_occupation: np.ndarray | None = None
         self._site_lookup: np.ndarray | None = None
+        self._state_lookup: _StateLookup | None = None
+        self._state_lookup_by_site: tuple[_StateLookup | None, ...] | None = None
         self._compute_callable = None
         self._apply_callable = None
 
@@ -212,6 +224,12 @@ class SiteEnergyModel(BaseModel):
             site_mapping=self.site_mapping,
             external_size=self.external_size,
             initial_occupation=self.initial_occupation,
+        )
+        self._state_lookup = _build_state_lookup(self.state_mapping)
+        self._state_lookup_by_site = _build_state_lookup_by_site(
+            n_sites=len(occupations),
+            state_mapping_by_site=self.state_mapping_by_site,
+            global_state_lookup=self._state_lookup,
         )
         self.external_occupation = self._build_external_occupation(occupations)
         self._validate_event_mappings(event_lib, occupations)
@@ -281,11 +299,11 @@ class SiteEnergyModel(BaseModel):
         return int(self._site_lookup[int(kmcpy_site)])
 
     def _external_value(self, kmcpy_site: int, state_value: int):
-        return _external_state_value(
-            kmcpy_site,
-            state_value,
-            state_mapping=self.state_mapping,
-            state_mapping_by_site=self.state_mapping_by_site,
+        return _external_state_value_from_lookup(
+            kmcpy_site=int(kmcpy_site),
+            state_value=int(state_value),
+            state_lookup=self._state_lookup,
+            state_lookup_by_site=self._state_lookup_by_site,
         )
 
     def _changes_from_pre_state(self, event, occupations) -> list[MappedOccupationChange]:
@@ -691,29 +709,82 @@ def _external_size_from_lookup(
     return int(np.max(lookup)) + 1
 
 
-def _external_state_value(
+def _build_state_lookup(state_mapping: dict[int, Any] | None) -> _StateLookup | None:
+    """Convert a state-mapping dictionary to a dense offset lookup array."""
+    if state_mapping is None:
+        return None
+    if not state_mapping:
+        return _StateLookup(values=np.empty(0, dtype=object), offset=0)
+
+    keys = [int(key) for key in state_mapping]
+    min_state = min(keys)
+    max_state = max(keys)
+    values = np.empty(max_state - min_state + 1, dtype=object)
+    values.fill(_MISSING_STATE_VALUE)
+    for state, external_value in state_mapping.items():
+        values[int(state) - min_state] = external_value
+    return _StateLookup(values=values, offset=min_state)
+
+
+def _build_state_lookup_by_site(
+    *,
+    n_sites: int,
+    state_mapping_by_site: dict[int, dict[int, Any]] | None,
+    global_state_lookup: _StateLookup | None,
+) -> tuple[_StateLookup | None, ...] | None:
+    if state_mapping_by_site is None:
+        return None
+    return tuple(
+        _build_state_lookup(state_mapping_by_site[site])
+        if site in state_mapping_by_site
+        else global_state_lookup
+        for site in range(int(n_sites))
+    )
+
+
+def _external_state_value_from_lookup(
+    *,
     kmcpy_site: int,
     state_value: int,
-    *,
-    state_mapping: dict[int, Any] | None,
-    state_mapping_by_site: dict[int, dict[int, Any]] | None,
+    state_lookup: _StateLookup | None,
+    state_lookup_by_site: tuple[_StateLookup | None, ...] | None,
 ):
-    site = int(kmcpy_site)
-    state = int(state_value)
-    mapping = None
-    if state_mapping_by_site is not None:
-        mapping = state_mapping_by_site.get(site)
-    if mapping is None:
-        mapping = state_mapping
-    if mapping is None:
-        return state
-    try:
-        return mapping[state]
-    except KeyError as exc:
+    lookup = state_lookup
+    if state_lookup_by_site is not None:
+        try:
+            lookup = state_lookup_by_site[int(kmcpy_site)]
+        except IndexError as exc:
+            raise ValueError(
+                f"kMCpy site {kmcpy_site} is outside the state lookup range"
+            ) from exc
+    if lookup is None:
+        return int(state_value)
+    return _state_lookup_value(
+        lookup,
+        kmcpy_site=int(kmcpy_site),
+        state_value=int(state_value),
+    )
+
+
+def _state_lookup_value(
+    lookup: _StateLookup,
+    *,
+    kmcpy_site: int,
+    state_value: int,
+):
+    array_index = int(state_value) - lookup.offset
+    if array_index < 0 or array_index >= len(lookup.values):
         raise ValueError(
-            f"No external state mapping is defined for kMCpy site {site}, "
-            f"state {state}"
-        ) from exc
+            f"No external state mapping is defined for kMCpy site {kmcpy_site}, "
+            f"state {state_value}"
+        )
+    value = lookup.values[array_index]
+    if value is _MISSING_STATE_VALUE:
+        raise ValueError(
+            f"No external state mapping is defined for kMCpy site {kmcpy_site}, "
+            f"state {state_value}"
+        )
+    return value
 
 
 def _resolve_external_dtype(

@@ -112,6 +112,103 @@ kMCpy validates the site mapping during initialization. If an `event_lib` is
 available, it also checks that the endpoint state mappings needed by the events
 are present before the KMC loop starts.
 
+During initialization, readable dictionaries/lists are converted to runtime
+lookup arrays:
+
+```text
+site_lookup[kmcpy_active_site] -> external_site
+state_lookup[kmcpy_state] -> external_occupation_value
+state_lookup_by_site[kmcpy_site][kmcpy_state] -> external_occupation_value
+```
+
+The KMC loop then uses array indexing for event endpoints. It does not walk the
+mapping dictionaries for every proposed hop.
+
+## Build The External Site Mapping
+
+Build `site_mapping` after the external code has finalized its site order. The
+dictionary direction is always:
+
+```python
+site_mapping[kmcpy_active_site_index] = external_site_index
+```
+
+If the external object is built directly from kMCpy's active-site structure and
+keeps the same order, no site mapping is needed:
+
+```python
+active_structure = active_site_index_map.active_structure()
+external_runtime = build_external_runtime(active_structure)
+
+site_model = SiteEnergyModel(
+    runtime=external_runtime,
+    compute_fn=external_delta,
+    state_mapping=kmcpy_state_to_external_value,
+    units="eV",
+)
+```
+
+If the external structure preserves site properties, use the
+`_kmcpy_active_site_index` property. This works for either active-only
+structures or full structures with fixed sites:
+
+```python
+from kmcpy.structure.active_site_index_map import ACTIVE_SITE_PROPERTY
+
+
+def site_mapping_from_property(external_structure, active_site_index_map):
+    site_mapping = {}
+
+    for external_index, site in enumerate(external_structure):
+        active_index = site.properties.get(ACTIVE_SITE_PROPERTY)
+        if active_index is None or int(active_index) < 0:
+            continue
+        site_mapping[int(active_index)] = int(external_index)
+
+    if len(site_mapping) != active_site_index_map.active_site_count:
+        raise ValueError("External structure does not contain every active site.")
+
+    return site_mapping
+```
+
+If the external code drops site properties, match coordinates once before the
+KMC run:
+
+```python
+import numpy as np
+
+
+def site_mapping_from_coordinates(
+    external_structure,
+    active_site_index_map,
+    tol=1e-3,
+):
+    active_structure = active_site_index_map.active_structure()
+    site_mapping = {}
+    used_external_sites = set()
+
+    for active_index, active_site in enumerate(active_structure):
+        distances = external_structure.lattice.get_all_distances(
+            [active_site.frac_coords],
+            external_structure.frac_coords,
+        )[0]
+        external_index = int(np.argmin(distances))
+
+        if float(distances[external_index]) > tol:
+            raise ValueError(f"No external site matches active site {active_index}.")
+        if external_index in used_external_sites:
+            raise ValueError("Two active sites map to the same external site.")
+
+        site_mapping[active_index] = external_index
+        used_external_sites.add(external_index)
+
+    return site_mapping
+```
+
+Coordinate matching is a setup step, not a per-event operation. Store the
+resulting dictionary in the `SiteEnergyModel`; kMCpy converts it to an array in
+`initialize_state(...)`.
+
 ## Site-Order Traceability
 
 kMCpy's own compact active-site order is defined by `ActiveSiteIndexMap`, the
@@ -144,8 +241,8 @@ site_model = SiteEnergyModel(
 When mappings or an external runtime are used, `SiteEnergyModel` does three
 things:
 
-1. At setup, it builds one external occupation array from the initial kMCpy
-   occupation.
+1. At setup, it builds site/state lookup arrays and one external occupation
+   array from the initial kMCpy occupation.
 2. For a proposed event, it maps only the two endpoint changes and calls your
    `compute_fn`.
 3. After an accepted event, it optionally calls your `apply_fn`, then updates
@@ -316,5 +413,5 @@ Before running a simulation, check:
   events.
 - `compute_fn` does not mutate the external occupation for proposed events.
 - `apply_fn` mutates only accepted events.
-- Full occupation conversion happens in `initialize_state(...)`, not in
-  `compute(...)`.
+- Full occupation and mapping conversion happens in `initialize_state(...)`,
+  not in `compute(...)`.

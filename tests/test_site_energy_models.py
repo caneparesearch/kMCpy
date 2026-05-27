@@ -272,6 +272,12 @@ def test_site_energy_model_uses_cached_occupation_and_local_flips(hop_event):
     state = State(occupations=[0, 1])
 
     model.initialize_state(simulation_state=state)
+    assert np.array_equal(model._site_lookup, np.array([2, 4]))
+    assert model._state_lookup_by_site is not None
+
+    # Runtime evaluation should use cached lookup arrays, not mapping dicts.
+    model.site_mapping = {}
+    model.state_mapping_by_site = {}
     delta = model.compute(event=hop_event, simulation_state=state)
 
     assert np.array_equal(
