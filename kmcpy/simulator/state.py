@@ -34,14 +34,14 @@ class State(MSONable):
     def from_occupations(
         cls,
         occupations: Sequence[int],
-        active_site_index_map=None,
+        active_site_order=None,
         time: float = 0.0,
         step: int = 0,
     ) -> "State":
         """Create state from active-site or full-structure occupations."""
         values = list(occupations)
-        if active_site_index_map is not None:
-            values = active_site_index_map.select_active_values(values)
+        if active_site_order is not None:
+            values = active_site_order.select_active_values(values)
         return cls(occupations=values, time=time, step=step)
 
     @staticmethod
@@ -49,7 +49,7 @@ class State(MSONable):
         occupation_raw_data: Sequence[int],
         supercell_shape: Sequence[int] | None = None,
         select_sites: Sequence[int] | None = None,
-        active_site_index_map=None,
+        active_site_order=None,
     ) -> list[int]:
         """
         Convert an initial-state ``occupation`` payload into active-site values.
@@ -58,19 +58,19 @@ class State(MSONable):
         """
         occupation_raw_data = np.array(occupation_raw_data)
 
-        if active_site_index_map is not None:
-            if len(occupation_raw_data) == active_site_index_map.active_site_count:
+        if active_site_order is not None:
+            if len(occupation_raw_data) == active_site_order.active_site_count:
                 occupation = occupation_raw_data
-                selected = list(range(active_site_index_map.active_site_count))
+                selected = list(range(active_site_order.active_site_count))
             else:
                 occupation = np.array(
-                    active_site_index_map.select_active_values(occupation_raw_data.tolist())
+                    active_site_order.select_active_values(occupation_raw_data.tolist())
                 )
-                selected = list(active_site_index_map.active_to_original)
+                selected = list(active_site_order.active_to_original)
         else:
             if select_sites is None:
                 raise ValueError(
-                    "select_sites or active_site_index_map is required to load occupations"
+                    "select_sites or active_site_order is required to load occupations"
                 )
             if supercell_shape is None:
                 raise ValueError(
@@ -108,7 +108,7 @@ class State(MSONable):
         filepath: str,
         supercell_shape: Sequence[int] | None = None,
         select_sites: Sequence[int] | None = None,
-        active_site_index_map=None,
+        active_site_order=None,
         time: float = 0.0,
         step: int = 0,
     ) -> "State":
@@ -126,7 +126,7 @@ class State(MSONable):
         if "occupations" in payload:
             return cls.from_occupations(
                 payload["occupations"],
-                active_site_index_map=active_site_index_map,
+                active_site_order=active_site_order,
                 time=payload.get("time", time),
                 step=payload.get("step", step),
             )
@@ -136,7 +136,7 @@ class State(MSONable):
                 payload["occupation"],
                 supercell_shape=supercell_shape,
                 select_sites=select_sites,
-                active_site_index_map=active_site_index_map,
+                active_site_order=active_site_order,
             )
             return cls(occupations=occupations, time=time, step=step)
 

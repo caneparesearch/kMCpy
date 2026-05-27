@@ -1,4 +1,4 @@
-"""Ordering conventions for local-environment occupation vectors."""
+"""Site-order rules for local-environment occupation vectors."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any, Iterable, Sequence
 from monty.json import MSONable
 
 
-BUILTIN_ORDERING_CONVENTIONS = {
+BUILTIN_LOCAL_SITE_ORDERS = {
     "kmcpy_default": {
         "sort_keys": ("species_string",),
         "exclude_center_site": False,
@@ -21,14 +21,8 @@ BUILTIN_ORDERING_CONVENTIONS = {
     },
 }
 
-LEGACY_ORDERING_CONVENTION_NAMES = {
-    "kmcpy_default_v1": "kmcpy_default",
-    "nasicon_publication_v1": "nasicon_nat_commun_2022",
-}
-
-
 @dataclass(frozen=True)
-class LocalSiteOrderingConvention(MSONable):
+class LocalSiteOrder(MSONable):
     """Rules that define the order of sites in a local occupation vector."""
 
     name: str
@@ -37,27 +31,26 @@ class LocalSiteOrderingConvention(MSONable):
     center_match_tolerance: float = 1e-3
 
     @classmethod
-    def from_name(cls, name: str) -> "LocalSiteOrderingConvention":
-        """Create a built-in ordering convention by name."""
-        canonical_name = LEGACY_ORDERING_CONVENTION_NAMES.get(name, name)
-        convention = BUILTIN_ORDERING_CONVENTIONS.get(canonical_name)
-        if convention is not None:
+    def from_name(cls, name: str) -> "LocalSiteOrder":
+        """Create a built-in local site order by name."""
+        order = BUILTIN_LOCAL_SITE_ORDERS.get(name)
+        if order is not None:
             return cls(
-                name=canonical_name,
-                sort_keys=convention["sort_keys"],
-                exclude_center_site=convention["exclude_center_site"],
+                name=name,
+                sort_keys=order["sort_keys"],
+                exclude_center_site=order["exclude_center_site"],
             )
-        available = sorted(BUILTIN_ORDERING_CONVENTIONS)
+        available = sorted(BUILTIN_LOCAL_SITE_ORDERS)
         raise ValueError(
-            f"Unknown local site ordering convention '{name}'. "
+            f"Unknown local site order '{name}'. "
             f"Available: {available}"
         )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "LocalSiteOrderingConvention":
-        """Create an ordering convention from serialized metadata."""
+    def from_dict(cls, data: dict[str, Any]) -> "LocalSiteOrder":
+        """Create a local site order from serialized metadata."""
         if "name" not in data:
-            raise ValueError("Local site ordering convention requires a 'name'")
+            raise ValueError("Local site order requires a 'name'")
         name = str(data["name"])
         try:
             base = cls.from_name(name)
@@ -79,27 +72,27 @@ class LocalSiteOrderingConvention(MSONable):
     @classmethod
     def resolve(
         cls,
-        convention: str | dict[str, Any] | "LocalSiteOrderingConvention" | None,
-    ) -> "LocalSiteOrderingConvention":
-        """Normalize user input into an ordering convention."""
-        if convention is None:
+        order: str | dict[str, Any] | "LocalSiteOrder" | None,
+    ) -> "LocalSiteOrder":
+        """Normalize user input into a local site order."""
+        if order is None:
             return cls.from_name("kmcpy_default")
-        if isinstance(convention, cls):
-            return convention
-        if isinstance(convention, str):
-            return cls.from_name(convention)
-        if isinstance(convention, dict):
-            return cls.from_dict(convention)
+        if isinstance(order, cls):
+            return order
+        if isinstance(order, str):
+            return cls.from_name(order)
+        if isinstance(order, dict):
+            return cls.from_dict(order)
         raise TypeError(
-            "ordering_convention must be None, a name, a dict, "
-            "or LocalSiteOrderingConvention"
+            "local_site_order must be None, a name, a dict, "
+            "or LocalSiteOrder"
         )
 
     def with_exclude_center_site(
         self, exclude_center_site: bool
-    ) -> "LocalSiteOrderingConvention":
+    ) -> "LocalSiteOrder":
         """Return a copy with an explicit center-site exclusion policy."""
-        return LocalSiteOrderingConvention(
+        return LocalSiteOrder(
             name=self.name,
             sort_keys=self.sort_keys,
             exclude_center_site=exclude_center_site,
@@ -107,7 +100,7 @@ class LocalSiteOrderingConvention(MSONable):
         )
 
     def as_dict(self) -> dict[str, Any]:
-        """Serialize the ordering convention."""
+        """Serialize the local site order."""
         return {
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
@@ -118,7 +111,7 @@ class LocalSiteOrderingConvention(MSONable):
         }
 
     def sort_local_env_sites(self, local_env_sites: list[Any]) -> list[Any]:
-        """Sort ``get_sites_in_sphere`` results according to this convention."""
+        """Sort ``get_sites_in_sphere`` results according to this order."""
         return sorted(local_env_sites, key=lambda item: self._sort_key(item[0]))
 
     def _sort_key(self, site: Any) -> tuple[Any, ...]:
@@ -135,7 +128,7 @@ class LocalSiteOrderingConvention(MSONable):
             elif key == "cartesian_z":
                 values.append(float(site.coords[2]))
             else:
-                raise ValueError(f"Unsupported local site ordering sort key: {key}")
+                raise ValueError(f"Unsupported local site order sort key: {key}")
         return tuple(values)
 
 
@@ -157,6 +150,6 @@ def ordered_site_signature(
 
 
 def ordered_site_hash(signature: Sequence[dict[str, Any]]) -> str:
-    """Hash an ordered local-site signature for compatibility checks."""
+    """Hash an ordered local-site signature for consistency checks."""
     payload = json.dumps(signature, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()

@@ -9,7 +9,7 @@ from kmcpy.models.site_energy import SiteEnergyModel
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import RuntimeConfig
 from kmcpy.simulator.state import State
-from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+from kmcpy.structure.active_site_order import ActiveSiteOrder
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
 
@@ -116,13 +116,13 @@ def hop_event():
     return Event(mobile_ion_indices=(0, 1), local_env_indices=())
 
 
-def _active_site_index_map():
+def _active_site_order():
     structure = Structure(
         Lattice.cubic(4.0),
         ["Na", "Na"],
         [[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]],
     )
-    return ActiveSiteIndexMap.from_structure_and_mapping(
+    return ActiveSiteOrder.from_structure_and_mapping(
         structure,
         {"Na": ["Na", "X"]},
     )
@@ -249,7 +249,7 @@ def test_kmc_update_commits_model_hook_after_state_update(hop_event):
     KMC.update(kmc, hop_event, dt=0.1)
 
     assert state.occupations == [1, 0]
-    assert kmc.occ_global == [1, 0]
+    assert kmc.simulation_state.occupations == [1, 0]
     assert model.applied_occupations == [[1, 0]]
 
 
@@ -304,57 +304,57 @@ def test_site_energy_model_uses_cached_occupation_and_local_flips(hop_event):
 
 @pytest.mark.unit
 def test_site_energy_model_records_site_order_hashes(hop_event):
-    index_map = _active_site_index_map()
+    index_map = _active_site_order()
     model = SiteEnergyModel(
         compute_fn=smol_runtime_delta,
         compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 4, 1: 2},
-        active_site_index_map=index_map,
+        active_site_order=index_map,
         external_size=5,
     )
 
     payload = model.as_dict()
     reloaded = SiteEnergyModel.from_dict(payload)
 
-    assert payload["active_site_index_map"]["fingerprint"] == index_map.fingerprint
-    assert payload["kmcpy_site_order_hash"] == index_map.fingerprint
+    assert payload["active_site_order"]["fingerprint"] == index_map.fingerprint
+    assert payload["active_site_order_hash"] == index_map.fingerprint
     assert payload["external_site_order_hash"] == model.external_site_order_hash
-    assert reloaded.kmcpy_site_order_hash == index_map.fingerprint
+    assert reloaded.active_site_order_hash == index_map.fingerprint
     assert reloaded.external_site_order_hash == model.external_site_order_hash
 
 
 @pytest.mark.unit
 def test_site_energy_model_rejects_wrong_active_site_order(hop_event):
-    index_map = _active_site_index_map()
+    index_map = _active_site_order()
     model = SiteEnergyModel(
         compute_fn=smol_runtime_delta,
         compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 0, 1: 1},
-        active_site_index_map=index_map,
+        active_site_order=index_map,
     )
 
-    with pytest.raises(ValueError, match="active-site index map contains"):
+    with pytest.raises(ValueError, match="active-site order contains"):
         model.initialize_state(simulation_state=State(occupations=[0]))
 
 
 @pytest.mark.unit
 def test_composite_lce_forwards_active_site_order_to_site_energy_model(hop_event):
-    index_map = _active_site_index_map()
+    index_map = _active_site_order()
     site_model = SiteEnergyModel(
         compute_fn=smol_runtime_delta,
         compute_kwargs={"coefficients": np.array([1.0])},
         site_mapping={0: 0, 1: 1},
-        active_site_index_map=None,
+        active_site_order=None,
     )
     model = CompositeLCEModel(kra_model=FixedLCE(200.0), site_model=site_model)
 
     model.initialize_state(
         simulation_state=State(occupations=[0, 1]),
         event_lib=MinimalEventLib(hop_event),
-        active_site_index_map=index_map,
+        active_site_order=index_map,
     )
 
-    assert site_model.kmcpy_site_order_hash == index_map.fingerprint
+    assert site_model.active_site_order_hash == index_map.fingerprint
 
 
 @pytest.mark.unit

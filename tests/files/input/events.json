@@ -1358,7 +1358,7 @@
         ]
     },
     "index_metadata": {
-        "format": "kmcpy.active_site_index_map.v1",
+        "format": "kmcpy.active_site_order.v1",
         "primitive_site_count": 42,
         "original_site_count": 84,
         "primitive_active_indices": [
@@ -1686,6 +1686,6 @@
                 "Zr"
             ]
         ],
-        "fingerprint": "363f7c3bb5928a67e77bf67dcc7dcd0e8ff3acc9fbfda1a70577531980c23629"
+        "fingerprint": "59d19145b19701086d0c616edc5ab5f029ff689e394a8dbc38b4fe57ad3b43af"
     }
 }

@@ -152,7 +152,7 @@ class CompositeLCEModel(BaseModel):
         event_lib=None,
         structure=None,
         config=None,
-        active_site_index_map=None,
+        active_site_order=None,
     ) -> None:
         """Initialize optional stateful submodel caches."""
         for model in (self.kra_model, self.site_model):
@@ -164,11 +164,11 @@ class CompositeLCEModel(BaseModel):
                     "structure": structure,
                     "config": config,
                 }
-                if active_site_index_map is not None and _accepts_keyword(
+                if active_site_order is not None and _accepts_keyword(
                     initialize_state,
-                    "active_site_index_map",
+                    "active_site_order",
                 ):
-                    kwargs["active_site_index_map"] = active_site_index_map
+                    kwargs["active_site_order"] = active_site_order
                 initialize_state(**kwargs)
 
     def apply_event(self, *, event: Event, simulation_state: State) -> None:

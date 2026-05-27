@@ -67,27 +67,27 @@ class LatticeStructure(ABC):
             raise ValueError(f'Basis type {basis_type} not supported. {e}')
 
         try:
-            self.active_site_index_map = self.get_active_site_index_map()
+            self.active_site_order = self.get_active_site_order()
         except ValueError:
-            self.active_site_index_map = None
+            self.active_site_order = None
  
-    def get_active_site_index_map(self, supercell_shape=None):
-        """Return the compact active-site index map for this lattice."""
-        from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+    def get_active_site_order(self, supercell_shape=None):
+        """Return the compact active-site order for this lattice."""
+        from kmcpy.structure.active_site_order import ActiveSiteOrder
 
-        return ActiveSiteIndexMap.from_lattice_structure(
+        return ActiveSiteOrder.from_lattice_structure(
             self, supercell_shape=supercell_shape
         )
 
     def get_active_lattice_structure(self, supercell_shape=None):
         """Return a lattice structure containing only mutable active sites."""
-        active_site_index_map = self.get_active_site_index_map(supercell_shape)
+        active_site_order = self.get_active_site_order(supercell_shape)
         active_lattice_structure = LatticeStructure(
-            active_site_index_map.active_structure(),
+            active_site_order.active_structure(),
             self.site_mapping.copy(),
             self.basis_type,
         )
-        active_lattice_structure.source_active_site_index_map = active_site_index_map
+        active_lattice_structure.source_active_site_order = active_site_order
         return active_lattice_structure
 
     def get_occ_from_structure(

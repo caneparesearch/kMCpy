@@ -13,14 +13,14 @@ API Reference Documentation
     comparator.rst
     basis.rst
     lattice_structure.rst
-    local_site_ordering.rst
     local_lattice_structure.rst
     local_environment_enumerator.rst
-    active_site_index_map.rst
     cluster.rst
     sites.rst
     neighbors.rst
     species.rst
+    active_site_order.rst
+    local_site_order.rst
     data.rst
     io_registry.rst
     cif.rst

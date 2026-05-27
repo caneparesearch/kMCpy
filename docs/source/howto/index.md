@@ -17,7 +17,7 @@ workflow.
   rule-based, pattern-based, or exact-catalog migration barriers.
 - [Prepare NEB fitting inputs](neb_fitting.md): turn NEB structures and
   barriers into fitting files for a local cluster expansion.
-- [Control local site ordering](local_ordering.md): keep LCE feature ordering
+- [Control local site order](local_site_order.md): keep LCE feature order
   compatible with fitted coefficients.
 
 ## Structure Workflows
@@ -33,6 +33,6 @@ attach_properties
 external_site_energy
 local_barrier_model
 neb_fitting
-local_ordering
+local_site_order
 local_environment_enumeration
 ```

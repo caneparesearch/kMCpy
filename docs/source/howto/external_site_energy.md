@@ -137,7 +137,7 @@ If the external object is built directly from kMCpy's active-site structure and
 keeps the same order, no site mapping is needed:
 
 ```python
-active_structure = active_site_index_map.active_structure()
+active_structure = active_site_order.active_structure()
 external_runtime = build_external_runtime(active_structure)
 
 site_model = SiteEnergyModel(
@@ -153,10 +153,10 @@ If the external structure preserves site properties, use the
 structures or full structures with fixed sites:
 
 ```python
-from kmcpy.structure.active_site_index_map import ACTIVE_SITE_PROPERTY
+from kmcpy.structure.active_site_order import ACTIVE_SITE_PROPERTY
 
 
-def site_mapping_from_property(external_structure, active_site_index_map):
+def site_mapping_from_property(external_structure, active_site_order):
     site_mapping = {}
 
     for external_index, site in enumerate(external_structure):
@@ -165,7 +165,7 @@ def site_mapping_from_property(external_structure, active_site_index_map):
             continue
         site_mapping[int(active_index)] = int(external_index)
 
-    if len(site_mapping) != active_site_index_map.active_site_count:
+    if len(site_mapping) != active_site_order.active_site_count:
         raise ValueError("External structure does not contain every active site.")
 
     return site_mapping
@@ -180,10 +180,10 @@ import numpy as np
 
 def site_mapping_from_coordinates(
     external_structure,
-    active_site_index_map,
+    active_site_order,
     tol=1e-3,
 ):
-    active_structure = active_site_index_map.active_structure()
+    active_structure = active_site_order.active_structure()
     site_mapping = {}
     used_external_sites = set()
 
@@ -211,18 +211,18 @@ resulting dictionary in the `SiteEnergyModel`; kMCpy converts it to an array in
 
 ## Site-Order Traceability
 
-kMCpy's own compact active-site order is defined by `ActiveSiteIndexMap`, the
+kMCpy's own compact active-site order is defined by `ActiveSiteOrder`, the
 same object used when structures, events, and occupations are loaded. When a
 `SiteEnergyModel` is initialized during a normal KMC run, kMCpy passes
 that map to the model. The model records:
 
-- `kmcpy_site_order_hash`: the `ActiveSiteIndexMap.fingerprint` for the kMCpy
+- `active_site_order_hash`: the `ActiveSiteOrder.fingerprint` for the kMCpy
   active-site order.
 - `external_site_order_hash`: a hash of the active-site to external-site
   mapping and external occupation size.
 
 These hashes are serialized with the model so model files can be traced
-back to the exact active-site ordering and external mapping they were built
+back to the exact active-site order and external mapping they were built
 against. If you construct the model manually, pass the index map explicitly:
 
 ```python
@@ -231,7 +231,7 @@ site_model = SiteEnergyModel(
     compute_fn=external_delta,
     site_mapping=kmcpy_to_external_site,
     state_mapping=kmcpy_state_to_external_value,
-    active_site_index_map=active_site_index_map,
+    active_site_order=active_site_order,
     units="eV",
 )
 ```

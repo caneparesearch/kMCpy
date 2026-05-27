@@ -1,7 +1,7 @@
 import pytest
 from pymatgen.core import Lattice, Structure
 
-from kmcpy.structure import ActiveSiteIndexMap, LatticeStructure
+from kmcpy.structure import ActiveSiteOrder, LatticeStructure
 
 
 def _structure():
@@ -15,7 +15,7 @@ def _structure():
 
 def test_active_site_map_infers_mutable_and_fixed_sites():
     mapping = {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
-    index_map = ActiveSiteIndexMap.from_structure_and_mapping(_structure(), mapping)
+    index_map = ActiveSiteOrder.from_structure_and_mapping(_structure(), mapping)
 
     assert index_map.primitive_active_indices == (0, 2, 3)
     assert index_map.active_to_original == (0, 2, 3)
@@ -30,10 +30,10 @@ def test_active_site_map_infers_mutable_and_fixed_sites():
 
 def test_active_site_map_supercell_properties_and_fingerprint_are_stable():
     mapping = {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
-    first = ActiveSiteIndexMap.from_structure_and_mapping(
+    first = ActiveSiteOrder.from_structure_and_mapping(
         _structure(), mapping, supercell_shape=(2, 1, 1)
     )
-    second = ActiveSiteIndexMap.from_structure_and_mapping(
+    second = ActiveSiteOrder.from_structure_and_mapping(
         _structure(), mapping, supercell_shape=(2, 1, 1)
     )
 
@@ -45,7 +45,7 @@ def test_active_site_map_supercell_properties_and_fingerprint_are_stable():
 
 
 def test_active_site_map_selects_active_values_and_rejects_wrong_lengths():
-    index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+    index_map = ActiveSiteOrder.from_structure_and_mapping(
         _structure(), {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
     )
 
@@ -59,7 +59,7 @@ def test_active_site_map_accepts_neutral_mapping_for_oxidized_structure():
     structure = _structure()
     structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "Si": 4})
 
-    index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+    index_map = ActiveSiteOrder.from_structure_and_mapping(
         structure, {"Na": ["Na", "X"], "O": "O", "Si": ["Si", "P"]}
     )
 
@@ -73,6 +73,6 @@ def test_lattice_structure_exposes_active_site_map():
 
     active_model = model.get_active_lattice_structure()
 
-    assert model.active_site_index_map.active_site_count == 3
+    assert model.active_site_order.active_site_count == 3
     assert len(active_model.template_structure) == 3
-    assert hasattr(active_model, "source_active_site_index_map")
+    assert hasattr(active_model, "source_active_site_order")

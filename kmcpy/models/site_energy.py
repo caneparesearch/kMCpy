@@ -15,7 +15,7 @@ import numpy as np
 from monty.serialization import loadfn
 
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
-from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+from kmcpy.structure.active_site_order import ActiveSiteOrder
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +111,8 @@ class SiteEnergyModel(BaseModel):
         external_size: int | None = None,
         external_fill_value: Any = 0,
         external_dtype: str | None = None,
-        active_site_index_map: ActiveSiteIndexMap | Mapping[str, Any] | None = None,
-        kmcpy_site_order_hash: str | None = None,
+        active_site_order: ActiveSiteOrder | Mapping[str, Any] | None = None,
+        active_site_order_hash: str | None = None,
         units: str = "eV",
         name: str = "SiteEnergyModel",
     ) -> None:
@@ -137,22 +137,22 @@ class SiteEnergyModel(BaseModel):
         )
         self.external_fill_value = external_fill_value
         self.external_dtype = external_dtype
-        self.active_site_index_map = _normalize_active_site_index_map(
-            active_site_index_map
+        self.active_site_order = _normalize_active_site_order(
+            active_site_order
         )
-        normalized_site_order_hash = _normalize_optional_ref(kmcpy_site_order_hash)
+        normalized_site_order_hash = _normalize_optional_ref(active_site_order_hash)
         if (
-            self.active_site_index_map is not None
+            self.active_site_order is not None
             and normalized_site_order_hash is not None
-            and normalized_site_order_hash != self.active_site_index_map.fingerprint
+            and normalized_site_order_hash != self.active_site_order.fingerprint
         ):
             raise ValueError(
-                "SiteEnergyModel kmcpy_site_order_hash does not match "
-                "the active_site_index_map fingerprint."
+                "SiteEnergyModel active_site_order_hash does not match "
+                "the active_site_order fingerprint."
             )
-        self.kmcpy_site_order_hash = (
-            self.active_site_index_map.fingerprint
-            if self.active_site_index_map is not None
+        self.active_site_order_hash = (
+            self.active_site_order.fingerprint
+            if self.active_site_order is not None
             else normalized_site_order_hash
         )
         self.units = _normalize_energy_units(units)
@@ -213,11 +213,11 @@ class SiteEnergyModel(BaseModel):
         event_lib=None,
         structure=None,
         config=None,
-        active_site_index_map=None,
+        active_site_order=None,
     ) -> None:
         """Build and validate external occupation caches once."""
         occupations = list(simulation_state.occupations)
-        self._set_active_site_index_map(active_site_index_map)
+        self._set_active_site_order(active_site_order)
         self._validate_kmcpy_site_order(len(occupations))
         self._site_lookup = _build_site_lookup(
             n_sites=len(occupations),
@@ -235,28 +235,28 @@ class SiteEnergyModel(BaseModel):
         self._validate_event_mappings(event_lib, occupations)
         self._resolve_runtime()
 
-    def _set_active_site_index_map(self, active_site_index_map) -> None:
-        if active_site_index_map is None:
+    def _set_active_site_order(self, active_site_order) -> None:
+        if active_site_order is None:
             return
-        normalized = _normalize_active_site_index_map(active_site_index_map)
+        normalized = _normalize_active_site_order(active_site_order)
         if (
-            self.kmcpy_site_order_hash is not None
-            and normalized.fingerprint != self.kmcpy_site_order_hash
+            self.active_site_order_hash is not None
+            and normalized.fingerprint != self.active_site_order_hash
         ):
             raise ValueError(
                 "SiteEnergyModel active-site order hash does not "
-                "match the current kMCpy active-site index map."
+                "match the current kMCpy active-site order."
             )
-        self.active_site_index_map = normalized
-        self.kmcpy_site_order_hash = normalized.fingerprint
+        self.active_site_order = normalized
+        self.active_site_order_hash = normalized.fingerprint
 
     def _validate_kmcpy_site_order(self, occupation_count: int) -> None:
-        if self.active_site_index_map is None:
+        if self.active_site_order is None:
             return
-        if self.active_site_index_map.active_site_count != int(occupation_count):
+        if self.active_site_order.active_site_count != int(occupation_count):
             raise ValueError(
-                "SiteEnergyModel active-site index map contains "
-                f"{self.active_site_index_map.active_site_count} active sites, "
+                "SiteEnergyModel active-site order contains "
+                f"{self.active_site_order.active_site_count} active sites, "
                 f"but the simulation state contains {occupation_count} occupations."
             )
 
@@ -422,12 +422,12 @@ class SiteEnergyModel(BaseModel):
             "external_size": self.external_size,
             "external_fill_value": self.external_fill_value,
             "external_dtype": self.external_dtype,
-            "active_site_index_map": (
-                self.active_site_index_map.as_dict()
-                if self.active_site_index_map is not None
+            "active_site_order": (
+                self.active_site_order.as_dict()
+                if self.active_site_order is not None
                 else None
             ),
-            "kmcpy_site_order_hash": self.kmcpy_site_order_hash,
+            "active_site_order_hash": self.active_site_order_hash,
             "external_site_order_hash": self.external_site_order_hash,
             "units": self.units,
         }
@@ -452,8 +452,8 @@ class SiteEnergyModel(BaseModel):
             external_size=data.get("external_size"),
             external_fill_value=data.get("external_fill_value", 0),
             external_dtype=data.get("external_dtype"),
-            active_site_index_map=data.get("active_site_index_map"),
-            kmcpy_site_order_hash=data.get("kmcpy_site_order_hash"),
+            active_site_order=data.get("active_site_order"),
+            active_site_order_hash=data.get("active_site_order_hash"),
             units=data.get("units", "eV"),
             name=data.get("name", "SiteEnergyModel"),
         )
@@ -624,17 +624,17 @@ def _normalize_state_mapping_by_site(
     }
 
 
-def _normalize_active_site_index_map(
-    active_site_index_map: ActiveSiteIndexMap | Mapping[str, Any] | None,
-) -> ActiveSiteIndexMap | None:
-    if active_site_index_map is None:
+def _normalize_active_site_order(
+    active_site_order: ActiveSiteOrder | Mapping[str, Any] | None,
+) -> ActiveSiteOrder | None:
+    if active_site_order is None:
         return None
-    if isinstance(active_site_index_map, ActiveSiteIndexMap):
-        return active_site_index_map
-    if isinstance(active_site_index_map, Mapping):
-        return ActiveSiteIndexMap.from_dict(active_site_index_map)
+    if isinstance(active_site_order, ActiveSiteOrder):
+        return active_site_order
+    if isinstance(active_site_order, Mapping):
+        return ActiveSiteOrder.from_dict(active_site_order)
     raise TypeError(
-        "active_site_index_map must be an ActiveSiteIndexMap, a serialized "
+        "active_site_order must be an ActiveSiteOrder, a serialized "
         "mapping, or None"
     )
 

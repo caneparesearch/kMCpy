@@ -184,28 +184,28 @@ class EventLib(ABC):
                 self.site_to_events[site] = []
             self.site_to_events[site].append(event_index)
 
-    def set_index_metadata(self, active_site_index_map):
-        """Attach active-site index metadata to this event library."""
-        self.index_metadata = active_site_index_map.as_dict()
-        self._validate_event_indices(active_site_index_map)
+    def set_index_metadata(self, active_site_order):
+        """Attach active-site order metadata to this event library."""
+        self.index_metadata = active_site_order.as_dict()
+        self._validate_event_indices(active_site_order)
 
-    def validate_index_metadata(self, active_site_index_map):
+    def validate_index_metadata(self, active_site_order):
         """Validate that event indices use the provided active-site index space."""
         if self.index_metadata is None:
             raise ValueError(
-                "Event library is missing active-site index metadata. "
+                "Event library is missing active-site order metadata. "
                 "Regenerate events with site_mapping."
             )
-        active_site_index_map.assert_compatible(self.index_metadata)
-        self._validate_event_indices(active_site_index_map)
+        active_site_order.assert_same_order(self.index_metadata)
+        self._validate_event_indices(active_site_order)
 
-    def _validate_event_indices(self, active_site_index_map):
+    def _validate_event_indices(self, active_site_order):
         for event_index, event in enumerate(self.events):
-            active_site_index_map.validate_active_indices(
+            active_site_order.validate_active_indices(
                 event.mobile_ion_indices,
                 field_name=f"events[{event_index}].mobile_ion_indices",
             )
-            active_site_index_map.validate_active_indices(
+            active_site_order.validate_active_indices(
                 event.local_env_indices,
                 field_name=f"events[{event_index}].local_env_indices",
             )
@@ -297,7 +297,7 @@ class EventLib(ABC):
         """Write EventLib to a serialized event file."""
         if self.index_metadata is None:
             raise ValueError(
-                "Event library cannot be saved without active-site index metadata"
+                "Event library cannot be saved without active-site order metadata"
             )
         logger.info("Saving EventLib to: %s", filename)
         dumpfn(self.as_dict(), filename, indent=4)
@@ -305,17 +305,17 @@ class EventLib(ABC):
     @classmethod
     def from_dict(cls, data):
         """Create EventLib from dictionary."""
-        from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+        from kmcpy.structure.active_site_order import ActiveSiteOrder
 
         if data.get("index_metadata") is None:
             raise ValueError(
-                "Event library is missing active-site index metadata. "
+                "Event library is missing active-site order metadata. "
                 "Regenerate events with site_mapping."
             )
 
         event_lib = cls()
         event_lib.index_metadata = data["index_metadata"]
-        index_map = ActiveSiteIndexMap.from_dict(event_lib.index_metadata)
+        index_map = ActiveSiteOrder.from_dict(event_lib.index_metadata)
 
         # Load events
         for event_dict in data["events"]:
@@ -349,7 +349,7 @@ class EventLib(ABC):
         if isinstance(data, list):
             raise ValueError(
                 "Legacy list-format event files are no longer supported. "
-                "Regenerate events with active-site index metadata."
+                "Regenerate events with active-site order metadata."
             )
         else:
             # Bundled format - use from_dict method which loads embedded dependencies

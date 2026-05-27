@@ -26,7 +26,7 @@ class LCEModelParameters(MSONable):
     normalize: bool = True
     orbit_fingerprints: list[str] | None = None
     local_environment_hash: str | None = None
-    ordering_convention: dict | None = None
+    local_site_order: dict | None = None
     name: str = "LCEModelParameters"
 
     def as_dict(self) -> dict[str, Any]:
@@ -74,7 +74,7 @@ class LCEModelParameters(MSONable):
             normalize=payload.get("normalize", True),
             orbit_fingerprints=payload.get("orbit_fingerprints"),
             local_environment_hash=payload.get("local_environment_hash"),
-            ordering_convention=payload.get("ordering_convention"),
+            local_site_order=payload.get("local_site_order"),
         )
 
     @classmethod

@@ -12,7 +12,7 @@ from pymatgen.core import DummySpecies, PeriodicSite, Species, Structure
 
 from kmcpy.structure.basis import Occupation
 from kmcpy.structure.lattice_structure import LatticeStructure
-from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
+from kmcpy.structure.local_site_order import LocalSiteOrder
 from kmcpy.structure.species import (
     is_vacancy_species,
     species_label,
@@ -54,7 +54,7 @@ def enumerate_local_environments(
     variable_species: Sequence[Any] | None = None,
     variable_site_indices: Sequence[int] | None = None,
     exclude_species: Sequence[str] | None = None,
-    ordering_convention=None,
+    local_site_order=None,
     exclude_center_site=None,
     base_structure: Structure | None = None,
     transformation: Any | None = None,
@@ -78,7 +78,7 @@ def enumerate_local_environments(
             "site_mapping with a single allowed species."
         )
 
-    active_lattice_structure, active_site_index_map = _active_lattice_context(
+    active_lattice_structure, active_site_order = _active_lattice_context(
         lattice_structure
     )
     local_site_indices = _local_site_indices(
@@ -86,12 +86,12 @@ def enumerate_local_environments(
         center=center,
         cutoff=cutoff,
         exclude_species=None,
-        ordering_convention=ordering_convention,
+        local_site_order=local_site_order,
         exclude_center_site=exclude_center_site,
     )
     base_occupation = _base_occupation(
         active_lattice_structure,
-        active_site_index_map,
+        active_site_order,
         base_structure,
         tol,
         angle_tol,
@@ -112,7 +112,7 @@ def enumerate_local_environments(
         return _enumerate_with_transformation(
             lattice_structure=lattice_structure,
             active_lattice_structure=active_lattice_structure,
-            active_site_index_map=active_site_index_map,
+            active_site_order=active_site_order,
             base_occupation=base_occupation,
             local_site_indices=local_site_indices,
             variable_site_indices=variable_sites,
@@ -153,7 +153,7 @@ def enumerate_local_environments(
             _build_enumeration(
                 lattice_structure=lattice_structure,
                 active_lattice_structure=active_lattice_structure,
-                active_site_index_map=active_site_index_map,
+                active_site_order=active_site_order,
                 occupation=occupation,
                 local_site_indices=local_site_indices,
                 variable_site_indices=variable_sites,
@@ -173,11 +173,11 @@ def generate_neb_endpoint_pair(
     mobile_ion_indices: Any | Sequence[int],
 ) -> NEBEndpointPair:
     """Generate ordered initial and final endpoint structures for one hop."""
-    active_lattice_structure, active_site_index_map = _active_lattice_context(
+    active_lattice_structure, active_site_order = _active_lattice_context(
         lattice_structure
     )
     from_site, to_site = _mobile_ion_indices(mobile_ion_indices)
-    active_site_index_map.validate_active_indices(
+    active_site_order.validate_active_indices(
         (from_site, to_site), field_name="mobile_ion_indices"
     )
     if from_site == to_site:
@@ -186,9 +186,9 @@ def generate_neb_endpoint_pair(
     initial_occupation = _occupation_from_local_environment_enumeration(
         local_environment_enumeration,
         active_lattice_structure,
-        active_site_index_map,
+        active_site_order,
     )
-    if len(initial_occupation) != active_site_index_map.active_site_count:
+    if len(initial_occupation) != active_site_order.active_site_count:
         raise ValueError("environment occupation length does not match active sites")
 
     from_species = _first_allowed_species(active_lattice_structure, from_site)
@@ -206,7 +206,7 @@ def generate_neb_endpoint_pair(
     initial, final = _ordered_endpoint_structures(
         lattice_structure,
         active_lattice_structure,
-        active_site_index_map,
+        active_site_order,
         initial_occupation,
         final_occupation,
         from_site,
@@ -231,7 +231,7 @@ def enumerate_neb_endpoint_pairs(
     variable_species: Sequence[Any] | None = None,
     variable_site_indices: Sequence[int] | None = None,
     exclude_species: Sequence[str] | None = None,
-    ordering_convention=None,
+    local_site_order=None,
     exclude_center_site=None,
     base_structure: Structure | None = None,
     transformation: Any | None = None,
@@ -253,7 +253,7 @@ def enumerate_neb_endpoint_pairs(
         variable_species=variable_species,
         variable_site_indices=variable_site_indices,
         exclude_species=exclude_species,
-        ordering_convention=ordering_convention,
+        local_site_order=local_site_order,
         exclude_center_site=exclude_center_site,
         base_structure=base_structure,
         transformation=transformation,
@@ -288,9 +288,9 @@ def enumerate_neb_endpoint_pairs(
 
 
 def _active_lattice_context(lattice_structure: LatticeStructure):
-    active_site_index_map = lattice_structure.get_active_site_index_map()
+    active_site_order = lattice_structure.get_active_site_order()
     active_lattice_structure = lattice_structure.get_active_lattice_structure()
-    return active_lattice_structure, active_site_index_map
+    return active_lattice_structure, active_site_order
 
 
 def _local_site_indices(
@@ -298,14 +298,14 @@ def _local_site_indices(
     center,
     cutoff: float,
     exclude_species: Sequence[str] | None,
-    ordering_convention,
+    local_site_order,
     exclude_center_site,
 ) -> tuple[int, ...]:
     structure = lattice_structure.template_structure.copy()
     structure.remove_oxidation_states()
-    ordering = LocalSiteOrderingConvention.resolve(ordering_convention)
+    order = LocalSiteOrder.resolve(local_site_order)
     if exclude_center_site is not None:
-        ordering = ordering.with_exclude_center_site(exclude_center_site)
+        order = order.with_exclude_center_site(exclude_center_site)
 
     if isinstance(center, int):
         center_site = structure[center]
@@ -334,13 +334,13 @@ def _local_site_indices(
             if site_info[0].species_string not in excluded
             and str(site_info[0].specie) not in excluded
         ]
-    if ordering.exclude_center_site:
+    if order.exclude_center_site:
         local_env_sites = [
             site_info
             for site_info in local_env_sites
-            if not _is_center_site(site_info, center_site, center_index, ordering)
+            if not _is_center_site(site_info, center_site, center_index, order)
         ]
-    local_env_sites = ordering.sort_local_env_sites(local_env_sites)
+    local_env_sites = order.sort_local_env_sites(local_env_sites)
     return tuple(int(site_info[2]) for site_info in local_env_sites)
 
 
@@ -348,13 +348,13 @@ def _is_center_site(
     site_info,
     center_site: PeriodicSite,
     center_index: int | None,
-    ordering: LocalSiteOrderingConvention,
+    order: LocalSiteOrder,
 ) -> bool:
     site = site_info[0]
     site_index = site_info[2]
     if center_index is not None and int(site_index) == int(center_index):
         return True
-    return np.linalg.norm(site.coords - center_site.coords) <= ordering.center_match_tolerance
+    return np.linalg.norm(site.coords - center_site.coords) <= order.center_match_tolerance
 
 
 def _normalize_exclude_species(exclude_species) -> list[str]:
@@ -373,13 +373,13 @@ def _normalize_exclude_species(exclude_species) -> list[str]:
 
 def _base_occupation(
     lattice_structure: LatticeStructure,
-    active_site_index_map,
+    active_site_order,
     base_structure: Structure | None,
     tol: float,
     angle_tol: float,
 ) -> Occupation:
     if base_structure is not None:
-        active_base_structure = active_site_index_map.filter_active_structure(
+        active_base_structure = active_site_order.filter_active_structure(
             base_structure, tol=tol
         )
         return lattice_structure.get_occ_from_structure(
@@ -454,7 +454,7 @@ def _allowed_choices(
 def _enumerate_with_transformation(
     lattice_structure: LatticeStructure,
     active_lattice_structure: LatticeStructure,
-    active_site_index_map,
+    active_site_order,
     base_occupation: Occupation,
     local_site_indices: tuple[int, ...],
     variable_site_indices: tuple[int, ...],
@@ -502,7 +502,7 @@ def _enumerate_with_transformation(
             _build_enumeration(
                 lattice_structure=lattice_structure,
                 active_lattice_structure=active_lattice_structure,
-                active_site_index_map=active_site_index_map,
+                active_site_order=active_site_order,
                 occupation=occupation,
                 local_site_indices=local_site_indices,
                 variable_site_indices=variable_site_indices,
@@ -579,7 +579,7 @@ def _iter_transformed_structures(transformed: Any) -> Iterable[tuple[Structure, 
 def _build_enumeration(
     lattice_structure: LatticeStructure,
     active_lattice_structure: LatticeStructure,
-    active_site_index_map,
+    active_site_order,
     occupation: Occupation,
     local_site_indices: tuple[int, ...],
     variable_site_indices: tuple[int, ...],
@@ -589,7 +589,7 @@ def _build_enumeration(
     local_occupation = occupation[list(local_site_indices)]
     return LocalEnvironmentEnumeration(
         structure=_structure_from_active_occupation(
-            lattice_structure, active_lattice_structure, active_site_index_map, occupation
+            lattice_structure, active_lattice_structure, active_site_order, occupation
         ),
         full_occupation=occupation,
         local_occupation=local_occupation,
@@ -604,16 +604,16 @@ def _build_enumeration(
 def _ordered_endpoint_structures(
     lattice_structure: LatticeStructure,
     active_lattice_structure: LatticeStructure,
-    active_site_index_map,
+    active_site_order,
     initial_occupation: Occupation,
     final_occupation: Occupation,
     from_site: int,
     to_site: int,
 ) -> tuple[Structure, Structure]:
-    full_structure = active_site_index_map.full_structure_with_properties()
-    original_to_active = active_site_index_map.original_to_active
-    original_from_site = active_site_index_map.active_to_original[from_site]
-    original_to_site = active_site_index_map.active_to_original[to_site]
+    full_structure = active_site_order.full_structure_with_properties()
+    original_to_active = active_site_order.original_to_active
+    original_from_site = active_site_order.active_to_original[from_site]
+    original_to_site = active_site_order.active_to_original[to_site]
 
     initial_sites = []
     final_sites = []
@@ -657,11 +657,11 @@ def _ordered_endpoint_structures(
 def _structure_from_active_occupation(
     lattice_structure: LatticeStructure,
     active_lattice_structure: LatticeStructure,
-    active_site_index_map,
+    active_site_order,
     occupation: Occupation,
 ) -> Structure:
-    full_structure = active_site_index_map.full_structure_with_properties()
-    original_to_active = active_site_index_map.original_to_active
+    full_structure = active_site_order.full_structure_with_properties()
+    original_to_active = active_site_order.original_to_active
     sites = []
     for original_site_index, template_site in enumerate(full_structure):
         active_site_index = original_to_active.get(original_site_index)
@@ -704,16 +704,16 @@ def _periodic_site_from_template(
 def _occupation_from_local_environment_enumeration(
     local_environment_enumeration: LocalEnvironmentEnumeration | Occupation | Sequence[int],
     lattice_structure: LatticeStructure,
-    active_site_index_map,
+    active_site_order,
 ) -> Occupation:
     if isinstance(local_environment_enumeration, LocalEnvironmentEnumeration):
         return local_environment_enumeration.full_occupation.copy()
     if isinstance(local_environment_enumeration, Occupation):
-        values = active_site_index_map.select_active_values(
-            local_environment_enumeration.array
+        values = active_site_order.select_active_values(
+            local_environment_enumeration.data
         )
         return Occupation(values, basis=lattice_structure.basis, validate=True)
-    values = active_site_index_map.select_active_values(local_environment_enumeration)
+    values = active_site_order.select_active_values(local_environment_enumeration)
     return Occupation(values, basis=lattice_structure.basis, validate=True)
 
 

@@ -439,7 +439,7 @@ class ClusterMatch:
 
 
 class ClusterMatcher:
-    """Match candidate clusters to a reference cluster ordering."""
+    """Match candidate clusters to a reference cluster order."""
 
     def __init__(
         self,

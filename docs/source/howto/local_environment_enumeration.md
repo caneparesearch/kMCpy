@@ -8,7 +8,7 @@ sites, and return:
 
 - pymatgen structures,
 - compact active-site occupation vectors,
-- local occupation vectors in the same ordering used by kMCpy models.
+- local occupation vectors in the same order used by kMCpy models.
 
 ## Build A Lattice Model
 
@@ -141,5 +141,5 @@ image directories, or generate interpolated intermediate images.
 
 - Make sure `variable_site_indices` use compact active-site indices.
 - Use `species_counts` when composition must be fixed.
-- Use the same site ordering and basis convention as the model you plan to fit.
+- Use the same site order and basis convention as the model you plan to fit.
 - Keep enumlib-dependent transformations optional in reproducible workflows.

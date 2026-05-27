@@ -185,10 +185,6 @@ class OccupationBasis(BasisFunction):
         """Flip between match and mismatch."""
         return 1 - value
 
-    def flip_value(self, value: int) -> int:
-        """Alias for flip for backward compatibility."""
-        return self.flip(value)
-
     def is_occupied(self, value: int) -> bool:
         """Check if value represents occupied state."""
         return value == self.occupied_value
@@ -258,10 +254,6 @@ class ChebyshevBasis(BasisFunction):
     def flip(self, value: int) -> int:
         """Flip between match and mismatch."""
         return self.mismatch_value if value == self.match_value else self.match_value
-
-    def flip_value(self, value: int) -> int:
-        """Alias for flip for backward compatibility."""
-        return self.flip(value)
 
     def is_occupied(self, value: int) -> bool:
         """Check if value represents the first mapped species state."""
@@ -405,11 +397,6 @@ class Occupation:
         return self._data.copy()  # Return copy to maintain immutability
     
     @property
-    def array(self) -> np.ndarray:
-        """Get the underlying numpy array (alias for data, for backward compatibility)."""
-        return self.data
-    
-    @property
     def values(self) -> List[int]:
         """Get occupation values as a list."""
         return self._data.tolist()
@@ -543,11 +530,7 @@ class Occupation:
             indices = [indices]
         
         for idx in indices:
-            # Use flip_value if available (for custom flip logic), otherwise use flip
-            if hasattr(self._basis_obj, 'flip_value'):
-                new_data[idx] = self._basis_obj.flip_value(new_data[idx])
-            else:
-                new_data[idx] = self._basis_obj.flip(new_data[idx])
+            new_data[idx] = self._basis_obj.flip(new_data[idx])
                 
         return Occupation(new_data, basis=self._basis_obj, validate=False)
     
@@ -562,11 +545,7 @@ class Occupation:
             indices = [indices]
         
         for idx in indices:
-            # Use flip_value if available (for custom flip logic), otherwise use flip
-            if hasattr(self._basis_obj, 'flip_value'):
-                self._data[idx] = self._basis_obj.flip_value(self._data[idx])
-            else:
-                self._data[idx] = self._basis_obj.flip(self._data[idx])
+            self._data[idx] = self._basis_obj.flip(self._data[idx])
     
     def to_basis(self, target_basis: Union[str, BasisFunction]) -> 'Occupation':
         """

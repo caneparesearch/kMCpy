@@ -196,7 +196,7 @@ def test_eventlib_bundled_format():
     event_lib.add_event(event2)
 
     from pymatgen.core import Lattice, Structure
-    from kmcpy.structure import ActiveSiteIndexMap
+    from kmcpy.structure import ActiveSiteOrder
 
     index_structure = Structure(
         Lattice.cubic(10.0),
@@ -204,7 +204,7 @@ def test_eventlib_bundled_format():
         [[i, 0, 0] for i in range(6)],
         coords_are_cartesian=True,
     )
-    index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+    index_map = ActiveSiteOrder.from_structure_and_mapping(
         index_structure, {"Na": ["Na", "X"]}
     )
     event_lib.set_index_metadata(index_map)

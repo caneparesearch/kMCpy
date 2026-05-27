@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from kmcpy.event.base import Event, EventLib
 from kmcpy.io.cif import load_labeled_structure_from_cif
-from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+from kmcpy.structure.active_site_order import ActiveSiteOrder
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from kmcpy.structure.cluster import Cluster, ClusterMatcher
 from kmcpy.structure.neighbors import (
@@ -364,16 +364,16 @@ class EventGenerator:
             structure_file, primitive=convert_to_primitive_cell
         )
         full_primitive_cell.add_oxidation_state_by_guess()
-        primitive_active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        primitive_active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             full_primitive_cell, site_mapping
         )
-        event_active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        event_active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             full_primitive_cell,
             site_mapping,
             supercell_shape=supercell_shape,
         )
         primitive_cell = structure_from_sites(
-            primitive_active_site_index_map.active_structure().sites
+            primitive_active_site_order.active_structure().sites
         )
 
         if local_env_cutoff_dict is None:
@@ -509,7 +509,7 @@ class EventGenerator:
         event_lib = EventLib()
         for event in events:
             event_lib.add_event(event)
-        event_lib.set_index_metadata(event_active_site_index_map)
+        event_lib.set_index_metadata(event_active_site_order)
 
         # Generate dependencies before saving
         logger.info("Generating event dependency matrix...")

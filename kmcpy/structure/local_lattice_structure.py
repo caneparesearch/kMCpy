@@ -4,10 +4,10 @@ import logging
 from typing import List, Dict, Any
 
 from kmcpy.structure.lattice_structure import LatticeStructure
-from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+from kmcpy.structure.active_site_order import ActiveSiteOrder
 from kmcpy.structure.cluster import Cluster, ClusterMatcher
-from kmcpy.structure.local_site_ordering import (
-    LocalSiteOrderingConvention,
+from kmcpy.structure.local_site_order import (
+    LocalSiteOrder,
     ordered_site_hash,
     ordered_site_signature,
 )
@@ -25,7 +25,7 @@ class LocalLatticeStructure(LatticeStructure):
                  basis_type = 'chebyshev',
                  is_write_basis=False, 
                  exclude_species=None,
-                 ordering_convention=None,
+                 local_site_order=None,
                  exclude_center_site=None):
         if exclude_species:
             raise ValueError(
@@ -35,29 +35,29 @@ class LocalLatticeStructure(LatticeStructure):
 
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
-        active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             working_structure, site_mapping
         )
         if isinstance(center, int):
-            primitive_to_active = active_site_index_map.primitive_to_active
+            primitive_to_active = active_site_order.primitive_to_active
             if center not in primitive_to_active:
                 raise ValueError(
                     f"center site {center} is fixed by site_mapping and is "
                     "not part of the active-site index space"
                 )
             center = primitive_to_active[center]
-        working_structure = active_site_index_map.active_structure()
+        working_structure = active_site_order.active_structure()
         working_structure.remove_oxidation_states()
-        ordering = LocalSiteOrderingConvention.resolve(ordering_convention)
+        order = LocalSiteOrder.resolve(local_site_order)
         if exclude_center_site is not None:
-            ordering = ordering.with_exclude_center_site(exclude_center_site)
+            order = order.with_exclude_center_site(exclude_center_site)
 
         super().__init__(template_structure=working_structure, site_mapping=site_mapping,
                          basis_type=basis_type)
-        self.active_site_index_map = active_site_index_map
+        self.active_site_order = active_site_order
         self.cutoff = cutoff
         self.is_write_basis = is_write_basis
-        self.ordering_convention = ordering
+        self.local_site_order = order
 
         if isinstance(center, int):
             self.center_site = self.template_structure[center]
@@ -76,14 +76,14 @@ class LocalLatticeStructure(LatticeStructure):
         local_env_sites = self.template_structure.get_sites_in_sphere(
             self.center_site.coords, cutoff, include_index=True
         )
-        if self.ordering_convention.exclude_center_site:
+        if self.local_site_order.exclude_center_site:
             local_env_sites = [
                 site_info
                 for site_info in local_env_sites
                 if not self._is_center_site(site_info)
             ]
         
-        local_env_sites = self.ordering_convention.sort_local_env_sites(local_env_sites)
+        local_env_sites = self.local_site_order.sort_local_env_sites(local_env_sites)
 
         self.site_indices = [site[2] for site in local_env_sites]
         
@@ -128,7 +128,7 @@ class LocalLatticeStructure(LatticeStructure):
             return True
         return (
             np.linalg.norm(site.coords - self.center_site.coords)
-            <= self.ordering_convention.center_match_tolerance
+            <= self.local_site_order.center_match_tolerance
         )
 
     @staticmethod
@@ -136,11 +136,11 @@ class LocalLatticeStructure(LatticeStructure):
         """
         Deterministically sort neighbor dictionaries while preserving all metadata.
 
-        The ordering matches the historical event-generator behavior:
+        The order matches the historical event-generator behavior:
         species first, then x coordinate.
         """
-        convention = LocalSiteOrderingConvention.from_name("nasicon_nat_commun_2022")
-        return sorted(neighbor_info, key=lambda x: convention._sort_key(x["site"]))
+        order = LocalSiteOrder.from_name("nasicon_nat_commun_2022")
+        return sorted(neighbor_info, key=lambda x: order._sort_key(x["site"]))
 
     @classmethod
     def ordered_neighbor_info_from_finder(
@@ -251,7 +251,7 @@ class LocalLatticeStructure(LatticeStructure):
     def from_lattice_structure(cls, lattice_structure: LatticeStructure, center, cutoff,
                                site_mapping=None, basis_type='chebyshev',
                                is_write_basis=False, exclude_species=None,
-                               ordering_convention=None, exclude_center_site=None):
+                               local_site_order=None, exclude_center_site=None):
         """
         Create a LocalLatticeStructure from an existing LatticeStructure.
         
@@ -279,6 +279,6 @@ class LocalLatticeStructure(LatticeStructure):
             basis_type=basis_type,
             is_write_basis=is_write_basis,
             exclude_species=exclude_species,
-            ordering_convention=ordering_convention,
+            local_site_order=local_site_order,
             exclude_center_site=exclude_center_site,
         )

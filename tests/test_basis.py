@@ -36,11 +36,11 @@ class TestOccupationBasis:
         assert basis.is_vacant(0) is True
         assert basis.is_vacant(1) is False
     
-    def test_flip_value(self):
+    def test_flip(self):
         """Test value flipping."""
         basis = OccupationBasis()
-        assert basis.flip_value(0) == 1
-        assert basis.flip_value(1) == 0
+        assert basis.flip(0) == 1
+        assert basis.flip(1) == 0
     
     def test_basis_conversions(self):
         """Test conversion to/from Chebyshev basis."""
@@ -78,11 +78,11 @@ class TestChebyshevBasis:
         assert basis.is_vacant(1) is True
         assert basis.is_vacant(0) is False
     
-    def test_flip_value(self):
+    def test_flip(self):
         """Test value flipping."""
         basis = ChebyshevBasis()
-        assert basis.flip_value(0) == 1
-        assert basis.flip_value(1) == 0
+        assert basis.flip(0) == 1
+        assert basis.flip(1) == 0
     
     def test_basis_conversions(self):
         """Test conversion to/from occupation basis."""

@@ -7,7 +7,7 @@ from kmcpy.models.parameters import LCEModelParamHistory, LCEModelParameters
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.state import State
 from kmcpy.structure.basis import ChebyshevBasis
-from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
+from kmcpy.structure.local_site_order import LocalSiteOrder
 
 
 def test_core_serializable_objects_are_msonable(tmp_path):
@@ -30,7 +30,7 @@ def test_core_serializable_objects_are_msonable(tmp_path):
         LCEModelParamHistory([parameters]),
         LCEFitter(),
         ChebyshevBasis(max_states=3),
-        LocalSiteOrderingConvention.from_name("kmcpy_default"),
+        LocalSiteOrder.from_name("kmcpy_default"),
     ]
 
     for index, obj in enumerate(objects):

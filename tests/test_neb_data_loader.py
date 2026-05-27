@@ -113,7 +113,7 @@ def test_lce_correlation_vector_reflects_allowed_substitution():
     assert not np.array_equal(original_corr, substituted_corr)
 
 
-def test_loader_rejects_mismatched_reference_ordering():
+def test_loader_rejects_mismatched_reference_order():
     structure = Structure(
         Lattice.cubic(10.0),
         ["Na", "Na", "Na"],
@@ -136,7 +136,7 @@ def test_loader_rejects_mismatched_reference_ordering():
         cutoff=2.5,
         site_mapping={"Na": ["Na", "X"]},
         basis_type="chebyshev",
-        ordering_convention={
+        local_site_order={
             "name": "by_x",
             "sort_keys": ["cartesian_x", "cartesian_y"],
         },
@@ -147,7 +147,7 @@ def test_loader_rejects_mismatched_reference_ordering():
         reference_local_lattice_structure=mismatched_reference,
     )
 
-    with pytest.raises(ValueError, match="ordering does not match"):
+    with pytest.raises(ValueError, match="order does not match"):
         loader.add_structure(structure, 100.0)
 
 

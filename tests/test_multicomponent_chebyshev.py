@@ -90,7 +90,7 @@ def test_lce_expands_multicomponent_chebyshev_decorated_features():
         site_mapping={"Al": ["Al", "X", "Mg"]},
         center=0,
         cutoff=2.0,
-        ordering_convention={
+        local_site_order={
             "name": "cartesian_x",
             "sort_keys": ["cartesian_x"],
             "exclude_center_site": False,
@@ -117,6 +117,6 @@ def test_lce_expands_multicomponent_chebyshev_decorated_features():
     reloaded_corr = np.empty(len(reloaded.cluster_site_indices))
     reloaded._calculate_correlation(
         reloaded_corr,
-        Occupation([0, 2], basis=reloaded.basis, validate=False).array,
+        Occupation([0, 2], basis=reloaded.basis, validate=False).data,
     )
     np.testing.assert_allclose(reloaded_corr, corr)

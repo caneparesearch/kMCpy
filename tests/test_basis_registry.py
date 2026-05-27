@@ -76,7 +76,7 @@ class TestBasisFunctionRegistry:
             def is_vacant(self, value):
                 return value == 0.0
 
-            def flip_value(self, value):
+            def flip(self, value):
                 return 2.0 if value == 0.0 else 0.0
         
         # Test that custom basis is registered
@@ -106,7 +106,7 @@ class TestBasisFunctionInterface:
         # Test all required methods
         assert basis.is_occupied(1)
         assert basis.is_vacant(0)
-        assert basis.flip_value(0) == 1
+        assert basis.flip(0) == 1
         
         # Test convert_to method
         cheb_basis = ChebyshevBasis()
@@ -129,7 +129,7 @@ class TestBasisFunctionInterface:
         # Test all required methods
         assert basis.is_occupied(0)
         assert basis.is_vacant(1)
-        assert basis.flip_value(0) == 1
+        assert basis.flip(0) == 1
         
         # Test convert_to method
         occ_basis = OccupationBasis()
@@ -244,7 +244,7 @@ class TestCustomBasisWithOccupation:
             def is_vacant(self, value):
                 return value == 0.0
 
-            def flip_value(self, value):
+            def flip(self, value):
                 if value == 0.0:
                     return 1.0
                 elif value == 1.0:

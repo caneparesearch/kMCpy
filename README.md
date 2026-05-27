@@ -26,7 +26,7 @@ Advantages of using kMCpy:
 > [!WARNING]
 > kMCpy is under active development.
 >
-> kMCpy is still under active development. While we strive to maintain backward compatibility, some changes may occur that could affect existing workflows. We recommend users to check the release notes and documentation for any updates or changes that might impact their usage.
+> APIs and serialized file formats may change before a stable release. Check the release notes and current documentation when updating existing workflows.
 
 ## Installation
 

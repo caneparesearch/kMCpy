@@ -3,7 +3,7 @@ import numpy as np
 from pymatgen.core import Structure, Lattice
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
+from kmcpy.structure.local_site_order import LocalSiteOrder
 
 @pytest.fixture
 def global_lattice_model_and_env():
@@ -44,7 +44,7 @@ def test_local_environment_setup(global_lattice_model_and_env):
     assert local_env.site_indices == [0]
 
 
-def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_x():
+def test_nasicon_publication_order_excludes_center_and_sorts_by_species_then_x():
     """Publication convention should mimic the single-unit NASICON site order."""
     lattice = Lattice.cubic(20.0)
     template_structure = Structure(
@@ -65,10 +65,10 @@ def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_
         site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
         center=0,
         cutoff=3.1,
-        ordering_convention="nasicon_nat_commun_2022",
+        local_site_order="nasicon_nat_commun_2022",
     )
 
-    assert local_env.ordering_convention.name == "nasicon_nat_commun_2022"
+    assert local_env.local_site_order.name == "nasicon_nat_commun_2022"
     assert local_env.site_indices == [1, 2, 3, 4]
     assert [site.species_string for site in local_env.structure] == [
         "Na",
@@ -84,11 +84,11 @@ def test_nasicon_publication_ordering_excludes_center_and_sorts_by_species_then_
     ]
 
 
-def test_local_site_ordering_convention_round_trip():
-    convention = LocalSiteOrderingConvention.from_name("nasicon_nat_commun_2022")
+def test_local_site_local_site_order_round_trip():
+    convention = LocalSiteOrder.from_name("nasicon_nat_commun_2022")
 
-    restored = LocalSiteOrderingConvention.resolve(convention.as_dict())
-    restored_from_name_only = LocalSiteOrderingConvention.resolve(
+    restored = LocalSiteOrder.resolve(convention.as_dict())
+    restored_from_name_only = LocalSiteOrder.resolve(
         {"name": "nasicon_nat_commun_2022"}
     )
 
@@ -125,7 +125,7 @@ def test_get_local_occupation_with_vacancy(global_lattice_model_and_env):
     structure_with_vacancy = global_model.template_structure.copy()
     structure_with_vacancy.remove_sites([0])
 
-    active_map = global_model.get_active_site_index_map()
+    active_map = global_model.get_active_site_order()
     active_model = global_model.get_active_lattice_structure()
     active_structure = active_map.filter_active_structure(structure_with_vacancy)
     full_occ = active_model.get_occ_from_structure(active_structure)
@@ -185,7 +185,7 @@ def test_local_lattice_structure_removes_fixed_sites_from_active_space():
         [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
         coords_are_cartesian=True,
     )
-    active_structure = local_lattice.active_site_index_map.filter_active_structure(
+    active_structure = local_lattice.active_site_order.filter_active_structure(
         substituted_structure
     )
     occ = local_lattice.get_occ_from_structure(active_structure)
@@ -223,7 +223,7 @@ def test_local_lattice_structure_accepts_neutral_mapping_for_oxidized_template()
     substituted_structure.add_oxidation_state_by_element({"Na": 1, "O": -2, "P": 5})
     substituted_structure.remove_oxidation_states()
 
-    active_structure = local_lattice.active_site_index_map.filter_active_structure(
+    active_structure = local_lattice.active_site_order.filter_active_structure(
         substituted_structure
     )
     occ = local_lattice.get_occ_from_structure(active_structure)

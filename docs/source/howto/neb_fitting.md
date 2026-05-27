@@ -111,7 +111,7 @@ model and fitted parameter output so the fitting dataset is reproducible.
 ## Checklist
 
 - Barrier targets should be in `meV`.
-- The reference local lattice must match the LCE ordering convention.
+- The reference local lattice must match the LCE local site order.
 - The structure files must map cleanly onto the reference lattice.
 - Use the same `basis_type` and `site_mapping` used to build the model.
 - Keep generated fitting inputs and fitted parameters together.

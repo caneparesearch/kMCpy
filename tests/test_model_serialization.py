@@ -33,7 +33,7 @@ def test_local_cluster_expansion_from_file_is_repeatable():
     assert first_model.as_dict() == second_model.as_dict()
 
 
-def test_local_cluster_expansion_serializes_ordering_convention():
+def test_local_cluster_expansion_serializes_local_site_order():
     structure = Structure(
         Lattice.cubic(20.0),
         ["Na", "Na", "Si"],
@@ -45,7 +45,7 @@ def test_local_cluster_expansion_serializes_ordering_convention():
         site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
         center=0,
         cutoff=3.0,
-        ordering_convention="nasicon_nat_commun_2022",
+        local_site_order="nasicon_nat_commun_2022",
     )
     model = LocalClusterExpansion()
     model.build(local_lattice, cutoff_cluster=[3.0, 3.0, 0.0])
@@ -53,12 +53,12 @@ def test_local_cluster_expansion_serializes_ordering_convention():
     payload = model.as_dict()
     reloaded = LocalClusterExpansion.from_dict(payload)
 
-    assert payload["ordering_convention"]["name"] == "nasicon_nat_commun_2022"
+    assert payload["local_site_order"]["name"] == "nasicon_nat_commun_2022"
     assert "local_environment_hash" in payload
-    assert reloaded.ordering_convention.name == "nasicon_nat_commun_2022"
+    assert reloaded.local_site_order.name == "nasicon_nat_commun_2022"
 
 
-def test_lce_fit_writes_local_environment_hash_not_ordering_convention(tmp_path):
+def test_lce_fit_writes_local_environment_hash_not_local_site_order(tmp_path):
     structure = Structure(
         Lattice.cubic(20.0),
         ["Na", "Na", "Si"],
@@ -70,7 +70,7 @@ def test_lce_fit_writes_local_environment_hash_not_ordering_convention(tmp_path)
         site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
         center=0,
         cutoff=3.0,
-        ordering_convention="nasicon_nat_commun_2022",
+        local_site_order="nasicon_nat_commun_2022",
     )
     model = LocalClusterExpansion()
     model.build(local_lattice, cutoff_cluster=[3.0, 3.0, 0.0])
@@ -119,18 +119,18 @@ def test_lce_fit_writes_local_environment_hash_not_ordering_convention(tmp_path)
 
     assert params.local_environment_hash == model.local_environment_hash
     assert params.orbit_fingerprints == orbit_fingerprints
-    assert params.ordering_convention is None
+    assert params.local_site_order is None
 
     params_payload = json.loads(params_file.read_text(encoding="utf-8"))
     assert params_payload["local_environment_hash"] == model.local_environment_hash
     assert params_payload["orbit_fingerprints"] == orbit_fingerprints
-    assert "ordering_convention" not in params_payload
+    assert "local_site_order" not in params_payload
 
     fit_results_payload = json.loads(fit_results_file.read_text(encoding="utf-8"))
     latest_row = fit_results_payload[max(fit_results_payload, key=int)]
     assert latest_row["local_environment_hash"] == model.local_environment_hash
     assert latest_row["orbit_fingerprints"] == orbit_fingerprints
-    assert "ordering_convention" not in latest_row
+    assert "local_site_order" not in latest_row
 
 
 def test_lce_parameters_are_bound_to_orbit_fingerprints():
@@ -155,7 +155,7 @@ def test_lce_parameters_are_bound_to_orbit_fingerprints():
         "empty_cluster": 0.0,
         "orbit_fingerprints": orbit_fingerprints,
         "local_environment_hash": model.local_environment_hash,
-        "ordering_convention": model.ordering_convention.as_dict(),
+        "local_site_order": model.local_site_order.as_dict(),
     }
     model.set_parameters(parameter_payload)
 
@@ -265,8 +265,8 @@ def test_composite_lce_model_to_is_model_file_compatible(tmp_path):
     assert loaded_model_data["filetype"] == "kmcpy.model_file"
     assert "orbit_fingerprints" in loaded_model_data["kra"]["parameters"]
     assert "local_environment_hash" in loaded_model_data["kra"]["parameters"]
-    assert "ordering_convention" not in loaded_model_data["kra"]["parameters"]
-    assert "ordering_convention" in loaded_model_data["kra"]["lce"]
+    assert "local_site_order" not in loaded_model_data["kra"]["parameters"]
+    assert "local_site_order" in loaded_model_data["kra"]["lce"]
     assert reloaded.kra_model is not None
     assert (
         loaded_model_data["kra"]["parameters"]["orbit_fingerprints"]

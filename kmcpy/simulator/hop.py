@@ -20,27 +20,27 @@ class HopStateLookup:
     vacancy_state_by_site: np.ndarray
 
     @classmethod
-    def from_active_site_index_map(
+    def from_active_site_order(
         cls,
-        active_site_index_map,
+        active_site_order,
         mobile_ion_specie: str,
     ) -> "HopStateLookup":
         """Build site-indexed state-code arrays from active-site metadata."""
         mobile = np.full(
-            active_site_index_map.active_site_count,
+            active_site_order.active_site_count,
             INVALID_STATE,
             dtype=np.int64,
         )
         vacancy = np.full(
-            active_site_index_map.active_site_count,
+            active_site_order.active_site_count,
             INVALID_STATE,
             dtype=np.int64,
         )
 
         for active_index, primitive_index in enumerate(
-            active_site_index_map.active_to_primitive
+            active_site_order.active_to_primitive
         ):
-            allowed = active_site_index_map.allowed_species_by_primitive_site[
+            allowed = active_site_order.allowed_species_by_primitive_site[
                 int(primitive_index)
             ]
             for state_index, specie_label in enumerate(allowed):

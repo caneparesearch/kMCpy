@@ -6,7 +6,7 @@ occupation management, basis functions, and local environment comparison.
 """
 
 from .lattice_structure import LatticeStructure
-from .active_site_index_map import ActiveSiteIndexMap
+from .active_site_order import ActiveSiteOrder
 from .local_lattice_structure import LocalLatticeStructure
 from .cluster import (
     Cluster,
@@ -15,8 +15,8 @@ from .cluster import (
     ClusterMatch,
     match_clusters,
 )
-from .local_site_ordering import (
-    LocalSiteOrderingConvention,
+from .local_site_order import (
+    LocalSiteOrder,
     ordered_site_hash,
     ordered_site_signature,
 )
@@ -56,14 +56,14 @@ from .basis import (
 
 __all__ = [
     "LatticeStructure",
-    "ActiveSiteIndexMap",
+    "ActiveSiteOrder",
     "LocalLatticeStructure",
     "Cluster",
     "Orbit",
     "ClusterMatcher",
     "ClusterMatch",
     "match_clusters",
-    "LocalSiteOrderingConvention",
+    "LocalSiteOrder",
     "ordered_site_hash",
     "ordered_site_signature",
     "SupercellComparator",

@@ -19,8 +19,8 @@ from kmcpy.event import Event
 from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from kmcpy.structure.cluster import Cluster, Orbit
-from kmcpy.structure.local_site_ordering import (
-    LocalSiteOrderingConvention,
+from kmcpy.structure.local_site_order import (
+    LocalSiteOrder,
     ordered_site_hash,
     ordered_site_signature,
 )
@@ -46,7 +46,7 @@ class LocalClusterExpansion(BaseModel):
         self.name = "LocalClusterExpansion"
 
     def fit(self, *args, **kwargs):
-        """Fit parameters and include this model's compatibility metadata."""
+        """Fit parameters and include this model's local-environment metadata."""
         orbit_fingerprints = getattr(self, "orbit_fingerprints", None)
         if orbit_fingerprints is None and hasattr(self, "orbits"):
             orbit_fingerprints = self.get_orbit_fingerprints()
@@ -85,7 +85,7 @@ class LocalClusterExpansion(BaseModel):
         self.center_site = local_lattice_structure.center_site
         self.local_env_structure = local_lattice_structure.structure
         self.basis = local_lattice_structure.basis
-        self.ordering_convention = local_lattice_structure.ordering_convention
+        self.local_site_order = local_lattice_structure.local_site_order
         self.local_environment_signature = (
             local_lattice_structure.get_ordered_site_signature()
         )
@@ -174,8 +174,8 @@ class LocalClusterExpansion(BaseModel):
                 from kmcpy.structure.basis import BasisFunction
 
                 obj.basis = BasisFunction.from_dict(value)
-            elif key == 'ordering_convention':
-                obj.ordering_convention = LocalSiteOrderingConvention.resolve(value)
+            elif key == 'local_site_order':
+                obj.local_site_order = LocalSiteOrder.resolve(value)
             else:
                 # For all other attributes, set them directly
                 setattr(obj, key, value)
@@ -217,8 +217,8 @@ class LocalClusterExpansion(BaseModel):
         if not getattr(obj, "name", None):
             obj.name = cls.__name__
 
-        if not hasattr(obj, "ordering_convention"):
-            obj.ordering_convention = LocalSiteOrderingConvention.resolve(None)
+        if not hasattr(obj, "local_site_order"):
+            obj.local_site_order = LocalSiteOrder.resolve(None)
         if not hasattr(obj, "local_environment_signature") and hasattr(
             obj, "local_env_structure"
         ):
@@ -351,7 +351,7 @@ class LocalClusterExpansion(BaseModel):
                 into occupation vectors.
 
         Raises:
-            ValueError: If the reference ordering is incompatible with this model.
+            ValueError: If the reference order is incompatible with this model.
         """
         if not hasattr(self, "cluster_site_indices"):
             raise ValueError("LocalClusterExpansion model must define cluster_site_indices.")
@@ -361,7 +361,7 @@ class LocalClusterExpansion(BaseModel):
             reference_hash = reference_local_lattice_structure.get_ordered_site_hash()
             if reference_hash != model_hash:
                 raise ValueError(
-                    "Reference LocalLatticeStructure ordering does not match "
+                    "Reference LocalLatticeStructure order does not match "
                     "the LocalClusterExpansion model."
                 )
 
@@ -393,7 +393,7 @@ class LocalClusterExpansion(BaseModel):
             reference_local_lattice_structure: Reference local lattice used to
                 map structure sites into the model's local site order. If omitted,
                 the model must carry ``local_lattice_structure`` from ``build``.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
+            exclude_species: Removed argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
 
@@ -419,9 +419,9 @@ class LocalClusterExpansion(BaseModel):
             )
 
         structure_for_occ = structure.copy()
-        active_site_index_map = getattr(reference, "active_site_index_map", None)
-        if active_site_index_map is not None:
-            structure_for_occ = active_site_index_map.filter_active_structure(
+        active_site_order = getattr(reference, "active_site_order", None)
+        if active_site_order is not None:
+            structure_for_occ = active_site_order.filter_active_structure(
                 structure_for_occ, tol=tol
             )
         structure_for_occ.remove_oxidation_states()
@@ -433,7 +433,7 @@ class LocalClusterExpansion(BaseModel):
         )
         local_occ = occ[reference.site_indices]
         corr = np.empty(shape=len(self.cluster_site_indices))
-        self._calculate_correlation(corr, local_occ.array)
+        self._calculate_correlation(corr, local_occ.data)
         return occ, corr
 
     def get_corr_from_structure(
@@ -678,13 +678,13 @@ class LocalClusterExpansion(BaseModel):
             empty_cluster = parameters.empty_cluster
             orbit_fingerprints = getattr(parameters, "orbit_fingerprints", None)
             local_environment_hash = getattr(parameters, "local_environment_hash", None)
-            ordering_convention = getattr(parameters, "ordering_convention", None)
+            local_site_order = getattr(parameters, "local_site_order", None)
         elif isinstance(parameters, dict):
             keci = parameters['keci']
             empty_cluster = parameters['empty_cluster']
             orbit_fingerprints = parameters.get("orbit_fingerprints")
             local_environment_hash = parameters.get("local_environment_hash")
-            ordering_convention = parameters.get("ordering_convention")
+            local_site_order = parameters.get("local_site_order")
         else:
             raise TypeError("Parameters must be LCEModelParameters object or dict")
 
@@ -704,7 +704,7 @@ class LocalClusterExpansion(BaseModel):
             if local_environment_hash is not None
             else getattr(self, "local_environment_hash", None)
         )
-        self.parameter_ordering_convention = ordering_convention
+        self.parameter_local_site_order = local_site_order
         self._parameters = parameters
         
         logger.info(f"Parameters set for LocalClusterExpansion: keci length={len(self.keci)}, empty_cluster={self.empty_cluster}")
@@ -790,8 +790,8 @@ class LocalClusterExpansion(BaseModel):
             payload["site_basis_values"] = self.site_basis_values.tolist()
         if getattr(self, "correlation_feature_metadata", None) is not None:
             payload["correlation_feature_metadata"] = self.correlation_feature_metadata
-        if hasattr(self, "ordering_convention"):
-            payload["ordering_convention"] = self.ordering_convention.as_dict()
+        if hasattr(self, "local_site_order"):
+            payload["local_site_order"] = self.local_site_order.as_dict()
         if hasattr(self, "local_environment_signature"):
             payload["local_environment_signature"] = self.local_environment_signature
         if hasattr(self, "local_environment_hash"):

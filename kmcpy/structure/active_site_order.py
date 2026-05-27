@@ -1,4 +1,4 @@
-"""Active-site index mapping utilities."""
+"""Active-site order utilities for compact KMC occupation vectors."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 import numpy as np
+from monty.json import MSONable
 from pymatgen.core import Structure
 
 from kmcpy.structure.species import (
@@ -17,7 +18,7 @@ from kmcpy.structure.species import (
 )
 
 
-INDEX_MAP_FORMAT = "kmcpy.active_site_index_map.v1"
+INDEX_MAP_FORMAT = "kmcpy.active_site_order.v1"
 ORIGINAL_SITE_PROPERTY = "_kmcpy_original_site_index"
 PRIMITIVE_SITE_PROPERTY = "_kmcpy_primitive_site_index"
 PRIMITIVE_ACTIVE_SITE_PROPERTY = "_kmcpy_primitive_active_site_index"
@@ -25,7 +26,7 @@ ACTIVE_SITE_PROPERTY = "_kmcpy_active_site_index"
 
 
 @dataclass(frozen=True)
-class ActiveSiteIndexMap:
+class ActiveSiteOrder(MSONable):
     """Map full template sites to compact mutable active-site indices."""
 
     primitive_site_count: int
@@ -47,7 +48,7 @@ class ActiveSiteIndexMap:
         cls,
         lattice_structure,
         supercell_shape: Sequence[int] | None = None,
-    ) -> "ActiveSiteIndexMap":
+    ) -> "ActiveSiteOrder":
         """Build from a ``LatticeStructure`` instance."""
         return cls.from_structure_and_mapping(
             lattice_structure.template_structure,
@@ -61,7 +62,7 @@ class ActiveSiteIndexMap:
         template_structure: Structure,
         site_mapping: Mapping[Any, Any],
         supercell_shape: Sequence[int] | None = None,
-    ) -> "ActiveSiteIndexMap":
+    ) -> "ActiveSiteOrder":
         """Build an active-site map from a full template and site mapping."""
         shape = _normalize_supercell_shape(supercell_shape)
         allowed_species = _allowed_species_by_site(
@@ -135,11 +136,11 @@ class ActiveSiteIndexMap:
         )
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "ActiveSiteIndexMap":
+    def from_dict(cls, data: Mapping[str, Any]) -> "ActiveSiteOrder":
         """Restore serialized index metadata."""
         if data.get("format") != INDEX_MAP_FORMAT:
             raise ValueError(
-                f"Unsupported active-site index map format: {data.get('format')}"
+                f"Unsupported active-site order format: {data.get('format')}"
             )
         return cls(
             primitive_site_count=int(data["primitive_site_count"]),
@@ -203,16 +204,16 @@ class ActiveSiteIndexMap:
             "fingerprint": self.fingerprint,
         }
 
-    def assert_compatible(self, other: "ActiveSiteIndexMap | Mapping[str, Any]") -> None:
-        """Raise if another map or metadata payload describes a different site space."""
-        other_map = (
-            ActiveSiteIndexMap.from_dict(other)
+    def assert_same_order(self, other: "ActiveSiteOrder | Mapping[str, Any]") -> None:
+        """Raise if another order or metadata payload describes a different site space."""
+        other_order = (
+            ActiveSiteOrder.from_dict(other)
             if isinstance(other, Mapping)
             else other
         )
-        if self.fingerprint != other_map.fingerprint:
+        if self.fingerprint != other_order.fingerprint:
             raise ValueError(
-                "Active-site index metadata does not match the current "
+                "Active-site order metadata does not match the current "
                 "site_mapping and structure."
             )
 

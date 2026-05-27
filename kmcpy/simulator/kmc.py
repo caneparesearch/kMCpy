@@ -57,7 +57,7 @@ class KMC:
                 config: "Configuration",
                 simulation_state: "State" = None,
                 hop_state_lookup: HopStateLookup | None = None,
-                active_site_index_map=None,
+                active_site_order=None,
                 **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
@@ -95,7 +95,7 @@ class KMC:
 
         # Store and apply precomputed hop-state metadata for fast direction checks.
         self.hop_state_lookup = hop_state_lookup
-        self.active_site_index_map = active_site_index_map
+        self.active_site_order = active_site_order
         if self.hop_state_lookup is not None:
             self.hop_state_lookup.annotate_event_lib(self.event_lib)
         
@@ -135,11 +135,6 @@ class KMC:
 
         logger.info("kMC initialization complete!")
 
-    @property
-    def occ_global(self):
-        """Read-only compatibility view of the current occupation vector."""
-        return self.simulation_state.occupations
-
     def _initialize_model_state(self) -> None:
         """Let stateful models initialize external occupancy/cache state once."""
         initialize_state = getattr(self.model, "initialize_state", None)
@@ -150,11 +145,11 @@ class KMC:
                 "structure": self.structure,
                 "config": self.config,
             }
-            if self.active_site_index_map is not None and _accepts_keyword(
+            if self.active_site_order is not None and _accepts_keyword(
                 initialize_state,
-                "active_site_index_map",
+                "active_site_order",
             ):
-                kwargs["active_site_index_map"] = self.active_site_index_map
+                kwargs["active_site_order"] = self.active_site_order
             initialize_state(**kwargs)
 
     def _apply_model_event(self, event: Event) -> None:
@@ -223,7 +218,7 @@ class KMC:
         from kmcpy.io.cif import load_labeled_structure_from_cif
         from kmcpy.models.base import BaseModel
         from kmcpy.simulator.state import State
-        from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
+        from kmcpy.structure.active_site_order import ActiveSiteOrder
 
         if config.site_mapping is None:
             raise ValueError(
@@ -235,31 +230,31 @@ class KMC:
             config.structure_file,
             primitive=config.convert_to_primitive_cell,
         )
-        active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             full_structure,
             config.site_mapping,
             supercell_shape=config.supercell_shape,
         )
-        structure = active_site_index_map.active_structure()
+        structure = active_site_order.active_structure()
 
         model = BaseModel.from_config(config)
         event_lib = EventLib.from_file(config.event_file)
-        event_lib.validate_index_metadata(active_site_index_map)
-        hop_state_lookup = HopStateLookup.from_active_site_index_map(
-            active_site_index_map,
+        event_lib.validate_index_metadata(active_site_order)
+        hop_state_lookup = HopStateLookup.from_active_site_order(
+            active_site_order,
             config.mobile_ion_specie,
         )
 
         if config.initial_occupations is not None:
             simulation_state = State.from_occupations(
                 config.initial_occupations,
-                active_site_index_map=active_site_index_map,
+                active_site_order=active_site_order,
             )
         elif config.initial_state_file:
             simulation_state = State.from_file(
                 config.initial_state_file,
                 supercell_shape=config.supercell_shape,
-                active_site_index_map=active_site_index_map,
+                active_site_order=active_site_order,
             )
         else:
             raise ValueError("Initial occupations could not be determined.")
@@ -271,7 +266,7 @@ class KMC:
             config=config,
             simulation_state=simulation_state,
             hop_state_lookup=hop_state_lookup,
-            active_site_index_map=active_site_index_map,
+            active_site_order=active_site_order,
         )
 
     def show_project_info(self):

@@ -398,7 +398,7 @@ class NEBDataLoader:
         """Get the occupation matrix for all structures."""
         if not self.neb_entries:
             raise ValueError("No entries available")
-        return np.array([entry.occupation.array for entry in self.neb_entries])
+        return np.array([entry.occupation.data for entry in self.neb_entries])
     
     def get_properties(self) -> np.ndarray:
         """Get the properties for all structures."""

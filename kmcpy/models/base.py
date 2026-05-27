@@ -90,7 +90,7 @@ class BaseModel(MSONable, ABC):
         event_lib=None,
         structure=None,
         config=None,
-        active_site_index_map=None,
+        active_site_order=None,
     ) -> None:
         """Initialize optional stateful model caches from the KMC state.
 
