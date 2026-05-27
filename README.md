@@ -169,16 +169,27 @@ A wrapper is provided if you want to run kMCpy from the command line.
 kmcpy init --output input_template.yaml
 ```
 
-2. Edit the required file paths and simulation settings in `input_template.yaml`.
+Or generate concrete starter files:
+```shell
+kmcpy sample all --output-dir kmcpy_sample
+```
+
+This writes `input.yaml`, `model.json`, and `initial_state.json` using a
+constant-barrier `LocalBarrierModel`.
+
+2. Edit the required file paths and simulation settings in `input_template.yaml`
+   or `kmcpy_sample/input.yaml`.
 
 3. Run the simulation:
 ```shell
-run_kmc --input input_template.yaml
+kmcpy run --input input_template.yaml
 ```
+
+The standalone `run_kmc --input input_template.yaml` command is also supported.
 
 To print out all arguments, you can run:
 ```shell
-run_kmc --help
+kmcpy run --help
 ```
 
 ## Build local barrier models

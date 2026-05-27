@@ -7,6 +7,19 @@ import argparse
 import ast
 
 
+RUN_HELP_EPILOG = """
+Recommended workflow:
+  kmcpy init --output input_template.yaml
+  # or: kmcpy sample all --output-dir kmcpy_sample
+  run_kmc --input input_template.yaml
+
+The input-file workflow is preferred for research runs because it records the
+full Configuration in one place. Direct flags are kept for quick checks and
+simple scripts. For less common fields such as property callbacks and built-in
+property schedules, use a YAML or JSON input file.
+"""
+
+
 def _parse_sequence(value):
     if value is None or isinstance(value, (list, tuple)):
         return value
@@ -46,78 +59,64 @@ def _parse_mapping(value):
     return parsed
 
 
+def _parse_int_sequence(value):
+    parsed = _parse_sequence(value)
+    if parsed is None:
+        return None
+    try:
+        return [int(item) for item in parsed]
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(
+            "initial_occupations must contain integers"
+        ) from exc
 
-def main()->None:
-    """
-    Entry point for the kMCpy command-line interface to run kinetic Monte Carlo (kMC) simulations.
-    
-    This function parses command-line arguments for running a kMC simulation using kMCpy. It supports
-    two modes of input:
-    
-    1. Providing a single JSON/YAML file containing all simulation parameters.
-    2. Providing individual arguments for each required parameter.
-    
-    If a JSON/YAML input file is provided, all other parameters are read from this file. Otherwise, the user
-    must specify all required arguments individually.
-    
-    Args:
-        input (str, optional): Path to the input JSON/YAML file for kMC simulation. If provided, all other
-            parameters are read from this file.
-        supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
-            Required if input file is not provided.
-        model_file (str): Path to model JSON file.
-            Files written by model.to(...) include class metadata.
-            Required if input file is not provided.
-        structure_file (str): Path to the CIF file of the template structure (with all sites filled).
-            Required if input file is not provided.
-        event_file (str): Path to the JSON file containing the list of events.
-            Required if input file is not provided.
-        attempt_frequency (float, optional): Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.
-        temperature (float, optional): Simulation temperature in Kelvin. Defaults to 300 K.
-        convert_to_primitive_cell (bool, optional): Whether to convert the structure to its primitive cell.
-            Defaults to False.
-    
-    Returns:
-        None
-    """
 
-    parser = argparse.ArgumentParser(
-        description=kmcpy.get_logo(),
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """Add run arguments to ``parser`` and return it."""
     parser.add_argument(
         "--input",
         type=str,
         help=(
-            "Path to the input JSON/YAML file for kMC simulation. If provided, "
-            "all other parameters are read from this file."
+            "Preferred. Path to a modern Configuration YAML/JSON input file. "
+            "Generate one with `kmcpy init` or `kmcpy sample all`."
         ),
     )
-    # Always show all arguments in help - using modern parameter names
-    parser.add_argument(
+
+    system_group = parser.add_argument_group("common system fields")
+    system_group.add_argument(
         "--supercell_shape",
         type=_parse_supercell_shape,
         help=(
-            "Shape of the supercell as a list of integers (e.g., [2, 2, 2]). "
-            "This should be consistent with events."
+            "Supercell replication factors [a, b, c], e.g. '[2, 2, 2]'. "
+            "Must match the event library."
         ),
     )
-    parser.add_argument(
+    system_group.add_argument(
         "--model_file",
         type=str,
         help="Path to model JSON file.",
     )
-    parser.add_argument(
+    system_group.add_argument(
         "--structure_file",
         type=str,
-        help="Path to the CIF file of the template structure (with all sites filled).",
+        help="Path to the structure/CIF file containing all possible mobile-ion sites.",
     )
-    parser.add_argument(
+    system_group.add_argument(
         "--event_file",
         type=str,
-        help="Path to the JSON file containing the list of events.",
+        help="Path to the event library JSON file.",
     )
-    parser.add_argument(
+    system_group.add_argument(
+        "--initial_state_file",
+        type=str,
+        help="Path to an initial State JSON file.",
+    )
+    system_group.add_argument(
+        "--initial_occupations",
+        type=_parse_int_sequence,
+        help="Initial active-site occupation vector, e.g. '[0, 1, 0]' or '0,1,0'.",
+    )
+    system_group.add_argument(
         "--site_mapping",
         type=_parse_mapping,
         help=(
@@ -125,27 +124,91 @@ def main()->None:
             "(for example: {'Na': ['Na', 'X'], 'O': 'O'})."
         ),
     )
-    parser.add_argument(
-        "--attempt_frequency",
-        type=float,
-        default=1e13,
-        help="Attempt frequency (prefactor) for hopping events. Defaults to 1e13 Hz.",
+    system_group.add_argument(
+        "--model_type",
+        type=str,
+        help="Model type for direct payloads, e.g. local_barrier or composite_lce.",
     )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=300,
-        help="Simulation temperature in Kelvin. Defaults to 300 K.",
+    system_group.add_argument(
+        "--dimension",
+        type=int,
+        choices=[1, 2, 3],
+        help="Transport dimensionality.",
     )
-    parser.add_argument(
+    system_group.add_argument(
+        "--mobile_ion_specie",
+        type=str,
+        help="Mobile-ion species label, e.g. Li or Na.",
+    )
+    system_group.add_argument(
+        "--mobile_ion_charge",
+        type=float,
+        help="Mobile-ion charge in |e|.",
+    )
+    system_group.add_argument(
+        "--elementary_hop_distance",
+        type=float,
+        help="Characteristic hop distance in Angstrom.",
+    )
+    system_group.add_argument(
         "--convert_to_primitive_cell",
         action="store_true",
-        help="Whether to convert the structure to its primitive cell (default: False).",
+        help="Convert the structure to its primitive cell before setup.",
     )
-    args = parser.parse_args()
+
+    runtime_group = parser.add_argument_group("common runtime fields")
+    runtime_group.add_argument(
+        "--attempt_frequency",
+        type=float,
+        help="Attempt frequency in Hz.",
+    )
+    runtime_group.add_argument(
+        "--temperature",
+        type=float,
+        help="Simulation temperature in Kelvin.",
+    )
+    runtime_group.add_argument(
+        "--equilibration_passes",
+        type=int,
+        help="Number of equilibration KMC passes.",
+    )
+    runtime_group.add_argument(
+        "--kmc_passes",
+        type=int,
+        help="Number of production KMC passes.",
+    )
+    runtime_group.add_argument(
+        "--random_seed",
+        type=int,
+        help="Random seed for reproducible event selection.",
+    )
+    runtime_group.add_argument(
+        "--name",
+        type=str,
+        help="Simulation label used in output filenames.",
+    )
+    return parser
+
+
+def build_parser(prog: str = "run_kmc") -> argparse.ArgumentParser:
+    """Build the parser shared by ``run_kmc`` and ``kmcpy run``."""
+    parser = argparse.ArgumentParser(
+        prog=prog,
+        description=kmcpy.get_logo(),
+        epilog=RUN_HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    return configure_parser(parser)
+
+
+def main(argv=None) -> None:
+    """Entry point for running kinetic Monte Carlo simulations."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
     run_kmc(args)
 
-def run_kmc(args)-> None:
+
+def run_kmc(args) -> None:
     """
     Runs the kinetic Monte Carlo (KMC) simulation based on the provided arguments.
 
@@ -181,7 +244,12 @@ def run_kmc(args)-> None:
             )
     else:
         # Build a dictionary from the argparse Namespace, excluding None values and 'input'
-        input_dict = {k: v for k, v in vars(args).items() if k != "input" and v is not None}
+        ignored_keys = {"command", "input"}
+        input_dict = {
+            k: v
+            for k, v in vars(args).items()
+            if k not in ignored_keys and v is not None
+        }
         if "supercell_shape" in input_dict:
             input_dict["supercell_shape"] = _parse_supercell_shape(
                 input_dict["supercell_shape"]

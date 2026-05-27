@@ -125,7 +125,17 @@ def write_template(output: str | Path, force: bool = False) -> Path:
 def build_parser() -> argparse.ArgumentParser:
     """Build parser for the standalone ``kmcpy-init`` style command."""
     parser = argparse.ArgumentParser(
-        description="Generate a commented kMCpy YAML input template."
+        description=(
+            "Generate a commented YAML template for a kMCpy Configuration. "
+            "Edit the paths and runtime settings before running it."
+        ),
+        epilog=(
+            "Examples:\n"
+            "  kmcpy init --output input_template.yaml\n"
+            "  kmcpy init --output input.yaml --force\n"
+            "  run_kmc --input input.yaml"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "-o",
