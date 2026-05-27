@@ -7,6 +7,8 @@ import hashlib
 import json
 from typing import Any, Iterable, Sequence
 
+from monty.json import MSONable
+
 
 BUILTIN_ORDERING_CONVENTIONS = {
     "kmcpy_default": {
@@ -26,7 +28,7 @@ LEGACY_ORDERING_CONVENTION_NAMES = {
 
 
 @dataclass(frozen=True)
-class LocalSiteOrderingConvention:
+class LocalSiteOrderingConvention(MSONable):
     """Rules that define the order of sites in a local occupation vector."""
 
     name: str
@@ -107,6 +109,8 @@ class LocalSiteOrderingConvention:
     def as_dict(self) -> dict[str, Any]:
         """Serialize the ordering convention."""
         return {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
             "name": self.name,
             "sort_keys": list(self.sort_keys),
             "exclude_center_site": self.exclude_center_site,

@@ -5,13 +5,14 @@ from abc import ABC, abstractmethod
 import logging
 import os
 
+from monty.json import MSONable
 from monty.serialization import dumpfn, loadfn
 from kmcpy.models.parameters import LCEModelParamHistory, LCEModelParameters
 
 logger = logging.getLogger(__name__)
 
 
-class BaseFitter(ABC):
+class BaseFitter(MSONable, ABC):
     """Main class for model fitting"""
 
     def __init__(self) -> None:
@@ -51,26 +52,6 @@ class LCEFitter(BaseFitter):
             rmse=0.0,
             loocv=0.0,
             normalize=True,
-        )
-
-    @staticmethod
-    def _model_parameters_from_dict(payload: dict) -> LCEModelParameters:
-        return LCEModelParameters(
-            keci=payload.get("keci", []),
-            empty_cluster=payload.get("empty_cluster", 0.0),
-            cluster_site_indices=payload.get("cluster_site_indices", []),
-            weight=payload.get("weight", []),
-            alpha=payload.get("alpha", 0.0),
-            time_stamp=payload.get("time_stamp", ""),
-            time=payload.get("time", ""),
-            rmse=payload.get("rmse", 0.0),
-            loocv=payload.get("loocv", 0.0),
-            normalize=payload.get("normalize", True),
-            orbit_fingerprints=payload.get("orbit_fingerprints"),
-            local_environment_hash=payload.get("local_environment_hash"),
-            # Legacy payloads may contain this provenance field. New fitted
-            # parameter files rely on local_environment_hash for validation.
-            ordering_convention=payload.get("ordering_convention"),
         )
 
     @staticmethod
@@ -176,16 +157,18 @@ class LCEFitter(BaseFitter):
         dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
-    def from_file(cls, filename):
-        logger.info("Loading: %s", filename)
-        payload = loadfn(filename, cls=None)
+    def from_dict(cls, payload):
         if not isinstance(payload, dict):
             raise ValueError("Serialized fitter payload must be a JSON object.")
-
         record = cls._extract_serialized_record(payload)
         obj = cls()
-        obj.model_parameters = cls._model_parameters_from_dict(record)
+        obj.model_parameters = LCEModelParameters.from_dict(record)
         return obj
+
+    @classmethod
+    def from_file(cls, filename):
+        logger.info("Loading: %s", filename)
+        return cls.from_dict(loadfn(filename, cls=None))
 
     @staticmethod
     def _fit_lasso_values(

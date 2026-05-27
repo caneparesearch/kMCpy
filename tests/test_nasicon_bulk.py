@@ -22,8 +22,8 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
         Configuration: Test configuration object
     """
     if use_real_files:
-        # Use real test files - Create model-based Configuration using the create() method
-        config = Configuration.create(
+        # Use real test files with a model-based Configuration.
+        config = Configuration(
             structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             model_file=f"{file_path}/input/model.json",
             event_file=f"{file_path}/input/events.json",
@@ -253,7 +253,7 @@ class TestNASICONbulk(unittest.TestCase):
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
             
             # Create Configuration from the same parameters as the old kmc_input.json
-            config = Configuration.create(
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -314,8 +314,8 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create modern Configuration using the create() method
-            config = Configuration.create(
+            # Create modern Configuration.
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -426,7 +426,7 @@ class TestNASICONbulk(unittest.TestCase):
             self.fail(f"Configuration validation failed: {e}")
 
         # Test parameter modification
-        modified_config = config.copy_with_changes(
+        modified_config = config.with_runtime_changes(
             temperature=400.0, name="Modified_NASICON_Config"
         )
 
@@ -479,7 +479,7 @@ class TestNASICONbulk(unittest.TestCase):
         study_configs = []
         for temp in [300, 400]:
             for freq in [1e12, 1e13]:
-                modified_config = base_config.copy_with_changes(
+                modified_config = base_config.with_runtime_changes(
                     temperature=temp,
                     attempt_frequency=freq,
                     name=f"Study_T{temp}_f{freq:.0e}",
@@ -515,7 +515,7 @@ class TestNASICONbulk(unittest.TestCase):
             print("Running Configuration approach...")
 
             # Create Configuration with the same parameters as the old kmc_input.json
-            config = Configuration.create(
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -585,8 +585,8 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create Configuration using the create() method
-            config = Configuration.create(
+            # Create Configuration.
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",

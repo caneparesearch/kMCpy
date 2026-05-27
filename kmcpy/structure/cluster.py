@@ -10,6 +10,7 @@ import json
 import logging
 from typing import Any, Sequence
 
+from monty.json import MSONable
 import numpy as np
 from pymatgen.core.structure import Molecule
 
@@ -73,7 +74,7 @@ def _json_safe_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     return safe
 
 
-class Orbit:
+class Orbit(MSONable):
     """A group of equivalent clusters."""
 
     def __init__(self):
@@ -162,8 +163,21 @@ class Orbit:
             "fingerprint": self.fingerprint,
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Orbit":
+        """Create an orbit from a Monty-style payload."""
+        if not isinstance(data, dict):
+            raise ValueError("Orbit.from_dict expects a dictionary")
+        orbit = cls()
+        orbit.clusters = [
+            Cluster.from_dict(cluster_data)
+            for cluster_data in data.get("clusters", [])
+        ]
+        orbit.multiplicity = int(data.get("multiplicity", len(orbit.clusters)))
+        return orbit
 
-class Cluster:
+
+class Cluster(MSONable):
     """A finite labeled cluster of sites.
 
     The cluster stores species, site indices, optional per-site metadata, and a
@@ -393,6 +407,23 @@ class Cluster:
             "roles": list(self.roles),
             "metadata": [_json_safe_metadata(item) for item in self.metadata],
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Cluster":
+        """Create a cluster from a Monty-style payload."""
+        if not isinstance(data, dict):
+            raise ValueError("Cluster.from_dict expects a dictionary")
+        cluster = cls(
+            site_indices=data.get("site_indices", []),
+            sites=Molecule.from_dict(data.get("structure", {})),
+            roles=data.get("roles"),
+            metadata=data.get("metadata"),
+            sym=data.get("sym", ""),
+        )
+        cluster.max_length = data.get("max_length", cluster.max_length)
+        cluster.min_length = data.get("min_length", cluster.min_length)
+        cluster.bond_distances = data.get("bond_distances", cluster.bond_distances)
+        return cluster
 
 
 @dataclass(frozen=True)

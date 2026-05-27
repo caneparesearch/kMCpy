@@ -125,13 +125,6 @@ class ExternalSiteEnergyModel(BaseModel):
             "kwargs": dict(self.kwargs),
         }
 
-    def to_model_file_dict(self) -> dict[str, Any]:
-        return {
-            "filetype": MODEL_FILETYPE,
-            "model_type": self.MODEL_TYPE,
-            self.PAYLOAD_KEY: self.as_dict(),
-        }
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ExternalSiteEnergyModel":
         if not isinstance(data, dict):
@@ -148,24 +141,17 @@ class ExternalSiteEnergyModel(BaseModel):
         )
 
     @classmethod
-    def from_model_file_dict(
-        cls, model_data: dict[str, Any]
-    ) -> "ExternalSiteEnergyModel":
-        data = require_model_type(model_data, cls.MODEL_TYPE)
-        return cls.from_dict(data[cls.PAYLOAD_KEY])
-
-    @classmethod
     def from_file(cls, filename: str) -> "ExternalSiteEnergyModel":
         data = loadfn(filename, cls=None)
         if isinstance(data, dict) and data.get("filetype") == MODEL_FILETYPE:
-            return cls.from_model_file_dict(data)
+            data = require_model_type(data, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
         return cls.from_dict(data)
 
     def to(self, filename: str, indent: int = 2) -> None:
         from monty.serialization import dumpfn
 
-        logger.info("Saving external site-energy model file to: %s", filename)
-        dumpfn(self.to_model_file_dict(), filename, indent=indent)
+        logger.info("Saving external site-energy model to: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=indent)
 
     def __str__(self) -> str:
         return (
@@ -500,13 +486,6 @@ class MappedSiteEnergyModel(BaseModel):
             "units": self.units,
         }
 
-    def to_model_file_dict(self) -> dict[str, Any]:
-        return {
-            "filetype": MODEL_FILETYPE,
-            "model_type": self.MODEL_TYPE,
-            self.PAYLOAD_KEY: self.as_dict(),
-        }
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MappedSiteEnergyModel":
         if not isinstance(data, dict):
@@ -532,24 +511,17 @@ class MappedSiteEnergyModel(BaseModel):
         )
 
     @classmethod
-    def from_model_file_dict(
-        cls, model_data: dict[str, Any]
-    ) -> "MappedSiteEnergyModel":
-        data = require_model_type(model_data, cls.MODEL_TYPE)
-        return cls.from_dict(data[cls.PAYLOAD_KEY])
-
-    @classmethod
     def from_file(cls, filename: str) -> "MappedSiteEnergyModel":
         data = loadfn(filename, cls=None)
         if isinstance(data, dict) and data.get("filetype") == MODEL_FILETYPE:
-            return cls.from_model_file_dict(data)
+            data = require_model_type(data, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
         return cls.from_dict(data)
 
     def to(self, filename: str, indent: int = 2) -> None:
         from monty.serialization import dumpfn
 
-        logger.info("Saving mapped site-energy model file to: %s", filename)
-        dumpfn(self.to_model_file_dict(), filename, indent=indent)
+        logger.info("Saving mapped site-energy model to: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=indent)
 
     def __str__(self) -> str:
         return (

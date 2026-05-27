@@ -8,6 +8,7 @@ from typing import Any, Sequence
 
 import numpy as np
 
+from monty.json import MSONable
 from monty.serialization import dumpfn, loadfn
 
 from ..event.base import Event
@@ -15,7 +16,7 @@ from ..event.base import Event
 logger = logging.getLogger(__name__)
 
 
-class State:
+class State(MSONable):
     """Mutable simulation state: occupations, simulation time, and step count."""
 
     def __init__(
@@ -164,6 +165,8 @@ class State:
     def as_dict(self) -> dict[str, Any]:
         """Serialize core mutable state to a plain dictionary."""
         return {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
             "occupations": list(self.occupations),
             "time": float(self.time),
             "step": int(self.step),
@@ -194,6 +197,8 @@ class State:
 
             with h5py.File(filepath, "w") as fhandle:
                 for key, value in data.items():
+                    if key.startswith("@"):
+                        continue
                     fhandle.create_dataset(key, data=value)
             return
 

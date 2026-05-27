@@ -69,26 +69,25 @@ kmc:
     model_file: model.json
 ```
 
-The model file declares its own type, so `BaseModel.from_config(...)` and the
-simulation runner can dispatch to `LocalBarrierModel`:
+The file written by `model.to(...)` carries Monty metadata, so
+`BaseModel.from_config(...)` and the simulation runner can dispatch to
+`LocalBarrierModel` without a separate `model_type` field:
 
 ```json
 {
-  "filetype": "kmcpy.model_file",
-  "model_type": "local_barrier",
-  "local_barrier": {
-    "default_properties": {"barrier": 300.0},
-    "rules": [
-      {
-        "name": "crowded_local_env",
-        "type": "state_count",
-        "sites": "local_env",
-        "state": "occupied",
-        "min_count": 3,
-        "properties": {"barrier": 450.0}
-      }
-    ]
-  }
+  "@module": "kmcpy.models.local_barrier_model",
+  "@class": "LocalBarrierModel",
+  "default_properties": {"barrier": 300.0},
+  "rules": [
+    {
+      "name": "crowded_local_env",
+      "type": "state_count",
+      "sites": "local_env",
+      "state": "occupied",
+      "min_count": 3,
+      "properties": {"barrier": 450.0}
+    }
+  ]
 }
 ```
 
@@ -200,12 +199,10 @@ model = LocalBarrierModel.constant_barrier(300.0)
 model.to("model.json")
 ```
 
-Equivalent YAML-style payload:
+Equivalent direct YAML-style payload:
 
 ```yaml
-model_type: local_barrier
-local_barrier:
-  default_barrier: 300.0
+default_barrier: 300.0
 ```
 
 You can also store other numeric properties, but `compute_probability(...)`
@@ -239,16 +236,14 @@ model.add_state_count_rule(
 ```
 
 ```yaml
-model_type: local_barrier
-local_barrier:
-  default_barrier: 300.0
-  rules:
-    - name: crowded
-      type: state_count
-      sites: local_env
-      state: occupied
-      min_count: 3
-      barrier: 450.0
+default_barrier: 300.0
+rules:
+  - name: crowded
+    type: state_count
+    sites: local_env
+    state: occupied
+    min_count: 3
+    barrier: 450.0
 ```
 
 Example: lower the barrier when the destination site is vacant:
@@ -338,21 +333,19 @@ Here `min_count=4` means "more than 3". The selected sites are
 looked up in `site_species`.
 
 ```yaml
-model_type: local_barrier
-local_barrier:
-  default_barrier: 300.0
-  site_species:
-    "1": {"0": P, "1": Si}
-    "2": {"0": Si, "1": P}
-    "3": {"0": Si, "1": P}
-    "4": {"0": Al, "1": Si}
-  rules:
-    - name: si_rich
-      type: species_count
-      sites: local_env
-      species: Si
-      min_count: 4
-      barrier: 420.0
+default_barrier: 300.0
+site_species:
+  "1": {"0": P, "1": Si}
+  "2": {"0": Si, "1": P}
+  "3": {"0": Si, "1": P}
+  "4": {"0": Al, "1": Si}
+rules:
+  - name: si_rich
+    type: species_count
+    sites: local_env
+    species: Si
+    min_count: 4
+    barrier: 420.0
 ```
 
 Example: count either Si or Al as framework-blocking species:
@@ -556,16 +549,14 @@ kmc:
     model_file: model.json
 ```
 
-The model file uses:
+The saved model file uses:
 
 ```json
 {
-  "filetype": "kmcpy.model_file",
-  "model_type": "local_barrier",
-  "local_barrier": {
-    "default_properties": {"barrier": 300.0},
-    "rules": []
-  }
+  "@module": "kmcpy.models.local_barrier_model",
+  "@class": "LocalBarrierModel",
+  "default_properties": {"barrier": 300.0},
+  "rules": []
 }
 ```
 

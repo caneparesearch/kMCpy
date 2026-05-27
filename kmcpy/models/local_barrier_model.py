@@ -40,7 +40,7 @@ Rule-based setup::
 
 The saved ``model.json`` can be referenced by ``model_file`` in a simulation
 configuration. ``BaseModel.from_config`` dispatches to this class when the model
-file declares ``model_type: local_barrier``.
+file carries this class' Monty metadata.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
 from kmcpy.event import Event
-from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
+from kmcpy.models.base import BaseModel, require_model_type
 from kmcpy.simulator.hop import event_direction
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K as K_B_MEV_PER_K
@@ -1053,21 +1053,11 @@ class LocalBarrierModel(BaseModel):
             "rules": [_rule_as_dict(rule) for rule in self.rules],
         }
 
-    def to_model_file_dict(self) -> dict[str, Any]:
-        """Serialize this model into the model-file format."""
-        model_data = {
-            "filetype": MODEL_FILETYPE,
-            "model_type": self.MODEL_TYPE,
-            self.PAYLOAD_KEY: self.as_dict(),
-        }
-        self.validate_model_file_dict(model_data)
-        return model_data
-
     def to(self, filename: str, indent: int = 2) -> None:
-        """Write this local barrier model as a serialized model file."""
+        """Write this local barrier model."""
         from monty.serialization import dumpfn
 
-        dumpfn(self.to_model_file_dict(), filename, indent=indent)
+        dumpfn(self.as_dict(), filename, indent=indent)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "LocalBarrierModel":
@@ -1091,29 +1081,16 @@ class LocalBarrierModel(BaseModel):
         )
 
     @classmethod
-    def validate_model_file_dict(cls, model_data: dict[str, Any]) -> None:
-        """Validate a local-barrier model-file payload."""
-        data = require_model_type(model_data, cls.MODEL_TYPE)
-        local_barrier_payload = data.get(cls.PAYLOAD_KEY)
-        if not isinstance(local_barrier_payload, dict):
-            raise ValueError(
-                "Local barrier model file is missing object key "
-                f"'{cls.PAYLOAD_KEY}'"
-            )
-        cls.from_dict(local_barrier_payload)
-
-    @classmethod
-    def from_model_file_dict(cls, model_data: dict[str, Any]) -> "LocalBarrierModel":
-        """Create a LocalBarrierModel from an in-memory model-file payload."""
-        cls.validate_model_file_dict(model_data)
-        return cls.from_dict(model_data[cls.PAYLOAD_KEY])
-
-    @classmethod
     def from_file(cls, filename: str) -> "LocalBarrierModel":
         """Load from a model file or direct model payload."""
         from monty.serialization import loadfn
 
         payload = loadfn(filename, cls=None)
         if isinstance(payload, dict) and "filetype" in payload:
-            return cls.from_model_file_dict(payload)
+            payload = require_model_type(payload, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    "Local barrier model file is missing object key "
+                    f"'{cls.PAYLOAD_KEY}'"
+                )
         return cls.from_dict(payload)

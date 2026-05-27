@@ -61,7 +61,7 @@ def build_config() -> Configuration:
         supercell_shape=supercell_shape,
     )
 
-    return Configuration.create(
+    return Configuration(
         # System fields: what to simulate.
         structure_file=str(files_dir / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"),
         model_file=str(files_dir / "input" / "model.json"),

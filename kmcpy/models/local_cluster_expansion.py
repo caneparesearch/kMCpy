@@ -10,6 +10,7 @@ import json
 import hashlib
 import logging
 import warnings
+from monty.serialization import loadfn
 from kmcpy.models.base import BaseModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.fitting.registry import register_fitter
@@ -128,10 +129,7 @@ class LocalClusterExpansion(BaseModel):
         Returns:
             LocalClusterExpansion: The loaded LocalClusterExpansion object
         """
-        with open(filename, 'r') as f:
-            data = json.load(f)
-
-        return cls.from_dict(data)
+        return cls.from_dict(loadfn(filename, cls=None))
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -153,31 +151,7 @@ class LocalClusterExpansion(BaseModel):
                 # Skip metadata keys
                 continue
             elif key == 'orbits':
-                # Reconstruct orbits from the stored data
-                obj.orbits = []
-                for orbit_data in value:
-                    orbit = Orbit()
-                    orbit.multiplicity = orbit_data.get('multiplicity', 0)
-                    
-                    # Reconstruct clusters for each orbit
-                    orbit.clusters = []
-                    for cluster_data in orbit_data.get('clusters', []):
-                        # Create cluster from stored data
-                        from pymatgen.core.structure import Molecule
-
-                        cluster = Cluster(
-                            cluster_data.get('site_indices', []),
-                            Molecule.from_dict(cluster_data.get('structure', {})),
-                            roles=cluster_data.get('roles'),
-                            metadata=cluster_data.get('metadata'),
-                            sym=cluster_data.get('sym', ''),
-                        )
-                        cluster.max_length = cluster_data.get('max_length', cluster.max_length)
-                        cluster.min_length = cluster_data.get('min_length', cluster.min_length)
-                        cluster.bond_distances = cluster_data.get('bond_distances', cluster.bond_distances)
-                        orbit.clusters.append(cluster)
-                    
-                    obj.orbits.append(orbit)
+                obj.orbits = [Orbit.from_dict(orbit_data) for orbit_data in value]
             elif key == 'center_site':
                 # Reconstruct center_site from its dict representation
                 from pymatgen.core.sites import PeriodicSite
@@ -197,22 +171,9 @@ class LocalClusterExpansion(BaseModel):
             elif key == 'basis':
                 if value is None:
                     continue
-                # Reconstruct basis if present, default to ChebyshevBasis if unknown
-                basis_class = value.get('@class', 'ChebyshevBasis')
-                if basis_class == 'ChebyshevBasis':
-                    from kmcpy.structure.basis import ChebyshevBasis
-                    obj.basis = ChebyshevBasis(
-                        max_states=int(value.get("max_states", 2))
-                    )
-                elif basis_class == 'OccupationBasis':
-                    from kmcpy.structure.basis import OccupationBasis
-                    obj.basis = OccupationBasis()
-                else:
-                    # Default to ChebyshevBasis if class is not recognized
-                    from kmcpy.structure.basis import ChebyshevBasis
-                    obj.basis = ChebyshevBasis(
-                        max_states=int(value.get("max_states", 2))
-                    )
+                from kmcpy.structure.basis import BasisFunction
+
+                obj.basis = BasisFunction.from_dict(value)
             elif key == 'ordering_convention':
                 obj.ordering_convention = LocalSiteOrderingConvention.resolve(value)
             else:

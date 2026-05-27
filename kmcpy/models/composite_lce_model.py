@@ -243,6 +243,8 @@ class CompositeLCEModel(BaseModel):
             raise ValueError("Cannot serialize composite model: kra_model is missing")
 
         data = {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
             "filetype": MODEL_FILETYPE,
             "model_type": "composite_lce",
             "kra": self._submodel_as_dict(

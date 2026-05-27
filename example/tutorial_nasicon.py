@@ -138,7 +138,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
         regenerate_events=args.regenerate_events,
     )
 
-    config = Configuration.create(
+    config = Configuration(
         structure_file=str(structure_file),
         model_file=str(files_dir / "input/model.json"),
         event_file=str(event_file),

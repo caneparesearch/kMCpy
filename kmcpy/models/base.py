@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import importlib
 import logging
 
+from monty.json import MSONable
 from monty.serialization import loadfn
 
 from kmcpy.io.registry import MODEL_CLASS_REGISTRY
@@ -40,7 +41,7 @@ def require_model_type(payload, model_type: str):
     return data
 
 
-class BaseModel(ABC):
+class BaseModel(MSONable, ABC):
     """
     Base class for models in kmcpy.
     
@@ -123,12 +124,44 @@ class BaseModel(ABC):
             payload = loadfn(model_file, cls=None)
             if isinstance(payload, dict) and "filetype" in payload:
                 require_model_file_payload(payload)
-                if payload.get("filetype") == MODEL_FILETYPE:
-                    model_type = payload.get("model_type")
-                    if not isinstance(model_type, str) or not model_type.strip():
+                model_type = payload.get("model_type")
+                if not isinstance(model_type, str) or not model_type.strip():
+                    raise ValueError(
+                        "Model file must include a non-empty 'model_type'"
+                    )
+            elif (
+                isinstance(payload, dict)
+                and "@module" in payload
+                and "@class" in payload
+            ):
+                module_path = payload["@module"]
+                class_name = payload["@class"]
+                try:
+                    module = importlib.import_module(module_path)
+                    model_class = getattr(module, class_name)
+                except (ImportError, AttributeError) as e:
+                    registered_path = next(
+                        (
+                            path
+                            for path in MODEL_CLASS_REGISTRY.values()
+                            if path.rsplit(".", 1)[1] == class_name
+                        ),
+                        None,
+                    )
+                    if registered_path is None:
                         raise ValueError(
-                            "Model file must include a non-empty 'model_type'"
+                            f"Cannot import model class "
+                            f"'{module_path}.{class_name}': {e}"
                         )
+                    module_path, class_name = registered_path.rsplit(".", 1)
+                    module = importlib.import_module(module_path)
+                    model_class = getattr(module, class_name)
+                if not callable(getattr(model_class, "from_file", None)):
+                    raise ValueError(
+                        f"Serialized model class '{module_path}.{class_name}' "
+                        "does not provide from_file()."
+                    )
+                return model_class.from_file(model_file)
 
         if model_type is None:
             model_type = getattr(config, "model_type", None) or "composite_lce"

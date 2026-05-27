@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -97,6 +98,9 @@ def test_lce_model_type_uses_model_file_directly():
 def test_local_barrier_model_type_is_inferred_from_model_file(tmp_path: Path):
     model_file = tmp_path / "local_barrier.json"
     LocalBarrierModel.constant_barrier(300.0).to(str(model_file))
+    payload = json.loads(model_file.read_text(encoding="utf-8"))
+    assert payload["@class"] == "LocalBarrierModel"
+    assert "filetype" not in payload
     config = Configuration(
         structure_file="fake_structure.cif",
         event_file="fake_events.json",
@@ -114,6 +118,9 @@ def test_external_site_energy_model_type_is_inferred_from_model_file(tmp_path: P
         callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
         kwargs={"value": 10.0},
     ).to(str(model_file))
+    payload = json.loads(model_file.read_text(encoding="utf-8"))
+    assert payload["@class"] == "ExternalSiteEnergyModel"
+    assert "filetype" not in payload
     config = Configuration(
         structure_file="fake_structure.cif",
         event_file="fake_events.json",
@@ -132,6 +139,9 @@ def test_mapped_site_energy_model_type_is_inferred_from_model_file(tmp_path: Pat
         delta_kwargs={"coefficients": [1.0]},
         state_mapping={0: 0, 1: 1},
     ).to(str(model_file))
+    payload = json.loads(model_file.read_text(encoding="utf-8"))
+    assert payload["@class"] == "MappedSiteEnergyModel"
+    assert "filetype" not in payload
     config = Configuration(
         structure_file="fake_structure.cif",
         event_file="fake_events.json",

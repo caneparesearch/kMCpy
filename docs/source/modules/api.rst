@@ -26,12 +26,12 @@ API Reference Documentation
     cif.rst
     fitter.rst
     models_fitting_registry.rst
-    parameters.rst
     models_base.rst
     local_cluster_expansion.rst
     composite_lce_model.rst
     local_barrier_model.rst
     site_energy.rst
+    parameters.rst
     state.rst
     tracker.rst
     property.rst

@@ -47,7 +47,7 @@ kMCpy currently provides two model families for assigning hop barriers:
 - `LocalClusterExpansion`: a fitted model that predicts barriers from local occupation features. Use this when you want interpolation over many local configurations from a fitted training set.
 - `LocalBarrierModel`: an ordered rule model for constant barriers, count rules, species-count rules, wildcard patterns, and exact catalog-style matches. Use this when barrier logic can be written directly.
 
-Both models operate in the active-site index space used by the event library and simulation state. The simulation config points to a serialized `model_file`; for kMCpy model-file envelopes, the model type is stored in that file.
+Both models operate in the active-site index space used by the event library and simulation state. The simulation config points to a serialized `model_file`; files written by `model.to(...)` include enough class metadata for kMCpy to load the right model.
 
 ## Unit Conventions
 

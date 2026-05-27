@@ -10,12 +10,14 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import List, Union, Tuple, Iterator, Dict, Type, Any
 
+from monty.json import MSONable
+
 
 # Basis function registry for extensibility
 BASIS_REGISTRY: Dict[str, Type['BasisFunction']] = {}
 
 
-class BasisFunction(ABC):
+class BasisFunction(MSONable, ABC):
     """
     Abstract base class for all basis functions.
     
@@ -81,6 +83,33 @@ class BasisFunction(ABC):
             "@class": self.__class__.__name__,
             "name": self.name,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "BasisFunction":
+        """Create a basis function from a Monty-style payload."""
+        if not isinstance(data, dict):
+            raise ValueError("BasisFunction.from_dict expects a dictionary")
+
+        target_cls: Type[BasisFunction] = cls
+        if cls is BasisFunction:
+            class_name = data.get("@class")
+            for registered_cls in BASIS_REGISTRY.values():
+                if registered_cls.__name__ == class_name:
+                    target_cls = registered_cls
+                    break
+            else:
+                basis_name = data.get("name")
+                if basis_name in BASIS_REGISTRY:
+                    target_cls = BASIS_REGISTRY[basis_name]
+                else:
+                    raise ValueError(f"Unknown basis payload: {data}")
+
+        kwargs = {
+            key: value
+            for key, value in data.items()
+            if not key.startswith("@") and key != "name"
+        }
+        return target_cls(**kwargs)
     
     def flip(self, value: Union[int, float]) -> Union[int, float]:
         """Flip between match and mismatch values."""

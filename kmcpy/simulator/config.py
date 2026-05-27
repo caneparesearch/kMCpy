@@ -17,6 +17,7 @@ from typing import Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from monty.json import MSONable
 from monty.serialization import dumpfn, loadfn
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
 from kmcpy.units import UNIT_CONVENTIONS
@@ -303,7 +304,7 @@ class RuntimeConfig:
 
 
 @dataclass(frozen=True)
-class Configuration:
+class Configuration(MSONable):
     """Complete simulation configuration combining system and runtime fields."""
     
     system_config: SystemConfig
@@ -363,22 +364,6 @@ class Configuration:
         object.__setattr__(self, 'system_config', system_config)
         object.__setattr__(self, 'runtime_config', runtime_config)
     
-    @classmethod
-    def create(cls, **kwargs):
-        """
-        Alternative factory method for cleaner API.
-        
-        Examples::
-        
-            config = Configuration.create(
-                structure_file="test.cif",
-                temperature=400.0,
-                kmc_passes=50000
-            )
-        """
-        return cls(**kwargs)
-    
-    
     def as_dict(self, include_loader_paths: bool = False) -> dict[str, Any]:
         """Convert to a recorded dictionary.
 
@@ -388,7 +373,10 @@ class Configuration:
         ``include_loader_paths=True`` when writing a reloadable simulation input
         file.
         """
-        result = {}
+        result = {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
+        }
         result.update(
             self.system_config.as_dict(include_loader_paths=include_loader_paths)
         )
@@ -413,7 +401,11 @@ class Configuration:
         """Create from dictionary."""
         if not isinstance(config_dict, dict):
             raise ValueError("Configuration.from_dict expects a dictionary")
-        config_dict = dict(config_dict)
+        config_dict = {
+            key: value
+            for key, value in config_dict.items()
+            if not str(key).startswith("@")
+        }
 
         return cls(**config_dict)
 
@@ -690,7 +682,7 @@ class Configuration:
 
         print("\nUsage examples:")
         print("  config = Configuration(structure_file='x.cif', temperature=400)")
-        print("  config = Configuration.create(temperature=300, kmc_passes=10000)")
+        print("  config = Configuration(temperature=300, kmc_passes=10000)")
         print("  print(config.temperature)  # Direct access to any field")
 
     def which_config(self, field_name: str) -> str:
@@ -710,21 +702,3 @@ class Configuration:
             return True
         except Exception as e:
             raise ValueError(f"Configuration validation failed: {e}")
-    
-    def copy_with_changes(self, **changes) -> "Configuration":
-        """Create a copy of this config with some fields changed.
-        
-        Args:
-            **changes: Field changes to apply.
-            
-        Returns:
-            Configuration: New config with changes applied
-        """
-        # Get current config as a reloadable dict so loader paths survive copies.
-        current_dict = self.as_dict(include_loader_paths=True)
-        
-        # Apply changes
-        current_dict.update(changes)
-        
-        # Create new config
-        return Configuration.from_dict(current_dict)

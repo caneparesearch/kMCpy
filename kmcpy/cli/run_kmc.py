@@ -66,7 +66,7 @@ def main()->None:
         supercell_shape (str): Shape of the supercell as a list of integers (e.g., [2, 2, 2]).
             Required if input file is not provided.
         model_file (str): Path to model JSON file.
-            Standard kmcpy.model_file envelopes include model_type metadata.
+            Files written by model.to(...) include class metadata.
             Required if input file is not provided.
         structure_file (str): Path to the CIF file of the template structure (with all sites filled).
             Required if input file is not provided.
