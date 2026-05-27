@@ -6,15 +6,17 @@ expansion. It is useful when the migration barrier can be written directly as a
 small set of ordered rules:
 
 * use a constant fallback barrier for every hop;
-* count occupied or vacant sites in an event local environment;
+* count selected occupation states in an event local environment;
 * count chemical species after mapping occupation states to species labels;
 * match a short wildcard occupation pattern; or
 * match an exact event/local-occupation entry.
 
-The model works with the same compact KMC state used by the simulator. Occupied
-or template-matching sites use state ``0`` and vacant or mismatching sites use
-state ``1``. Rule order is significant: the first matching rule supplies the selected
-property, usually ``barrier`` in meV. If no rule matches,
+The model works with the same compact KMC state used by the simulator. State
+values are nonnegative integer indices. For binary models, ``occupied`` and
+``template`` are aliases for state ``0`` and ``vacant`` and ``mismatch`` are
+aliases for state ``1``. Multicomponent rules can use explicit state indices
+such as ``2`` or ``3``. Rule order is significant: the first matching rule
+supplies the selected property, usually ``barrier`` in meV. If no rule matches,
 ``default_properties`` are used when present. ``compute_probability`` returns an
 event rate in Hz using temperature in K and attempt frequency in Hz.
 
@@ -134,22 +136,28 @@ def _event_indices(event: Event) -> tuple[tuple[int, ...], tuple[int, ...], tupl
 
 
 def _normalize_state_value(value: Any, field_name: str = "state") -> int:
+    message = (
+        f"'{field_name}' must be a nonnegative integer state index or one of "
+        f"{sorted(STATE_VALUE_ALIASES)}"
+    )
     if isinstance(value, bool):
-        raise TypeError(f"'{field_name}' must be 0, 1, or a state string")
+        raise TypeError(message)
     if isinstance(value, int):
-        if value not in (0, 1):
-            raise ValueError(f"'{field_name}' must be 0 or 1")
+        if value < 0:
+            raise ValueError(message)
         return int(value)
     if isinstance(value, str):
         token = value.strip().lower()
         if token in STATE_VALUE_ALIASES:
             return STATE_VALUE_ALIASES[token]
-        if token in {"0", "1"}:
-            return int(token)
-    raise ValueError(
-        f"'{field_name}' must be 0, 1, or one of "
-        f"{sorted(STATE_VALUE_ALIASES)}"
-    )
+        try:
+            state_value = int(token)
+        except ValueError:
+            raise ValueError(message) from None
+        if state_value < 0:
+            raise ValueError(message)
+        return state_value
+    raise ValueError(message)
 
 
 def _normalize_occupations(values: Any, field_name: str = "occupations") -> tuple[int, ...]:
@@ -432,21 +440,23 @@ class LocalBarrierModel(BaseModel):
             ``compute_probability``.
         site_species: Mapping used by ``species_count`` rules. The shape is
             ``{site_index: {occupation_state: species}}``. For example,
-            ``{10: {0: "P", 1: "Si"}}`` means site 10 is counted as P when
-            its occupation value is ``0`` and Si when it is ``1``.
+            ``{10: {0: "P", 1: "Si", 2: "Al"}}`` means site 10 is counted as
+            P, Si, or Al depending on its current state index.
 
     Supported rule types:
         ``constant``
             Always matches and returns its properties. In most cases,
             ``default_barrier`` is clearer than an explicit constant rule.
         ``state_count``
-            Counts how many selected sites are ``occupied``/``0`` or
-            ``vacant``/``1``.
+            Counts how many selected sites have the requested state index.
+            Binary aliases such as ``occupied``/``0`` and ``vacant``/``1`` are
+            accepted for convenience.
         ``species_count``
             Counts species labels after applying ``site_species``.
         ``pattern``
-            Matches selected occupations against a pattern containing ``0``,
-            ``1``, state names, or ``"*"`` wildcards.
+            Matches selected occupations against a pattern containing
+            nonnegative state indices, binary state aliases, or ``"*"``
+            wildcards.
         ``exact``
             Matches a specific event and exact occupation vector. This is the
             direct replacement for catalog-style local-environment tables.
@@ -708,7 +718,8 @@ class LocalBarrierModel(BaseModel):
     ) -> str:
         """Add a rule based on the number of sites in an occupation state.
 
-        ``state`` accepts ``"occupied"``/``0`` or ``"vacant"``/``1``.
+        ``state`` accepts any nonnegative integer state index. The binary
+        aliases ``"occupied"``/``0`` and ``"vacant"``/``1`` are also accepted.
         Supply exactly one of ``count`` or a ``min_count``/``max_count`` range.
         """
         rule = {
@@ -776,8 +787,9 @@ class LocalBarrierModel(BaseModel):
     ) -> str:
         """Add a wildcard occupation pattern rule.
 
-        Patterns can contain occupation values, state names, or ``"*"``
-        wildcards. The pattern length must match the number of selected sites.
+        Patterns can contain nonnegative integer state indices, binary state
+        aliases, or ``"*"`` wildcards. The pattern length must match the number
+        of selected sites.
         """
         rule = {
             "type": "pattern",
@@ -885,7 +897,7 @@ class LocalBarrierModel(BaseModel):
         state_mapping = self.site_species[site_index]
         if occupation not in state_mapping:
             raise ValueError(
-                "species_count rules require site_species entries for both "
+                "species_count rules require site_species entries for all "
                 f"occupation states; missing site {site_index}, state {occupation}"
             )
         return state_mapping[occupation]

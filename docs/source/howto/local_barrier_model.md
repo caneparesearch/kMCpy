@@ -8,7 +8,7 @@ simple local-environment criterion.
 This model is designed for direct barrier rules, not fitting. It can represent:
 
 - one constant barrier for every hop,
-- "if the local environment has at least N occupied/vacant sites, use this barrier",
+- "if the local environment has at least N sites in a given state, use this barrier",
 - "if the local environment has more than N Si sites, use this barrier",
 - wildcard occupation patterns, and
 - exact event/local-environment matches.
@@ -125,17 +125,22 @@ mobile-vacancy hop, and the temperature and attempt frequency come from
 
 ## Occupation Values
 
-The compact KMC occupation vector uses two values:
+The compact KMC occupation vector stores nonnegative integer state indices. If
+an active site allows `q` species/states, valid state values are `0..q-1`; the
+meaning of each state index follows the active-site species order from the
+structure/site mapping.
 
-- `occupied`, `match`, and `template` mean `0`
-- `vacant`, `vacancy`, `mismatch`, and `other` mean `1`
+For binary models, these aliases are available:
 
-Rules can use either the names or the integer values:
+- `occupied`, `match`, and `template` mean state `0`
+- `vacant`, `vacancy`, `mismatch`, and `other` mean state `1`
+
+Rules can use either the aliases or explicit integer state values:
 
 ```python
 model.add_state_count_rule(
     sites="local_env",
-    state=0,
+    state=2,
     min_count=2,
     barrier=410.0,
 )
@@ -200,10 +205,12 @@ model = LocalBarrierModel(
 )
 ```
 
-## Count Occupied Or Vacant Sites
+## Count Sites In A State
 
-Use `state_count` when the barrier depends on how many local sites are occupied
-or vacant in the current KMC occupation vector.
+Use `state_count` when the barrier depends on how many selected sites have a
+given state index in the current KMC occupation vector. Binary rules can use
+`"occupied"` and `"vacant"` aliases; multicomponent rules should use explicit
+state indices such as `2` or `3`.
 
 ```python
 model = LocalBarrierModel(default_barrier=300.0)
@@ -253,6 +260,19 @@ model.add_state_count_rule(
 )
 ```
 
+Example: use a different barrier when at least two local-environment sites are
+in state `2`:
+
+```python
+model.add_state_count_rule(
+    name="state_two_rich",
+    sites="local_env",
+    state=2,
+    min_count=2,
+    barrier=510.0,
+)
+```
+
 Supported count fields:
 
 - `count`: exactly this many sites
@@ -286,6 +306,16 @@ model.add_species_count_rule(
     min_count=4,
     barrier=420.0,
 )
+```
+
+`site_species` can include as many state indices as the selected sites can
+carry:
+
+```python
+site_species = {
+    10: {0: "Na", 1: "Vacancy", 2: "Mg"},
+    11: {0: "Na", 1: "Vacancy", 2: "Ca"},
+}
 ```
 
 Here `min_count=4` means "more than 3". The selected sites are
@@ -351,7 +381,8 @@ instead of silently guessing a species.
 ## Pattern Rules
 
 Use `pattern` for a small number of explicit occupation patterns. `*` is a
-wildcard. For many exact patterns, use exact rules instead.
+wildcard. Pattern entries can be binary aliases or explicit nonnegative state
+indices. For many exact patterns, use exact rules instead.
 
 ```python
 model.add_pattern_rule(
@@ -380,6 +411,17 @@ model.add_pattern_rule(
     sites="mobile_ion",
     pattern=["occupied", "vacant"],
     barrier=260.0,
+)
+```
+
+Example: match a multicomponent local pattern:
+
+```python
+model.add_pattern_rule(
+    name="state_two_pattern",
+    sites="canonical",
+    pattern=[2, "vacant", "*", 3],
+    barrier=275.0,
 )
 ```
 
@@ -475,7 +517,7 @@ This produces the same model as calling `add_species_count_rule(...)` and
 Use this rule type when:
 
 - `constant_barrier`: every event has the same barrier.
-- `state_count`: the rule only cares about occupied/vacant counts.
+- `state_count`: the rule only cares about counts of one occupation state.
 - `species_count`: the rule cares about chemical labels such as Si, Al, or P.
 - `pattern`: a small number of wildcard occupation patterns are enough.
 - `exact`: each event/environment pattern has its own known barrier.

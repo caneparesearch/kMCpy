@@ -71,6 +71,22 @@ def test_local_barrier_state_count_rule_matches_local_environment():
 
 
 @pytest.mark.unit
+def test_local_barrier_state_count_rule_accepts_multicomponent_state_indices():
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_state_count_rule(
+        name="state_two_rich",
+        sites="local_env",
+        state=2,
+        min_count=2,
+        barrier=510.0,
+    )
+    state = State(occupations=[0, 1, 2, 2, 3])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(2, 3, 4))
+
+    assert model.compute(simulation_state=state, event=event) == 510.0
+
+
+@pytest.mark.unit
 def test_local_barrier_species_count_rule_matches_species_threshold():
     model = LocalBarrierModel(
         default_barrier=300.0,
@@ -95,6 +111,29 @@ def test_local_barrier_species_count_rule_matches_species_threshold():
 
 
 @pytest.mark.unit
+def test_local_barrier_species_count_rule_accepts_multicomponent_state_indices():
+    model = LocalBarrierModel(
+        default_barrier=300.0,
+        site_species={
+            1: {1: "Vacancy"},
+            2: {"2": "Si"},
+            3: {3: "Si"},
+        },
+    )
+    model.add_species_count_rule(
+        name="si_multistate",
+        sites="local_env",
+        species="Si",
+        min_count=2,
+        barrier=430.0,
+    )
+    state = State(occupations=[0, 1, 2, 3])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
+
+    assert model.compute(simulation_state=state, event=event) == 430.0
+
+
+@pytest.mark.unit
 def test_local_barrier_pattern_rule_supports_wildcards(event):
     model = LocalBarrierModel(default_barrier=300.0)
     model.add_pattern_rule(
@@ -106,6 +145,20 @@ def test_local_barrier_pattern_rule_supports_wildcards(event):
     state = State(occupations=[0, 1, 1, 0])
 
     assert model.compute(simulation_state=state, event=event) == 250.0
+
+
+@pytest.mark.unit
+def test_local_barrier_pattern_rule_accepts_multicomponent_state_indices(event):
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_pattern_rule(
+        name="multistate_pattern",
+        sites="canonical",
+        pattern=[2, "1", "*", "3"],
+        barrier=255.0,
+    )
+    state = State(occupations=[2, 1, 0, 3])
+
+    assert model.compute(simulation_state=state, event=event) == 255.0
 
 
 @pytest.mark.unit
@@ -125,6 +178,22 @@ def test_local_barrier_exact_rule_from_event_state(event):
             simulation_state=State(occupations=[1, 0, 1, 0]),
             event=event,
         )
+
+
+@pytest.mark.unit
+def test_local_barrier_exact_rule_accepts_multicomponent_state_indices(event):
+    entries = [
+        {
+            "mobile_ion_indices": [0, 1],
+            "local_env_indices": [1, 2, 3],
+            "occupations": [2, 1, 3, 0],
+            "properties": {"barrier": 265.0},
+        }
+    ]
+    model = LocalBarrierModel.from_exact_entries(entries)
+    state = State(occupations=[2, 1, 3, 0])
+
+    assert model.compute(simulation_state=state, event=event) == 265.0
 
 
 @pytest.mark.unit
