@@ -11,6 +11,10 @@ from .models import (
     LocalClusterExpansion,
     CompositeLCEModel,
     LocalBarrierModel,
+    ExternalSiteEnergyModel,
+    MappedOccupationChange,
+    MappedSiteEnergyModel,
+    ZeroSiteEnergyModel,
 )
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator
@@ -31,6 +35,10 @@ __all__ = [
     "LocalClusterExpansion", 
     "LocalBarrierModel",
     "CompositeLCEModel",
+    "ExternalSiteEnergyModel",
+    "MappedOccupationChange",
+    "MappedSiteEnergyModel",
+    "ZeroSiteEnergyModel",
     "KMC",
     "Event",
     "EventGenerator",

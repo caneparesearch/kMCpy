@@ -122,23 +122,118 @@ The resulting model file stores the external site model under `site`:
 The `kra` section is abbreviated here; real model files include the serialized
 KRA LCE and fitted parameters.
 
-## Smol Or CLEASE Adapters
+## Mapped Runtime Adapter
 
-For smol, write a callable that maps the kMCpy `simulation_state.occupations`
-and event endpoint swap to the smol occupancy string, evaluates the energy
-change, and returns that change. For performance, a stateful adapter should
-keep the smol occupancy string in memory and use smol's local
-feature-vector-change APIs for the two changed sites.
+`MappedSiteEnergyModel` is the built-in stateful bridge for live external
+runtime objects. It does not know how to build smol or CLEASE models. Instead,
+it precomputes the compatible site/state mapping once, keeps one external
+occupation array in memory, and passes only the two changed endpoints to your
+delta function.
 
-For CLEASE, write a callable that maps the event to CLEASE/ASE system changes,
-uses the CLEASE evaluator/calculator to evaluate the changed energy, and returns
-`E_after_hop - E_before_hop`. For performance, keep the CLEASE/ASE object alive
-inside a stateful adapter and commit accepted changes in `apply_event(...)`.
+```python
+import numpy as np
 
-Keep the adapter responsible for:
+from kmcpy.models import CompositeLCEModel, MappedSiteEnergyModel
+
+
+def smol_delta(runtime, external_occupation, changes, coefficients):
+    flips = [change.as_flip() for change in changes]
+    delta_features = runtime.compute_feature_vector_change(
+        external_occupation,
+        flips,
+    )
+    return float(np.dot(delta_features, coefficients))  # eV
+
+
+site_model = MappedSiteEnergyModel(
+    runtime=my_smol_processor,
+    delta_fn=smol_delta,
+    delta_kwargs={"coefficients": smol_coefficients},
+    site_mapping={0: 12, 1: 18},
+    state_mapping={0: 0, 1: 1, 2: 2},
+    external_dtype="int32",
+    units="eV",
+)
+
+model = CompositeLCEModel(
+    kra_model=kra_lce_model,
+    site_model=site_model,
+)
+```
+
+Use `state_mapping_by_site` when the same kMCpy state index maps to different
+external species codes on different sublattices:
+
+```python
+site_model = MappedSiteEnergyModel(
+    runtime=my_smol_processor,
+    delta_fn=smol_delta,
+    delta_kwargs={"coefficients": smol_coefficients},
+    site_mapping={0: 12, 1: 18},
+    state_mapping_by_site={
+        0: {0: 0, 1: 1},
+        1: {0: 3, 1: 4},
+    },
+    units="eV",
+)
+```
+
+For CLEASE-like evaluators, keep the evaluator as the runtime object and provide
+both a delta function and an apply function:
+
+```python
+def clease_delta(runtime, external_occupation, changes):
+    system_changes = [
+        make_system_change(change.external_site, change.old_value, change.new_value)
+        for change in changes
+    ]
+    return runtime.get_energy_given_change(system_changes) - runtime.get_energy()
+
+
+def clease_apply(runtime, external_occupation, changes):
+    system_changes = [
+        make_system_change(change.external_site, change.old_value, change.new_value)
+        for change in changes
+    ]
+    runtime.apply_system_changes(system_changes, keep=True)
+
+
+site_model = MappedSiteEnergyModel(
+    runtime=my_clease_evaluator,
+    delta_fn=clease_delta,
+    apply_fn=clease_apply,
+    site_mapping={0: 12, 1: 18},
+    state_mapping={0: "Li", 1: "X"},
+    units="eV",
+)
+```
+
+In both cases, `initialize_state(...)` builds the full external occupation once.
+During the KMC loop, `compute_delta(...)` maps only the proposed event
+endpoints. After an accepted event, `apply_event(...)` updates only those two
+external occupation entries.
+
+For model files, use references instead of live Python objects:
+
+```python
+site_model = MappedSiteEnergyModel(
+    runtime_ref="my_project.smol_adapter:build_processor",
+    runtime_kwargs={"model_file": "smol_ce.json"},
+    delta_ref="my_project.smol_adapter:smol_delta",
+    delta_kwargs={"coefficients_file": "eci.npy"},
+    site_mapping={0: 12, 1: 18},
+    state_mapping={0: 0, 1: 1},
+    units="eV",
+)
+site_model.to("mapped_site_energy.json")
+```
+
+The mapped adapter is responsible for:
 
 - mapping kMCpy active-site indices to the external code's site ordering,
 - mapping kMCpy state indices to external species symbols or occupancy codes,
+- checking that the supplied mappings cover the kMCpy occupation vector,
+- avoiding full occupation conversion inside the KMC hot loop,
 - returning a signed energy difference,
 - converting external energy units to `meV`.
 

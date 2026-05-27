@@ -8,7 +8,9 @@ import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.site_energy import ExternalSiteEnergyModel
+from kmcpy.models.site_energy import (
+    ExternalSiteEnergyModel,
+)
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
 
@@ -311,6 +313,7 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
         model_module.CompositeLCEModel,
         model_module.LocalBarrierModel,
         model_module.ExternalSiteEnergyModel,
+        model_module.MappedSiteEnergyModel,
         model_module.ZeroSiteEnergyModel,
     ]
     for model_cls in concrete_models:

@@ -6,7 +6,10 @@ from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.site_energy import ExternalSiteEnergyModel
+from kmcpy.models.site_energy import (
+    ExternalSiteEnergyModel,
+    MappedSiteEnergyModel,
+)
 from kmcpy.models.base import BaseModel
 from kmcpy.simulator.config import Configuration
 
@@ -119,6 +122,24 @@ def test_external_site_energy_model_type_is_inferred_from_model_file(tmp_path: P
 
     model = BaseModel.from_config(config)
     assert isinstance(model, ExternalSiteEnergyModel)
+
+
+@pytest.mark.unit
+def test_mapped_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
+    model_file = tmp_path / "mapped_site_energy.json"
+    MappedSiteEnergyModel(
+        delta_ref="tests.test_site_energy_models:smol_runtime_delta",
+        delta_kwargs={"coefficients": [1.0]},
+        state_mapping={0: 0, 1: 1},
+    ).to(str(model_file))
+    config = Configuration(
+        structure_file="fake_structure.cif",
+        event_file="fake_events.json",
+        model_file=str(model_file),
+    )
+
+    model = BaseModel.from_config(config)
+    assert isinstance(model, MappedSiteEnergyModel)
 
 
 @pytest.mark.unit
