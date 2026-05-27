@@ -13,6 +13,8 @@ understand, document, and extend for research workflows.
   mutable `occ_global` copy.
 - Active-site and local-environment order APIs were renamed for clearer domain
   terminology: use `ActiveSiteOrder` and `LocalSiteOrder`.
+- Event generation now uses `site_mapping` as the canonical active-site
+  convention and no longer exposes `mobile_ion_identifier_type`.
 - Hop-direction helpers live in `kmcpy.event.hop`.
 - Site-energy models use `compute(...)` consistently for site-energy
   differences.
@@ -27,6 +29,8 @@ understand, document, and extend for research workflows.
   tracker result metadata.
 - Documentation for local barrier models, site-order mapping, external
   site-energy models, and property attachment.
+- Conda build recipe and CI install checks for wheel, `uv pip`, and local Conda
+  package installs.
 
 ### Changed
 
@@ -40,6 +44,6 @@ understand, document, and extend for research workflows.
 
 ### Release checks
 
-- Full test suite: `255 passed`.
+- Full test suite: `256 passed`.
 - Documentation build succeeds.
 - Wheel and source distribution pass `twine check`.

@@ -4,6 +4,7 @@ This module provides tools for generating and matching local atomic environments
 """
 
 import logging
+import re
 from collections.abc import Iterable
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -59,6 +60,67 @@ class EventGenerator:
         if isinstance(identifier, Iterable):
             return [str(value) for value in identifier]
         return [str(identifier)]
+
+    @classmethod
+    def _flatten_identifier_tokens(cls, identifier: Any) -> List[str]:
+        if isinstance(identifier, str):
+            return [identifier]
+        if isinstance(identifier, Iterable):
+            tokens: List[str] = []
+            for value in identifier:
+                tokens.extend(cls._flatten_identifier_tokens(value))
+            return tokens
+        return [str(identifier)]
+
+    @staticmethod
+    def _mapping_values(value: Any) -> List[str]:
+        if isinstance(value, (list, tuple, set)):
+            return [str(item) for item in value]
+        return [str(value)]
+
+    @classmethod
+    def _mobile_species_from_site_mapping(cls, site_mapping: Dict) -> List[str]:
+        mobile_species = []
+        for species, allowed_species in site_mapping.items():
+            allowed_tokens = {
+                token.upper() for token in cls._mapping_values(allowed_species)
+            }
+            if "X" in allowed_tokens or "VACANCY" in allowed_tokens:
+                mobile_species.append(str(species))
+        if not mobile_species:
+            raise ValueError(
+                "Could not infer mobile species from site_mapping. Include a "
+                "vacancy state such as 'X' in the mobile species entry, or pass "
+                "mobile_species explicitly."
+            )
+        return mobile_species
+
+    @staticmethod
+    def _species_token_variants(token: str) -> set[str]:
+        variants = {token}
+        match = re.fullmatch(r"([A-Z][a-z]?)(?:\d+[+-]|[+-])", token)
+        if match:
+            variants.add(match.group(1))
+        return variants
+
+    @classmethod
+    def _infer_site_selection_kind(
+        cls,
+        mobile_ion_identifiers: Any,
+        mobile_species: List[str],
+    ) -> str:
+        identifier_tokens = cls._flatten_identifier_tokens(mobile_ion_identifiers)
+        mobile_species_tokens = {
+            variant
+            for token in cls._flatten_identifier_tokens(mobile_species)
+            for variant in cls._species_token_variants(token)
+        }
+        if identifier_tokens and all(
+            cls._species_token_variants(token) & mobile_species_tokens
+            for token in identifier_tokens
+        ):
+            return "species"
+        return "label"
 
     @classmethod
     def _site_matches_species_identifier(cls, site, identifier: Any) -> bool:
@@ -123,9 +185,7 @@ class EventGenerator:
 
     def _normalize_generate_events_inputs(
         self,
-        mobile_ion_identifier_type: Optional[str],
         mobile_ion_identifiers,
-        species_to_be_removed: Optional[List[str]],
         distance_matrix_rtol: float,
         distance_matrix_atol: float,
         supercell_shape: Optional[List[int]],
@@ -133,22 +193,9 @@ class EventGenerator:
         mobile_species: Optional[List[str]],
         site_mapping: Optional[Dict],
         local_env_cutoff: Optional[float],
-        exclude_species: Optional[List[str]],
         rtol: Optional[float],
         atol: Optional[float],
     ):
-        new_style_requested = any(
-            value is not None
-            for value in (
-                mobile_species,
-                site_mapping,
-                local_env_cutoff,
-                exclude_species,
-                rtol,
-                atol,
-            )
-        )
-
         if rtol is not None:
             distance_matrix_rtol = rtol
         if atol is not None:
@@ -157,53 +204,33 @@ class EventGenerator:
         if supercell_shape is None:
             supercell_shape = [2, 1, 1]
 
-        if species_to_be_removed is not None or exclude_species is not None:
-            raise ValueError(
-                "species_to_be_removed and exclude_species are no longer supported; "
-                "use site_mapping to define active and fixed sites."
-            )
         if site_mapping is None:
             raise ValueError(
                 "site_mapping is required to generate events in the "
                 "active-site index space."
             )
 
-        if new_style_requested:
-            if mobile_species is None:
-                mobile_species = []
-                if site_mapping:
-                    for key, value in site_mapping.items():
-                        values = value if isinstance(value, list) else [value]
-                        value_tokens = {str(v) for v in values}
-                        if "X" in value_tokens:
-                            mobile_species.append(str(key))
-                if not mobile_species:
-                    mobile_species = ["Na"]
+        if mobile_species is None:
+            mobile_species = self._mobile_species_from_site_mapping(site_mapping)
 
-            if mobile_ion_identifier_type is None:
-                mobile_ion_identifier_type = "specie"
-            if mobile_ion_identifiers is None:
-                if mobile_ion_identifier_type == "specie":
-                    mobile_ion_identifiers = (mobile_species, mobile_species)
-                else:
-                    mobile_ion_identifiers = ("Na1", "Na2")
+        site_selection_kind = (
+            "species"
+            if mobile_ion_identifiers is None
+            else self._infer_site_selection_kind(
+                mobile_ion_identifiers,
+                mobile_species,
+            )
+        )
 
-            if local_env_cutoff is None and local_env_cutoff_dict is None:
-                local_env_cutoff = 4.0
+        if mobile_ion_identifiers is None:
+            mobile_ion_identifiers = (mobile_species, mobile_species)
 
-        else:
-            if mobile_ion_identifier_type is None:
-                mobile_ion_identifier_type = "label"
-            if mobile_ion_identifiers is None:
-                mobile_ion_identifiers = ("Na1", "Na2")
-            if local_env_cutoff_dict is None:
-                local_env_cutoff_dict = {("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0}
+        if local_env_cutoff is None and local_env_cutoff_dict is None:
+            local_env_cutoff = 4.0
 
         return (
-            new_style_requested,
-            mobile_ion_identifier_type,
+            site_selection_kind,
             mobile_ion_identifiers,
-            species_to_be_removed,
             distance_matrix_rtol,
             distance_matrix_atol,
             supercell_shape,
@@ -280,15 +307,15 @@ class EventGenerator:
     def _is_valid_target_site(
         self,
         site,
-        mobile_ion_identifier_type: str,
+        site_selection_kind: str,
         target_identifier: Any,
     ) -> bool:
-        if mobile_ion_identifier_type == "specie":
+        if site_selection_kind == "species":
             return self._site_matches_species_identifier(site, target_identifier)
-        if mobile_ion_identifier_type == "label":
+        if site_selection_kind == "label":
             return self._site_matches_label_identifier(site, target_identifier)
         raise ValueError(
-            'unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] '
+            'unrecognized site selection kind. Please select from: ["species","label"] '
         )
 
     def generate_events(
@@ -296,9 +323,7 @@ class EventGenerator:
         structure_file: str = "210.cif",
         convert_to_primitive_cell: bool = False,
         local_env_cutoff_dict: Optional[Dict[Tuple[str, str], float]] = None,
-        mobile_ion_identifier_type: Optional[str] = None,
-        mobile_ion_identifiers: Optional[Tuple[str, str]] = None,
-        species_to_be_removed: Optional[List[str]] = None,
+        mobile_ion_identifiers: Optional[Tuple[Any, Any]] = None,
         distance_matrix_rtol: float = 0.01,
         distance_matrix_atol: float = 0.01,
         find_nearest_if_fail: bool = True,
@@ -308,7 +333,6 @@ class EventGenerator:
         mobile_species: Optional[List[str]] = None,
         site_mapping: Optional[Dict] = None,
         local_env_cutoff: Optional[float] = None,
-        exclude_species: Optional[List[str]] = None,
         rtol: Optional[float] = None,
         atol: Optional[float] = None,
     ) -> Dict:
@@ -321,17 +345,17 @@ class EventGenerator:
         Event generation always follows the performant primitive-template -> supercell
         expansion workflow.
 
-        This method accepts label/specie hop identifiers or mobile_species, but
-        site_mapping is always required because generated events are stored in the
-        active-site index space.
+        ``site_mapping`` is the canonical active-site convention. When
+        ``mobile_species`` is omitted, kMCpy infers it from mapping entries that
+        include a vacancy state such as ``"X"``. Label identifiers are only needed
+        when the hop endpoints must be restricted to specific crystallographic
+        labels, for example ``("Na1", "Na2")``.
         """
         import kmcpy
 
         (
-            new_style_requested,
-            mobile_ion_identifier_type,
+            site_selection_kind,
             mobile_ion_identifiers,
-            species_to_be_removed,
             distance_matrix_rtol,
             distance_matrix_atol,
             supercell_shape,
@@ -339,9 +363,7 @@ class EventGenerator:
             mobile_species,
             local_env_cutoff,
         ) = self._normalize_generate_events_inputs(
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
-            species_to_be_removed=species_to_be_removed,
             distance_matrix_rtol=distance_matrix_rtol,
             distance_matrix_atol=distance_matrix_atol,
             supercell_shape=supercell_shape,
@@ -349,7 +371,6 @@ class EventGenerator:
             mobile_species=mobile_species,
             site_mapping=site_mapping,
             local_env_cutoff=local_env_cutoff,
-            exclude_species=exclude_species,
             rtol=rtol,
             atol=atol,
         )
@@ -377,14 +398,11 @@ class EventGenerator:
         )
 
         if local_env_cutoff_dict is None:
-            if new_style_requested:
-                local_env_cutoff_dict = self._build_uniform_cutoff_dict(
-                    structure=primitive_cell,
-                    mobile_species=mobile_species or ["Na"],
-                    local_env_cutoff=local_env_cutoff or 4.0,
-                )
-            else:
-                local_env_cutoff_dict = {("Li+", "Cl-"): 4.0, ("Li+", "Li+"): 3.0}
+            local_env_cutoff_dict = self._build_uniform_cutoff_dict(
+                structure=primitive_cell,
+                mobile_species=mobile_species,
+                local_env_cutoff=local_env_cutoff or 4.0,
+            )
 
         logger.info(
             "primitive cell composition after adding oxidation state and removing uninvolved species: %s",
@@ -394,7 +412,7 @@ class EventGenerator:
 
         migrating_ion_indices = find_atom_indices(
             primitive_cell,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
+            site_selection_kind=site_selection_kind,
             atom_identifier=mobile_ion_identifiers[0],
         )
 
@@ -452,7 +470,7 @@ class EventGenerator:
 
         supercell_migrating_ion_indices = find_atom_indices(
             supercell,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
+            site_selection_kind=site_selection_kind,
             atom_identifier=mobile_ion_identifiers[0],
         )
         indices_dict_from_identifier = build_site_index(supercell, skip_check=False)
@@ -488,7 +506,7 @@ class EventGenerator:
             for target_site_index in local_env_info:
                 if self._is_valid_target_site(
                     supercell[target_site_index],
-                    mobile_ion_identifier_type,
+                    site_selection_kind,
                     mobile_ion_identifiers[1],
                 ):
                     events.append(
@@ -533,56 +551,53 @@ class EventGenerator:
 
     
 def find_atom_indices(
-    structure, mobile_ion_identifier_type="specie", atom_identifier="Li+"
+    structure, site_selection_kind="species", atom_identifier="Li+"
 ):
-    """a function for generating a list of site indices that satisfies the identifier
+    """Return site indices matching a species or crystallographic label identifier.
 
     Args:
         structure (Structure): structure object to work on
-        mobile_ion_identifier_type (str, optional): elect from: ["specie","label"]. Defaults to "specie".
+        site_selection_kind (str, optional): Select from ["species", "label"].
+            Defaults to "species".
         atom_identifier (str, optional): identifier of atom. Defaults to "Li+".
 
         typical input:
-        mobile_ion_identifier_type=specie, atom_identifier="Li+"
-        mobile_ion_identifier_type=label, atom_identifier="Li1"
-        mobile_ion_identifier_type=list, atom_identifier=[0,1,2,3,4,5]
+        site_selection_kind=species, atom_identifier="Li+"
+        site_selection_kind=label, atom_identifier="Li1"
 
     Raises:
-        ValueError: mobile_ion_identifier_type argument is strange
+        ValueError: site_selection_kind is not recognized.
 
     Returns:
         list: list of atom indices that satisfy the identifier
     """
-    mobile_ion_specie_1_indices = []
-    if mobile_ion_identifier_type == "specie":
+    matching_indices = []
+    if site_selection_kind == "species":
         for i in range(0, len(structure)):
             if EventGenerator._site_matches_species_identifier(
                 structure[i], atom_identifier
             ):
-                mobile_ion_specie_1_indices.append(i)
+                matching_indices.append(i)
 
-    elif mobile_ion_identifier_type == "label":
+    elif site_selection_kind == "label":
 
         for i in range(0, len(structure)):
             if EventGenerator._site_matches_label_identifier(
                 structure[i], atom_identifier
             ):
-                mobile_ion_specie_1_indices.append(i)
-
-    # elif mobile_ion_identifier_type=="list":
-    # mobile_ion_specie_1_indices=atom_identifier
+                matching_indices.append(i)
 
     else:
         raise ValueError(
-            'unrecognized mobile_ion_identifier_type. Please select from: ["specie","label"] '
+            'unrecognized site_selection_kind. Please select from: ["species","label"] '
         )
 
-    logger.info("please check if these are mobile_ion_specie_1:")
-    for i in mobile_ion_specie_1_indices:
+    logger.info("please check if these are selected mobile-ion sites:")
+    for i in matching_indices:
 
         logger.info(str(structure[i]))
 
-    return mobile_ion_specie_1_indices
+    return matching_indices
 
 
 

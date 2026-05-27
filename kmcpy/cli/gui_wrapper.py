@@ -72,9 +72,6 @@ def main():
     lce_parser.add_argument(
         "convert_to_primitive_cell", choices=["yes", "no"], default="yes"
     )
-    lce_parser.add_argument(
-        "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
-    )
     lce_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     lce_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
     lce_parser.add_argument("site_mapping", default="{'Na': ['Na', 'X'], 'Zr': 'Zr', 'Si': ['Si', 'P'], 'O': 'O'}")
@@ -100,9 +97,6 @@ def main():
     )
     event_parser.add_argument(
         "convert_to_primitive_cell", choices=["yes", "no"], default="yes"
-    )
-    event_parser.add_argument(
-        "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
     )
     event_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     event_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
@@ -257,7 +251,6 @@ def main():
             structure_file=args.prim_cif_name,
             convert_to_primitive_cell=args.convert_to_primitive_cell,
             local_env_cutoff_dict=args.local_env_cutoff_dict,
-            mobile_ion_identifier_type=args.mobile_ion_identifier_type,
             mobile_ion_identifiers=(
                 args.mobile_ion_specie_identifier,
                 args.mobile_ion_specie_2_identifier,

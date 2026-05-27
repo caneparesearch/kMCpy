@@ -148,7 +148,6 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("second")
     def test_generate_events(self):
-        mobile_ion_identifier_type = "label"
         mobile_ion_identifiers = ("Na1", "Na2")
         structure_file = (
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
@@ -160,7 +159,6 @@ class TestNASICONbulk(unittest.TestCase):
         generator.generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
             site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
             distance_matrix_rtol=0.01,
@@ -175,7 +173,6 @@ class TestNASICONbulk(unittest.TestCase):
         reference_local_env_dict = generator.generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
             site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
             distance_matrix_rtol=0.01,
@@ -202,8 +199,6 @@ class TestNASICONbulk(unittest.TestCase):
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
         from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
         from kmcpy.io.cif import load_labeled_structure_from_cif
-        mobile_ion_identifier_type = "label"
-        mobile_ion_specie_identifier = "Na1"
         structure = load_labeled_structure_from_cif(
             filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             primitive=True,
@@ -212,11 +207,7 @@ class TestNASICONbulk(unittest.TestCase):
                                      basis_type = "chebyshev", is_write_basis=True)
         a = LocalClusterExpansion()
         a.build(local_lattice_structure=local_lattice_structure,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],
-            cutoff_region=4,
-            convert_to_primitive_cell=True,
         )
         a.to(f"{file_path}/lce.json")
         # Basic test - should verify object creation

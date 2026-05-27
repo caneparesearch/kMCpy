@@ -18,6 +18,21 @@ logging.getLogger('pymatgen').setLevel(logging.WARNING)
 class LocalLatticeStructure(LatticeStructure):
     """
     Class to handle local environment around a site in a structure.
+
+    ``center`` defines the local-environment origin. It can be either an active
+    site from the template structure or an abstract fractional coordinate:
+
+    - ``center=int`` is interpreted as a primitive-template site index before
+      active-site filtering. The site must be mutable under ``site_mapping`` and
+      is converted to the compact active-site index.
+    - ``center=(x, y, z)`` is treated as a fractional-coordinate point. No atom
+      is created in the occupation vector; the coordinate is only the geometric
+      origin for the cutoff sphere.
+
+    ``local_site_order`` only controls ordering of the sites found around this
+    center. Its ``exclude_center_site`` flag removes the real center atom when
+    the center is an atom. For an abstract center, it removes a site only if an
+    existing atom lies at the center coordinate within tolerance.
     """
     def __init__(self, template_structure:Structure, 
                  center, cutoff, 

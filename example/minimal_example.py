@@ -12,6 +12,9 @@ from kmcpy.event import EventGenerator
 from kmcpy.simulator.config import Configuration
 
 
+NASICON_SITE_MAPPING = {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
+
+
 def load_initial_occupations(initial_state_file: Path) -> list[int]:
     """Load occupation and convert from 0/1 to Chebyshev basis (-1/1)."""
     raw = json.loads(initial_state_file.read_text())["occupation"]
@@ -32,9 +35,8 @@ def generate_events_if_needed(
         structure_file=str(structure_file),
         convert_to_primitive_cell=False,
         local_env_cutoff_dict={("Na+", "Na+"): 4.0, ("Na+", "Si4+"): 4.0},
-        mobile_ion_identifier_type="label",
         mobile_ion_identifiers=("Na1", "Na2"),
-        species_to_be_removed=["O2-", "O", "Zr4+", "Zr"],
+        site_mapping=NASICON_SITE_MAPPING,
         distance_matrix_rtol=0.01,
         distance_matrix_atol=0.01,
         find_nearest_if_fail=False,
@@ -73,6 +75,7 @@ def build_config() -> Configuration:
         mobile_ion_specie="Na",
         mobile_ion_charge=1.0,
         elementary_hop_distance=3.47782,
+        site_mapping=NASICON_SITE_MAPPING,
         immutable_sites=("Zr", "O", "Zr4+", "O2-"),
         convert_to_primitive_cell=False,
         # Runtime fields: how to simulate.

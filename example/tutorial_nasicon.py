@@ -12,6 +12,9 @@ from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 
 
+NASICON_SITE_MAPPING = {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
+
+
 def parse_supercell_shape(value: str) -> tuple[int, int, int]:
     """Parse a comma-separated supercell string (for example: 2,1,1)."""
     parts = [part.strip() for part in value.split(",") if part.strip()]
@@ -107,9 +110,8 @@ def generate_events_if_needed(
         structure_file=str(structure_file),
         convert_to_primitive_cell=False,
         local_env_cutoff_dict={("Na+", "Na+"): 4.0, ("Na+", "Si4+"): 4.0},
-        mobile_ion_identifier_type="label",
         mobile_ion_identifiers=("Na1", "Na2"),
-        species_to_be_removed=["O2-", "O", "Zr4+", "Zr"],
+        site_mapping=NASICON_SITE_MAPPING,
         distance_matrix_rtol=0.01,
         distance_matrix_atol=0.01,
         find_nearest_if_fail=False,
@@ -150,6 +152,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
         equilibration_passes=args.equilibration_passes,
         kmc_passes=args.kmc_passes,
         supercell_shape=args.supercell_shape,
+        site_mapping=NASICON_SITE_MAPPING,
         immutable_sites=("Zr", "O", "Zr4+", "O2-"),
         convert_to_primitive_cell=False,
         mobile_ion_charge=1.0,

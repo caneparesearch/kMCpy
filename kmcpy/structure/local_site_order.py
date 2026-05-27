@@ -1,4 +1,10 @@
-"""Site-order rules for local-environment occupation vectors."""
+"""Ordering rules for local-environment occupation vectors.
+
+``LocalSiteOrder`` defines only how already selected local sites are ordered and
+whether a real center site is included in the occupation vector. The center
+position itself is chosen by ``LocalLatticeStructure`` or the local-environment
+enumeration helpers.
+"""
 
 from __future__ import annotations
 
@@ -23,7 +29,19 @@ BUILTIN_LOCAL_SITE_ORDERS = {
 
 @dataclass(frozen=True)
 class LocalSiteOrder(MSONable):
-    """Rules that define the order of sites in a local occupation vector."""
+    """Rules that define a local occupation-vector sequence.
+
+    This object is deliberately narrow: it does not choose the local-environment
+    center and it does not decide whether the center is a real atom or an
+    abstract coordinate. It only controls:
+
+    - sort keys for sites returned by the local cutoff search;
+    - whether a site matching the supplied center is removed from the vector.
+
+    If the center is an active-site index, ``exclude_center_site=True`` removes
+    that exact site. If the center is a fractional coordinate, it removes a real
+    site only when one lies within ``center_match_tolerance`` of that coordinate.
+    """
 
     name: str
     sort_keys: tuple[str, ...] = ("species_string",)

@@ -26,6 +26,27 @@ local_lattice = LocalLatticeStructure(
 The chosen local site order is serialized with the LCE model, together with a local
 environment hash.
 
+## Center Convention
+
+`LocalSiteOrder` does not choose the local-environment center. It only defines
+the sequence of sites after the local environment has already been selected.
+
+The center belongs to `LocalLatticeStructure`:
+
+- `center=0` means "use template site 0 as the local origin". After
+  `site_mapping` removes fixed sites, this must correspond to a mutable
+  active site.
+- `center=[x, y, z]` means "use this fractional-coordinate point as the local
+  origin". This is an abstract center; no occupation-vector site is created for
+  the center itself.
+
+`exclude_center_site` belongs to the local site order because it changes the
+occupation-vector sequence. If the center is a real structure site,
+`exclude_center_site=True` removes that site from the local vector. If the
+center is an abstract coordinate, it removes a site only when a real atom lies
+at that coordinate within `center_match_tolerance`; otherwise nothing is
+removed.
+
 ## Use The NASICON 2022 Order
 
 To reproduce the NASICON local environments from Deng et al.,
@@ -51,8 +72,8 @@ local_lattice = LocalLatticeStructure(
 
 This order:
 
-- uses the selected active-site Na as the geometric center,
-- removes that center site from the local occupation vector,
+- expects you to pass the selected active-site Na as `center`,
+- removes that real center site from the local occupation vector,
 - sorts the remaining local sites by species and Cartesian `x` coordinate.
 
 That matches the single-unit local-environment order used by the original

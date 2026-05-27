@@ -6,6 +6,19 @@ file_path = os.path.join(current_dir, 'files')
 
 class TestNa3SbS4(unittest.TestCase):
 
+    def test_generate_events_infers_identifier_kind(self):
+        from kmcpy.event import EventGenerator
+
+        generator = EventGenerator()
+        self.assertEqual(
+            generator._infer_site_selection_kind(("Na+", "Na+"), ["Na"]),
+            "species",
+        )
+        self.assertEqual(
+            generator._infer_site_selection_kind(("Na1", "Na2"), ["Na"]),
+            "label",
+        )
+
     def test_generate_events(self):
         from pathlib import Path
         import os
@@ -14,9 +27,6 @@ class TestNa3SbS4(unittest.TestCase):
         original_cwd = Path.cwd()
         try:
             os.chdir(current_dir)
-            mobile_ion_identifier_type = "label"
-            mobile_ion_specie_identifier = "Na1"
-            mobile_ion_specie_2_identifier = "Na1"
             structure_file = f"{file_path}/Na3SbS4_cubic.cif"
             local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
             from kmcpy.event import EventGenerator
@@ -24,7 +34,6 @@ class TestNa3SbS4(unittest.TestCase):
             reference_local_env_dict = EventGenerator().generate_events(
                 structure_file=structure_file,
                 local_env_cutoff_dict=local_env_cutoff_dict,
-                mobile_ion_identifier_type=mobile_ion_identifier_type,
                 mobile_ion_identifiers=("Na1", "Na1"),
                 site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                 distance_matrix_rtol=0.01,
@@ -58,7 +67,6 @@ class TestNa3SbS4(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 reference_local_env_dict = EventGenerator().generate_events(
                     structure_file=structure_file,
-                    mobile_species=["Na"],
                     site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                     local_env_cutoff=5.0,
                     supercell_shape=[2, 2, 2],
@@ -83,8 +91,6 @@ class TestNa3SbS4(unittest.TestCase):
             from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
             from kmcpy.io.cif import load_labeled_structure_from_cif
 
-            mobile_ion_identifier_type = "label"
-            mobile_ion_specie_identifier = "Na1"
             structure = load_labeled_structure_from_cif(
                 filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
             )
@@ -94,13 +100,7 @@ class TestNa3SbS4(unittest.TestCase):
                                          basis_type="chebyshev")
             a.build(
                 local_lattice_structure=local_lattice_structure,
-                mobile_ion_identifier_type=mobile_ion_identifier_type,
-                mobile_ion_specie_identifier=mobile_ion_specie_identifier,
                 cutoff_cluster=[6, 6, 0],
-                cutoff_region=5,
-                template_structure_fname=f"{file_path}/Na3SbS4_cubic.cif",  # LCE still uses legacy param name
-                convert_to_primitive_cell=True,
-                is_write_basis=True,
             )
             # Basic test - should verify object creation
             self.assertEqual(1, 1)

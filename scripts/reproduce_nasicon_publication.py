@@ -22,8 +22,7 @@ from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
-from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
-from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
+from kmcpy.structure import ActiveSiteOrder, LocalSiteOrder
 from kmcpy.io.cif import load_labeled_structure_from_cif
 
 
@@ -95,7 +94,7 @@ def _legacy_lce_to_dict(legacy_lce: Any, name: str) -> dict[str, Any]:
         "@class": "LocalClusterExpansion",
         "name": name,
         "cluster_site_indices": _nested_int_lists(cluster_site_indices),
-        "ordering_convention": LocalSiteOrderingConvention.from_name(
+        "local_site_order": LocalSiteOrder.from_name(
             "nasicon_nat_commun_2022"
         ).as_dict(),
     }
@@ -385,12 +384,12 @@ def convert_legacy_events(source_repo: Path, output_dir: Path) -> Path:
     primitive_structure = load_labeled_structure_from_cif(
         str(source_repo / NASICON_STRUCTURE), primitive=True
     )
-    active_site_index_map = ActiveSiteIndexMap.from_structure_and_mapping(
+    active_site_order = ActiveSiteOrder.from_structure_and_mapping(
         primitive_structure,
         NASICON_SITE_MAPPING,
         supercell_shape=(2, 2, 2),
     )
-    event_lib.set_index_metadata(active_site_index_map)
+    event_lib.set_index_metadata(active_site_order)
 
     event_json = artifacts_dir / "events_222_double.json"
     event_lib.to(str(event_json))

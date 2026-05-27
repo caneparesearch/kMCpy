@@ -64,15 +64,15 @@ class LocalClusterExpansion(BaseModel):
         """
         Build the LocalClusterExpansion model from a Structure object.
 
-        There are 2 ways to define the local environment (migration unit):
-        1) Use the center of the mobile ion as the center of the local environment (default, center_frac_coord = None), this mobile ion is excluded from the local environment.
-        2) Use a dummy site as the center of the local environment (set center_frac_coord).
+        The local-environment center is already defined by
+        ``local_lattice_structure``. If that center was a structure site, it may
+        be included or excluded according to the local site order. If the center
+        was a fractional-coordinate point, it is only a geometric origin and is
+        not itself an occupation-vector site.
 
         Args:
             local_lattice_structure (LocalLatticeStructure): Local environment object containing the structure and center site.
             cutoff_cluster (list, optional): Cutoff distances for clusters [pair, triplet, quadruplet]. Defaults to [6, 6, 6].
-            center_frac_coord (list, optional): Fractional coordinates of the center of the local environment. If empty, uses the mobile ion site. Defaults to [].
-            exclude_site_with_identifier (list, optional): List of site identifiers to exclude from the local environment. Defaults to [].
 
         Notes:
             If the next-step KMC is not based on the same LCE object generated in this step, be careful with two things:
