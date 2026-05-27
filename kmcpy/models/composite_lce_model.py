@@ -29,14 +29,16 @@ logger = logging.getLogger(__name__)
 
 class CompositeLCEModel(BaseModel):
     """
-    A composite model that combines a KRA LCE with a site-energy difference model.
+    A composite model that combines a KRA LCE with a site-energy-difference model.
     
     This class combines one ``LocalClusterExpansion`` for ``E_KRA`` with a
-    site-energy contribution. The site-energy contribution may be either the
-    historical kMCpy ``LocalClusterExpansion`` convention or any model exposing
-    ``compute_delta(event=..., simulation_state=...)``. External smol/CLEASE
-    adapters should return the actual event energy change,
-    ``E_after_hop - E_before_hop``, in meV.
+    site-energy-difference contribution. A ``LocalClusterExpansion`` always uses
+    ``compute(simulation_state=..., event=...)``; its meaning comes from the
+    role it is passed into. As ``kra_model`` it returns ``E_KRA``. As
+    ``site_model`` it returns the site-energy-difference contribution for the
+    canonical event orientation. External smol/CLEASE adapters expose
+    ``compute_delta(event=..., simulation_state=...)`` and return the signed
+    event energy change, ``E_after_hop - E_before_hop``, in meV.
     
     The composite model provides:
     
@@ -75,10 +77,11 @@ class CompositeLCEModel(BaseModel):
         Initialize a composite LCE model.
         
         Args:
-            site_model: model for site energy difference calculations. A
-                ``LocalClusterExpansion`` uses the historical directional
-                convention. Other models must expose ``compute_delta`` and
-                return ``E_after_hop - E_before_hop`` in meV.
+            site_model: model for site-energy-difference calculations. A
+                ``LocalClusterExpansion`` is evaluated with ``compute`` and
+                interpreted in the event's canonical orientation. Other models
+                must expose ``compute_delta`` and return
+                ``E_after_hop - E_before_hop`` in meV.
             kra_model: model for E_KRA calculations
         """
         if kra_model is not None and not isinstance(kra_model, LocalClusterExpansion):
@@ -113,7 +116,7 @@ class CompositeLCEModel(BaseModel):
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
-    def _compute_site_energy_delta(
+    def _compute_site_energy_difference(
         self,
         event: Event,
         simulation_state: State,
@@ -123,9 +126,9 @@ class CompositeLCEModel(BaseModel):
         if self.site_model is None:
             return 0.0
         if isinstance(self.site_model, LocalClusterExpansion):
-            # Historical kMCpy site LCE convention: compute() returns the
-            # canonical forward site-energy term, so direction sets the event
-            # sign. External adapters should return the signed delta directly.
+            # LCE uses one evaluator. A site LCE returns the fitted
+            # site-energy-difference contribution for the canonical event
+            # orientation; the current occupation determines the event sign.
             return float(
                 direction
                 * self.site_model.compute(
@@ -177,7 +180,7 @@ class CompositeLCEModel(BaseModel):
 
         This method calculates the transition probability for a migration event by:
         
-        - Computing the site-energy change (delta_e_site, meV) using the site model.
+        - Computing the site-energy difference (delta_e_site, meV) using the site model.
         - Computing the barrier energy (e_kra, meV) using the barrier LocalClusterExpansion model and its stored parameters.
         - Determining the direction of the event from the occupation vector in the State.
         - Calculating the effective barrier as: e_barrier = e_kra + delta_e_site / 2
@@ -205,8 +208,8 @@ class CompositeLCEModel(BaseModel):
         k = BOLTZMANN_CONSTANT_MEV_PER_K
         # Compute barrier energy (ekra) using stored parameters
         e_kra = self.kra_model.compute(simulation_state=simulation_state, event=event)
-        # Compute signed site-energy change in meV.
-        delta_e_site = self._compute_site_energy_delta(
+        # Compute signed site-energy difference in meV.
+        delta_e_site = self._compute_site_energy_difference(
             event=event,
             simulation_state=simulation_state,
             direction=direction,

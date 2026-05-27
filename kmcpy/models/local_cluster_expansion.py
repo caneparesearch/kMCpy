@@ -619,17 +619,20 @@ class LocalClusterExpansion(BaseModel):
 
     def compute(self, simulation_state:State, event:Event):
         """
-        Compute energy value using stored parameters and correlation coefficients.
+        Compute the fitted scalar value for this event/local environment.
         
-        This method uses the fitted parameters (keci, empty_cluster) stored in the object
-        and the predefined cluster_site_indices to compute energy values.
+        ``LocalClusterExpansion`` does not distinguish barrier and
+        site-energy-difference roles internally. A model passed as the
+        ``kra_model`` in ``CompositeLCEModel`` returns ``E_KRA``. A model passed
+        as the ``site_model`` returns the site-energy-difference contribution
+        expected by that composite model.
         
         Args:
             simulation_state: State object containing occupation vector (preferred)
             event: Event object containing mobile ion indices (required for local environment)
             
         Returns:
-            float: The computed energy value
+            float: The fitted scalar value
         """
         # Check if parameters are stored
         if not hasattr(self, 'keci') or not hasattr(self, 'empty_cluster'):

@@ -140,7 +140,7 @@ def test_composite_lce_accepts_external_site_delta_model(hop_event):
 
 
 @pytest.mark.unit
-def test_composite_lce_preserves_legacy_site_lce_direction_convention(hop_event):
+def test_composite_lce_applies_event_direction_to_site_lce_difference(hop_event):
     model = CompositeLCEModel(
         kra_model=FixedLCE(200.0),
         site_model=FixedLCE(40.0),

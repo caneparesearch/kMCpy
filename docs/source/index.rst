@@ -22,7 +22,7 @@ Where to start:
 
 1. Use :doc:`quickstart` to run the bundled example and verify your installation.
 2. Use :doc:`tutorial` for a guided notebook-style walkthrough.
-3. Use :doc:`howto/index` when you have a specific task, such as attaching properties, preparing NEB fitting inputs, or using external site-energy models.
+3. Use :doc:`howto/index` when you have a specific task, such as attaching properties, preparing NEB fitting inputs, or using external site-energy-difference models.
 4. Use :doc:`reference/index` when you need API documentation or field-level details.
 
 Advantages of using kMCpy:

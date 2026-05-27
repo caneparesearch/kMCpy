@@ -1,8 +1,8 @@
-# Use External Site-Energy Models
+# Use External Site-Energy-Difference Models
 
-This guide shows how to use a site-energy model from another code, such as
-smol, CLEASE, ASE, or a project-specific cluster expansion, inside a kMCpy KMC
-simulation.
+This guide shows how to use a site-energy-difference model from another code,
+such as smol, CLEASE, ASE, or a project-specific cluster expansion, inside a
+kMCpy KMC simulation.
 
 The main rule is simple:
 
@@ -32,6 +32,13 @@ Use one of these three options:
 
 For production smol or CLEASE runs, use `MappedSiteEnergyModel`. It avoids
 rebuilding or converting the full occupation vector on every KMC step.
+
+When the site contribution is another kMCpy `LocalClusterExpansion`, it still
+uses the regular `compute(simulation_state=..., event=...)` method. Its role in
+`CompositeLCEModel` determines the meaning: as `kra_model` it returns
+`E_KRA`, and as `site_model` it returns the site-energy-difference
+contribution. The `compute_delta(...)` method is only for external adapters that
+return `E_after_hop - E_before_hop` directly.
 
 ## What kMCpy Stores
 

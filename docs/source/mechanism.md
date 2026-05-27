@@ -120,27 +120,36 @@ The fitting procedure involves:
 
 ### Composite LCE Model
 
-kMCpy uses a composite model that combines two LCE components: one for migration barriers (E_KRA) and one for site energy differences. This separation is important because the rate of an ion hop depends both on the barrier height and on the relative stability of the initial and final sites.
+kMCpy uses a composite model that combines two LCE components: one for migration
+barriers ($E_{\text{KRA}}$) and one for site-energy differences. This
+separation is important because the rate of an ion hop depends both on the
+barrier height and on the relative stability before and after the hop.
 
-The **site energy model** predicts the energy of an ion at a particular site based on its local environment. When an ion hops from site A to site B, the energy difference affects the effective barrier. If site B is lower in energy, the forward hop is easier than the reverse hop.
+The **site model** does not represent an absolute single-site energy. In a local
+environment model, that quantity is not well defined by one site alone because it
+depends on the surrounding occupation. Instead, the site model supplies the
+site-energy difference contribution for the event.
 
-The **barrier model** (E_KRA) predicts the barrier height at the transition state, representing the energy cost of moving an ion through the activated complex between sites.
+The **barrier model** ($E_{\text{KRA}}$) predicts the barrier height at the
+transition state, representing the energy cost of moving an ion through the
+activated complex between sites.
 
 kMCpy combines these contributions to compute the effective barrier for each hop:
 
 $$E_{\text{eff}} = E_{\text{KRA}} + \frac{\Delta E_{\text{event}}}{2}$$
 
 where $\Delta E_{\text{event}} = E_{\text{after}} - E_{\text{before}}$ is the
-signed site-energy change for the current event. For historical kMCpy site LCE
-models, this is computed as $\text{direction} \times \Delta E_{\text{site}}$,
-where direction is forward (+1), backward (-1), or currently unavailable (0).
-kMCpy derives direction from precomputed mobile/vacancy state codes for each
-event endpoint, so multistate active sites do not rely on numeric subtraction of
-occupation labels. External site-energy adapters return
-$E_{\text{after}} - E_{\text{before}}$ directly. This formulation ensures that
-detailed balance is maintained: the ratio of forward to backward hop rates
-satisfies the Boltzmann factor for the site energy difference. See the
-[external site-energy how-to](howto/external_site_energy.md) for adapter details.
+signed site-energy difference for the current event. `LocalClusterExpansion`
+always uses one evaluator, `compute(simulation_state=..., event=...)`. A LCE
+passed as `kra_model` returns $E_{\text{KRA}}$; a LCE passed as
+`site_model` returns the site-energy-difference contribution for the canonical
+event orientation. kMCpy then applies the current event direction (+1 for
+forward, -1 for backward, 0 when unavailable). External site-energy adapters
+return $E_{\text{after}} - E_{\text{before}}$ directly through
+`compute_delta(...)`. This formulation ensures that detailed balance is
+maintained: the ratio of forward to backward hop rates satisfies the Boltzmann
+factor for the site-energy difference. See the [external site-energy how-to](howto/external_site_energy.md)
+for adapter details.
 
 ## Local Barrier Model
 
