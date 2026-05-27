@@ -34,8 +34,8 @@ Where to start:
 
 1. Install kMCpy using :doc:`install`.
 2. Run one small simulation with :doc:`quickstart`.
-3. Learn the full beginner workflow in :doc:`tutorial/index`.
-4. Use :doc:`mechanism` for the kMC equations and transport definitions.
+3. Read :doc:`mechanism` for the kMC equations and transport definitions.
+4. Learn the full workflow in :doc:`tutorial/index`.
 5. Use :doc:`howto/index` for advanced customization.
 6. Use :doc:`reference/index` when you need exact API documentation.
 
@@ -51,19 +51,19 @@ electrolytes. See :doc:`about` for citation information.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Beginner Tutorial
-
-   tutorial/index
-
-.. toctree::
-   :maxdepth: 1
    :caption: Theory
 
    mechanism
 
 .. toctree::
    :maxdepth: 1
-   :caption: Advanced Tutorials
+   :caption: Tutorial
+
+   tutorial/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Advanced
 
    howto/index
 

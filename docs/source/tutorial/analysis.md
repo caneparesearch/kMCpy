@@ -64,5 +64,7 @@ Record:
 - equilibration and production passes,
 - random seed strategy.
 
-The `Configuration` and model files are designed to make this information easy
-to keep with the results.
+The [`Configuration`](../modules/config.rst) and model files are designed to
+make this information easy to keep with the results.
+
+Next: [Units And Interoperability](units_interoperability.md).

@@ -8,7 +8,7 @@ between crystallographic sites. Each accepted hop changes the occupation state,
 advances the simulation clock, and updates the affected event rates.
 
 This page focuses on the equations. For how to prepare structures, event
-libraries, and models, see the [beginner tutorial](tutorial/index.md).
+libraries, and models, see the [workflow tutorial](tutorial/index.md).
 
 ## Rejection-Free Algorithm
 

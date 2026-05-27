@@ -1,9 +1,9 @@
-# Advanced Tutorials
+# Advanced Overview
 
 Use these pages after you understand the basic kMCpy workflow. They focus on
 customization, external interfaces, and order-sensitive model details.
 
-For a beginner path, start with the [tutorial workflow](../tutorial/index.md).
+For the main workflow, start with the [tutorial overview](../tutorial/index.md).
 
 ## Simulation Customization
 
@@ -18,8 +18,9 @@ For a beginner path, start with the [tutorial workflow](../tutorial/index.md).
   count-based, species-count, wildcard, and exact local-environment barriers.
 - [Choose basis functions](basis_functions.md): understand occupation and
   Chebyshev basis functions for binary and multicomponent sites.
-- [Prepare NEB fitting inputs](neb_fitting.md): turn NEB structures and
-  barriers into fitting files for a local cluster expansion.
+- [Prepare NEB fitting inputs](neb_fitting.md): lower-level details for turning
+  NEB structures and barriers into fitting files after the main
+  [LCE workflow](../tutorial/local_environments_neb.md).
 
 ## Site Order And External Codes
 

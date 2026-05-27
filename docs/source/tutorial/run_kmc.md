@@ -1,7 +1,7 @@
 # Prepare Input And Run kMC
 
 After the structure, event library, model, and initial occupations are ready,
-put them into a `Configuration`.
+put them into a [`Configuration`](../modules/config.rst).
 
 ## Create A Configuration In Python
 
@@ -31,8 +31,21 @@ config = Configuration(
 tracker = run(config)
 ```
 
-`run(config)` creates a `KMC` object, loads the model and event library, runs the
-simulation, writes standard outputs, and returns the `Tracker`.
+[`run(config)`](../modules/high_level_api.rst) creates a `KMC` object, loads the
+model and event library, runs the simulation, writes standard outputs, and
+returns the [`Tracker`](../modules/tracker.rst).
+
+The important `Configuration` fields are:
+
+- `structure_file`, `model_file`, `event_file`: loader paths used to start the
+  run.
+- `initial_occupations`: active-site occupation vector from
+  [Prepare Structures And Occupations](structure.md).
+- `supercell_shape`, `site_mapping`: must match the event library and model.
+- `temperature`, `attempt_frequency`: rate-model runtime conditions.
+- `equilibration_passes`, `kmc_passes`, `random_seed`: simulation controls.
+- `mobile_ion_specie`, `mobile_ion_charge`, `elementary_hop_distance`,
+  `dimension`: transport-output metadata.
 
 ## Write A Reloadable Input File
 
@@ -82,3 +95,5 @@ for temperature in [300.0, 400.0, 500.0]:
 
 Keep the event library and model fixed unless the physical system or active-site
 order changes.
+
+Next: [Track Outputs](tracker_outputs.md).

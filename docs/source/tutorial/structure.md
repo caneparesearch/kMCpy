@@ -71,9 +71,9 @@ In this example:
 - Si sites are active substitutional sites. They can be `Si` or `P`.
 - Zr and O sites are fixed because only one species is allowed.
 
-kMCpy builds an `ActiveSiteOrder` from the structure and `site_mapping`. This is
-the compact global sequence used by occupation vectors, event indices, and
-external site-energy mappings.
+kMCpy builds an [`ActiveSiteOrder`](../modules/active_site_order.rst) from the
+structure and `site_mapping`. This is the compact global sequence used by
+occupation vectors, event indices, and external site-energy mappings.
 
 ## Prepare Initial Occupations
 
@@ -98,11 +98,15 @@ active-site order.
 
 ## Two Site Orders To Remember
 
-`ActiveSiteOrder` is the global active-site sequence used by kMC.
+[`ActiveSiteOrder`](../modules/active_site_order.rst) is the global active-site
+sequence used by kMC.
 
-`LocalSiteOrder` is the local environment sequence used by an LCE correlation
-vector around one event. It does not choose the local-environment center; the
-center is supplied by `LocalLatticeStructure`.
+[`LocalSiteOrder`](../modules/local_site_order.rst) is the local environment
+sequence used by an LCE correlation vector around one event. It does not choose
+the local-environment center; the center is supplied by
+[`LocalLatticeStructure`](../modules/local_lattice_structure.rst).
 
 This distinction matters most when reusing fitted LCE coefficients or mapping
 kMCpy occupations to external codes.
+
+Next: [Choose And Build A Model](models.md).
