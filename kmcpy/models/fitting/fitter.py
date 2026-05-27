@@ -2,17 +2,17 @@
 """Model fitting implementations."""
 
 from abc import ABC, abstractmethod
-import json
 import logging
 import os
 
-from kmcpy.io import convert
+from monty.json import MSONable
+from monty.serialization import dumpfn, loadfn
 from kmcpy.models.parameters import LCEModelParamHistory, LCEModelParameters
 
 logger = logging.getLogger(__name__)
 
 
-class BaseFitter(ABC):
+class BaseFitter(MSONable, ABC):
     """Main class for model fitting"""
 
     def __init__(self) -> None:
@@ -51,20 +51,7 @@ class LCEFitter(BaseFitter):
             time="",
             rmse=0.0,
             loocv=0.0,
-        )
-
-    @staticmethod
-    def _model_parameters_from_dict(payload: dict) -> LCEModelParameters:
-        return LCEModelParameters(
-            keci=payload.get("keci", []),
-            empty_cluster=payload.get("empty_cluster", 0.0),
-            cluster_site_indices=payload.get("cluster_site_indices", []),
-            weight=payload.get("weight", []),
-            alpha=payload.get("alpha", 0.0),
-            time_stamp=payload.get("time_stamp", ""),
-            time=payload.get("time", ""),
-            rmse=payload.get("rmse", 0.0),
-            loocv=payload.get("loocv", 0.0),
+            normalize=True,
         )
 
     @staticmethod
@@ -93,7 +80,7 @@ class LCEFitter(BaseFitter):
     ) -> None:
         import pandas as pd
 
-        columns = [
+        required_columns = [
             "time_stamp",
             "time",
             "keci",
@@ -102,6 +89,11 @@ class LCEFitter(BaseFitter):
             "alpha",
             "rmse",
             "loocv",
+        ]
+        columns = required_columns + [
+            "normalize",
+            "orbit_fingerprints",
+            "local_environment_hash",
         ]
         row = [
             model_parameters.time_stamp,
@@ -112,12 +104,21 @@ class LCEFitter(BaseFitter):
             model_parameters.alpha,
             model_parameters.rmse,
             model_parameters.loocv,
+            model_parameters.normalize,
+            model_parameters.orbit_fingerprints,
+            model_parameters.local_environment_hash,
         ]
         try:
             logger.info("Try loading %s ...", fit_results_fname)
             df = pd.read_json(fit_results_fname, orient="index")
-            if not set(columns).issubset(df.columns):
+            if not set(required_columns).issubset(df.columns):
                 raise ValueError("Unexpected file schema")
+            if "normalize" not in df.columns:
+                df["normalize"] = True
+            if "orbit_fingerprints" not in df.columns:
+                df["orbit_fingerprints"] = None
+            if "local_environment_hash" not in df.columns:
+                df["local_environment_hash"] = None
             new_data = pd.DataFrame([row], columns=columns)
             df2 = pd.concat([df[columns], new_data], ignore_index=True)
             df2.to_json(fit_results_fname, orient="index", indent=4)
@@ -143,30 +144,114 @@ class LCEFitter(BaseFitter):
             "empty_cluster": self.model_parameters.empty_cluster,
             "rmse": self.model_parameters.rmse,
             "loocv": self.model_parameters.loocv,
+            "normalize": self.model_parameters.normalize,
         }
+        if self.model_parameters.orbit_fingerprints is not None:
+            d["orbit_fingerprints"] = self.model_parameters.orbit_fingerprints
+        if self.model_parameters.local_environment_hash is not None:
+            d["local_environment_hash"] = self.model_parameters.local_environment_hash
         return d
 
-    def to_json(self, fname):
-        logger.info("Saving: %s", fname)
-        with open(fname, "w") as fhandle:
-            payload = self.as_dict()
-            json_str = json.dumps(
-                payload, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(json_str)
+    def to(self, filename):
+        logger.info("Saving: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
-    def from_json(cls, fname):
-        logger.info("Loading: %s", fname)
-        with open(fname, "rb") as fhandle:
-            payload = json.load(fhandle)
+    def from_dict(cls, payload):
         if not isinstance(payload, dict):
             raise ValueError("Serialized fitter payload must be a JSON object.")
-
         record = cls._extract_serialized_record(payload)
         obj = cls()
-        obj.model_parameters = cls._model_parameters_from_dict(record)
+        obj.model_parameters = LCEModelParameters.from_dict(record)
         return obj
+
+    @classmethod
+    def from_file(cls, filename):
+        logger.info("Loading: %s", filename)
+        return cls.from_dict(loadfn(filename, cls=None))
+
+    @staticmethod
+    def _fit_lasso_values(
+        correlation_matrix,
+        e_kra,
+        weight,
+        alpha,
+        max_iter,
+        normalize,
+    ):
+        """Fit Lasso and return unscaled coefficients, intercept, and predictions."""
+        from sklearn.linear_model import Lasso
+        import numpy as np
+
+        x = np.asarray(correlation_matrix, dtype=float)
+        y = np.asarray(e_kra, dtype=float)
+        sample_weight = None if weight is None else np.asarray(weight, dtype=float)
+
+        if not normalize:
+            estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=True)
+            fit_kwargs = (
+                {} if sample_weight is None else {"sample_weight": sample_weight}
+            )
+            estimator.fit(x, y, **fit_kwargs)
+            keci = estimator.coef_
+            empty_cluster = estimator.intercept_
+            return keci, empty_cluster, estimator.predict(x)
+
+        if sample_weight is None:
+            x_offset = np.mean(x, axis=0)
+            y_offset = float(np.mean(y))
+        else:
+            x_offset = np.average(x, axis=0, weights=sample_weight)
+            y_offset = float(np.average(y, weights=sample_weight))
+        x_centered = x - x_offset
+        y_centered = y - y_offset
+
+        # Mirror the deprecated sklearn normalize=True path used by the
+        # historical fitting workflow: center first, then divide each feature
+        # by its unweighted L2 norm.
+        x_scale = np.sqrt(np.sum(x_centered ** 2, axis=0))
+        x_scale[x_scale == 0.0] = 1.0
+        x_normalized = x_centered / x_scale
+
+        estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=False)
+        fit_kwargs = (
+            {} if sample_weight is None else {"sample_weight": sample_weight}
+        )
+        estimator.fit(x_normalized, y_centered, **fit_kwargs)
+        keci = estimator.coef_ / x_scale
+        empty_cluster = y_offset - float(np.dot(x_offset, keci))
+        y_pred = x @ keci + empty_cluster
+        return keci, empty_cluster, y_pred
+
+    @classmethod
+    def _leave_one_out_rmse(
+        cls,
+        correlation_matrix,
+        e_kra,
+        alpha,
+        max_iter,
+        normalize,
+    ) -> float:
+        """Compute the historical unweighted leave-one-out RMSE."""
+        import numpy as np
+
+        x = np.asarray(correlation_matrix, dtype=float)
+        y = np.asarray(e_kra, dtype=float)
+        squared_errors = []
+        for excluded_index in range(len(y)):
+            train_mask = np.ones(len(y), dtype=bool)
+            train_mask[excluded_index] = False
+            keci, empty_cluster, _ = cls._fit_lasso_values(
+                x[train_mask],
+                y[train_mask],
+                weight=None,
+                alpha=alpha,
+                max_iter=max_iter,
+                normalize=normalize,
+            )
+            y_pred = float(x[excluded_index] @ keci + empty_cluster)
+            squared_errors.append((float(y[excluded_index]) - y_pred) ** 2)
+        return float(np.sqrt(np.mean(squared_errors)))
 
     def fit(
         self,
@@ -179,6 +264,9 @@ class LCEFitter(BaseFitter):
         lce_params_fname="lce_params.json",
         lce_params_history_fname="lce_params_history.json",
         fit_results_fname=None,
+        normalize=True,
+        orbit_fingerprints=None,
+        local_environment_hash=None,
     ) -> tuple[LCEModelParameters, object, object]:
         """Main fitting function
 
@@ -193,6 +281,10 @@ class LCEFitter(BaseFitter):
             lce_params_history_fname (str, optional): File name for LCE parameters history storage. Defaults to 'lce_params_history.json'.
             fit_results_fname (str | None, optional): Legacy fitting history file
                 in orient=index JSON format. If None, skip writing.
+            orbit_fingerprints (list[str] | None, optional): Orbit fingerprints
+                associated with the fitted coefficient order.
+            local_environment_hash (str | None, optional): Hash of the ordered
+                local environment used to validate fitted parameters later.
 
         Returns:
             tuple[LCEModelParameters, numpy.ndarray, numpy.ndarray]:
@@ -209,9 +301,6 @@ class LCEFitter(BaseFitter):
         m is the number of E_KRA
         n is the number of clusers
         """
-        from sklearn.linear_model import Lasso
-        from sklearn.model_selection import cross_val_score
-        from sklearn.model_selection import LeaveOneOut
         from sklearn.metrics import root_mean_squared_error
 
         from copy import copy
@@ -224,10 +313,19 @@ class LCEFitter(BaseFitter):
         weight_copy = copy(weight)
         correlation_matrix = np.loadtxt(corr_fname)
 
-        estimator = Lasso(alpha=alpha, max_iter=max_iter, fit_intercept=True)
-        estimator.fit(correlation_matrix, e_kra, sample_weight=weight)
-        keci = estimator.coef_
-        empty_cluster = estimator.intercept_
+        keci, empty_cluster, y_pred = self._fit_lasso_values(
+            correlation_matrix=correlation_matrix,
+            e_kra=e_kra,
+            weight=weight,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
+        )
+        if orbit_fingerprints is not None and len(keci) != len(orbit_fingerprints):
+            raise ValueError(
+                "orbit_fingerprints length does not match fitted keci length: "
+                f"{len(orbit_fingerprints)} != {len(keci)}"
+            )
         logger.info("Lasso Results:")
         logger.info("KECI = \n%s", np.round(keci, 2))
         logger.info(
@@ -236,7 +334,6 @@ class LCEFitter(BaseFitter):
         logger.info("Empty Cluster = %s", empty_cluster)
 
         y_true = e_kra
-        y_pred = estimator.predict(correlation_matrix)
         logger.info("index\tNEB\tLCE\tNEB-LCE")
         index = np.linspace(1, len(y_true), num=len(y_true), dtype="int")
         logger.info(
@@ -245,15 +342,13 @@ class LCEFitter(BaseFitter):
         )
 
         # cv = sqrt(mean(scores)) + N_nonzero_eci*penalty, penalty = 0 here
-        scores = -1 * cross_val_score(
-            estimator=estimator,
-            X=correlation_matrix,
-            y=e_kra,
-            scoring="neg_mean_squared_error",
-            cv=LeaveOneOut(),
-            n_jobs=-1,
+        loocv = self._leave_one_out_rmse(
+            correlation_matrix=correlation_matrix,
+            e_kra=e_kra,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
         )
-        loocv = np.sqrt(np.mean(scores))
         logger.info("LOOCV = %s meV", np.round(loocv, 2))
         # compute RMS error
         rmse = root_mean_squared_error(y_true, y_pred)
@@ -272,6 +367,9 @@ class LCEFitter(BaseFitter):
             time=time,
             rmse=rmse,
             loocv=loocv,
+            normalize=normalize,
+            orbit_fingerprints=orbit_fingerprints,
+            local_environment_hash=local_environment_hash,
         )
         self.model_parameters = lce_model_params
 

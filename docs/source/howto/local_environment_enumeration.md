@@ -1,14 +1,21 @@
-# Local Environment Enumeration
+# Enumerate Local Environments
 
-Use `enumerate_local_environments` to build ordered local configurations from a
-`LatticeStructure`. The function returns pymatgen structures together with the
-full and local occupation vectors, so the result can be passed directly into
-local-cluster-expansion or NEB preparation workflows.
+Use local-environment enumeration when you need ordered structures for fitting,
+testing, or preparing NEB calculations around one hop.
+
+The enumeration helpers start from a `LatticeStructure`, vary selected active
+sites, and return:
+
+- pymatgen structures,
+- compact active-site occupation vectors,
+- local occupation vectors in the same order used by kMCpy models.
+
+## Build A Lattice Model
 
 ```python
 from pymatgen.core import Lattice, Structure
 
-from kmcpy.structure import LatticeStructure, enumerate_local_environments
+from kmcpy.structure import LatticeStructure
 
 lattice = Lattice.cubic(10.0)
 template = Structure(
@@ -20,12 +27,21 @@ template = Structure(
 
 lattice_model = LatticeStructure(
     template_structure=template,
-    specie_site_mapping={
+    site_mapping={
         "Na": ["Na", "X"],
         "Si": ["Si", "P"],
         "Cl": "Cl",
     },
 )
+```
+
+`site_mapping` defines which species or vacancy states each active site can
+take. Fixed species, such as `"Cl": "Cl"`, are not enumerated.
+
+## Enumerate A Local Environment
+
+```python
+from kmcpy.structure import enumerate_local_environments
 
 environments = enumerate_local_environments(
     lattice_model,
@@ -37,19 +53,38 @@ environments = enumerate_local_environments(
 )
 
 for environment in environments:
-    print(environment.label, environment.full_occupation.values)
+    print(environment.label)
+    print(environment.full_occupation.values)
 ```
 
-`species_counts` is an exact count over the variable sites. With
-`basis_type="chebyshev"`, the first species in a site mapping is `-1`, while the
-second species or vacancy is `+1`. For example, `{"Si": ["Si", "P"]}` gives
-`Si=-1` and `P=+1`.
+`species_counts` is an exact count over the variable sites. In this example,
+the two variable sites must contain one `Si` and one `P`.
 
-## Pymatgen Transformations
+## Occupation Values
 
-For larger disordered local environments, pass a pymatgen transformation object
-that was configured by the caller. kMCpy calls `apply_transformation(...)` and
-normalizes the ordered structures back into the same enumeration result type.
+With `basis_type="chebyshev"`, kMCpy stores allowed species as integer state
+indices. For example:
+
+```python
+site_mapping = {"Si": ["Si", "P", "Ge"]}
+```
+
+uses:
+
+```text
+Si = 0
+P  = 1
+Ge = 2
+```
+
+The LCE basis then uses `q - 1` non-constant basis functions for a site with
+`q` allowed states.
+
+## Use Pymatgen Transformations
+
+For larger or more complex disordered environments, pass a pymatgen
+transformation object. kMCpy calls `apply_transformation(...)` and normalizes
+the result back into the same local-environment result type.
 
 ```python
 from pymatgen.transformations.standard_transformations import (
@@ -70,15 +105,14 @@ environments = enumerate_local_environments(
 )
 ```
 
-`EnumerateStructureTransformation` can also be passed in, but it depends on the
-external enumlib executables used by pymatgen. kMCpy does not install or invoke
-those binaries itself.
+`EnumerateStructureTransformation` can also be used, but it depends on the
+external enumlib executables used by pymatgen. kMCpy does not install those
+binaries.
 
-## NEB Endpoint Pairs
+## Build NEB Endpoint Pairs
 
-Use `enumerate_neb_endpoint_pairs` when preparing NEB calculations for one
-known hop in a small cell. The helper combines local-environment enumeration
-with initial/final endpoint construction.
+Use `enumerate_neb_endpoint_pairs` when you need initial and final structures
+for one known hop in a small cell:
 
 ```python
 from kmcpy.structure import enumerate_neb_endpoint_pairs
@@ -97,10 +131,15 @@ for pair in endpoint_pairs:
     final_structure = pair.final
 ```
 
-`mobile_ion_indices` is the pair of lattice-site indices for the hop. You can
-also pass an object produced by kMCpy event generation, as long as it has a
-`mobile_ion_indices` attribute.
+`mobile_ion_indices` are compact active-site indices. You can also pass a kMCpy
+event object if it has a `mobile_ion_indices` attribute.
 
-The endpoint helper returns structures only. It does not write VASP inputs,
-create numbered NEB image directories, or generate interpolated intermediate
-images.
+The helper returns structures only. It does not write VASP inputs, create NEB
+image directories, or generate interpolated intermediate images.
+
+## Checklist
+
+- Make sure `variable_site_indices` use compact active-site indices.
+- Use `species_counts` when composition must be fixed.
+- Use the same site order and basis convention as the model you plan to fit.
+- Keep enumlib-dependent transformations optional in reproducible workflows.

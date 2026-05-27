@@ -26,55 +26,71 @@ Advantages of using kMCpy:
 > [!WARNING]
 > kMCpy is under active development.
 >
-> kMCpy is still under active development. While we strive to maintain backward compatibility, some changes may occur that could affect existing workflows. We recommend users to check the release notes and documentation for any updates or changes that might impact their usage.
+> APIs and serialized file formats may change before a stable release. Check the release notes and current documentation when updating existing workflows.
+
+Release notes are maintained in the [changelog](https://github.com/caneparesearch/kmcpy/blob/master/CHANGELOG.md).
 
 ## Installation
 
-### Method 1: Install using `pip` (recommended)
-You can quickly install the latest version of kMCpy through [PyPI](https://pypi.org/project/kmcpy/) to your environment.
+### Install with `pip`
+
+You can install the latest PyPI release directly into a Python environment:
 
 ```shell
 pip install kmcpy
 ```
-> [!NOTE]
-> Virtual Environment
->
-> It is highly recommended to install kMCpy in a virtual environment to avoid dependency conflicts with other packages. You can use [uv](https://docs.astral.sh/uv/getting-started/installation/) or [venv](https://docs.python.org/3/library/venv.html) or [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to create a virtual environment.
-> For example, using `venv`:
-> ```shell
-> python -m venv kmcpy-env
-> source kmcpy-env/bin/activate  # On Windows use `kmcpy-env\Scripts\activate.bat`
-> ```
-> Then you can install kMCpy in the virtual environment using `pip install kmcpy`.
-> To deactivate the virtual environment, you can use the command `deactivate`.
-> For `conda`, you should also use `pip install kmcpy` to install `kMCpy` after activating the conda environment.
-> For `uv`, you can use `uv pip install kmcpy` to install `kMCpy` after creating and activating the virtual environment.
 
-### Method 2: Install from source
+Using a virtual environment is recommended:
 
-You can install kMCpy from source using either `pip` or [UV](https://docs.astral.sh/uv/getting-started/installation/). First, clone the repository and navigate to its root directory.
+```shell
+python -m venv kmcpy-env
+source kmcpy-env/bin/activate  # On Windows use `kmcpy-env\Scripts\activate`
+pip install kmcpy
+```
 
-#### Using pip
+### Install with `uv pip`
 
-To install normally:
+If you manage Python environments with [uv](https://docs.astral.sh/uv/), use
+the same PyPI package:
+
+```shell
+uv venv kmcpy-env
+source kmcpy-env/bin/activate
+uv pip install kmcpy
+```
+
+### Install with Conda
+
+Use Conda to create the Python environment, then install the PyPI package
+inside that environment:
+
+```shell
+conda create -n kmcpy python=3.11 pip
+conda activate kmcpy
+python -m pip install kmcpy
+```
+
+### Install from source
+
+You can install kMCpy from source using either `pip` or `uv`. First, clone the
+repository and navigate to its root directory.
+
+To install normally with `pip`:
+
 ```shell
 pip install .
 ```
 
-For development (editable mode):
+For development with `pip`:
+
 ```shell
 pip install -e ".[dev]"
 ```
 
-#### Using UV (recommended)
+For development with `uv`:
 
-To install all dependencies:
 ```shell
 uv sync
-```
-
-For development (editable mode):
-```shell
 uv sync --extra dev
 uv pip install -e .
 ```
@@ -97,16 +113,21 @@ Run a minimal end-to-end simulation with bundled example files:
 
 ```shell
 uv sync
-uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_fields()"
 uv run python example/minimal_example.py
 ```
 
 `Configuration` routes arguments into two groups:
 
-1. `system` parameters define what you simulate (structure, events, model files).
-2. `runtime` parameters define how you simulate (temperature, passes, random seed).
+1. `system` fields define what you simulate after loader inputs have been read.
+2. `runtime` fields define how you simulate (temperature, passes, random seed).
 
-If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_parameters()`.
+If you pass an unknown keyword, kMCpy raises a clear error and points to `Configuration.help_fields()`.
+
+Unit conventions are explicit in code via `kmcpy.units`,
+`Configuration.field_units()`, and `tracker.result_units`. Common units are:
+barriers in meV, rates/probabilities in Hz, time in s, distance in Angstrom,
+diffusivity in cm^2/s, and conductivity in mS/cm.
 
 ## Run kMCpy
 ### API usage
@@ -134,7 +155,7 @@ def custom_property(state, step, sim_time):
 
 kmc.attach(custom_property, interval=100, name="occupied_fraction")
 kmc.set_property_enabled("conductivity", False)  # Optional: disable selected built-in fields
-tracker = kmc.run(config)
+tracker = kmc.run()
 
 # Stored custom callback records
 records = tracker.get_property_records("occupied_fraction")
@@ -160,31 +181,59 @@ To print out all arguments, you can run:
 run_kmc --help
 ```
 
-## Build tabulated model files (sparse data)
-For sparse datasets, you can use `TabulatedModel` with direct event+occupation lookup.
+## Build local barrier models
+For direct barrier logic, use `LocalBarrierModel`. It supports constant barriers,
+count rules, species-count rules, wildcard patterns, and exact catalog-style
+matches. Barrier values are in meV.
 
-Build a model bundle via API:
+Constant barrier:
 ```python
-from kmcpy.io.config_io import ConfigIO
+from kmcpy.models import LocalBarrierModel
 
-bundle = ConfigIO.build_tabulated_model_bundle_from_file(
-    entries_file="tabulated_entries.json"
+model = LocalBarrierModel.constant_barrier(300.0)
+model.to("model.json")
+```
+
+Species-count rule, for example "more than 3 Si in the local environment":
+```python
+model = LocalBarrierModel(
+    default_barrier=300.0,
+    site_species={
+        1: {-1: "P", 1: "Si"},
+        2: {-1: "Si", 1: "P"},
+        3: {-1: "Si", 1: "P"},
+        4: {-1: "Al", 1: "Si"},
+    },
 )
-ConfigIO.save_model_bundle(bundle, "model.json")
+model.add_species_count_rule(
+    name="si_rich",
+    sites="local_env",
+    species="Si",
+    min_count=4,
+    barrier=420.0,
+)
+model.to("model.json")
 ```
 
-Build via CLI:
-```shell
-kmcpy pack-tabulated-model --entries-file tabulated_entries.json --output model.json
+Exact catalog-style match:
+```python
+model = LocalBarrierModel.from_exact_entries([
+    {
+        "mobile_ion_indices": [0, 1],
+        "local_env_indices": [1, 2, 3],
+        "occupations": [1, -1, 1, -1],
+        "properties": {"barrier": 250.0},
+    }
+])
 ```
 
-Use it in simulation config:
+Use the generated model file in simulation config by pointing to it:
 ```yaml
-model_type: "tabulated"
 model_file: "model.json"
 ```
 
-`TabulatedModel` performs exact lookup only. Unseen configurations raise an error (no extrapolation fallback).
+Exact catalog-style data should be represented as `LocalBarrierModel` exact
+rules rather than a separate catalog model.
 
 ## Citation
 If you use kMCpy in your research, please cite it as follows:

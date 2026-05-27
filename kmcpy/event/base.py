@@ -1,40 +1,39 @@
 #!/usr/bin/env python
 """
-This module defines the Event class, which encapsulates the information required to represent 
-a migration event in a lattice-based simulation, such as those used in kinetic Monte Carlo (kMC) studies. 
+This module defines the Event class, which encapsulates the information required to represent
+a migration event in a lattice-based simulation, such as those used in kinetic Monte Carlo (kMC) studies.
 
-The Event class focuses purely on defining which sites are involved in the hop and providing 
+The Event class focuses purely on defining which sites are involved in the hop and providing
 the local environment indices. All energy calculations are now handled by the model classes.
 """
 
 import numpy as np
 import numba as nb
-import json
-from kmcpy.io import convert
+from monty.serialization import dumpfn, loadfn
 import logging
 from abc import ABC
 from numba.typed import List
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
 logging.getLogger('numba').setLevel(logging.WARNING)
 
 @dataclass
 class Event:
     """
     Represents a migration event in a lattice-based simulation.
-    
+
     The Event class focuses purely on defining which sites are involved in the hop
     and providing the local environment indices. All calculations are now handled
     by the model classes.
-    
+
     Attributes:
-        mobile_ion_indices (tuple): Global indices of the mobile ions involved in the event
-        local_env_indices (tuple): Global indices of the neighboring sites in the supercell
+        mobile_ion_indices (tuple): Compact active-site indices of the mobile ions involved in the event
+        local_env_indices (tuple): Compact active-site indices of the neighboring sites in the supercell
 
     """
     mobile_ion_indices: tuple
-    local_env_indices: tuple    
+    local_env_indices: tuple
 
     def show_info(self):
         """Display information about the event."""
@@ -52,29 +51,20 @@ class Event:
         }
         return d
 
-    def to_json(self, fname:str):
-        logger.info("Saving: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )  # to get rid of errors of int64
-            fhandle.write(jsonStr)
+    def to(self, filename: str):
+        logger.info("Saving: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=4)
 
     @classmethod
-    def from_json(self, fname:str):
-        logger.info("Loading: %s", fname)
-        with open(fname, "rb") as fhandle:
-            objDict = json.load(fhandle)
-        obj = Event()
-        obj.__dict__ = objDict
-        return obj
-    
+    def from_file(cls, filename: str):
+        logger.info("Loading: %s", filename)
+        return cls.from_dict(loadfn(filename, cls=None))
+
     @classmethod
     def from_dict(cls, event_dict:dict):
         """Create Event from dictionary."""
         mobile_ion_indices = tuple(event_dict.get("mobile_ion_indices", ()))
-        local_env_indices = event_dict.get("local_env_indices", [])
+        local_env_indices = tuple(event_dict.get("local_env_indices", []))
         return cls(mobile_ion_indices, local_env_indices)
 
 
@@ -82,18 +72,18 @@ class Event:
 def _generate_event_dependency_matrix(events_site_list):
     """
     Generate the event dependency matrix.
-    
+
     Args:
-        events_site_list: List of lists, where each inner list contains 
+        events_site_list: List of lists, where each inner list contains
                          the site indices involved in that event
-    
+
     Returns:
-        List of Lists: event_dependencies[i] contains indices of events that 
+        List of Lists: event_dependencies[i] contains indices of events that
                       depend on event i (need to be updated when event i is executed)
     """
     n_events = len(events_site_list)
     event_dependencies = List()
-    
+
     # Pre-process: convert each event's sites to sorted arrays for faster intersection
     sorted_event_sites = List()
     for event_sites in events_site_list:
@@ -104,22 +94,22 @@ def _generate_event_dependency_matrix(events_site_list):
             sites_array[i] = site
         sites_array.sort()
         sorted_event_sites.append(sites_array)
-    
+
     # Build dependency matrix with optimized intersection checking
     for event_i in range(n_events):
         dependent_events = List()
         sites_i = sorted_event_sites[event_i]
-        
+
         for event_j in range(n_events):
             sites_j = sorted_event_sites[event_j]
-            
+
             # Check if sorted arrays have any common elements
             # This is much faster than set operations
             if _arrays_intersect(sites_i, sites_j):
                 dependent_events.append(event_j)
-        
+
         event_dependencies.append(dependent_events)
-    
+
     return event_dependencies
 
 
@@ -127,19 +117,19 @@ def _generate_event_dependency_matrix(events_site_list):
 def _arrays_intersect(arr1, arr2):
     """
     Check if two sorted arrays have any common elements.
-    
+
     Uses two-pointer technique for O(n+m) complexity instead of O(n*m).
-    
+
     Args:
         arr1: Sorted numpy array
         arr2: Sorted numpy array
-    
+
     Returns:
         bool: True if arrays have at least one common element
     """
     i, j = 0, 0
     len1, len2 = len(arr1), len(arr2)
-    
+
     while i < len1 and j < len2:
         if arr1[i] == arr2[j]:
             return True
@@ -147,23 +137,23 @@ def _arrays_intersect(arr1, arr2):
             i += 1
         else:
             j += 1
-    
+
     return False
 
 
 class EventLib(ABC):
     """
     A library of events, which can be used to store and manage multiple Event objects.
-    
+
     Attributes:
         events (list): List of Event objects
-        event_dependencies (list): 2D list where event_dependencies[i] contains indices of events 
+        event_dependencies (list): 2D list where event_dependencies[i] contains indices of events
                                  that depend on event i (need to be updated when event i is executed).
-                                 Dependencies are determined based on shared global site indices.
-        site_to_events (dict): Mapping from global site index to list of event indices 
+                                 Dependencies are determined based on shared active-site indices.
+        site_to_events (dict): Mapping from active-site index to list of event indices
                               that involve that site
-                              
-    Note: All indices (mobile_ion_indices and local_env_indices) are global site indices, 
+
+    Note: All indices (mobile_ion_indices and local_env_indices) are active-site indices,
     despite the misleading name of local_env_indices.
     """
 
@@ -171,15 +161,16 @@ class EventLib(ABC):
         self.events = []
         self.event_dependencies = None
         self.site_to_events = {}
+        self.index_metadata = None
 
     def add_event(self, event):
         """Add an event to the library and update site mappings."""
         event_index = len(self.events)
         self.events.append(event)
-        
-        # Update site to events mapping using global site indices
-        # mobile_ion_indices and local_env_indices 
-        # all contain global indices
+
+        # Update site to events mapping using active-site indices
+        # mobile_ion_indices and local_env_indices
+        # all contain active-site indices
         sites_involved = []
         # Add mobile ion indices
         for site in event.mobile_ion_indices:
@@ -187,11 +178,37 @@ class EventLib(ABC):
         # Add local environment indices
         for site in event.local_env_indices:
             sites_involved.append(site)
-        
+
         for site in sites_involved:
             if site not in self.site_to_events:
                 self.site_to_events[site] = []
             self.site_to_events[site].append(event_index)
+
+    def set_index_metadata(self, active_site_order):
+        """Attach active-site order metadata to this event library."""
+        self.index_metadata = active_site_order.as_dict()
+        self._validate_event_indices(active_site_order)
+
+    def validate_index_metadata(self, active_site_order):
+        """Validate that event indices use the provided active-site index space."""
+        if self.index_metadata is None:
+            raise ValueError(
+                "Event library is missing active-site order metadata. "
+                "Regenerate events with site_mapping."
+            )
+        active_site_order.assert_same_order(self.index_metadata)
+        self._validate_event_indices(active_site_order)
+
+    def _validate_event_indices(self, active_site_order):
+        for event_index, event in enumerate(self.events):
+            active_site_order.validate_active_indices(
+                event.mobile_ion_indices,
+                field_name=f"events[{event_index}].mobile_ion_indices",
+            )
+            active_site_order.validate_active_indices(
+                event.local_env_indices,
+                field_name=f"events[{event_index}].local_env_indices",
+            )
 
     def get_event(self, index):
         return self.events[index]
@@ -201,30 +218,30 @@ class EventLib(ABC):
 
     def __getitem__(self, index):
         return self.get_event(index)
-    
+
     def __str__(self):
         return f"EventLib with {len(self.events)} events"
-    
+
     def generate_event_dependencies(self):
         """
         Generate the event dependency matrix and store it in the class.
-        
-        For each event, find all other events that share global sites and thus have dependencies.
+
+        For each event, find all other events that share active sites and thus have dependencies.
         When an event is executed, all dependent events need to be updated.
         The dependency matrix is stored as self.event_dependencies.
-        
-        Note: All indices (mobile_ion_indices and 
-        local_env_indices) are global site indices.
-        
+
+        Note: All indices (mobile_ion_indices and
+        local_env_indices) are active-site indices.
+
         Returns:
-            list: 2D list where event_dependencies[i] contains indices of events that 
+            list: 2D list where event_dependencies[i] contains indices of events that
                   depend on event i (need to be updated when event i is executed).
         """
         logger.info("Generating and storing event dependency matrix in class...")
-        
-        # Build events_site_list for numba function using all global site indices
+
+        # Build events_site_list for numba function using all active-site indices
         # mobile_ion_indices and local_env_indices
-        # all contain global indices
+        # all contain active-site indices
         events_site_list = List()
         for event in self.events:
             sites_involved = List()
@@ -235,31 +252,31 @@ class EventLib(ABC):
             for site in event.local_env_indices:
                 sites_involved.append(site)
             events_site_list.append(sites_involved)
-        
+
         # Generate and store the dependency matrix using optimized numba function
         self.event_dependencies = _generate_event_dependency_matrix(events_site_list)
-        
+
         logger.info("Event dependency matrix generated and stored with %d events", len(self.event_dependencies))
         return self.event_dependencies
-    
+
     def get_dependent_events(self, event_index):
         """
         Get all event indices that depend on the given event (need to be updated when it's executed).
-        
+
         Args:
             event_index (int): Index of the event that was executed.
-            
+
         Returns:
             list: List of event indices that depend on the given event.
         """
         if self.event_dependencies is None:
             logger.warning("Event dependencies not generated. Call generate_event_dependencies() first.")
             return []
-        
+
         if event_index >= len(self.event_dependencies):
             logger.error("Event index %d out of range", event_index)
             return []
-            
+
         return list(self.event_dependencies[event_index])
 
     def as_dict(self):
@@ -268,31 +285,44 @@ class EventLib(ABC):
         event_dependencies_serializable = None
         if self.event_dependencies is not None:
             event_dependencies_serializable = [[int(idx) for idx in row] for row in self.event_dependencies]
-        
+
         return {
             "events": [event.as_dict() for event in self.events],
             "event_dependencies": event_dependencies_serializable,
-            "site_to_events": {str(k): v for k, v in self.site_to_events.items()}  # Convert keys to strings for JSON
+            "site_to_events": {str(k): v for k, v in self.site_to_events.items()},
+            "index_metadata": self.index_metadata,
         }
-    
-    def to_json(self, fname):
-        """Save EventLib to JSON file."""
-        logger.info("Saving EventLib to: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(d, indent=4, default=convert)
-            fhandle.write(jsonStr)
-    
+
+    def to(self, filename):
+        """Write EventLib to a serialized event file."""
+        if self.index_metadata is None:
+            raise ValueError(
+                "Event library cannot be saved without active-site order metadata"
+            )
+        logger.info("Saving EventLib to: %s", filename)
+        dumpfn(self.as_dict(), filename, indent=4)
+
     @classmethod
     def from_dict(cls, data):
         """Create EventLib from dictionary."""
+        from kmcpy.structure.active_site_order import ActiveSiteOrder
+
+        if data.get("index_metadata") is None:
+            raise ValueError(
+                "Event library is missing active-site order metadata. "
+                "Regenerate events with site_mapping."
+            )
+
         event_lib = cls()
-        
+        event_lib.index_metadata = data["index_metadata"]
+        active_site_order = ActiveSiteOrder.from_dict(event_lib.index_metadata)
+
         # Load events
         for event_dict in data["events"]:
             event = Event.from_dict(event_dict)
             event_lib.events.append(event)
-        
+        event_lib._validate_event_indices(active_site_order)
+
         # Load event dependencies if present and convert back to numba Lists
         if data.get("event_dependencies"):
             event_lib.event_dependencies = List()
@@ -301,108 +331,88 @@ class EventLib(ABC):
                 for idx in row:
                     numba_row.append(int(idx))
                 event_lib.event_dependencies.append(numba_row)
-        
+
         # Load site to events mapping (convert string keys back to integers)
         site_to_events_data = data.get("site_to_events", {})
         event_lib.site_to_events = {int(k): v for k, v in site_to_events_data.items()}
-        
+
         return event_lib
 
-    
+
     @classmethod
-    def from_json(cls, fname):
-        """
-        Load EventLib from a JSON file.
-        
-        Supports two formats:
-        - Bundled format (dict): events + event_dependencies + site_to_events
-        - Legacy format (list): just events, dependencies regenerated
-        
-        For bundled format, embedded dependencies are used directly (fast).
-        For legacy format, dependencies are regenerated (slower).
-        
-        Args:
-            fname: The name of the file to load the EventLib from.
-            
-        Returns:
-            EventLib: Loaded EventLib with event dependencies available.
-        """
-        logger.info("Loading EventLib from: %s", fname)
-        with open(fname, "r") as fhandle:
-            data = json.load(fhandle)
-            
+    def from_file(cls, filename):
+        """Load EventLib from a serialized event file."""
+        logger.info("Loading EventLib from: %s", filename)
+        data = loadfn(filename, cls=None)
+
         # Handle both old format (list of events) and new format (dict with events and deps)
         if isinstance(data, list):
-            # Legacy format - just a list of event dictionaries
-            logger.info("Loading legacy event format (list), will regenerate dependencies")
-            event_lib = cls()
-            for event_dict in data:
-                event = Event.from_dict(event_dict)
-                event_lib.add_event(event)
-            # Regenerate dependencies for legacy format
-            event_lib.generate_event_dependencies()
+            raise ValueError(
+                "Legacy list-format event files are no longer supported. "
+                "Regenerate events with active-site order metadata."
+            )
         else:
             # Bundled format - use from_dict method which loads embedded dependencies
             event_lib = cls.from_dict(data)
-            
+
             if event_lib.has_event_dependencies():
-                logger.info("Loaded bundled event format with %d events and embedded dependencies", 
+                logger.info("Loaded bundled event format with %d events and embedded dependencies",
                            len(event_lib.events))
             else:
                 # No embedded deps, regenerate them
                 logger.info("Loaded bundled event format without dependencies, regenerating...")
                 event_lib.generate_event_dependencies()
-        
+
         return event_lib
-    
+
     def clear_event_dependencies(self):
         """Clear the event dependency matrix cache. Call this if events are modified."""
         self.event_dependencies = None
         logger.debug("Event dependency matrix cache cleared")
-    
+
     def has_event_dependencies(self):
         """Check if event dependency matrix is generated and stored."""
         return self.event_dependencies is not None
-    
+
     def get_event_dependencies_info(self):
         """Get information about the stored event dependency matrix."""
         if not self.has_event_dependencies():
             return {"status": "not_generated", "message": "Event dependency matrix not generated"}
-        
+
         return {
             "status": "generated",
             "num_events": len(self.event_dependencies),
             "total_dependencies": sum(len(row) for row in self.event_dependencies),
             "memory_usage": "stored in class as numba.typed.List"
         }
-    
+
     def get_events_involving_site(self, site_index):
         """
         Get all events that involve a specific site.
-        
+
         Args:
             site_index (int): The site index to search for.
-            
+
         Returns:
             list: List of event indices that involve the given site.
         """
         return self.site_to_events.get(site_index, [])
-    
+
     def get_dependency_statistics(self):
         """
         Get statistics about the event dependency matrix for analysis.
-        
+
         Returns:
             dict: Dictionary containing dependency matrix statistics.
         """
         if self.event_dependencies is None:
             return {"error": "Event dependency matrix not generated"}
-        
+
         total_dependencies = sum(len(row) for row in self.event_dependencies)
         max_dependencies = max(len(row) for row in self.event_dependencies) if self.event_dependencies else 0
         min_dependencies = min(len(row) for row in self.event_dependencies) if self.event_dependencies else 0
         avg_dependencies = total_dependencies / len(self.event_dependencies) if self.event_dependencies else 0
-        
+
         return {
             "total_events": len(self.events),
             "total_dependencies": total_dependencies,

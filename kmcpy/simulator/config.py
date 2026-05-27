@@ -4,22 +4,32 @@ Clean simulation configuration classes with clear separation of concerns.
 Architecture:
 
 - SystemConfig: Physical system definition (immutable)
-- RuntimeConfig: Simulation runtime parameters (immutable) 
+- RuntimeConfig: Simulation runtime fields (immutable)
 - Configuration: Complete simulation setup (immutable)
 - State: Mutable state during execution
 
-This module provides the parameter routing and configuration management for
-kinetic Monte Carlo simulations. It handles both system parameters (what you're
-simulating) and runtime parameters (how you run the simulation).
+This module provides field routing and configuration management for kinetic
+Monte Carlo simulations. It handles both system fields (what you're simulating)
+and runtime fields (how you run the simulation).
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from monty.json import MSONable
+from monty.serialization import dumpfn, loadfn
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
+from kmcpy.units import UNIT_CONVENTIONS
 
-SYSTEM_PARAM_NAMES = {
+LOADER_FIELD_NAMES = {
+    "structure_file",
+    "model_file",
+    "event_file",
+    "initial_state_file",
+}
+
+SYSTEM_FIELD_NAMES = {
     "structure_file",
     "supercell_shape",
     "dimension",
@@ -29,13 +39,13 @@ SYSTEM_PARAM_NAMES = {
     "model_type",
     "model_file",
     "event_file",
-    "immutable_sites",
+    "site_mapping",
     "convert_to_primitive_cell",
     "initial_state_file",
     "initial_occupations",
 }
 
-RUNTIME_PARAM_NAMES = {
+RUNTIME_FIELD_NAMES = {
     "temperature",
     "attempt_frequency",
     "equilibration_passes",
@@ -48,7 +58,71 @@ RUNTIME_PARAM_NAMES = {
     "property_callbacks",
 }
 
-CONFIG_PARAM_NAMES = SYSTEM_PARAM_NAMES | RUNTIME_PARAM_NAMES
+CONFIG_FIELD_NAMES = SYSTEM_FIELD_NAMES | RUNTIME_FIELD_NAMES
+
+SYSTEM_FIELD_UNITS = {
+    "dimension": UNIT_CONVENTIONS["dimension"],
+    "mobile_ion_charge": UNIT_CONVENTIONS["mobile_ion_charge"],
+    "elementary_hop_distance": UNIT_CONVENTIONS["elementary_hop_distance"],
+}
+
+RUNTIME_FIELD_UNITS = {
+    "temperature": UNIT_CONVENTIONS["temperature"],
+    "attempt_frequency": UNIT_CONVENTIONS["attempt_frequency"],
+    "property_sampling_time_interval": UNIT_CONVENTIONS[
+        "property_sampling_time_interval"
+    ],
+}
+
+CONFIG_FIELD_UNITS = {
+    **SYSTEM_FIELD_UNITS,
+    **RUNTIME_FIELD_UNITS,
+}
+
+
+def _detect_config_file_format(filepath: str) -> str:
+    suffix = Path(filepath).suffix.lower()
+    if suffix == ".json":
+        return "json"
+    if suffix in {".yaml", ".yml"}:
+        return "yaml"
+    return "unknown"
+
+
+def _extract_section_data(
+    raw_data: dict[str, Any],
+    filepath: str | Path,
+    section: str,
+    task_type: str | None = None,
+) -> dict[str, Any]:
+    """Extract a flat or registry-style section from loaded file data."""
+    if section not in raw_data:
+        available = list(raw_data.keys())
+        raise ValueError(
+            f"Section '{section}' not found in {filepath}. Available: {available}"
+        )
+
+    section_data = raw_data[section]
+
+    if isinstance(section_data, dict) and "type" in section_data:
+        if task_type is None:
+            task_type = section_data["type"]
+
+        if task_type not in section_data:
+            available_types = [key for key in section_data.keys() if key != "type"]
+            raise ValueError(
+                f"Task type '{task_type}' not found in section '{section}'. "
+                f"Available: {available_types}"
+            )
+
+        section_data = section_data[task_type]
+
+    if not isinstance(section_data, dict):
+        raise ValueError(
+            f"Selected section '{section}' in {filepath} must be a dictionary"
+        )
+
+    return section_data.copy()
 
 
 def _validate_builtin_property_enabled(values: dict[str, bool]) -> None:
@@ -74,21 +148,21 @@ class SystemConfig:
     This defines WHAT you're simulating.
     """
     # Structure definition
-    structure_file: str
+    structure_file: str = ""
     supercell_shape: tuple[int, int, int] = (1, 1, 1)
-    dimension: int = 3
+    dimension: int = 3  # dimensionless
     
     # Mobile ion properties
     mobile_ion_specie: str = "Li"
-    mobile_ion_charge: float = 1.0
-    elementary_hop_distance: float = 1.0
+    mobile_ion_charge: float = 1.0  # |e|
+    elementary_hop_distance: float = 1.0  # Angstrom
     
     # Model configuration
     model_type: str = "composite_lce"
     model_file: str = ""
     event_file: str = ""
-    # System constraints
-    immutable_sites: tuple = field(default_factory=tuple)
+    # Site-space definition
+    site_mapping: Optional[dict] = None
     convert_to_primitive_cell: bool = False
     
     # Initial state specification
@@ -110,13 +184,21 @@ class SystemConfig:
         # if not Path(self.event_file).exists():
         #     raise FileNotFoundError(f"Event file not found: {self.event_file}")
     
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
+    def as_dict(self, include_loader_paths: bool = False) -> dict[str, Any]:
+        """Convert to a JSON/YAML-serializable dictionary.
+
+        File path fields are loader inputs, not intrinsic system metadata. They
+        are omitted by default from recorded payloads and can be included when
+        writing a reloadable input file.
+        """
         from dataclasses import asdict
+
         data = asdict(self)
-        # Convert tuple back to list for compatibility
-        data['supercell_shape'] = list(self.supercell_shape)
-        data['immutable_sites'] = list(self.immutable_sites)
+        # Convert tuple back to list for compatibility.
+        data["supercell_shape"] = list(self.supercell_shape)
+        if not include_loader_paths:
+            for key in LOADER_FIELD_NAMES:
+                data.pop(key, None)
         return data
 
 
@@ -127,10 +209,10 @@ class RuntimeConfig:
     This defines HOW you're simulating.
     """
     # Thermodynamic conditions
-    temperature: float = 300.0  # Kelvin
+    temperature: float = 300.0  # K
     attempt_frequency: float = 1e13  # Hz
     
-    # KMC algorithm parameters
+    # KMC algorithm fields
     equilibration_passes: int = 1000
     kmc_passes: int = 10000
     random_seed: Optional[int] = None
@@ -140,12 +222,12 @@ class RuntimeConfig:
 
     # Optional property sampling controls
     property_sampling_interval: Optional[int] = None
-    property_sampling_time_interval: Optional[float] = None
+    property_sampling_time_interval: Optional[float] = None  # s
     builtin_property_enabled: dict[str, bool] = field(default_factory=dict)
     property_callbacks: list[dict[str, Any]] = field(default_factory=list)
     
     def __post_init__(self):
-        """Validate runtime parameters."""
+        """Validate runtime fields."""
         if self.temperature <= 0:
             raise ValueError("Temperature must be positive")
         
@@ -205,8 +287,8 @@ class RuntimeConfig:
                         f"property callback '{bool_key}' must be a boolean when provided"
                     )
     
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
+    def as_dict(self) -> dict[str, Any]:
+        """Convert to a JSON/YAML-serializable dictionary."""
         return {
             "temperature": self.temperature,
             "attempt_frequency": self.attempt_frequency,
@@ -222,282 +304,243 @@ class RuntimeConfig:
 
 
 @dataclass(frozen=True)
-class Configuration:
-    """Complete simulation configuration combining system and runtime parameters."""
+class Configuration(MSONable):
+    """Complete simulation configuration combining system and runtime fields."""
     
     system_config: SystemConfig
     runtime_config: RuntimeConfig
     
     def __init__(self, system_config=None, runtime_config=None, **kwargs):
         """
-        Create Configuration with automatic parameter routing.
+        Create Configuration with automatic field routing.
         
         You can either:
         1. Pass pre-built configs: Configuration(system_config=sys, runtime_config=run)
-        2. Pass parameters directly: Configuration(temperature=300, structure_file="x.cif", ...)
+        2. Pass fields directly: Configuration(temperature=300, structure_file="x.cif", ...)
         3. Mix both: Configuration(system_config=sys, temperature=400)
         
-        Parameters are automatically routed to SystemConfig or RuntimeConfig based on their names.
+        Fields are automatically routed to SystemConfig or RuntimeConfig by name.
         """
         if system_config is None and runtime_config is None and not kwargs:
-            raise ValueError("Must provide either configs or parameters")
+            raise ValueError("Must provide either configs or fields")
 
-        # Split kwargs into system and runtime parameters
-        system_params = {}
-        runtime_params = {}
-        unknown_params = {}
+        # Split kwargs into system and runtime fields.
+        system_fields = {}
+        runtime_fields = {}
+        unknown_fields = {}
         
-        # Route parameters
+        # Route fields.
         for key, value in kwargs.items():
-            if key in SYSTEM_PARAM_NAMES:
-                system_params[key] = value
-            elif key in RUNTIME_PARAM_NAMES:
-                runtime_params[key] = value
+            if key in SYSTEM_FIELD_NAMES:
+                system_fields[key] = value
+            elif key in RUNTIME_FIELD_NAMES:
+                runtime_fields[key] = value
             else:
-                unknown_params[key] = value
+                unknown_fields[key] = value
         
-        # Reject unknown parameters - no legacy support
-        if unknown_params:
-            raise ValueError(f"Unknown parameters: {list(unknown_params.keys())}. "
-                           f"Use Configuration.help_parameters() to see valid parameters.")
+        # Reject unknown fields; legacy aliases are intentionally unsupported.
+        if unknown_fields:
+            raise ValueError(
+                f"Unknown configuration fields: {list(unknown_fields.keys())}. "
+                "Use Configuration.help_fields() to see valid fields."
+            )
         
         # Create or update configs
         if system_config is None:
-            system_config = SystemConfig(**system_params)
-        elif system_params:
-            # Update existing system config with new parameters
+            system_config = SystemConfig(**system_fields)
+        elif system_fields:
+            # Update existing system config with new fields.
             from dataclasses import replace
-            system_config = replace(system_config, **system_params)
+            system_config = replace(system_config, **system_fields)
         
         if runtime_config is None:
-            runtime_config = RuntimeConfig(**runtime_params)
-        elif runtime_params:
-            # Update existing runtime config with new parameters
+            runtime_config = RuntimeConfig(**runtime_fields)
+        elif runtime_fields:
+            # Update existing runtime config with new fields.
             from dataclasses import replace
-            runtime_config = replace(runtime_config, **runtime_params)
+            runtime_config = replace(runtime_config, **runtime_fields)
         
         # Set the attributes using object.__setattr__ since the class is frozen
         object.__setattr__(self, 'system_config', system_config)
         object.__setattr__(self, 'runtime_config', runtime_config)
     
-    @classmethod
-    def create(cls, **kwargs):
+    def as_dict(self, include_loader_paths: bool = False) -> dict[str, Any]:
+        """Convert to a recorded dictionary.
+
+        By default, loader-only path fields such as structure_file, model_file,
+        event_file, and initial_state_file are omitted because they are only
+        needed to construct the loaded simulation inputs. Use
+        ``include_loader_paths=True`` when writing a reloadable simulation input
+        file.
         """
-        Alternative factory method for cleaner API.
-        
-        Examples::
-        
-            config = Configuration.create(
-                structure_file="test.cif",
-                temperature=400.0,
-                kmc_passes=50000
-            )
-        """
-        return cls(**kwargs)
-    
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization."""
-        result = {}
-        result.update(self.system_config.to_dict())
-        result.update(self.runtime_config.to_dict())
+        result = {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
+        }
+        result.update(
+            self.system_config.as_dict(include_loader_paths=include_loader_paths)
+        )
+        result.update(self.runtime_config.as_dict())
         return result
-    
+
+    def as_record_dict(self) -> dict[str, Any]:
+        """Return metadata suitable for recording after simulation inputs are loaded."""
+        return self.as_dict(include_loader_paths=False)
+
+    def as_input_dict(self) -> dict[str, Any]:
+        """Return a reloadable input dictionary including loader path fields."""
+        return self.as_dict(include_loader_paths=True)
+
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> "Configuration":
+    def field_units(cls) -> dict[str, str]:
+        """Return configured units for numeric configuration fields."""
+        return dict(CONFIG_FIELD_UNITS)
+
+    @classmethod
+    def from_dict(cls, config_dict: dict[str, Any]) -> "Configuration":
         """Create from dictionary."""
         if not isinstance(config_dict, dict):
             raise ValueError("Configuration.from_dict expects a dictionary")
-        config_dict = dict(config_dict)
+        config_dict = {
+            key: value
+            for key, value in config_dict.items()
+            if not str(key).startswith("@")
+        }
 
         return cls(**config_dict)
 
     @classmethod
     def _extract_file_config_data(
         cls,
-        raw_data: Dict[str, Any],
-        filepath: str,
-    ) -> Dict[str, Any]:
+        raw_data: dict[str, Any],
+        filepath: str | Path,
+        section: str | None = None,
+        task_type: str | None = None,
+    ) -> dict[str, Any]:
         """Normalize flat or generated-template file payloads to config fields."""
         if not isinstance(raw_data, dict):
             raise ValueError(f"Configuration file {filepath} must contain a dictionary")
 
-        if CONFIG_PARAM_NAMES.intersection(raw_data.keys()):
+        if section is not None:
+            return _extract_section_data(raw_data, filepath, section, task_type)
+
+        if CONFIG_FIELD_NAMES.intersection(raw_data.keys()):
             return raw_data
 
         if "kmc" not in raw_data:
             return raw_data
 
-        kmc_section = raw_data["kmc"]
-        if not isinstance(kmc_section, dict):
-            raise ValueError(f"Section 'kmc' in {filepath} must be a dictionary")
-
-        if "type" in kmc_section:
-            task_type = kmc_section["type"]
-            if task_type not in kmc_section:
-                available_types = [key for key in kmc_section.keys() if key != "type"]
-                raise ValueError(
-                    f"Task type '{task_type}' not found in section 'kmc'. "
-                    f"Available: {available_types}"
-                )
-            section_data = kmc_section[task_type]
-        else:
-            section_data = kmc_section
-
-        if not isinstance(section_data, dict):
-            raise ValueError(
-                f"Selected 'kmc' configuration in {filepath} must be a dictionary"
-            )
-        return section_data
+        return _extract_section_data(raw_data, filepath, "kmc", task_type)
     
     # ===== FILE I/O METHODS =====
     
     @classmethod
-    def from_file(cls, filepath: str) -> "Configuration":
-        """
-        Load Configuration from file (auto-detects format from extension).
-        
-        Args:
-            filepath: Path to configuration file (.json, .yaml, .yml)
-            
-        Returns:
-            Configuration instance
-            
-        Example:
-            config = Configuration.from_file("simulation.yaml")
-            config = Configuration.from_file("simulation.json")
-        """
-        from kmcpy.io.config_io import ConfigIO
-        
-        file_format = ConfigIO._detect_file_format(filepath)
-        
-        if file_format == 'json':
-            raw_data = ConfigIO._load_json(filepath)
-        elif file_format == 'yaml':
-            raw_data = ConfigIO._load_yaml(filepath)
-        else:
-            raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
+    def from_file(
+        cls,
+        filename: str | Path,
+        section: str | None = None,
+        task_type: str | None = None,
+    ) -> "Configuration":
+        """Load Configuration from a JSON/YAML file.
 
-        config_data = cls._extract_file_config_data(raw_data, filepath)
+        Args:
+            filename: Path to configuration file (.json, .yaml, .yml).
+            section: Optional top-level section to load from a YAML workflow file.
+            task_type: Optional task type for registry-style sections.
+        """
+        file_format = _detect_config_file_format(str(filename))
+
+        if file_format == "json":
+            raw_data = loadfn(filename, cls=None)
+        elif file_format == "yaml":
+            raw_data = loadfn(filename)
+        else:
+            raise ValueError(
+                f"Unsupported file format for {filename}. Supported: .json, .yaml, .yml"
+            )
+
+        config_data = cls._extract_file_config_data(
+            raw_data, filename, section=section, task_type=task_type
+        )
         return cls.from_dict(config_data)
     
-    @classmethod
-    def from_yaml_section(cls, filepath: str, section: str = "kmc", task_type: Optional[str] = None) -> "Configuration":
-        """
-        Load Configuration from specific section of YAML file.
-        
-        Useful for multi-section YAML files that contain different configurations.
-        
+    def to(
+        self,
+        filename: str | Path,
+        include_loader_paths: bool = False,
+        section: str | None = None,
+        task_type: str = "default",
+        **kwargs,
+    ) -> None:
+        """Write Configuration to a JSON/YAML file.
+
         Args:
-            filepath: Path to YAML file
-            section: Section name to load (default: "kmc")  
-            task_type: Optional task type for registry-style sections
-            
-        Returns:
-            Configuration instance
-            
-        Example:
-            # Load from simple section
-            config = Configuration.from_yaml_section("workflow.yaml", "kmc")
-            # Load from registry-style section
-            config = Configuration.from_yaml_section("workflow.yaml", "kmc", "diffusion")
+            filename: Output file path (.json, .yaml, .yml).
+            include_loader_paths: Include loader-only path fields for reloadable
+                input files. The default recorded form omits them.
+            section: Optional top-level YAML section for workflow files.
+            task_type: Registry-style task type when ``section`` is provided.
+            **kwargs: Additional formatting arguments, such as ``indent`` for JSON.
         """
-        from kmcpy.io.config_io import ConfigIO
-        
-        raw_data = ConfigIO._load_yaml_section(filepath, section, task_type)
-    
-        return cls.from_dict(raw_data)
-    
-    def save(self, filepath: str, **kwargs) -> None:
-        """
-        Save Configuration to file (auto-detects format from extension).
-        
-        Args:
-            filepath: Output file path (.json, .yaml, .yml)
-            **kwargs: Additional arguments for file formatting (e.g., indent for JSON)
-            
-        Example:
-            config.save("output.yaml")
-            config.save("output.json", indent=4)
-        """
-        from kmcpy.io.config_io import ConfigIO
-        
-        data = self.to_dict()
-        file_format = ConfigIO._detect_file_format(filepath)
-        
-        if file_format == 'json':
-            indent = kwargs.get('indent', 2)
-            ConfigIO._save_json(data, filepath, indent=indent)
-        elif file_format == 'yaml':
-            ConfigIO._save_yaml(data, filepath)
-        else:
-            raise ValueError(f"Unsupported file format for {filepath}. Supported: .json, .yaml, .yml")
-    
-    def save_yaml_section(self, filepath: str, section: str = "kmc", task_type: str = "default") -> None:
-        """
-        Save Configuration as a section in YAML file.
-        
-        Creates a registry-style YAML section with type field.
-        
-        Args:
-            filepath: Output YAML file path
-            section: Section name (default: "kmc")
-            task_type: Task type name (default: "default")
-            
-        Example:
-            config.save_yaml_section("workflow.yaml", "kmc", "diffusion")
-            # Creates: 
-            # kmc:
-            #   type: diffusion
-            #   diffusion:
-            #     temperature: 300.0
-            #     ...
-        """
-        from kmcpy.io.config_io import ConfigIO
-        import os
-        
-        # Load existing YAML file or create new structure
-        if os.path.exists(filepath):
-            try:
-                yaml_data = ConfigIO._load_yaml(filepath)
-            except:
+        file_format = _detect_config_file_format(str(filename))
+        if file_format not in {"json", "yaml"}:
+            raise ValueError(
+                f"Unsupported file format for {filename}. Supported: .json, .yaml, .yml"
+            )
+
+        config_data = self.as_dict(include_loader_paths=include_loader_paths)
+
+        if section is not None:
+            if file_format != "yaml":
+                raise ValueError("section output is only supported for YAML files")
+            path = Path(filename)
+            if path.exists():
+                try:
+                    yaml_data = loadfn(path)
+                except Exception:
+                    yaml_data = {}
+            else:
                 yaml_data = {}
+            if not isinstance(yaml_data, dict):
+                raise ValueError(f"Existing YAML file {filename} must contain a dictionary")
+            yaml_data[section] = {"type": task_type, task_type: config_data}
+            dumpfn(yaml_data, filename)
+            return
+
+        if file_format == "json":
+            indent = kwargs.get("indent", 2)
+            dumpfn(config_data, filename, indent=indent)
         else:
-            yaml_data = {}
-        
-        # Create registry-style section
-        config_data = self.to_dict()
-        
-        yaml_data[section] = {
-            'type': task_type,
-            task_type: config_data
-        }
-        
-        ConfigIO._save_yaml(yaml_data, filepath)
+            dumpfn(config_data, filename)
     
     def with_runtime_changes(self, **changes) -> "Configuration":
-        """Create new config with runtime parameter changes."""
+        """Create new config with runtime field changes."""
         from dataclasses import replace
         new_runtime = replace(self.runtime_config, **changes)
         return replace(self, runtime_config=new_runtime)
     
     def with_system_changes(self, **changes) -> "Configuration":
-        """Create new config with system parameter changes."""
+        """Create new config with system field changes."""
         from dataclasses import replace
         new_system = replace(self.system_config, **changes)
         return replace(self, system_config=new_system)
     
     def summary(self) -> str:
         """Human-readable summary."""
+        system_name = (
+            Path(self.system_config.structure_file).name
+            if self.system_config.structure_file
+            else "loaded"
+        )
         return (
             f"{self.runtime_config.name}: "
             f"T={self.runtime_config.temperature}K, "
             f"passes={self.runtime_config.kmc_passes}, "
-            f"system={Path(self.system_config.structure_file).name}"
+            f"system={system_name}"
         )
     
     # ===== CONVENIENT PROPERTY ACCESS =====
-    # Users don't need to remember which config contains what parameter
+    # Users don't need to remember which config contains what field.
     
     # Runtime properties
     @property
@@ -587,9 +630,9 @@ class Configuration:
         return self.system_config.event_file
     
     @property
-    def immutable_sites(self) -> tuple:
-        """Access immutable sites directly."""
-        return self.system_config.immutable_sites
+    def site_mapping(self) -> Optional[dict]:
+        """Access site mapping directly."""
+        return self.system_config.site_mapping
     
     @property
     def elementary_hop_distance(self) -> float:
@@ -619,57 +662,43 @@ class Configuration:
     # ===== HELPER METHODS =====
     
     @classmethod
-    def help_parameters(cls):
-        """Print available parameters and which config they belong to."""
-        print("Configuration Parameters:\n")
-        
-        print("SYSTEM PARAMETERS (physical setup):")
-        system_params = sorted(SYSTEM_PARAM_NAMES)
-        for param in system_params:
-            print(f"  - {param}")
-        
-        print("\nRUNTIME PARAMETERS (simulation settings):")
-        runtime_params = sorted(RUNTIME_PARAM_NAMES)
-        for param in runtime_params:
-            print(f"  - {param}")
-        
+    def help_fields(cls):
+        """Print available configuration fields and where they are routed."""
+        print("Configuration Fields:\n")
+
+        print("SYSTEM FIELDS (physical setup):")
+        system_fields = sorted(SYSTEM_FIELD_NAMES)
+        for field_name in system_fields:
+            unit = CONFIG_FIELD_UNITS.get(field_name)
+            suffix = f" [{unit}]" if unit else ""
+            print(f"  - {field_name}{suffix}")
+
+        print("\nRUNTIME FIELDS (simulation settings):")
+        runtime_fields = sorted(RUNTIME_FIELD_NAMES)
+        for field_name in runtime_fields:
+            unit = CONFIG_FIELD_UNITS.get(field_name)
+            suffix = f" [{unit}]" if unit else ""
+            print(f"  - {field_name}{suffix}")
+
         print("\nUsage examples:")
         print("  config = Configuration(structure_file='x.cif', temperature=400)")
-        print("  config = Configuration.create(temperature=300, kmc_passes=10000)")
-        print("  print(config.temperature)  # Direct access to any parameter")
-    
-    def which_config(self, parameter_name: str) -> str:
-        """Show which sub-config contains a parameter."""
-        if parameter_name in SYSTEM_PARAM_NAMES:
-            return f"'{parameter_name}' is in system_config (physical setup)"
-        elif parameter_name in RUNTIME_PARAM_NAMES:
-            return f"'{parameter_name}' is in runtime_config (simulation settings)"
+        print("  config = Configuration(temperature=300, kmc_passes=10000)")
+        print("  print(config.temperature)  # Direct access to any field")
+
+    def which_config(self, field_name: str) -> str:
+        """Show which sub-config contains a field."""
+        if field_name in SYSTEM_FIELD_NAMES:
+            return f"'{field_name}' is in system_config (physical setup)"
+        elif field_name in RUNTIME_FIELD_NAMES:
+            return f"'{field_name}' is in runtime_config (simulation settings)"
         else:
-            return f"'{parameter_name}' is not a recognized parameter"
+            return f"'{field_name}' is not a recognized configuration field"
 
     def validate(self) -> bool:
         """Validate the configuration."""
         try:
             # Basic validation - configs validate themselves in __post_init__
-            # This could be expanded with more complex cross-parameter validation
+            # This could be expanded with more complex cross-field validation.
             return True
         except Exception as e:
             raise ValueError(f"Configuration validation failed: {e}")
-    
-    def copy_with_changes(self, **changes) -> "Configuration":
-        """Create a copy of this config with some parameters changed.
-        
-        Args:
-            **changes: Parameter changes to apply
-            
-        Returns:
-            Configuration: New config with changes applied
-        """
-        # Get current config as dict
-        current_dict = self.to_dict()
-        
-        # Apply changes
-        current_dict.update(changes)
-        
-        # Create new config
-        return Configuration.from_dict(current_dict)

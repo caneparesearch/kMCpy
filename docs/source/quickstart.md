@@ -1,35 +1,48 @@
 # Quickstart
 
-This quickstart runs a minimal end-to-end kMC simulation using bundled example data.
+This page runs a small kMC simulation with the example files included in the
+repository. Use it to check that your installation, input files, model loading,
+and result writing are working.
 
-## 1. Install
+## Install
+
+From the repository root:
 
 ```shell
 uv sync
 ```
 
-## 2. Discover parameter names
-
-Use `Configuration.help_parameters()` to list valid keywords and see the system/runtime split:
+For tests and documentation:
 
 ```shell
-uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_parameters()"
+uv sync --extra dev
+uv sync --extra doc
 ```
 
-## 3. Run the minimal script
+## Run The Bundled Example
 
 ```shell
 uv run python example/minimal_example.py
 ```
 
-This script uses:
+The example loads:
 
-1. System parameters: structure, event, and model files.
-2. Runtime parameters: temperature, pass counts, and random seed.
+- a structure file,
+- an event file,
+- a model file,
+- an optional initial-state file,
+- runtime settings such as temperature, number of passes, and random seed.
 
-It writes output to `example/output/minimal/`.
+It writes results under:
 
-## 4. Run with one API call
+```text
+example/output/minimal/
+```
+
+## Run From Python
+
+Use `Configuration.from_file(...)` when you already have a YAML or JSON input
+file:
 
 ```python
 from kmcpy import Configuration, run
@@ -38,42 +51,55 @@ config = Configuration.from_file("input.yaml")
 tracker = run(config)
 ```
 
-## 5. Scaffold a template YAML for CLI/API
+`tracker` contains the final state and sampled transport/property records.
+
+## Run From The Command Line
+
+Create a template input file:
 
 ```shell
-kmcpy init --output input_template.yaml
+uv run kmcpy init --output input_template.yaml
 ```
 
-Then edit the required file paths and run:
+Edit the file paths and runtime fields, then run:
 
 ```shell
-run_kmc --input input_template.yaml
+uv run run_kmc --input input_template.yaml
 ```
 
-API users can load the same generated file with:
+The generated template uses the modern `Configuration` format. Legacy
+`InputSet` style inputs are no longer supported.
+
+## Find Valid Configuration Fields
+
+If you are unsure which fields belong in the input file, ask kMCpy:
+
+```shell
+uv run python -c "from kmcpy.simulator.config import Configuration; Configuration.help_fields()"
+```
+
+The output separates physical system inputs from runtime controls.
+
+## Common Problems
+
+### Unknown Field Error
+
+If you see `Unknown configuration fields: [...]`, the input file contains a
+misspelled or legacy field. Compare it against:
 
 ```python
 from kmcpy.simulator.config import Configuration
 
-config = Configuration.from_file("input_template.yaml")
+Configuration.help_fields()
 ```
 
-## Troubleshooting
+### Missing File Error
 
-### Unknown parameter error
+Relative file paths are resolved from the current working directory. Run from
+the repository root or use absolute paths when debugging.
 
-If you see `Unknown parameters: [...]`, check spelling and compare against:
+### No Results Written
 
-```python
-from kmcpy.simulator.config import Configuration
-
-Configuration.help_parameters()
-```
-
-### Missing required files
-
-If file paths are invalid, use absolute paths or run from repository root so relative paths resolve correctly.
-
-### YAML input for CLI
-
-`run_kmc` expects modern `Configuration` style content. Legacy `InputSet` style files are no longer supported.
+Check that the run actually reached production steps and that the output
+directory is writable. Attached custom properties are written separately from
+built-in transport properties.

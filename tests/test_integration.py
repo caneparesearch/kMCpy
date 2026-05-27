@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Integration tests for Configuration, KMC, and EventLib APIs."""
 
+import pytest
+
 
 def test_simulation_config_integration():
     """Test that strict Configuration integration works properly."""
@@ -62,8 +64,8 @@ def test_simulation_config_integration():
         assert "unknown parameters" not in str(exc).lower()
 
 
-def test_parameter_serialization():
-    """Test strict parameter serialization and deserialization."""
+def test_configuration_field_serialization():
+    """Test strict configuration field serialization and deserialization."""
     from kmcpy.simulator.config import Configuration
 
     config = Configuration(
@@ -91,22 +93,32 @@ def test_parameter_serialization():
         ],
     )
 
-    config_dict = config.to_dict()
+    config_dict = config.as_dict()
 
     assert "name" in config_dict
     assert "temperature" in config_dict
     assert "attempt_frequency" in config_dict
     assert "equilibration_passes" in config_dict
     assert "kmc_passes" in config_dict
-    assert "structure_file" in config_dict
+    assert "structure_file" not in config_dict
+    assert "model_file" not in config_dict
+    assert "event_file" not in config_dict
     assert "property_sampling_interval" in config_dict
     assert "builtin_property_enabled" in config_dict
     assert "property_callbacks" in config_dict
+
+    input_dict = config.as_input_dict()
+    assert input_dict["structure_file"] == "fake.cif"
+    assert input_dict["model_file"] == "fake_model.json"
+    assert input_dict["event_file"] == "fake.json"
 
     assert config_dict["equilibration_passes"] == config.equilibration_passes
     assert config_dict["kmc_passes"] == config.kmc_passes
     assert config_dict["elementary_hop_distance"] == config.elementary_hop_distance
     assert config_dict["mobile_ion_charge"] == config.mobile_ion_charge
+    assert config.field_units()["temperature"] == "K"
+    assert config.field_units()["attempt_frequency"] == "Hz"
+    assert config.field_units()["elementary_hop_distance"] == "Angstrom"
 
     new_config = Configuration.from_dict(config_dict)
     assert new_config.name == config.name
@@ -116,6 +128,41 @@ def test_parameter_serialization():
     assert new_config.kmc_passes == config.kmc_passes
     assert new_config.property_sampling_interval == 200
     assert new_config.builtin_property_enabled["conductivity"] is False
+
+
+def test_configuration_pymatgen_style_file_api(tmp_path):
+    """Test as_dict/from_dict and to/from_file as the primary serialization API."""
+    from monty.serialization import loadfn
+
+    from kmcpy.simulator.config import Configuration
+
+    config = Configuration(
+        structure_file="fake.cif",
+        model_file="fake_model.json",
+        event_file="fake_events.json",
+        initial_state_file="fake_state.json",
+        mobile_ion_specie="Na",
+        temperature=450.0,
+        kmc_passes=5000,
+    )
+
+    record_file = tmp_path / "record.json"
+    config.to(record_file)
+    record_payload = loadfn(record_file, cls=None)
+
+    assert "structure_file" not in record_payload
+    assert "model_file" not in record_payload
+    assert "event_file" not in record_payload
+    assert "initial_state_file" not in record_payload
+
+    input_file = tmp_path / "input.yaml"
+    config.to(input_file, include_loader_paths=True, section="kmc", task_type="default")
+    reloaded = Configuration.from_file(input_file)
+
+    assert reloaded.structure_file == "fake.cif"
+    assert reloaded.model_file == "fake_model.json"
+    assert reloaded.event_file == "fake_events.json"
+    assert reloaded.initial_state_file == "fake_state.json"
 
 
 def test_eventlib_integration():
@@ -148,6 +195,20 @@ def test_eventlib_bundled_format():
     event_lib.add_event(event1)
     event_lib.add_event(event2)
 
+    from pymatgen.core import Lattice, Structure
+    from kmcpy.structure import ActiveSiteOrder
+
+    index_structure = Structure(
+        Lattice.cubic(10.0),
+        ["Na"] * 6,
+        [[i, 0, 0] for i in range(6)],
+        coords_are_cartesian=True,
+    )
+    active_site_order = ActiveSiteOrder.from_structure_and_mapping(
+        index_structure, {"Na": ["Na", "X"]}
+    )
+    event_lib.set_index_metadata(active_site_order)
+
     # Generate dependencies
     event_lib.generate_event_dependencies()
     assert event_lib.has_event_dependencies()
@@ -157,10 +218,10 @@ def test_eventlib_bundled_format():
         bundled_file = f.name
 
     try:
-        event_lib.to_json(bundled_file)
+        event_lib.to(bundled_file)
 
         # Load back and verify deps are preserved (not regenerated)
-        loaded = EventLib.from_json(bundled_file)
+        loaded = EventLib.from_file(bundled_file)
         assert len(loaded) == 2
         assert loaded.has_event_dependencies()
 
@@ -189,9 +250,7 @@ def test_eventlib_legacy_format():
         json.dump(legacy_events, f)
 
     try:
-        # Load and verify deps are regenerated
-        loaded = EventLib.from_json(legacy_file)
-        assert len(loaded) == 2
-        assert loaded.has_event_dependencies()
+        with pytest.raises(ValueError, match="Legacy list-format event files"):
+            EventLib.from_file(legacy_file)
     finally:
         os.unlink(legacy_file)

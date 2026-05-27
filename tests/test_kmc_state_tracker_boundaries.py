@@ -8,6 +8,8 @@ import numpy as np
 import pytest
 
 from kmcpy.simulator.kmc import KMC, CallbackExecutionError
+from kmcpy.event import HopStateLookup
+from kmcpy.simulator.property import PropertyPlan
 from kmcpy.simulator.state import State
 from kmcpy.simulator.tracker import Tracker
 
@@ -45,7 +47,7 @@ def _make_tracker():
         attempt_frequency=1e13,
     )
     structure = _DummyStructure(["Na", "Na", "O"])
-    state = State(occupations=[-1, 1, 1], time=0.0, step=0)
+    state = State(occupations=[0, 1, 1], time=0.0, step=0)
     return Tracker(config=config, structure=structure, initial_state=state), state
 
 
@@ -60,13 +62,44 @@ def test_tracker_update_does_not_advance_state_time():
         attempt_frequency=1e13,
     )
     structure = _DummyStructure(["Na", "Na", "O"])
-    state = State(occupations=[-1, 1, 1], time=0.0, step=0)
+    state = State(occupations=[0, 1, 1], time=0.0, step=0)
     tracker = Tracker(config=config, structure=structure, initial_state=state)
     event = types.SimpleNamespace(mobile_ion_indices=(0, 1), probability=1.0)
 
-    tracker.update(event=event, current_occ=state.occupations, dt=0.25)
+    tracker.update(event=event, dt=0.25)
 
     assert state.time == 0.0
+    assert int(np.sum(tracker.hop_counter)) == 1
+
+
+@pytest.mark.unit
+def test_tracker_uses_precomputed_nonzero_mobile_state():
+    config = types.SimpleNamespace(
+        mobile_ion_specie="Na",
+        dimension=3,
+        mobile_ion_charge=1.0,
+        elementary_hop_distance=1.0,
+        temperature=300.0,
+        attempt_frequency=1e13,
+    )
+    structure = _DummyStructure(["Na", "Na", "O"])
+    state = State(occupations=[2, 1, 0], time=0.0, step=0)
+    lookup = HopStateLookup(
+        mobile_state_by_site=np.array([2, 2, -1], dtype=np.int64),
+        vacancy_state_by_site=np.array([1, 1, -1], dtype=np.int64),
+    )
+    event = types.SimpleNamespace(mobile_ion_indices=(0, 1), probability=1.0)
+    lookup.annotate_event(event)
+    tracker = Tracker(
+        config=config,
+        structure=structure,
+        initial_state=state,
+        hop_state_lookup=lookup,
+    )
+
+    tracker.update(event=event, dt=0.25)
+
+    assert tracker.mobile_ion_specie_locations.tolist() == [1]
     assert int(np.sum(tracker.hop_counter)) == 1
 
 
@@ -77,17 +110,28 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     class FakeTracker:
         last_instance = None
 
-        def __init__(self, config, structure, initial_state):
+        def __init__(
+            self,
+            config,
+            structure,
+            initial_state,
+            property_plan=None,
+            default_property_interval=None,
+            hop_state_lookup=None,
+        ):
             self.config = config
             self.structure = structure
             self.state = initial_state
+            self.property_plan = property_plan
+            self.default_property_interval = default_property_interval
+            self.hop_state_lookup = hop_state_lookup
             self.observed_times = []
             self.received_dts = []
             self.attachments = {}
             self.property_enabled = {}
             FakeTracker.last_instance = self
 
-        def update(self, event, current_occ, dt):
+        def update(self, event, dt):
             self.observed_times.append(self.state.time)
             self.received_dts.append(dt)
 
@@ -120,8 +164,8 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
         def show_current_info(self):
             return None
 
-        def write_results(self, final_occupations, label=None):
-            self.final_occupations = list(final_occupations)
+        def write_results(self, label=None):
+            self.final_occupations = list(self.state.occupations)
             self.label = label
 
     monkeypatch.setattr(kmc_module, "Tracker", FakeTracker)
@@ -129,7 +173,7 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     kmc = KMC.__new__(KMC)
     kmc.structure = _DummyStructure(["Li", "Li", "O"])
     kmc.event_lib = types.SimpleNamespace(events=[types.SimpleNamespace(mobile_ion_indices=(0, 1))])
-    kmc.simulation_state = State(occupations=[-1, 1, 1], time=0.0, step=0)
+    kmc.simulation_state = State(occupations=[0, 1, 1], time=0.0, step=0)
 
     config = types.SimpleNamespace(
         name="unit-test",
@@ -156,7 +200,9 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     kmc.propose = fake_propose
     kmc.update = fake_update
 
-    tracker = kmc.run(config=config, label="unit")
+    kmc.config = config
+
+    tracker = kmc.run(label="unit")
 
     assert tracker is FakeTracker.last_instance
     assert update_dt_calls == [0.0, 0.0, 0.11, 0.12, 0.21, 0.22]
@@ -182,6 +228,25 @@ def test_tracker_custom_property_step_interval():
     records = tracker.get_property_records("custom")
     assert [record["step"] for record in records] == [2, 4]
     assert records[-1]["value"]["sites"] == 3
+
+
+@pytest.mark.unit
+def test_tracker_applies_property_plan_with_fresh_specs():
+    plan = PropertyPlan()
+    plan.set_frequency(interval=3, time_interval=None)
+    plan.set_property_enabled("msd", False)
+    plan.attach(lambda sim_state, step, sim_time: step, name="custom")
+
+    tracker, _ = _make_tracker()
+    tracker.apply_property_plan(plan, default_interval=100)
+    assert tracker._global_interval == 3
+    assert tracker._enabled_builtin_properties["msd"] is False
+    assert tracker.list_attachments() == ["custom"]
+
+    tracker._properties["custom"].last_trigger_step = 99
+    tracker2, _ = _make_tracker()
+    tracker2.apply_property_plan(plan, default_interval=100)
+    assert tracker2._properties["custom"].last_trigger_step == 0
 
 
 @pytest.mark.unit
@@ -262,7 +327,7 @@ def test_tracker_write_results_includes_custom_records(tmp_path):
     old_cwd = Path.cwd()
     try:
         os.chdir(tmp_path)
-        tracker.write_results(current_occupation=state.occupations, label="unit")
+        tracker.write_results(label="unit")
     finally:
         os.chdir(old_cwd)
 
@@ -272,6 +337,14 @@ def test_tracker_write_results_includes_custom_records(tmp_path):
         payload = json.load(fhandle)
     assert payload[0]["name"] == "custom"
     assert payload[0]["step"] == 1
+
+    units_file = tmp_path / "results_units_unit.json.gz"
+    assert units_file.exists()
+    with gzip.open(units_file, "rt", encoding="utf-8") as fhandle:
+        units = json.load(fhandle)
+    assert units == tracker.result_units
+    assert units["time"] == "s"
+    assert units["conductivity"] == "mS/cm"
 
 
 @pytest.mark.unit
@@ -288,18 +361,16 @@ def test_kmc_attachment_management():
     assert kmc.list_property_calculations()["attached_enabled"] == ["p1"]
 
     kmc.set_property_frequency(interval=5, time_interval=None)
-    assert kmc._property_frequency_interval == 5
+    assert kmc.property_plan.global_interval == 5
 
     kmc.set_property_enabled("msd", False)
-    assert kmc._property_enabled["msd"] is False
+    assert kmc.property_plan.builtin_enabled["msd"] is False
 
-    with pytest.deprecated_call():
-        kmc.disable_property("p1")
+    kmc.detach("p1")
     assert kmc.list_attachments() == []
 
-    with pytest.deprecated_call():
-        kmc.disable_property("conductivity")
-    assert kmc._property_enabled["conductivity"] is False
+    kmc.set_property_enabled("conductivity", False)
+    assert kmc.property_plan.builtin_enabled["conductivity"] is False
 
     name = kmc.attach(custom_prop, interval=3, name="p1")
     assert name == "p1"
@@ -331,7 +402,7 @@ def test_kmc_runtime_property_config_application():
     )
     kmc._configure_properties_from_runtime_config(runtime_config)
 
-    assert kmc._property_frequency_interval == 7
-    assert kmc._property_enabled["msd"] is False
-    assert kmc._property_enabled["conductivity"] is False
+    assert kmc.property_plan.global_interval == 7
+    assert kmc.property_plan.builtin_enabled["msd"] is False
+    assert kmc.property_plan.builtin_enabled["conductivity"] is False
     assert kmc.list_attachments() == ["cfg_callback"]

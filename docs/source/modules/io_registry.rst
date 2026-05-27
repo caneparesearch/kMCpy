@@ -1,5 +1,5 @@
-io.registry
-=========================
+io_registry
+===========
 
 .. automodule:: kmcpy.io.registry
     :members:

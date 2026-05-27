@@ -1,0 +1,231 @@
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from kmcpy.event import Event
+from kmcpy.models.base import BaseModel
+from kmcpy.models.local_barrier_model import LocalBarrierModel
+from kmcpy.simulator.config import Configuration, RuntimeConfig
+from kmcpy.simulator.state import State
+from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
+
+
+@pytest.fixture
+def event():
+    return Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
+
+
+@pytest.mark.unit
+def test_local_barrier_constant_barrier(event):
+    model = LocalBarrierModel.constant_barrier(300.0)
+    state = State(occupations=[0, 1, 1, 0])
+
+    assert model.compute(simulation_state=state, event=event) == 300.0
+
+    runtime_config = RuntimeConfig(temperature=300.0, attempt_frequency=1e13)
+    probability = model.compute_probability(
+        event=event,
+        runtime_config=runtime_config,
+        simulation_state=state,
+    )
+    expected = 1e13 * np.exp(-300.0 / (BOLTZMANN_CONSTANT_MEV_PER_K * 300.0))
+    assert np.isclose(probability, expected)
+
+
+@pytest.mark.unit
+def test_local_barrier_probability_uses_precomputed_hop_state_codes(event):
+    model = LocalBarrierModel.constant_barrier(300.0)
+    event.hop_state_codes = (2, 1, 1, 2)
+    runtime_config = RuntimeConfig(temperature=300.0, attempt_frequency=1e13)
+
+    active_probability = model.compute_probability(
+        event=event,
+        runtime_config=runtime_config,
+        simulation_state=State(occupations=[2, 1, 1, 0]),
+    )
+    inactive_probability = model.compute_probability(
+        event=event,
+        runtime_config=runtime_config,
+        simulation_state=State(occupations=[0, 1, 1, 0]),
+    )
+
+    assert active_probability > 0
+    assert inactive_probability == 0.0
+
+
+@pytest.mark.unit
+def test_local_barrier_state_count_rule_matches_local_environment():
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_state_count_rule(
+        name="crowded",
+        sites="local_env",
+        state="occupied",
+        min_count=3,
+        barrier=450.0,
+    )
+    state = State(occupations=[0, 1, 0, 0, 0])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(2, 3, 4))
+
+    assert model.compute(simulation_state=state, event=event) == 450.0
+
+
+@pytest.mark.unit
+def test_local_barrier_state_count_rule_accepts_multicomponent_state_indices():
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_state_count_rule(
+        name="state_two_rich",
+        sites="local_env",
+        state=2,
+        min_count=2,
+        barrier=510.0,
+    )
+    state = State(occupations=[0, 1, 2, 2, 3])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(2, 3, 4))
+
+    assert model.compute(simulation_state=state, event=event) == 510.0
+
+
+@pytest.mark.unit
+def test_local_barrier_species_count_rule_matches_species_threshold():
+    model = LocalBarrierModel(
+        default_barrier=300.0,
+        site_species={
+            1: {0: "P", 1: "Si"},
+            2: {0: "Si", 1: "P"},
+            3: {0: "Si", 1: "P"},
+            4: {0: "Al", 1: "Si"},
+        },
+    )
+    model.add_species_count_rule(
+        name="si_rich",
+        sites="local_env",
+        species="Si",
+        min_count=4,
+        barrier=420.0,
+    )
+    state = State(occupations=[0, 1, 0, 0, 1])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3, 4))
+
+    assert model.compute(simulation_state=state, event=event) == 420.0
+
+
+@pytest.mark.unit
+def test_local_barrier_species_count_rule_accepts_multicomponent_state_indices():
+    model = LocalBarrierModel(
+        default_barrier=300.0,
+        site_species={
+            1: {1: "Vacancy"},
+            2: {"2": "Si"},
+            3: {3: "Si"},
+        },
+    )
+    model.add_species_count_rule(
+        name="si_multistate",
+        sites="local_env",
+        species="Si",
+        min_count=2,
+        barrier=430.0,
+    )
+    state = State(occupations=[0, 1, 2, 3])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
+
+    assert model.compute(simulation_state=state, event=event) == 430.0
+
+
+@pytest.mark.unit
+def test_local_barrier_pattern_rule_supports_wildcards(event):
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_pattern_rule(
+        name="pattern",
+        sites="canonical",
+        pattern=["occupied", "vacant", "*", "occupied"],
+        barrier=250.0,
+    )
+    state = State(occupations=[0, 1, 1, 0])
+
+    assert model.compute(simulation_state=state, event=event) == 250.0
+
+
+@pytest.mark.unit
+def test_local_barrier_pattern_rule_accepts_multicomponent_state_indices(event):
+    model = LocalBarrierModel(default_barrier=300.0)
+    model.add_pattern_rule(
+        name="multistate_pattern",
+        sites="canonical",
+        pattern=[2, "1", "*", "3"],
+        barrier=255.0,
+    )
+    state = State(occupations=[2, 1, 0, 3])
+
+    assert model.compute(simulation_state=state, event=event) == 255.0
+
+
+@pytest.mark.unit
+def test_local_barrier_exact_rule_from_event_state(event):
+    state = State(occupations=[0, 1, 1, 0])
+    exact_rule = LocalBarrierModel.entry_from_event_state(
+        event=event,
+        state=state,
+        properties={"barrier": 260.0},
+    )
+    model = LocalBarrierModel(rules=[exact_rule])
+
+    assert model.compute(simulation_state=state, event=event) == 260.0
+
+    with pytest.raises(KeyError, match="No local barrier rule matched"):
+        model.compute(
+            simulation_state=State(occupations=[1, 0, 1, 0]),
+            event=event,
+        )
+
+
+@pytest.mark.unit
+def test_local_barrier_exact_rule_accepts_multicomponent_state_indices(event):
+    entries = [
+        {
+            "mobile_ion_indices": [0, 1],
+            "local_env_indices": [1, 2, 3],
+            "occupations": [2, 1, 3, 0],
+            "properties": {"barrier": 265.0},
+        }
+    ]
+    model = LocalBarrierModel.from_exact_entries(entries)
+    state = State(occupations=[2, 1, 3, 0])
+
+    assert model.compute(simulation_state=state, event=event) == 265.0
+
+
+@pytest.mark.unit
+def test_local_barrier_from_exact_entries_matches_payload():
+    entries = [
+        {
+            "mobile_ion_indices": [0, 1],
+            "local_env_indices": [1, 2, 3],
+            "occupations": [1, 0, 1, 0],
+            "properties": {"barrier": 250.0},
+        }
+    ]
+    model = LocalBarrierModel.from_exact_entries(entries)
+    state = State(occupations=[1, 0, 1, 0])
+    event = Event(mobile_ion_indices=(0, 1), local_env_indices=(1, 2, 3))
+
+    assert model.compute(simulation_state=state, event=event) == 250.0
+
+
+@pytest.mark.unit
+def test_local_barrier_model_file_roundtrip_and_config_dispatch(tmp_path: Path):
+    model = LocalBarrierModel.constant_barrier(275.0)
+    model_file = tmp_path / "local_barrier.json"
+    model.to(str(model_file))
+
+    loaded = LocalBarrierModel.from_file(str(model_file))
+    assert loaded.default_properties["barrier"] == 275.0
+
+    config = Configuration(
+        structure_file="fake_structure.cif",
+        event_file="fake_events.json",
+        model_file=str(model_file),
+    )
+    dispatched = BaseModel.from_config(config)
+    assert isinstance(dispatched, LocalBarrierModel)

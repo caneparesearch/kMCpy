@@ -56,6 +56,18 @@ extensions = [
     "myst_parser",
 ]
 
+# These warnings come from optional/external dependency annotations during
+# autodoc import, not from broken kMCpy documentation targets.
+suppress_warnings = [
+    "sphinx_autodoc_typehints.forward_reference",
+    "sphinx_autodoc_typehints.guarded_import",
+]
+
+myst_enable_extensions = [
+    "amsmath",
+    "dollarmath",
+]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

@@ -5,34 +5,40 @@ API Reference Documentation
     :maxdepth: 4
     :caption: Contents:
 
-    high_level_api.rst
-    data_loader.rst
-    serialization.rst
-    config_io.rst
-    io_registry.rst
-    models_fitting_registry.rst
-    fitter.rst
-    parameters.rst
-    cluster.rst
-    composite_lce_model.rst
-    local_cluster_expansion.rst
-    tabulated_model.rst
-    event_base.rst
-    models_base.rst
-    generators.rst
-    pack_tabulated_model.rst
     init.rst
     main.rst
     run_kmc.rst
+    event_base.rst
+    generators.rst
+    hop.rst
+    comparator.rst
+    basis.rst
+    lattice_structure.rst
+    local_lattice_structure.rst
+    local_environment_enumerator.rst
+    cluster.rst
+    sites.rst
+    neighbors.rst
+    species.rst
+    active_site_order.rst
+    local_site_order.rst
+    data.rst
+    io_registry.rst
+    cif.rst
+    fitter.rst
+    models_fitting_registry.rst
+    models_base.rst
+    local_cluster_expansion.rst
+    composite_lce_model.rst
+    local_barrier_model.rst
+    site_energy.rst
+    parameters.rst
+    state.rst
+    tracker.rst
+    property.rst
     config.rst
     kmc.rst
-    property.rst
-    state.rst
-    basis.rst
-    comparator.rst
-    lattice_structure.rst
-    vacancy.rst
-    local_lattice_structure.rst
-    local_site_ordering.rst
-    local_environment_comparator.rst
-    tracker.rst
+    results.rst
+    high_level_api.rst
+    units.rst
+    neb.rst

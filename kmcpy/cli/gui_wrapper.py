@@ -1,4 +1,5 @@
 #!pythonw
+import ast
 import os
 import numpy as np
 
@@ -71,12 +72,9 @@ def main():
     lce_parser.add_argument(
         "convert_to_primitive_cell", choices=["yes", "no"], default="yes"
     )
-    lce_parser.add_argument(
-        "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
-    )
     lce_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     lce_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
-    lce_parser.add_argument("species_to_be_removed", default="Zr4+,O2-,O,Zr")
+    lce_parser.add_argument("site_mapping", default="{'Na': ['Na', 'X'], 'Zr': 'Zr', 'Si': ['Si', 'P'], 'O': 'O'}")
     lce_parser.add_argument("cutoff_region", default=4.0)
     lce_parser.add_argument("cutoff_for_point_cluster", default=10, type=int)
     lce_parser.add_argument("cutoff_for_pair_cluster", default=6, type=int)
@@ -100,15 +98,12 @@ def main():
     event_parser.add_argument(
         "convert_to_primitive_cell", choices=["yes", "no"], default="yes"
     )
-    event_parser.add_argument(
-        "mobile_ion_identifier_type", choices=["label", "specie"], default="label"
-    )
     event_parser.add_argument("mobile_ion_specie_identifier", default="Na1")
     event_parser.add_argument("mobile_ion_specie_2_identifier", default="Na2")
     event_parser.add_argument(
         "local_env_cutoff_dict", default="Na+,Na+,4.0;Na+,Si4+,4.0"
     )
-    event_parser.add_argument("species_to_be_removed", default="Zr4+,O2-,O,Zr")
+    event_parser.add_argument("site_mapping", default="{'Na': ['Na', 'X'], 'Zr': 'Zr', 'Si': ['Si', 'P'], 'O': 'O'}")
     event_parser.add_argument(
         "events_output_dir",
         default="~/Documents/GitHub/kmcPy_dev/dev/v3_nasicon_bulk",
@@ -176,7 +171,7 @@ def main():
     )
 
     # cell
-    kmc_parser.add_argument("immutable_sites", default="Zr4+,O2-,O,Zr", type=str)
+    kmc_parser.add_argument("site_mapping", default="{'Na': ['Na', 'X'], 'Zr': 'Zr', 'Si': ['Si', 'P'], 'O': 'O'}", type=str)
     kmc_parser.add_argument("supercell_shape", default="2,1,1")
     kmc_parser.add_argument(
         "convert_to_primitive_cell", choices=["yes", "no"], default="yes"
@@ -207,7 +202,7 @@ def main():
         args.convert_to_primitive_cell = False
 
     if args.command == "LocalClusterExpansion":
-        args.species_to_be_removed = args.species_to_be_removed.split(",")
+        args.site_mapping = ast.literal_eval(args.site_mapping)
         cutoff_cluster = [
             int(args.cutoff_for_pair_cluster),
             int(args.cutoff_for_triplet_cluster),
@@ -220,11 +215,11 @@ def main():
             template_cif_fname=args.prim_cif_name,
             **vars(args)
         )
-        a.to_json(args.local_cluster_expansion_json)
+        a.to(args.local_cluster_expansion_json)
 
     if args.command == "GenerateEvents":
         np.set_printoptions(precision=2)
-        args.species_to_be_removed = args.species_to_be_removed.split(",")
+        args.site_mapping = ast.literal_eval(args.site_mapping)
         tmp_local_env_cutoff_dict = {}
 
         for cutoff in args.local_env_cutoff_dict.split(";"):
@@ -256,12 +251,11 @@ def main():
             structure_file=args.prim_cif_name,
             convert_to_primitive_cell=args.convert_to_primitive_cell,
             local_env_cutoff_dict=args.local_env_cutoff_dict,
-            mobile_ion_identifier_type=args.mobile_ion_identifier_type,
             mobile_ion_identifiers=(
                 args.mobile_ion_specie_identifier,
                 args.mobile_ion_specie_2_identifier,
             ),
-            species_to_be_removed=args.species_to_be_removed,
+            site_mapping=args.site_mapping,
             distance_matrix_rtol=args.distance_matrix_rtol,
             distance_matrix_atol=args.distance_matrix_atol,
             find_nearest_if_fail=args.find_nearest_if_fail,
@@ -274,7 +268,7 @@ def main():
     if args.command == "KMCSimulation":
 
         args.supercell_shape = [int(scale) for scale in args.supercell_shape.split(",")]
-        args.immutable_sites = [scale for scale in args.immutable_sites.split(",")]
+        args.site_mapping = ast.literal_eval(args.site_mapping)
         os.chdir(args.work_dir)
         print(vars(args))
 
@@ -300,7 +294,7 @@ def main():
             "model_type",
             "model_file",
             "event_file",
-            "immutable_sites",
+            "site_mapping",
             "convert_to_primitive_cell",
             "initial_state_file",
             "initial_occupations",
@@ -322,7 +316,7 @@ def main():
         kmc = KMC.from_config(config)
 
         # run kmc
-        kmc.run(config)
+        kmc.run()
 
     if args.command == "fitLCEmodel":
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion

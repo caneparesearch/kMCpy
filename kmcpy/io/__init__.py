@@ -1,19 +1,13 @@
-from .serialization import to_json_compatible as convert
+"""I/O helpers for kMCpy."""
+
+from .cif import (
+    load_labeled_structure_from_cif,
+    load_labeled_structure_from_string,
+    load_labeled_structures_from_cif,
+)
 
 __all__ = [
-    "convert",
-    "NEBDataLoader",
-    "NEBEntry",
+    "load_labeled_structure_from_cif",
+    "load_labeled_structure_from_string",
+    "load_labeled_structures_from_cif",
 ]
-
-
-def __getattr__(name):
-    if name in {"NEBDataLoader", "NEBEntry"}:
-        from .data_loader import NEBDataLoader, NEBEntry
-
-        exports = {
-            "NEBDataLoader": NEBDataLoader,
-            "NEBEntry": NEBEntry,
-        }
-        return exports[name]
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

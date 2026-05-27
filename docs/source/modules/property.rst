@@ -1,5 +1,5 @@
 property
-=========================
+========
 
 .. automodule:: kmcpy.simulator.property
     :members:

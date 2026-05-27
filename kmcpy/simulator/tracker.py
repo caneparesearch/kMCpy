@@ -3,28 +3,28 @@
 
 from __future__ import annotations
 
-from copy import copy
-import gzip
-import json
 import logging
-import warnings
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import numpy as np
-import pandas as pd
 
-from kmcpy.external.structure import StructureKMCpy
-from kmcpy.io.serialization import to_json_compatible
+from pymatgen.core import Structure
 from kmcpy.simulator.property import (
     BUILTIN_PROPERTY_FIELDS,
+    BUILTIN_PROPERTY_UNITS,
+    PropertyPlan,
     PropertyRecord,
     PropertySpec,
     append_record,
     compute_transport_properties,
+    describe_property_calculations,
+    make_property_spec,
+    set_property_enabled_flag,
     should_trigger,
-    validate_max_records,
     validate_schedule,
 )
+from kmcpy.simulator.results import format_tracker_summary, write_tracker_results
+from kmcpy.event import INVALID_STATE, event_direction
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration
@@ -42,7 +42,10 @@ RESULT_FIELDS = (
     "msd",
 )
 
-SUMMARY_PROPERTY_NAME = "_built_in_summary"
+RESULT_UNITS = {
+    "time": "s",
+    **BUILTIN_PROPERTY_UNITS,
+}
 
 
 class CallbackExecutionError(RuntimeError):
@@ -66,33 +69,21 @@ def _append_result_row(store: dict[str, list[float]], sim_time: float, metrics: 
     store["havens_ratio"].append(metrics["havens_ratio"])
     store["msd"].append(metrics["msd"])
 
-
-
-def _to_json_safe(value: Any) -> Any:
-    """Convert callback payloads to JSON-compatible values."""
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-
-    if isinstance(value, dict):
-        return {str(k): _to_json_safe(v) for k, v in value.items()}
-
-    if isinstance(value, (list, tuple)):
-        return [_to_json_safe(v) for v in value]
-
-    try:
-        return to_json_compatible(value)
-    except TypeError:
-        return repr(value)
-
-
 class Tracker:
-    """Track trajectories and evaluate attached properties for each sampling point."""
+    """Track trajectories and evaluate attached properties for each sampling point.
+
+    Built-in result units are available through ``Tracker.result_units`` and are
+    also written next to the result CSV by ``write_results``.
+    """
 
     def __init__(
         self,
         config: "Configuration",
-        structure: StructureKMCpy,
+        structure: Structure,
         initial_state: Optional["State"] = None,
+        property_plan: Optional[PropertyPlan] = None,
+        default_property_interval: Optional[int] = None,
+        hop_state_lookup: Any = None,
     ) -> None:
         """Initialize tracker state, trajectory arrays, and built-in sampling."""
         logger.info("Initializing Tracker ...")
@@ -102,6 +93,7 @@ class Tracker:
         self.config = config
         self.structure = structure
         self.state = initial_state
+        self.hop_state_lookup = hop_state_lookup
 
         self._initialize_mobile_ion_tracking(initial_state.occupations)
 
@@ -116,12 +108,13 @@ class Tracker:
 
         self._properties: dict[str, PropertySpec] = {}
         self._property_records: dict[str, list[PropertyRecord]] = {}
+        self._last_summary_trigger_time: Optional[float] = None
 
-        self.attach(
-            self._compute_built_in_summary,
-            name=SUMMARY_PROPERTY_NAME,
-            store=False,
-        )
+        if property_plan is not None:
+            self.apply_property_plan(
+                property_plan,
+                default_interval=default_property_interval,
+            )
 
         logger.info("number of mobile ion specie = %d", self.n_mobile_ion_specie)
         logger.info(
@@ -132,12 +125,21 @@ class Tracker:
 
     def _initialize_mobile_ion_tracking(self, initial_occ: list[int]) -> None:
         """Initialize mobile ion tracking arrays."""
-        self.n_mobile_ion_specie_site = len(
-            [el.symbol for el in self.structure.species if self.mobile_ion_specie in el.symbol]
-        )
-        self.mobile_ion_specie_locations = np.where(
-            np.array(initial_occ[0 : self.n_mobile_ion_specie_site]) == -1
-        )[0]
+        if self.hop_state_lookup is None:
+            self.n_mobile_ion_specie_site = len(
+                [el.symbol for el in self.structure.species if self.mobile_ion_specie in el.symbol]
+            )
+            initial_active_occ = np.array(initial_occ[0 : self.n_mobile_ion_specie_site])
+            mobile_state_mask = initial_active_occ == 0
+        else:
+            mobile_states = self.hop_state_lookup.mobile_state_by_site
+            self.n_mobile_ion_specie_site = int(np.sum(mobile_states != INVALID_STATE))
+            initial_active_occ = np.array(initial_occ[0 : len(mobile_states)])
+            mobile_state_mask = (
+                (mobile_states != INVALID_STATE)
+                & (initial_active_occ == mobile_states)
+            )
+        self.mobile_ion_specie_locations = np.where(mobile_state_mask)[0]
         self.n_mobile_ion_specie = len(self.mobile_ion_specie_locations)
 
         logger.debug("Initial mobile ion locations = %s", self.mobile_ion_specie_locations)
@@ -201,18 +203,10 @@ class Tracker:
         """Return tracked mobile ion species label."""
         return self.config.mobile_ion_specie
 
-    @classmethod
-    def from_config(
-        cls,
-        config: "Configuration",
-        structure: StructureKMCpy,
-        occ_initial: list,
-    ) -> "Tracker":
-        """Construct tracker from config and initial occupations."""
-        from kmcpy.simulator.state import State
-
-        initial_state = State(occupations=occ_initial)
-        return cls(config=config, structure=structure, initial_state=initial_state)
+    @property
+    def result_units(self) -> dict[str, str]:
+        """Return units for built-in result fields."""
+        return dict(RESULT_UNITS)
 
     def set_global_property_frequency(
         self,
@@ -223,6 +217,29 @@ class Tracker:
         validate_schedule(interval=interval, time_interval=time_interval)
         self._global_interval = interval
         self._global_time_interval = time_interval
+
+    def apply_property_plan(
+        self,
+        property_plan: PropertyPlan,
+        default_interval: Optional[int] = None,
+    ) -> None:
+        """Apply a property sampling recipe to this tracker."""
+        interval = property_plan.global_interval
+        time_interval = property_plan.global_time_interval
+
+        if interval is None and time_interval is None and default_interval is not None:
+            interval = default_interval
+
+        self.set_global_property_frequency(
+            interval=interval,
+            time_interval=time_interval,
+        )
+
+        for property_name, enabled in property_plan.builtin_enabled.items():
+            self.set_property_enabled(property_name, enabled)
+
+        for spec in property_plan.fresh_attachment_specs():
+            self.attach_spec(spec)
 
     def attach(
         self,
@@ -236,110 +253,67 @@ class Tracker:
         enabled: bool = True,
     ) -> str:
         """Attach one property callback to this tracker."""
-        if not callable(func):
-            raise TypeError("func must be callable")
-
-        validate_schedule(interval=interval, time_interval=time_interval)
-        validate_max_records(max_records=max_records)
-
-        property_name = name or getattr(func, "__name__", "attached_property")
-        if property_name in BUILTIN_PROPERTY_FIELDS:
-            raise ValueError(
-                f"'{property_name}' is reserved for built-in summary fields"
-            )
-        if property_name in self._properties:
-            raise ValueError(f"Property '{property_name}' is already attached")
-
-        spec = PropertySpec(
-            name=property_name,
-            callback=func,
+        spec = make_property_spec(
+            func,
             interval=interval,
             time_interval=time_interval,
+            name=name,
             store=store,
             max_records=max_records,
-            enabled=enabled,
             on_error=on_error,
+            enabled=enabled,
+            existing_names=set(self._properties),
         )
-        self._properties[property_name] = spec
-        self._property_records[property_name] = []
-        return property_name
+        self._properties[spec.name] = spec
+        self._property_records[spec.name] = []
+        return spec.name
+
+    def attach_spec(self, spec: PropertySpec) -> str:
+        """Attach a prevalidated property specification to this tracker."""
+        return self.attach(
+            spec.callback,
+            interval=spec.interval,
+            time_interval=spec.time_interval,
+            name=spec.name,
+            store=spec.store,
+            max_records=spec.max_records,
+            on_error=spec.on_error,
+            enabled=spec.enabled,
+        )
 
     def detach(self, name: str) -> None:
         """Detach a previously attached property callback."""
-        if name == SUMMARY_PROPERTY_NAME:
-            raise ValueError("Cannot detach the built-in summary property")
         if name not in self._properties:
             raise ValueError(f"Property '{name}' is not attached")
         del self._properties[name]
         self._property_records.pop(name, None)
 
-    def detach_property(self, name: str) -> None:
-        """Detach a previously attached property callback."""
-        self.detach(name)
-
-    def disable_property(self, name: str) -> None:
-        """
-        Compatibility alias for old API.
-
-        - Built-ins: disable by setting enabled=False.
-        - Custom callbacks: detach from tracker.
-        """
-        warnings.warn(
-            "disable_property(...) is deprecated. "
-            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name in self._enabled_builtin_properties:
-            self.set_property_enabled(name, False)
-            return
-        self.detach(name)
-
     def clear_attachments(self) -> None:
-        """Remove all user attachments while preserving built-in summary sampling."""
-        self._properties = {
-            SUMMARY_PROPERTY_NAME: self._properties[SUMMARY_PROPERTY_NAME]
-        }
-        self._property_records = {
-            SUMMARY_PROPERTY_NAME: self._property_records[SUMMARY_PROPERTY_NAME]
-        }
+        """Remove all user-attached property callbacks."""
+        self._properties.clear()
+        self._property_records.clear()
 
     def list_attachments(self) -> list[str]:
         """Return names of user-attached properties."""
-        return [name for name in self._properties if name != SUMMARY_PROPERTY_NAME]
+        return list(self._properties)
 
     def list_property_calculations(self) -> dict[str, list[str]]:
         """Return enabled/disabled built-ins and currently attached callbacks."""
-        built_in_enabled = [
-            name for name in BUILTIN_PROPERTY_FIELDS if self._enabled_builtin_properties.get(name, True)
-        ]
-        built_in_disabled = [
-            name for name in BUILTIN_PROPERTY_FIELDS if not self._enabled_builtin_properties.get(name, True)
-        ]
-        attached_enabled = [
-            name for name in self.list_attachments() if self._properties[name].enabled
-        ]
-        attached_disabled = [
-            name for name in self.list_attachments() if not self._properties[name].enabled
-        ]
-        return {
-            "built_in_enabled": built_in_enabled,
-            "built_in_disabled": built_in_disabled,
-            "attached_enabled": attached_enabled,
-            "attached_disabled": attached_disabled,
-        }
+        return describe_property_calculations(
+            builtin_enabled=self._enabled_builtin_properties,
+            attached_properties=self._properties,
+        )
 
     def set_property_enabled(self, name: str, enabled: bool) -> None:
         """Enable or disable a built-in summary field or an attached callback."""
-        if name in self._enabled_builtin_properties:
-            self._enabled_builtin_properties[name] = bool(enabled)
-            return
+        set_property_enabled_flag(
+            builtin_enabled=self._enabled_builtin_properties,
+            attached_properties=self._properties,
+            name=name,
+            enabled=enabled,
+        )
 
-        if name not in self._properties:
-            raise ValueError(f"Unknown property '{name}'")
-        self._properties[name].enabled = bool(enabled)
-
-    def _compute_built_in_summary(self, _state: "State", _step: int, _sim_time: float) -> dict[str, float]:
+    def _compute_transport_summary(self) -> dict[str, float]:
         """Compute the built-in transport summary from current tracker state."""
         return compute_transport_properties(
             self.displacement,
@@ -353,6 +327,21 @@ class Tracker:
             temperature=self.temperature,
             enabled=self._enabled_builtin_properties,
         )
+
+    def _sample_transport_summary(self, step: int, sim_time: float) -> None:
+        """Sample built-in transport metrics when the global schedule is due."""
+        if not should_trigger(
+            step=step,
+            sim_time=sim_time,
+            interval=self._global_interval,
+            time_interval=self._global_time_interval,
+            last_trigger_time=self._last_summary_trigger_time,
+        ):
+            return
+
+        metrics = self._compute_transport_summary()
+        _append_result_row(self.results, sim_time, metrics)
+        self._last_summary_trigger_time = sim_time
 
     def _handle_callback_error(
         self,
@@ -379,10 +368,6 @@ class Tracker:
                 f"Property callback '{spec.name}' failed and requested termination"
             ) from exc
 
-    def _append_summary_result(self, sim_time: float, metrics: dict[str, float]) -> None:
-        """Persist one built-in summary sample."""
-        _append_result_row(self.results, copy(sim_time), metrics)
-
     def _latest_property_value(self, name: str) -> Any:
         """Return latest sampled value for a property name."""
         records = self._property_records.get(name, [])
@@ -392,6 +377,8 @@ class Tracker:
 
     def sample_properties(self, step: int, sim_time: float) -> None:
         """Evaluate schedules and execute all attached property callbacks."""
+        self._sample_transport_summary(step=step, sim_time=sim_time)
+
         for spec in list(self._properties.values()):
             if not spec.enabled:
                 continue
@@ -420,9 +407,6 @@ class Tracker:
                 spec.last_trigger_time = sim_time
                 continue
 
-            if spec.name == SUMMARY_PROPERTY_NAME:
-                self._append_summary_result(sim_time=sim_time, metrics=value)
-
             if spec.store:
                 append_record(
                     records=self._property_records[spec.name],
@@ -447,80 +431,54 @@ class Tracker:
         return {
             key: [record.__dict__.copy() for record in records]
             for key, records in self._property_records.items()
-            if key != SUMMARY_PROPERTY_NAME
         }
 
-    def update(self, event, current_occ, dt) -> None:
-        """Update trajectory observables for a proposed kMC event."""
+    def update(self, event, dt) -> None:
+        """Update trajectory observables using the current pre-event State."""
         _ = dt
-        mobile_ion_specie_1_coord = copy(self.frac_coords[event.mobile_ion_indices[0]])
-        mobile_ion_specie_2_coord = copy(self.frac_coords[event.mobile_ion_indices[1]])
-        mobile_ion_specie_1_occ = current_occ[event.mobile_ion_indices[0]]
-        mobile_ion_specie_2_occ = current_occ[event.mobile_ion_indices[1]]
-
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("--------------------- Tracker Update Start ---------------------")
-            logger.debug(
-                "%s(1): idx=%d, coord=%s, occ=%s",
-                self.mobile_ion_specie,
-                event.mobile_ion_indices[0],
-                np.array2string(mobile_ion_specie_1_coord, precision=4),
-                mobile_ion_specie_1_occ,
-            )
-            logger.debug(
-                "%s(2): idx=%d, coord=%s, occ=%s",
-                self.mobile_ion_specie,
-                event.mobile_ion_indices[1],
-                np.array2string(mobile_ion_specie_2_coord, precision=4),
-                mobile_ion_specie_2_occ,
-            )
-            logger.debug("Current simulation time: %.6f", self.time)
-            logger.debug(
-                "Hop counters: %s",
-                np.array2string(self.hop_counter, precision=0, separator=", "),
-            )
-            logger.debug("Event probability: %s", getattr(event, "probability", None))
-            logger.debug(
-                "Mobile ion locations before update: %s",
-                self.mobile_ion_specie_locations,
-            )
-            logger.debug(
-                "Occupation before update: %s",
-                np.array2string(current_occ, precision=0, separator=", "),
-            )
-
-        direction = int((mobile_ion_specie_2_occ - mobile_ion_specie_1_occ) / 2)
-        displacement_frac = copy(direction * (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord))
-        displacement_frac -= np.array([int(round(i)) for i in displacement_frac])
-        displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
-
-        if direction == -1:
-            logger.debug(
-                "Diffuse direction: %s(2) -> %s(1)",
-                self.mobile_ion_specie,
-                self.mobile_ion_specie,
-            )
-            specie_to_diff = np.where(
-                self.mobile_ion_specie_locations == event.mobile_ion_indices[1]
-            )[0][0]
-            self.mobile_ion_specie_locations[specie_to_diff] = event.mobile_ion_indices[0]
-        elif direction == 1:
-            logger.debug(
-                "Diffuse direction: %s(1) -> %s(2)",
-                self.mobile_ion_specie,
-                self.mobile_ion_specie,
-            )
-            specie_to_diff = np.where(
-                self.mobile_ion_specie_locations == event.mobile_ion_indices[0]
-            )[0][0]
-            self.mobile_ion_specie_locations[specie_to_diff] = event.mobile_ion_indices[1]
-        else:
-            logger.error("Proposed a wrong event! Please check the code!")
+        occupations = self.state.occupations
+        direction = event_direction(occupations, event)
+        if direction == 0:
+            logger.error("Proposed event does not match current endpoint occupations")
             return
 
-        self.displacement[specie_to_diff] += copy(np.array(displacement_cart))
-        self.hop_counter[specie_to_diff] += 1
-        logger.debug("------------------------ Tracker Update End --------------------")
+        logger.debug(
+            "Tracker update: event=%s direction=%d time=%.6f",
+            event.mobile_ion_indices,
+            direction,
+            self.time,
+        )
+
+        mobile_ion_index = self._record_mobile_ion_hop(event, direction)
+        displacement = self._wrapped_hop_displacement(event, direction)
+        self.displacement[mobile_ion_index] += displacement
+        self.hop_counter[mobile_ion_index] += 1
+
+    def _record_mobile_ion_hop(self, event, direction: int) -> int:
+        """Move the tracked mobile ion identity and return its row index."""
+        from_site, to_site = event.mobile_ion_indices
+        source_site = from_site if direction == 1 else to_site
+        destination_site = to_site if direction == 1 else from_site
+
+        matches = np.where(self.mobile_ion_specie_locations == source_site)[0]
+        if len(matches) == 0:
+            raise RuntimeError(
+                "Tracker mobile-ion locations are inconsistent with the "
+                f"accepted event source site {source_site}."
+            )
+
+        mobile_ion_index = int(matches[0])
+        self.mobile_ion_specie_locations[mobile_ion_index] = destination_site
+        return mobile_ion_index
+
+    def _wrapped_hop_displacement(self, event, direction: int) -> np.ndarray:
+        """Return the minimum-image Cartesian displacement for one accepted hop."""
+        from_site, to_site = event.mobile_ion_indices
+        displacement_frac = direction * (
+            self.frac_coords[to_site] - self.frac_coords[from_site]
+        )
+        displacement_frac -= np.round(displacement_frac).astype(int)
+        return np.array(self.latt.get_cartesian_coords(displacement_frac))
 
     def update_current_pass(self, current_pass: int) -> None:
         """Update current pass index used in logging/output."""
@@ -532,26 +490,27 @@ class Tracker:
             logger.info("Pass %d has no sampled properties yet.", self.current_pass)
             return
 
-        rows = [
-            ["pass", self.current_pass],
-            ["time", self.results["time"][-1]],
-            ["msd", self.results["msd"][-1]],
-            ["jump_diffusivity", self.results["jump_diffusivity"][-1]],
-            ["tracer_diffusivity", self.results["tracer_diffusivity"][-1]],
-            ["conductivity", self.results["conductivity"][-1]],
-            ["havens_ratio", self.results["havens_ratio"][-1]],
-            ["correlation_factor", self.results["correlation_factor"][-1]],
-        ]
-
-        for name in self.list_attachments():
-            value = self._latest_property_value(name)
-            rows.append([name, value])
-
-        table = "\n" + pd.DataFrame(rows, columns=["Property", "Value"]).to_string(index=False)
-        logger.info("Tracker Summary:%s", table)
+        attached_values = {
+            name: self._latest_property_value(name)
+            for name in self.list_attachments()
+        }
+        logger.info(
+            "Tracker Summary:%s",
+            format_tracker_summary(
+                current_pass=self.current_pass,
+                results=self.results,
+                result_units=self.result_units,
+                attached_values=attached_values,
+            ),
+        )
 
     def return_current_info(self) -> tuple[float, float, float, float, float, float, float]:
-        """Return latest sampled summary values for testing/reporting."""
+        """Return latest sampled summary values for testing/reporting.
+
+        Units follow ``Tracker.result_units`` and tuple order is:
+        ``time``, ``msd``, ``jump_diffusivity``, ``tracer_diffusivity``,
+        ``conductivity``, ``havens_ratio``, ``correlation_factor``.
+        """
         if not self.results["time"]:
             raise ValueError("No property samples are available. Increase sampling frequency.")
 
@@ -565,51 +524,15 @@ class Tracker:
             self.results["correlation_factor"][-1],
         )
 
-    def write_results(self, current_occupation: list, label: str | None = None) -> None:
-        """Save displacement/hop arrays, summary CSV, and property records."""
-        if label:
-            prefix = f"{label}_{self.current_pass}"
-        else:
-            prefix = f"{self.current_pass}"
-        np.savetxt(
-            f"displacement_{prefix}.csv.gz",
-            self.displacement,
-            delimiter=",",
+    def write_results(self, label: str | None = None) -> None:
+        """Write trajectory arrays, built-in summaries, and custom-property records."""
+        write_tracker_results(
+            label=label,
+            current_pass=self.current_pass,
+            displacement=self.displacement,
+            hop_counter=self.hop_counter,
+            occupations=self.state.occupations,
+            results=self.results,
+            result_units=self.result_units,
+            property_records=self._property_records,
         )
-        np.savetxt(
-            f"hop_counter_{prefix}.csv.gz",
-            self.hop_counter,
-            delimiter=",",
-        )
-        np.savetxt(
-            f"current_occ_{prefix}.csv.gz",
-            current_occupation,
-            delimiter=",",
-        )
-
-        if label:
-            results_file = f"results_{label}.csv.gz"
-            properties_file = f"properties_{label}.json.gz"
-        else:
-            results_file = "results.csv.gz"
-            properties_file = "properties.json.gz"
-
-        pd.DataFrame(self.results).to_csv(results_file, compression="gzip", index=False)
-
-        flat_records: list[dict[str, Any]] = []
-        for name, records in self._property_records.items():
-            if name == SUMMARY_PROPERTY_NAME:
-                continue
-            for record in records:
-                flat_records.append(
-                    {
-                        "name": record.name,
-                        "step": int(record.step),
-                        "time": float(record.time),
-                        "value": _to_json_safe(record.value),
-                    }
-                )
-
-        if flat_records:
-            with gzip.open(properties_file, "wt", encoding="utf-8") as fhandle:
-                json.dump(flat_records, fhandle, indent=2)

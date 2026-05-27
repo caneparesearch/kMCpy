@@ -7,7 +7,7 @@ import numba as nb
 from numba.typed import List
 from joblib import Parallel, delayed
 import multiprocessing, os
-from kmcpy.external.structure import StructureKMCpy
+from pymatgen.core import Structure
 
 
 def generate_supercell(prim_fname, supercell_shape):
@@ -22,7 +22,7 @@ def generate_supercell(prim_fname, supercell_shape):
 
     supercell_shape_matrix = np.diag(supercell_shape)
     print("Supercell Shape:\n", supercell_shape_matrix)
-    structure = StructureKMCpy(prim_lattice, prim_species, prim_coords)
+    structure = Structure(prim_lattice, prim_species, prim_coords)
     print("Converting supercell ...")
     structure.remove_species(["Zr", "O"])
     structure.make_supercell(supercell_shape_matrix)
@@ -74,7 +74,7 @@ get_occ() works out the occupation vector by comparing the POSCAR generated from
 
 def get_occ(mc_poscar, template_structure):
     print(mc_poscar)
-    casm_structure = StructureKMCpy.from_file(mc_poscar)
+    casm_structure = Structure.from_file(mc_poscar)
     casm_structure.remove_species(["Zr", "O"])
     occ = []
     template_frac_coords = np.array(template_structure.frac_coords)
@@ -87,7 +87,7 @@ def get_occ(mc_poscar, template_structure):
         casm_frac_coords, template_frac_coords, casm_species, template_species, lattice
     )
     print(occ)
-    print(len(np.where(occ == -1)[0]))
+    print(len(np.where(occ == 0)[0]))
 
     print("Finished", mc_poscar)
     return np.array(occ)

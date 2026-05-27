@@ -1,4 +1,5 @@
 import unittest
+import json
 import pytest
 import os
 from kmcpy.simulator.config import (
@@ -21,8 +22,8 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
         Configuration: Test configuration object
     """
     if use_real_files:
-        # Use real test files - Create model-based Configuration using the create() method
-        config = Configuration.create(
+        # Use real test files with a model-based Configuration.
+        config = Configuration(
             structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
             model_file=f"{file_path}/input/model.json",
             event_file=f"{file_path}/input/events.json",
@@ -37,7 +38,7 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
             elementary_hop_distance=2.5,
             mobile_ion_charge=1.0,
             supercell_shape=(2, 1, 1),  # Use tuple
-            immutable_sites=("Zr", "O"),  # Use tuple
+            site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
         )
         return config
     else:
@@ -54,7 +55,7 @@ def create_test_simulation_config(name="Test_Config", use_real_files=True):
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
             supercell_shape=(2, 1, 1),  # Use tuple
-            immutable_sites=("Zr", "O"),  # Use tuple
+            site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
             # Fake file paths with correct names
             model_file="fake_model.json",
             event_file="fake_events.json",
@@ -68,41 +69,46 @@ def check_file_exists(file_path):
 
 class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("first")
-    def test_NeighborInfoMatcher(self):
-        print("neighbor info matcher testing")
+    def test_cluster_matcher(self):
+        print("cluster matcher testing")
 
-        from kmcpy.event import NeighborInfoMatcher
         import numpy as np
+        from kmcpy.structure.cluster import Cluster, ClusterMatcher
 
-        from kmcpy.external.structure import StructureKMCpy
-        from kmcpy.external.local_env import CutOffDictNNKMCpy
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+        from kmcpy.structure.neighbors import (
+            get_cutoff_neighbor_info,
+            prepare_cutoff_neighbor_lookup,
+        )
 
-        nasicon = StructureKMCpy.from_cif(
+        nasicon = load_labeled_structure_from_cif(
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True
         )
 
         center_Na1 = [0, 1]
-        local_env_finder = CutOffDictNNKMCpy({("Na+", "Na+"): 4, ("Na+", "Si4+"): 4})
+        local_env_lookup = prepare_cutoff_neighbor_lookup(
+            {("Na+", "Na+"): 4, ("Na+", "Si4+"): 4}
+        )
 
         reference_neighbor_sequences = sorted(
             sorted(
-                local_env_finder.get_nn_info(nasicon, center_Na1[0]),
+                get_cutoff_neighbor_info(nasicon, center_Na1[0], local_env_lookup),
                 key=lambda x: x["wyckoff_sequence"],
             ),
             key=lambda x: x["label"],
         )
 
         np.set_printoptions(precision=2, suppress=True)
-        reference_neighbor = NeighborInfoMatcher.from_neighbor_sequences(
-            neighbor_sequences=reference_neighbor_sequences
+        reference_neighbor = Cluster.from_neighbor_info(
+            reference_neighbor_sequences
         )
 
-        print(reference_neighbor.neighbor_species)
+        print(reference_neighbor.signature)
         print(reference_neighbor.distance_matrix)
 
         wrong_sequence_neighbor = sorted(
             sorted(
-                local_env_finder.get_nn_info(nasicon, center_Na1[1]),
+                get_cutoff_neighbor_info(nasicon, center_Na1[1], local_env_lookup),
                 key=lambda x: x["wyckoff_sequence"],
             ),
             key=lambda x: x["label"],
@@ -110,8 +116,8 @@ class TestNASICONbulk(unittest.TestCase):
 
         self.assertFalse(
             np.allclose(
-                NeighborInfoMatcher.from_neighbor_sequences(
-                    neighbor_sequences=wrong_sequence_neighbor
+                Cluster.from_neighbor_info(
+                    wrong_sequence_neighbor
                 ).distance_matrix,
                 reference_neighbor.distance_matrix,
                 rtol=0.01,
@@ -119,12 +125,16 @@ class TestNASICONbulk(unittest.TestCase):
             )
         )
 
-        resorted_wrong_sequence = reference_neighbor.brutal_match(
-            wrong_sequence_neighbor, rtol=0.01
+        match = ClusterMatcher(reference_neighbor, rtol=0.01).match(
+            Cluster.from_neighbor_info(wrong_sequence_neighbor)
         )
+        resorted_wrong_sequence = [
+            wrong_sequence_neighbor[index]
+            for index in match.reference_to_candidate
+        ]
 
-        resorted_neighbor = NeighborInfoMatcher.from_neighbor_sequences(
-            neighbor_sequences=resorted_wrong_sequence
+        resorted_neighbor = Cluster.from_neighbor_info(
+            resorted_wrong_sequence
         )
 
         self.assertTrue(
@@ -138,7 +148,6 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.order("second")
     def test_generate_events(self):
-        mobile_ion_identifier_type = "label"
         mobile_ion_identifiers = ("Na1", "Na2")
         structure_file = (
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
@@ -150,9 +159,8 @@ class TestNASICONbulk(unittest.TestCase):
         generator.generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
-            species_to_be_removed=["O2-", "O", "Zr4+", "Zr"],
+            site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
             distance_matrix_rtol=0.01,
             distance_matrix_atol=0.01,
             find_nearest_if_fail=False,
@@ -165,9 +173,8 @@ class TestNASICONbulk(unittest.TestCase):
         reference_local_env_dict = generator.generate_events(
             structure_file=structure_file,
             local_env_cutoff_dict=local_env_cutoff_dict,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
             mobile_ion_identifiers=mobile_ion_identifiers,
-            species_to_be_removed=["O2-", "O", "Zr4+", "Zr"],
+            site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
             distance_matrix_rtol=0.01,
             distance_matrix_atol=0.01,
             find_nearest_if_fail=False,
@@ -179,29 +186,30 @@ class TestNASICONbulk(unittest.TestCase):
 
         print("reference_local_env_dict:", reference_local_env_dict)
 
-        self.assertEqual(
-            len(reference_local_env_dict), 1
-        )  # only one type of local environment should be found. If more than 1, raise error.
+        with open(f"{file_path}/input/events.json") as expected_file:
+            expected_event_library = json.load(expected_file)
+        with open(f"{file_path}/events.json") as generated_file:
+            generated_event_library = json.load(generated_file)
+        self.assertEqual(generated_event_library, expected_event_library)
+
+        self.assertGreaterEqual(len(reference_local_env_dict), 1)
 
     @pytest.mark.order("third")
     def test_generate_local_cluster_exapnsion(self):
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
         from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-        from kmcpy.external.structure import StructureKMCpy
-        mobile_ion_identifier_type = "label"
-        mobile_ion_specie_identifier = "Na1"
-        structure = StructureKMCpy.from_cif(filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True)
-        local_lattice_structure = LocalLatticeStructure(template_structure=structure,center=0, cutoff=4.0,specie_site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"},
-                                     basis_type = "chebyshev", is_write_basis=True, exclude_species=["O2-", "O", "Zr4+", "Zr"])
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+        structure = load_labeled_structure_from_cif(
+            filename=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
+            primitive=True,
+        )
+        local_lattice_structure = LocalLatticeStructure(template_structure=structure,center=0, cutoff=4.0,site_mapping={"Na": ["Na", "X"],"Zr":"Zr","Si":["Si","P"],"O":"O"},
+                                     basis_type = "chebyshev", is_write_basis=True)
         a = LocalClusterExpansion()
         a.build(local_lattice_structure=local_lattice_structure,
-            mobile_ion_identifier_type=mobile_ion_identifier_type,
-            mobile_ion_specie_identifier=mobile_ion_specie_identifier,
             cutoff_cluster=[6, 6, 0],
-            cutoff_region=4,
-            convert_to_primitive_cell=True,
         )
-        a.to_json(f"{file_path}/lce.json")
+        a.to(f"{file_path}/lce.json")
         # Basic test - should verify object creation
         self.assertEqual(1, 1)
 
@@ -236,7 +244,7 @@ class TestNASICONbulk(unittest.TestCase):
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
             
             # Create Configuration from the same parameters as the old kmc_input.json
-            config = Configuration.create(
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -247,7 +255,7 @@ class TestNASICONbulk(unittest.TestCase):
                 equilibration_passes=1,
                 kmc_passes=100,
                 supercell_shape=(2, 1, 1),
-                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+                site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,  # Same as original kmc_input.json
                 random_seed=12345,
@@ -256,7 +264,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             kmc = KMC.from_config(config)
 
-            kmc_tracker = kmc.run(config)
+            kmc_tracker = kmc.run()
 
             print(kmc_tracker.return_current_info())
             self.assertTrue(
@@ -297,8 +305,8 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create modern Configuration using the create() method
-            config = Configuration.create(
+            # Create modern Configuration.
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -309,7 +317,7 @@ class TestNASICONbulk(unittest.TestCase):
                 equilibration_passes=1,
                 kmc_passes=100,
                 supercell_shape=(2, 1, 1),
-                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+                site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,  # Same as original kmc_input.json
                 random_seed=12345,
@@ -318,7 +326,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             # Modern workflow
             kmc = KMC.from_config(config)
-            kmc_tracker = kmc.run(config)
+            kmc_tracker = kmc.run()
 
             print(
                 f"Modern Configuration results: {kmc_tracker.return_current_info()}"
@@ -352,7 +360,8 @@ class TestNASICONbulk(unittest.TestCase):
     @pytest.mark.order("data_gathering")
     def test_gather_mc_data(self):
         from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
-        from kmcpy.external.structure import StructureKMCpy
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+        from kmcpy.structure.sites import make_kmc_supercell
         import numpy as np
 
         structure_from_json = generate_supercell(
@@ -362,12 +371,12 @@ class TestNASICONbulk(unittest.TestCase):
         df.to_json(f"{file_path}/mc_results_json.json", orient="index")
         occ1 = df["occ"]
 
-        structure_from_cif = StructureKMCpy.from_cif(
+        structure_from_cif = load_labeled_structure_from_cif(
             f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif", primitive=True
         )
         structure_from_cif.remove_species(["Zr", "O", "Zr4+", "O2-"])
         structure_from_cif.remove_oxidation_states()
-        structure_from_cif = structure_from_cif.make_kmc_supercell([8, 8, 8])
+        structure_from_cif = make_kmc_supercell(structure_from_cif, [8, 8, 8])
         df2 = gather_data(f"{file_path}/gather_mc_data/comp*", structure_from_cif)
         df2.to_json(f"{file_path}/mc_results_cif.json", orient="index")
         occ2 = df2["occ"]
@@ -408,7 +417,7 @@ class TestNASICONbulk(unittest.TestCase):
             self.fail(f"Configuration validation failed: {e}")
 
         # Test parameter modification
-        modified_config = config.copy_with_changes(
+        modified_config = config.with_runtime_changes(
             temperature=400.0, name="Modified_NASICON_Config"
         )
 
@@ -461,7 +470,7 @@ class TestNASICONbulk(unittest.TestCase):
         study_configs = []
         for temp in [300, 400]:
             for freq in [1e12, 1e13]:
-                modified_config = base_config.copy_with_changes(
+                modified_config = base_config.with_runtime_changes(
                     temperature=temp,
                     attempt_frequency=freq,
                     name=f"Study_T{temp}_f{freq:.0e}",
@@ -497,7 +506,7 @@ class TestNASICONbulk(unittest.TestCase):
             print("Running Configuration approach...")
 
             # Create Configuration with the same parameters as the old kmc_input.json
-            config = Configuration.create(
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -508,7 +517,7 @@ class TestNASICONbulk(unittest.TestCase):
                 equilibration_passes=1,
                 kmc_passes=100,
                 supercell_shape=(2, 1, 1),
-                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+                site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,
                 random_seed=12345,
@@ -518,7 +527,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             # Test KMC with Configuration
             kmc_simulation = KMC.from_config(config)
-            kmc_tracker_simulation = kmc_simulation.run(config)
+            kmc_tracker_simulation = kmc_simulation.run()
             simulation_results = kmc_tracker_simulation.return_current_info()
             print(f"Configuration results: {simulation_results}")
 
@@ -567,8 +576,8 @@ class TestNASICONbulk(unittest.TestCase):
         try:
             os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-            # Create Configuration using the create() method
-            config = Configuration.create(
+            # Create Configuration.
+            config = Configuration(
                 structure_file=f"{file_path}/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif",
                 model_file=f"{file_path}/input/model.json",
                 event_file=f"{file_path}/input/events.json",
@@ -579,7 +588,7 @@ class TestNASICONbulk(unittest.TestCase):
                 equilibration_passes=1,
                 kmc_passes=100,
                 supercell_shape=(2, 1, 1),
-                immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+                site_mapping={"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
                 convert_to_primitive_cell=True,
                 elementary_hop_distance=3.47782,
                 random_seed=12345,
@@ -595,7 +604,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             # Test 2: Run simulation using run method (recommended approach)
             print("Running KMC simulation using run method...")
-            tracker = kmc.run(config)
+            tracker = kmc.run()
             results = tracker.return_current_info()
             print(f"✓ Configuration results: {results}")
 
@@ -634,7 +643,7 @@ class TestNASICONbulk(unittest.TestCase):
             print("✓ Configuration modification for parameter studies works")
 
             # Test 5: Show serialization capabilities
-            config_dict = config.to_dict()
+            config_dict = config.as_dict()
             self.assertIn("temperature", config_dict)
             self.assertIn("kmc_passes", config_dict)
 

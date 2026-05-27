@@ -1,131 +1,159 @@
-# Custom Properties During KMC Runs
+# Attach Custom Properties
 
-`KMC` supports attachable property functions with an API similar to ASE-style callbacks.
+Use attached properties when you want to measure something during a KMC run that
+is not one of kMCpy's built-in transport properties.
 
-## Quick start
+Examples include:
+
+- the fraction of occupied active sites,
+- a phase/order parameter,
+- a count of ions in a region,
+- a diagnostic value from a custom model.
+
+The `KMC` object owns the simulation. The returned `Tracker` owns sampled
+property records and output writing.
+
+## Minimal Example
 
 ```python
 from kmcpy.simulator.kmc import KMC
 
-kmc = KMC.from_config(config)
 
-def calc_occupation(state, step, sim_time):
-    occupied = sum(1 for occ in state.occupations if occ < 0)
+def occupied_fraction(state, step, sim_time):
+    occupied = sum(1 for occ in state.occupations if occ == 0)
     return occupied / len(state.occupations)
 
-# Run every 100 production events.
-kmc.attach(calc_occupation, interval=100, name="calc_occupation")
-tracker = kmc.run(config)
+
+kmc = KMC.from_config(config)
+kmc.attach(occupied_fraction, interval=100, name="occupied_fraction")
+
+tracker = kmc.run()
+records = tracker.get_property_records("occupied_fraction")
 ```
 
-## Callback signature
+This samples `occupied_fraction(...)` every 100 production events.
 
-Each callback must use this signature:
+## Callback Signature
+
+Every attached property receives:
 
 ```python
-def callback(state, step, sim_time):
+def property_fn(state, step, sim_time):
     ...
 ```
 
-- `state`: `State` object (current mutable simulation state)
-- `step`: production event step index
-- `sim_time`: current simulation time
+- `state`: current mutable `State`
+- `step`: production event index
+- `sim_time`: current simulation time in seconds
 
-## Sampling frequency
+Return a JSON-serializable value such as a number, string, list, or dictionary.
 
-Set a global property cadence (used when callback-level cadence is omitted):
+## Sampling Cadence
+
+Set a cadence for one property:
+
+```python
+kmc.attach(occupied_fraction, interval=100)
+```
+
+or sample by simulation time:
+
+```python
+kmc.attach(occupied_fraction, time_interval=1e-8)
+```
+
+Set a default cadence for attached properties that do not provide their own:
 
 ```python
 kmc.set_property_frequency(interval=200)
 ```
 
-Callback-level overrides are also supported:
+## Built-In Properties
 
-```python
-kmc.attach(my_property, interval=50)
-kmc.attach(other_property, time_interval=1e-8)
-```
+kMCpy also samples built-in transport properties. These are enabled by default:
 
-## Built-in properties
+| Property | Unit |
+| --- | --- |
+| `msd` | Angstrom^2 |
+| `jump_diffusivity` | cm^2/s |
+| `tracer_diffusivity` | cm^2/s |
+| `conductivity` | mS/cm |
+| `havens_ratio` | dimensionless |
+| `correlation_factor` | dimensionless |
 
-Built-ins are enabled by default and written to `results_<label>.csv.gz`:
-
-- `msd`
-- `jump_diffusivity`
-- `tracer_diffusivity`
-- `conductivity`
-- `havens_ratio`
-- `correlation_factor`
-
-Disable/enable built-ins individually:
+Disable or enable a built-in property:
 
 ```python
 kmc.set_property_enabled("conductivity", False)
 kmc.set_property_enabled("conductivity", True)
 ```
 
-Disabled built-ins remain in the legacy CSV schema with `NaN` values.
+Disabled built-ins remain in the legacy CSV schema with `NaN` values so old
+post-processing scripts still see the same columns.
 
-## Error handling
+## Output Files
 
-By default, callback errors stop the simulation.
+Built-in properties are written to:
 
-You can provide an error handler per callback:
-
-```python
-def on_error(exc, state, step, sim_time):
-    print(f"callback failed at step={step}: {exc}")
-    return True  # continue simulation
-
-kmc.attach(calc_occupation, interval=100, on_error=on_error)
+```text
+results_<label>.csv.gz
+results_units_<label>.json.gz
 ```
 
-## Output files
+Attached custom properties are written to:
 
-- Built-in properties: `results_<label>.csv.gz` (legacy format)
-- Attached callback records: `properties_<label>.json.gz`
-
-Retrieve custom records from the returned tracker object:
-
-```python
-records = tracker.get_property_records("calc_occupation")
+```text
+properties_<label>.json.gz
 ```
 
-List current property calculations (built-in + attached):
+You can also read them from the returned tracker:
 
 ```python
-kmc.list_property_calculations()
-# {
-#   "built_in_enabled": [...],
-#   "built_in_disabled": [...],
-#   "attached_enabled": [...],
-#   "attached_disabled": [...],
-# }
+records = tracker.get_property_records("occupied_fraction")
+units = tracker.result_units
 ```
 
-## YAML configuration
+## Configure From YAML
 
-Property controls can also be provided in `input.yaml` runtime fields:
+Runtime property settings can be placed in the input file:
 
 ```yaml
 kmc:
   type: default
   default:
-    # ...
     property_sampling_interval: 200
     property_sampling_time_interval: null
     builtin_property_enabled:
       conductivity: false
     property_callbacks:
-      - callable: "myproject.kmc_props:calc_occupation"
-        name: "calc_occupation"
+      - callable: "myproject.kmc_props:occupied_fraction"
+        name: "occupied_fraction"
         interval: 100
         enabled: true
 ```
 
-## API reference
+Callbacks loaded from YAML must be importable from a string reference.
 
-API docs are generated by Sphinx from docstrings:
+## Error Handling
 
-- `kmcpy.simulator.kmc`
-- `kmcpy.simulator.tracker`
+By default, an exception in a property callback stops the simulation. Provide an
+error handler when a diagnostic property should not make the run fail:
+
+```python
+def on_error(exc, state, step, sim_time):
+    print(f"occupied_fraction failed at step={step}: {exc}")
+    return True  # continue the simulation
+
+
+kmc.attach(occupied_fraction, interval=100, on_error=on_error)
+```
+
+Return `True` to continue. Return `False` or re-raise to stop.
+
+## Checklist
+
+- Keep callbacks cheap; they run inside the KMC loop.
+- Do not mutate `state` inside a property callback.
+- Return JSON-serializable values.
+- Use explicit `name=...` values for stable output keys.
+- Use `on_error` only for non-critical diagnostics.

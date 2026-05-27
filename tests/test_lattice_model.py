@@ -12,8 +12,8 @@ def simple_lattice_model():
         ["Na", "Na"],
         [[0, 0, 0], [0.5, 0.5, 0.5]]
     )
-    specie_site_mapping = {"Na": ["Na", "X"]}  # X represents a vacancy
-    return LatticeStructure(template_structure=template_structure, specie_site_mapping=specie_site_mapping)
+    site_mapping = {"Na": ["Na", "X"]}  # X represents a vacancy
+    return LatticeStructure(template_structure=template_structure, site_mapping=site_mapping)
 
 @pytest.fixture
 def complex_lattice_model():
@@ -24,12 +24,12 @@ def complex_lattice_model():
         ["Na", "O", "Na", "Cl", "Cl"], 
         [[0, 0, 0], [0.25, 0, 0], [0.5, 0.5, 0.0], [0.5, 0.0, 0.0], [0.5, 0.5, 0.5]]
     )
-    specie_site_mapping = {
+    site_mapping = {
         "Na": ["Na", "X"], 
         "O": ["O", "X"], 
         "Cl": ["Cl", "X"]
     }  # X represents a vacancy
-    return LatticeStructure(template_structure=template_structure, specie_site_mapping=specie_site_mapping)
+    return LatticeStructure(template_structure=template_structure, site_mapping=site_mapping)
 
 def test_get_occ_from_structure_perfect_match(simple_lattice_model):
     """Test get_occ_from_structure with perfect match (no vacancies)."""
@@ -179,6 +179,59 @@ def test_get_occ_from_structure_partial_occupancy_supercell(simple_lattice_model
     ]
     assert occ.array_equal(expected_occ), f"Expected {expected_occ}, got {occ.values}"
 
+def test_get_occ_from_structure_explicit_site_mapping(simple_lattice_model):
+    """Test explicit structure-site to template-site mapping for a supercell."""
+    model = simple_lattice_model
+    sc_matrix = np.array([[2, 0, 0], [0, 2, 0], [0, 0, 1]])
+    supercell_template = model.template_structure.copy()
+    supercell_template.make_supercell(sc_matrix)
+
+    selected_indices = [6, 0, 2]
+    structure = Structure(
+        supercell_template.lattice,
+        [supercell_template[index].specie for index in selected_indices],
+        [supercell_template[index].frac_coords for index in selected_indices],
+    )
+
+    occ = model.get_occ_from_structure(
+        structure,
+        sc_matrix=sc_matrix,
+        structure_site_mapping=selected_indices,
+    )
+
+    expected_occ = [model.basis.vacant_value] * len(supercell_template)
+    for index in selected_indices:
+        expected_occ[index] = model.basis.occupied_value
+    assert occ.array_equal(expected_occ), f"Expected {expected_occ}, got {occ.values}"
+
+def test_get_occ_from_structure_explicit_site_mapping_validation(simple_lattice_model):
+    """Test validation errors for explicit site mappings."""
+    model = simple_lattice_model
+    structure = model.template_structure.copy()
+
+    with pytest.raises(ValueError, match="structure_site_mapping length"):
+        model.get_occ_from_structure(structure, structure_site_mapping=[0])
+
+    with pytest.raises(ValueError, match="outside the supercell template"):
+        model.get_occ_from_structure(structure, structure_site_mapping=[0, 2])
+
+    with pytest.raises(ValueError, match="multiple atoms map"):
+        model.get_occ_from_structure(structure, structure_site_mapping=[0, 0])
+
+def test_get_occ_from_structure_matches_periodic_boundary():
+    """Test automatic site matching across periodic fractional boundaries."""
+    lattice = Lattice.cubic(5.0)
+    template_structure = Structure(lattice, ["Na"], [[0, 0, 0]])
+    model = LatticeStructure(
+        template_structure=template_structure,
+        site_mapping={"Na": ["Na", "X"]},
+    )
+    wrapped_structure = Structure(lattice, ["Na"], [[0.999, 0, 0]])
+
+    occ = model.get_occ_from_structure(wrapped_structure, tol=0.01)
+
+    assert occ.array_equal([model.basis.occupied_value])
+
 def test_get_occ_from_structure_tolerance_sensitivity(simple_lattice_model):
     """Test that tolerance settings work correctly."""
     model = simple_lattice_model
@@ -277,7 +330,7 @@ def test_get_occ_from_structure_allowed_substitution_is_mismatch():
     template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
     model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Si": ["Si", "P"]},
+        site_mapping={"Si": ["Si", "P"]},
     )
     substituted_structure = Structure(lattice, ["P"], [[0, 0, 0]])
 
@@ -286,12 +339,12 @@ def test_get_occ_from_structure_allowed_substitution_is_mismatch():
     assert occ.array_equal([model.basis.mismatch_value])
 
 
-def test_get_occ_from_structure_chebyshev_sign_convention():
+def test_get_occ_from_structure_chebyshev_state_indices():
     lattice = Lattice.cubic(5.0)
     template_structure = Structure(lattice, ["Si"], [[0, 0, 0]])
     model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Si": ["Si", "P"]},
+        site_mapping={"Si": ["Si", "P"]},
         basis_type="chebyshev",
     )
 
@@ -299,7 +352,7 @@ def test_get_occ_from_structure_chebyshev_sign_convention():
     substituted_structure = Structure(lattice, ["P"], [[0, 0, 0]])
     vacant_structure = Structure(lattice, [], [])
 
-    assert model.get_occ_from_structure(matching_structure).array_equal([-1])
+    assert model.get_occ_from_structure(matching_structure).array_equal([0])
     assert model.get_occ_from_structure(substituted_structure).array_equal([1])
     assert model.get_occ_from_structure(vacant_structure).array_equal([1])
 
@@ -309,7 +362,7 @@ def test_get_occ_from_structure_rejects_unallowed_species():
     template_structure = Structure(lattice, ["Na"], [[0, 0, 0]])
     model = LatticeStructure(
         template_structure=template_structure,
-        specie_site_mapping={"Na": ["Na", "X"]},
+        site_mapping={"Na": ["Na", "X"]},
     )
     wrong_species_structure = Structure(lattice, ["K"], [[0, 0, 0]])
 

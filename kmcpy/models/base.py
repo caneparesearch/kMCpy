@@ -2,24 +2,57 @@
 Base model classes used across kMCpy.
 """
 from abc import ABC, abstractmethod
-import json
+import importlib
 import logging
 
+from monty.json import MSONable
+from monty.serialization import loadfn
+
+from kmcpy.io.registry import MODEL_CLASS_REGISTRY
 from kmcpy.models.fitting.registry import get_fitter_for_model
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
 
-class BaseModel(ABC):
+
+MODEL_FILETYPE = "kmcpy.model_file"
+SUPPORTED_MODEL_FILETYPES = frozenset({MODEL_FILETYPE})
+
+
+def require_model_file_payload(payload):
+    """Validate and return a serialized model envelope dictionary."""
+    if not isinstance(payload, dict):
+        raise ValueError("Model file must be a JSON object")
+
+    if payload.get("filetype") not in SUPPORTED_MODEL_FILETYPES:
+        raise ValueError(
+            f"Unsupported model filetype. Expected '{MODEL_FILETYPE}'."
+        )
+
+    return payload
+
+
+def require_model_type(payload, model_type: str):
+    """Validate that a serialized model envelope declares the expected type."""
+    data = require_model_file_payload(payload)
+    observed = data.get("model_type")
+    if observed != model_type:
+        raise ValueError(f"Expected model_type '{model_type}', got '{observed}'")
+    return data
+
+
+class BaseModel(MSONable, ABC):
     """
     Base class for models in kmcpy.
     
-    This abstract class provides a common interface for model objects,
-    including serialization, deserialization, and computation methods.
+    This base class provides common serialization and loading conventions for
+    model objects. Scientific operations such as ``compute``, ``build``, and
+    ``compute_probability`` are optional because different model classes have
+    different roles in a KMC workflow.
 
     Constructor convention (pymatgen-style):
-    - `from_dict` and `from_file` are the primary constructors.
-    - `from_json` is retained as a compatibility alias to `from_file`.
+    - `as_dict` and `from_dict` handle structured data.
+    - `to` and `from_file` handle file I/O.
     
     Attributes:
         name (str, optional): Name of the model instance.
@@ -50,54 +83,137 @@ class BaseModel(ABC):
         fitter = self.__class__.get_fitter_class()()
         return fitter.fit(*args, **kwargs)
 
-    @abstractmethod
+    def initialize_state(
+        self,
+        *,
+        simulation_state,
+        event_lib=None,
+        structure=None,
+        config=None,
+        active_site_order=None,
+    ) -> None:
+        """Initialize optional stateful model caches from the KMC state.
+
+        Stateless models can ignore this hook. Stateful adapters can use it to
+        build their own occupancy representation once, instead of rebuilding it
+        during every event-rate evaluation.
+        """
+        return None
+
+    def apply_event(self, *, event, simulation_state) -> None:
+        """Commit an accepted event to optional model-side state.
+
+        Stateless models can ignore this hook. Stateful external adapters should
+        update only the changed sites here so their internal state stays aligned
+        with kMCpy's ``State``.
+        """
+        return None
+
+    @classmethod
+    def from_config(cls, config):
+        """Load the configured model.
+
+        Called on ``BaseModel``, this dispatches to the concrete model class
+        declared by the model file or ``config.model_type``. Called on a
+        concrete subclass, it loads that subclass directly from
+        ``config.model_file``.
+        """
+        if cls is not BaseModel:
+            return cls.from_file(config.model_file)
+
+        model_file = getattr(config, "model_file", "")
+        model_type = None
+        if model_file:
+            payload = loadfn(model_file, cls=None)
+            if isinstance(payload, dict) and "filetype" in payload:
+                require_model_file_payload(payload)
+                model_type = payload.get("model_type")
+                if not isinstance(model_type, str) or not model_type.strip():
+                    raise ValueError(
+                        "Model file must include a non-empty 'model_type'"
+                    )
+            elif (
+                isinstance(payload, dict)
+                and "@module" in payload
+                and "@class" in payload
+            ):
+                module_path = payload["@module"]
+                class_name = payload["@class"]
+                try:
+                    module = importlib.import_module(module_path)
+                    model_class = getattr(module, class_name)
+                except (ImportError, AttributeError) as e:
+                    registered_path = next(
+                        (
+                            path
+                            for path in MODEL_CLASS_REGISTRY.values()
+                            if path.rsplit(".", 1)[1] == class_name
+                        ),
+                        None,
+                    )
+                    if registered_path is None:
+                        raise ValueError(
+                            f"Cannot import model class "
+                            f"'{module_path}.{class_name}': {e}"
+                        )
+                    module_path, class_name = registered_path.rsplit(".", 1)
+                    module = importlib.import_module(module_path)
+                    model_class = getattr(module, class_name)
+                if not callable(getattr(model_class, "from_file", None)):
+                    raise ValueError(
+                        f"Serialized model class '{module_path}.{class_name}' "
+                        "does not provide from_file()."
+                    )
+                return model_class.from_file(model_file)
+
+        if model_type is None:
+            model_type = getattr(config, "model_type", None) or "composite_lce"
+
+        if model_type not in MODEL_CLASS_REGISTRY:
+            available_types = list(MODEL_CLASS_REGISTRY.keys())
+            raise ValueError(
+                f"Unknown model type '{model_type}'. Available types: {available_types}"
+            )
+
+        model_class_path = MODEL_CLASS_REGISTRY[model_type]
+        module_path, class_name = model_class_path.rsplit(".", 1)
+        try:
+            module = importlib.import_module(module_path)
+            model_class = getattr(module, class_name)
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Cannot import model class '{model_class_path}': {e}")
+
+        return model_class.from_config(config)
+
     def __str__(self):
-        """
-        Return a string representation of the model object.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Return a compact string representation."""
+        return self.__repr__()
     
-    @abstractmethod
     def __repr__(self):
-        """
-        Return a detailed string representation of the model object.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")    
+        """Return a compact debug representation."""
+        name = getattr(self, "name", None)
+        if name is None:
+            return f"{self.__class__.__name__}()"
+        return f"{self.__class__.__name__}(name={name!r})"
     
-    @abstractmethod
     def compute(self, *args, **kwargs):
-        """
-        Generic computation method for the model. This method must be implemented by subclasses.
-        Can return either site energy or barrier energy depending on the model configuration.
-        
-        Returns:
-            float: The computed energy value (site energy, barrier energy, etc.)
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Compute this model's native quantity, when the model defines one."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement compute()."
+        )
     
-    @abstractmethod
     def compute_probability(self, *args, **kwargs):
-        """
-        Compute the transition probability based on the model's parameters and the current state.
-        This method must be implemented by subclasses.
-        
-        Returns:
-            float: The computed transition probability.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Compute an event rate/probability for KMC, when supported."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement compute_probability(). "
+            "Use a KMC rate model such as CompositeLCEModel or LocalBarrierModel."
+        )
     
-    @abstractmethod
     def build(self, *args, **kwargs):
-        """
-        Build the model based on the provided parameters.
-        This method must be implemented by subclasses.
-        
-        Returns:
-            None
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Build model data from scientific inputs, when supported."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement build()."
+        )
     
     @abstractmethod
     def as_dict(self):
@@ -115,101 +231,15 @@ class BaseModel(ABC):
         raise NotImplementedError("Subclasses must implement this method.")
 
     @classmethod
-    @abstractmethod
     def from_file(cls, fname):
-        """
-        Create a model object from a serialized file.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Create a model object from a serialized file."""
+        return cls.from_dict(loadfn(fname, cls=None))
 
-    @classmethod
-    def from_json(cls, fname):
-        """
-        Compatibility alias for JSON-backed model loading.
-
-        Notes:
-            This delegates to `from_file` to align with pymatgen-style constructors.
-        """
-        return cls.from_file(fname)
-    
-    def to_json(self, fname):
-        from kmcpy.io import convert
+    def to(self, fname):
         """
         Save the model object to a JSON file.
         """
+        from monty.serialization import dumpfn
+
         logger.info("Saving model to: %s", fname)
-        with open(fname, "w") as fhandle:
-            d = self.as_dict()
-            jsonStr = json.dumps(
-                d, indent=4, default=convert
-            )
-            fhandle.write(jsonStr)
-
-
-class CompositeModel(BaseModel):
-    """
-    CompositeModel is an abstract base class for combining multiple models into a single composite model.
-    
-    This class provides a framework for managing a collection of models and defines abstract methods 
-    that must be implemented by subclasses to perform computations, probability calculations, and 
-    serialization/deserialization.
-    
-    Args:
-        models (list): A list of model instances to be combined in the composite model.
-        *args: Variable length argument list passed to the BaseModel.
-        **kwargs: Arbitrary keyword arguments passed to the BaseModel.
-    
-    Attributes:
-        models (list): The list of models included in the composite model.
-    
-    Note:
-        Subclasses must implement the abstract methods to provide specific functionality for computation and serialization.
-    """
-    def __init__(self, models, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.models = models
-
-    def __str__(self):
-        return f"CompositeModel with {len(self.models)} models"
-
-    def __repr__(self):
-        return f"CompositeModel(models={self.models}, weights={self.weights})"
-   
-    @abstractmethod
-    def compute(self, *args, **kwargs):
-        """
-        Compute the transition probability based on the model's parameters and the current state.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
-    
-    @abstractmethod
-    def compute_probability(self, *args, **kwargs):
-        """
-        Compute the transition probability based on the model's parameters and the current state.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    @abstractmethod
-    def as_dict(self):
-        """
-        Convert the composite model object to a dictionary representation.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    @classmethod
-    @abstractmethod
-    def from_dict(cls, d):
-        """
-        Create a composite model object from a dictionary representation.
-        This method must be implemented by subclasses.
-        
-        Args:
-            d (dict): Dictionary representation of the model.
-        
-        Returns:
-            CompositeModel: An instance of the composite model.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        dumpfn(self.as_dict(), fname, indent=4)

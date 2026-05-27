@@ -1,12 +1,14 @@
-from pymatgen.core.structure import Structure, Species
+from pymatgen.core.structure import Structure
 import numpy as np
-from kmcpy.structure.basis import Occupation, get_basis, BasisFunction
-from pymatgen.analysis.structure_matcher import StructureMatcher
+from kmcpy.structure.basis import Occupation, get_basis
 from abc import ABC
 import logging
-from kmcpy.structure.vacancy import Vacancy
-from kmcpy.structure.comparator import SupercellComparator
-from typing import List, Union
+from kmcpy.structure.species import (
+    is_vacancy_species,
+    normalize_species,
+    species_equivalent,
+    species_tokens,
+)
 
 logger = logging.getLogger(__name__) 
 
@@ -15,76 +17,106 @@ class LatticeStructure(ABC):
     '''LatticeStructure deal with the structure template which converts the structure to an occupation array and vice versa
     '''
     def __init__(self, template_structure: Structure,
-                 specie_site_mapping: dict,
+                 site_mapping: dict,
                  basis_type: str = 'chebyshev'):
         '''Initialization of LatticeStructure
             Args:
             template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
-            specie_site_mapping: a dictionary mapping from species to site type (possible species), including those immutable sites, 
+            site_mapping: a dictionary mapping template species to allowed species; fixed sites have a single allowed species,
             e.g. {"Na":["Na","X"],"X":["Na","X"],"Sb":["Sb","W"],"W":["Sb","W"]} X is the vacancy site
-            basis_type: str, the type of basis function: 'occupation':[0,1]
-                or 'chebyshev'[-1,+1]. Chebyshev maps the first species in
-                each site mapping to -1 and missing/other allowed species to +1.
+            basis_type: str, the type of basis function. For 'chebyshev',
+                occupations store species-state indices and the LCE evaluates
+                q - 1 Chebyshev site functions for q allowed species.
         '''
         self.template_structure = template_structure
 
-        # Avoid modifying the dictionary while iterating
-        items = list(specie_site_mapping.items())
-        for key, value in items:
-            if isinstance(key, str):
-                # If the key is a string, convert it to Pymatgen Species
-                specie_site_mapping[Species(key)] = specie_site_mapping.pop(key)
-        items = list(specie_site_mapping.items())
-        for key, value in items:
-            if isinstance(value, str):
-                if value == 'X':
-                    # If the value is 'X', treat it as a vacancy
-                    specie_site_mapping[key] = [Vacancy()]
-                else:
-                    # Otherwise, treat it as a regular species
-                    specie_site_mapping[key] = [Species(value)]
-            elif isinstance(value, list):
-                # If the value is a list, convert each string to Pymatgen Species
-                specie_site_mapping[key] = [
-                    Vacancy() if (isinstance(v, str) and v == 'X') else (Species(v) if isinstance(v, str) else v)
-                    for v in value
-                ]
-        self.specie_site_mapping = specie_site_mapping
+        self.site_mapping = {
+            normalize_species(key): [
+                normalize_species(item)
+                for item in (value if isinstance(value, (list, tuple)) else [value])
+            ]
+            for key, value in site_mapping.items()
+        }
                 
-        # Initialize basis using new registry system
-        try:
-            self.basis = get_basis(basis_type)
-            self.basis_type = basis_type
-        except ValueError as e:
-            raise ValueError(f'Basis type {basis_type} not supported. {e}')
-        
         # Initialization of species for LatticeStructure
         # allowed_species is like [["Na","Va"],["Na","Va"],["Na","Va"],["Na","Va"], ... ,["Sb","W"],["Sb","W"],["Sb","W"]]
         self.allowed_species = []
         for site in self.template_structure:
-            species = Species(site.species_string)
-            # Create a list of allowed species for the site
-            allowed_specie = self.specie_site_mapping.get(species)
+            allowed_specie = None
+            for mapped_species, mapped_allowed_species in self.site_mapping.items():
+                if species_equivalent(site.specie, mapped_species):
+                    allowed_specie = mapped_allowed_species
+                    break
             self.allowed_species.append(allowed_specie)
 
         if len(self.allowed_species) != len(self.template_structure):
             raise ValueError(f"Species length {len(self.allowed_species)} does not match template structure length {len(self.template_structure)}!")
+
+        # Initialize basis using the registry.
+        max_states = max(
+            2,
+            max(len(species) for species in self.allowed_species if species),
+        )
+        try:
+            if basis_type == "chebyshev":
+                self.basis = get_basis(basis_type, max_states=max_states)
+            else:
+                self.basis = get_basis(basis_type)
+            self.basis_type = basis_type
+        except ValueError as e:
+            raise ValueError(f'Basis type {basis_type} not supported. {e}')
+
+        try:
+            self.active_site_order = self.get_active_site_order()
+        except ValueError:
+            self.active_site_order = None
  
-    def get_occ_from_structure(self, structure: Structure, tol=0.1, angle_tol=5, sc_matrix=None) -> Occupation:
+    def get_active_site_order(self, supercell_shape=None):
+        """Return the compact active-site order for this lattice."""
+        from kmcpy.structure.active_site_order import ActiveSiteOrder
+
+        return ActiveSiteOrder.from_lattice_structure(
+            self, supercell_shape=supercell_shape
+        )
+
+    def get_active_lattice_structure(self, supercell_shape=None):
+        """Return a lattice structure containing only mutable active sites."""
+        active_site_order = self.get_active_site_order(supercell_shape)
+        active_lattice_structure = LatticeStructure(
+            active_site_order.active_structure(),
+            self.site_mapping.copy(),
+            self.basis_type,
+        )
+        active_lattice_structure.source_active_site_order = active_site_order
+        return active_lattice_structure
+
+    def get_occ_from_structure(
+        self,
+        structure: Structure,
+        tol=0.1,
+        angle_tol=5,
+        sc_matrix=None,
+        structure_site_mapping=None,
+    ) -> Occupation:
         """
         get_occ_from_structure() returns an Occupation object based on a
         comparison with the instance's template_structure.
 
-        This implementation uses pymatgen's StructureMatcher to robustly find
-        the supercell relationship and the site mapping between the input
-        structure and the template.
+        The supercell relationship is inferred from lattice vectors unless
+        ``sc_matrix`` is provided. Site mapping is inferred from fractional
+        coordinates unless ``structure_site_mapping`` is provided.
 
         Args:
             structure (Structure): The input structure, which may be a supercell
                 of the template and may contain vacancies.
             tol (float): Tolerance for structure matching.
-            angle_tol (float): Angle tolerance for structure matching.
+            angle_tol (float): Kept for API compatibility.
             sc_matrix (np.ndarray, optional): Supercell matrix if known.
+            structure_site_mapping (Sequence[int], optional): Explicit mapping
+                from each input structure site to a site in the supercell
+                template. If provided, ``structure_site_mapping[j]`` is the
+                supercell-template index occupied by ``structure[j]``. Passing
+                this skips automatic site matching.
 
         Returns:
             Occupation: The occupation object for the structure with proper basis.
@@ -133,47 +165,51 @@ class LatticeStructure(ABC):
         logger.debug(f"Supercell template has {len(supercell_template)} sites")
         logger.debug(f"Input structure has {len(structure)} sites")
         
-        # Initialize all sites as mismatch (vacant - no atom present)
-        occ_data = np.full(len(supercell_template), self.basis.mismatch_value,
-                          dtype=type(self.basis.mismatch_value))
+        # Initialize missing sites as the vacancy state when available.
+        occ_data = np.array(
+            [
+                self._missing_occupation_value(allowed_species)
+                for allowed_species in supercell_allowed_species
+            ],
+            dtype=type(self.basis.match_value),
+        )
 
         # Handle empty structure case (all sites are vacant)
         if len(structure) == 0:
             logger.debug("Empty structure - all sites are vacant")
             return Occupation(occ_data, basis=self.basis, validate=False)
         
-        # 3. Set up StructureMatcher with OrderDisorderElementComparator for vacancy handling
-        from pymatgen.analysis.structure_matcher import OrderDisorderElementComparator
-        matcher = StructureMatcher(ltol=tol, stol=tol, angle_tol=angle_tol,
-                                 primitive_cell=False, allow_subset=True,
-                                 scale=True,
-                                 comparator=OrderDisorderElementComparator())
-        
-        # 4. Validate structure compatibility
+        # 3. Validate structure compatibility
         # Check lattice compatibility
         if not np.allclose(supercell_template.lattice.matrix, structure.lattice.matrix,
                           rtol=tol, atol=tol):
             logger.debug("Lattice mismatch detected")
             raise ValueError("No mapping found: lattice parameters don't match within tolerance")
 
-        # 4.5. Use distance-based mapping to find which template sites correspond to structure sites
-        # For each structure site, find the nearest template site
-        from scipy.spatial.distance import cdist
-        template_coords = supercell_template.frac_coords
-        structure_coords = structure.frac_coords
-
-        # distances[i, j] = distance from template site i to structure site j
-        distances = cdist(template_coords, structure_coords, metric='euclidean')
-
-        # For each structure site j, find the closest template site
-        # This gives us which template sites are occupied
-        template_site_indices = np.argmin(distances, axis=0)
-
-        # Validate that all mappings are within tolerance
-        min_distances = np.min(distances, axis=0)
-        if np.any(min_distances > tol):
-            logger.debug(f"Some sites exceed tolerance: max distance = {np.max(min_distances)}")
-            raise ValueError(f"No mapping found: some atoms are too far from template sites (max distance: {np.max(min_distances):.4f}, tolerance: {tol})")
+        if structure_site_mapping is None:
+            template_site_indices = self._infer_structure_site_mapping(
+                supercell_template,
+                structure,
+                tol=tol,
+            )
+        else:
+            template_site_indices = np.array(structure_site_mapping, dtype=int)
+            if len(template_site_indices) != len(structure):
+                raise ValueError(
+                    "structure_site_mapping length must match the number of "
+                    "input structure sites"
+                )
+            if (
+                len(template_site_indices) > 0
+                and (
+                    np.min(template_site_indices) < 0
+                    or np.max(template_site_indices) >= len(supercell_template)
+                )
+            ):
+                raise ValueError(
+                    "structure_site_mapping contains indices outside the "
+                    "supercell template"
+                )
 
         logger.debug(f"Structure sites map to template sites: {template_site_indices}")
 
@@ -193,19 +229,18 @@ class LatticeStructure(ABC):
                 )
 
             actual_species = structure[structure_site_index].specie
-            if self._species_matches(actual_species, allowed_species[0]):
-                occ_data[template_site_index] = self.basis.match_value
-            elif any(
-                self._species_matches(actual_species, allowed)
-                for allowed in allowed_species[1:]
-            ):
-                occ_data[template_site_index] = self.basis.mismatch_value
-            else:
+            try:
+                occ_data[template_site_index] = self.occupation_value_for_species(
+                    template_site_index,
+                    actual_species,
+                    allowed_species=allowed_species,
+                )
+            except ValueError:
                 raise ValueError(
                     "No mapping found: species "
                     f"{actual_species} is not allowed at template site "
                     f"{template_site_index}"
-                )
+                ) from None
         
         logger.debug(f"Occupation vector: {occ_data}")
         
@@ -213,14 +248,84 @@ class LatticeStructure(ABC):
         return Occupation(occ_data, basis=self.basis, validate=False)
 
     @staticmethod
+    def _infer_structure_site_mapping(
+        supercell_template: Structure,
+        structure: Structure,
+        tol: float,
+    ) -> np.ndarray:
+        """Infer structure-site to supercell-template indices from fractional coordinates."""
+        template_coords = supercell_template.frac_coords
+        structure_coords = structure.frac_coords
+
+        # distances[i, j] = minimum-image fractional distance from template site
+        # i to structure site j. This keeps the historical tolerance semantics
+        # while handling sites close to periodic boundaries.
+        deltas = template_coords[:, None, :] - structure_coords[None, :, :]
+        deltas -= np.round(deltas)
+        distances = np.linalg.norm(deltas, axis=2)
+
+        template_site_indices = np.argmin(distances, axis=0)
+        min_distances = np.min(distances, axis=0)
+        if np.any(min_distances > tol):
+            logger.debug(
+                "Some sites exceed tolerance: max distance = %s",
+                np.max(min_distances),
+            )
+            raise ValueError(
+                "No mapping found: some atoms are too far from template sites "
+                f"(max distance: {np.max(min_distances):.4f}, tolerance: {tol})"
+            )
+        return template_site_indices
+
+    @staticmethod
     def _species_matches(actual, expected) -> bool:
-        if actual == expected:
-            return True
-        if isinstance(expected, Vacancy):
-            return isinstance(actual, Vacancy)
-        actual_element = getattr(actual, "element", actual)
-        expected_element = getattr(expected, "element", expected)
-        return actual_element == expected_element
+        return species_equivalent(actual, expected)
+
+    @staticmethod
+    def _is_vacancy_species(specie) -> bool:
+        return is_vacancy_species(specie)
+
+    @staticmethod
+    def _species_tokens(specie) -> set[str]:
+        return species_tokens(specie)
+
+    def _missing_occupation_value(self, allowed_species):
+        if not allowed_species:
+            return self.basis.mismatch_value
+        for state_index, specie in enumerate(allowed_species):
+            if self._is_vacancy_species(specie):
+                return self.basis.state_value(state_index, len(allowed_species))
+        fallback_state = 1 if len(allowed_species) > 1 else 0
+        return self.basis.state_value(fallback_state, len(allowed_species))
+
+    def occupation_value_for_species(
+        self,
+        site_index: int,
+        specie,
+        allowed_species=None,
+    ):
+        """Return the occupation value for a species at a template site."""
+        allowed_species = (
+            self.allowed_species[int(site_index)]
+            if allowed_species is None
+            else allowed_species
+        )
+        if not allowed_species:
+            raise ValueError(f"No allowed species defined for site {site_index}")
+        for state_index, allowed in enumerate(allowed_species):
+            if self._species_matches(specie, allowed):
+                return self.basis.state_value(state_index, len(allowed_species))
+        raise ValueError(f"Species {specie} is not allowed at site {site_index}")
+
+    def species_for_occupation_value(self, site_index: int, value):
+        """Return the allowed species represented by an occupation value."""
+        allowed_species = self.allowed_species[int(site_index)]
+        if not allowed_species:
+            raise ValueError(f"No allowed species defined for site {site_index}")
+        for state_index, specie in enumerate(allowed_species):
+            if value == self.basis.state_value(state_index, len(allowed_species)):
+                return specie
+        raise ValueError(f"Unsupported occupation value {value} at site {site_index}")
         
     def get_structure_from_occ(self, occ: Occupation, sc_matrix=None) -> Structure:
         '''get_structure_from_occ() takes an Occupation object and returns a pymatgen Structure
@@ -249,21 +354,15 @@ class LatticeStructure(ABC):
         # Iterate through the sites and set species based on occupation
         for i, site in enumerate(new_lattice_structure.template_structure):
             occ_value = occ[i]  # Get occupation value at site i
-            if occ_value == self.basis.mismatch_value:
-                # If mismatch, set to the second allowed species for this site
-                site.species = self.allowed_species[i][1]
-            elif occ_value == self.basis.match_value:
-                # If match, set to the first allowed species (template)
-                site.species = self.allowed_species[i][0]
-                # if isinstance(self.allowed_species[i][0], Vacancy):
-                #     # If it's a vacancy, we should remove the site
-                #     # Note: This needs to be done carefully to avoid index issues
-                #     pass  # Handle vacancy removal in a separate step
+            site.species = new_lattice_structure.species_for_occupation_value(
+                i,
+                occ_value,
+            )
         
         # Remove vacancy sites in reverse order to avoid index shifting issues
         vacancy_indices = []
         for i, site in enumerate(new_lattice_structure.template_structure):
-            if isinstance(site.specie, Vacancy) or getattr(site.specie, "symbol", None) == "X":
+            if is_vacancy_species(site.specie):
                 vacancy_indices.append(i)
         
         # Remove vacancy sites from the end to avoid index issues
@@ -275,7 +374,7 @@ class LatticeStructure(ABC):
     def copy(self):
         '''Create a copy of the LatticeStructure'''
         return LatticeStructure(self.template_structure.copy(),
-                                self.specie_site_mapping.copy(),
+                                self.site_mapping.copy(),
                                 self.basis_type)
     
     def make_supercell(self, sc_matrix: np.ndarray):
@@ -295,7 +394,7 @@ class LatticeStructure(ABC):
         return f"""LatticeStructure with {len(self.template_structure)} sites
         Template structure:\n {self.template_structure}
         Allowed species: {self.allowed_species}
-        Species mapping: {self.specie_site_mapping}
+        Site mapping: {self.site_mapping}
         Basis type: {self.basis_type}"""
     
     def __repr__(self):
@@ -307,6 +406,6 @@ class LatticeStructure(ABC):
         """
         return {
             "template_structure": self.template_structure.as_dict(),
-            "specie_site_mapping": self.specie_site_mapping,
+            "site_mapping": self.site_mapping,
             "basis_type": self.basis_type
         }

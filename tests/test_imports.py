@@ -2,9 +2,9 @@ import importlib
 import pytest
 
 @pytest.mark.parametrize("module_path", [
-    "kmcpy.external.structure",
-    "kmcpy.external.cif",
-    "kmcpy.external.local_env",
+    "kmcpy.io.cif",
+    "kmcpy.structure.sites",
+    "kmcpy.structure.neighbors",
     "kmcpy.simulator",  # New simulator module
     "kmcpy.simulator.kmc",
     "kmcpy.event",
@@ -13,6 +13,7 @@ import pytest
     "kmcpy.cli.main",
     "kmcpy.cli.init",
     "kmcpy.simulator.tracker",
+    "kmcpy.units",
 ])
 def test_module_imports(module_path):
     """Test that modules can be imported without circular import errors."""
@@ -21,16 +22,6 @@ def test_module_imports(module_path):
     except ImportError as e:
         pytest.fail(f"Failed to import {module_path}: {e}")
 
-@pytest.mark.parametrize("module_path", [
-    "kmcpy.external",
-])
-def test_top_level_imports(module_path):
-    try:
-        importlib.import_module(module_path)
-    except ImportError as e:
-        pytest.fail(f"Failed to import top-level {module_path}: {e}")
-
-
 def test_public_run_api():
     import kmcpy
 
@@ -38,6 +29,8 @@ def test_public_run_api():
     assert callable(kmcpy.run)
     assert hasattr(kmcpy, "Configuration")
     assert hasattr(kmcpy, "State")
+    assert hasattr(kmcpy, "LocalBarrierModel")
+    assert hasattr(kmcpy, "UNIT_CONVENTIONS")
 
 def test_simulation_config_classes():
     """Test that configuration classes can be imported and instantiated."""
@@ -94,3 +87,5 @@ def test_public_aliases():
 
     assert hasattr(kmcpy, "Configuration")
     assert hasattr(kmcpy, "State")
+    assert hasattr(kmcpy, "LocalBarrierModel")
+    assert kmcpy.unit_for("conductivity") == "mS/cm"

@@ -16,15 +16,20 @@ from typing import Any
 import numpy as np
 
 from kmcpy.event import Event, EventLib
-from kmcpy.io.config_io import ConfigIO
-from kmcpy.io.serialization import to_json_compatible
+from monty.serialization import dumpfn
+from kmcpy.models.composite_lce_model import CompositeLCEModel
+from kmcpy.models.fitting.fitter import LCEFitter
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
-from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
+from kmcpy.structure import ActiveSiteOrder, LocalSiteOrder
+from kmcpy.io.cif import load_labeled_structure_from_cif
 
 
 DEFAULT_SOURCE_REPO = Path("/home/jerry/work/tmp/project_nasicon_kmc")
 DEFAULT_OUTPUT_DIR = Path("/tmp/kmcpy_nasicon_repro")
+NASICON_SITE_MAPPING = {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
+NASICON_STRUCTURE = "local_cluster_expansion_new/EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
 
 
 def _sha256(path: Path) -> str:
@@ -37,8 +42,7 @@ def _sha256(path: Path) -> str:
 
 def _json_dump(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, default=to_json_compatible)
+    dumpfn(payload, path, indent=2)
 
 
 def _read_csv_rows(path: Path) -> list[dict[str, str]]:
@@ -90,8 +94,8 @@ def _legacy_lce_to_dict(legacy_lce: Any, name: str) -> dict[str, Any]:
         "@class": "LocalClusterExpansion",
         "name": name,
         "cluster_site_indices": _nested_int_lists(cluster_site_indices),
-        "ordering_convention": LocalSiteOrderingConvention.from_name(
-            "nasicon_publication_v1"
+        "local_site_order": LocalSiteOrder.from_name(
+            "nasicon_nat_commun_2022"
         ).as_dict(),
     }
 
@@ -103,6 +107,52 @@ def _latest_fit_record(path: Path) -> dict[str, Any]:
         raise ValueError(f"No fitting rows found in {path}")
     rows_with_ts = [row for row in rows if row.get("time_stamp") is not None]
     return max(rows_with_ts, key=lambda row: row["time_stamp"]) if rows_with_ts else rows[-1]
+
+
+def _load_2d_array(path: Path, **kwargs) -> np.ndarray:
+    values = np.loadtxt(path, **kwargs)
+    if values.ndim == 1:
+        values = values.reshape(1, -1)
+    return values
+
+
+def _correlation_matrix_from_occupation(
+    occupation_matrix: np.ndarray, cluster_site_indices: Any
+) -> np.ndarray:
+    rows = []
+    for occupation in occupation_matrix:
+        corr_row = []
+        for orbit in cluster_site_indices:
+            orbit_sum = 0.0
+            for cluster in orbit:
+                indices = [int(index) for index in cluster]
+                orbit_sum += float(np.prod(occupation[indices]))
+            corr_row.append(orbit_sum)
+        rows.append(corr_row)
+    return np.array(rows, dtype=float)
+
+
+def _value_check(actual: np.ndarray, expected: np.ndarray, *, atol: float = 1e-12) -> dict[str, Any]:
+    if actual.shape != expected.shape:
+        raise ValueError(
+            f"Numeric check shape mismatch: calculated {actual.shape}, expected {expected.shape}"
+        )
+    abs_diff = np.abs(actual - expected)
+    max_abs_diff = float(abs_diff.max()) if abs_diff.size else 0.0
+    allclose = bool(np.allclose(actual, expected, atol=atol, rtol=0.0))
+    if not allclose:
+        raise ValueError(
+            f"Numeric check failed: max absolute difference {max_abs_diff} exceeds {atol}"
+        )
+    return {
+        "allclose_atol": atol,
+        "max_abs_diff": max_abs_diff,
+        "nonzero_diff_count": int(np.count_nonzero(abs_diff > atol)),
+    }
+
+
+def _selected_rows(rows: list[dict[str, str]]) -> np.ndarray:
+    return np.array([int(float(row["select"])) == 1 for row in rows], dtype=bool)
 
 
 def validate_neb_sources(source_repo: Path) -> dict[str, Any]:
@@ -145,14 +195,26 @@ def validate_neb_sources(source_repo: Path) -> dict[str, Any]:
         raise FileNotFoundError(f"Missing CIF environments: {missing_cifs}")
 
     selected_rows = [row for row in rows if int(float(row["select"])) == 1]
-    correlation_matrix = np.loadtxt(corr_file)
-    if correlation_matrix.ndim == 1:
-        correlation_matrix = correlation_matrix.reshape(1, -1)
+    correlation_matrix = _load_2d_array(corr_file)
     if correlation_matrix.shape[0] != len(rows):
         raise ValueError(
             f"Correlation matrix row count {correlation_matrix.shape[0]} "
             f"does not match NEB-derived rows {len(rows)}"
         )
+
+    occupation_file = lce_dir / "occupation.txt"
+    if not occupation_file.exists():
+        raise FileNotFoundError(f"Missing occupation matrix: {occupation_file}")
+    occupation_matrix = _load_2d_array(occupation_file)
+    legacy_lce = _load_legacy_pickle(
+        source_repo, "local_cluster_expansion_new/local_cluster_expansion.pkl"
+    )
+    calculated_correlation_matrix = _correlation_matrix_from_occupation(
+        occupation_matrix, legacy_lce.sublattice_indices
+    )
+    correlation_value_check = _value_check(
+        calculated_correlation_matrix, correlation_matrix
+    )
 
     raw_neb_dirs = [
         source_repo / "local_cluster_expansion" / "data_house" / "neb_ci",
@@ -165,16 +227,94 @@ def validate_neb_sources(source_repo: Path) -> dict[str, Any]:
     return {
         "data_csv": str(data_csv),
         "correlation_matrix": str(corr_file),
+        "occupation_matrix": str(occupation_file),
         "environment_dir": str(env_dir),
         "row_count": len(rows),
         "selected_row_count": len(selected_rows),
         "correlation_matrix_shape": list(correlation_matrix.shape),
+        "occupation_matrix_shape": list(occupation_matrix.shape),
+        "correlation_value_check": correlation_value_check,
         "raw_neb_profile_count": raw_neb_profile_count,
         "hashes": {
             "data_csv": _sha256(data_csv),
             "correlation_matrix": _sha256(corr_file),
+            "occupation_matrix": _sha256(occupation_file),
         },
     }
+
+
+def validate_fit_reproduction(source_repo: Path, output_dir: Path) -> dict[str, Any]:
+    lce_dir = source_repo / "local_cluster_expansion_new"
+    rows = _read_csv_rows(lce_dir / "data.csv")
+    selected = _selected_rows(rows)
+    correlation_matrix = _load_2d_array(lce_dir / "correlation_matrix.txt")[selected]
+    artifacts_dir = output_dir / "artifacts" / "fit_reproduction"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    checks = {}
+    targets = {
+        "kra": {
+            "column": "ekra",
+            "weight_column": "weight_ekra",
+            "alpha": 1.1,
+            "fit_file": lce_dir / "fitting_ekra.json",
+        },
+        "site": {
+            "column": "esite",
+            "weight_column": "weight_esite",
+            "alpha": 2.5,
+            "fit_file": lce_dir / "fitting_esite.json",
+        },
+    }
+    selected_rows = [row for row, is_selected in zip(rows, selected) if is_selected]
+    for label, settings in targets.items():
+        fit_dir = artifacts_dir / label
+        fit_dir.mkdir(parents=True, exist_ok=True)
+        y_true = np.array([float(row[settings["column"]]) for row in selected_rows])
+        weight = np.array([float(row[settings["weight_column"]]) for row in selected_rows])
+        corr_file = fit_dir / "correlation_matrix.txt"
+        target_file = fit_dir / "target.txt"
+        weight_file = fit_dir / "weight.txt"
+        keci_file = fit_dir / "keci.txt"
+        np.savetxt(corr_file, correlation_matrix, fmt="%.18e")
+        np.savetxt(target_file, y_true, fmt="%.18e")
+        np.savetxt(weight_file, weight, fmt="%.18e")
+
+        fit_record = _latest_fit_record(settings["fit_file"])
+        legacy_keci = np.array(fit_record["keci"], dtype=float)
+        legacy_empty_cluster = float(fit_record["empty_cluster"])
+        legacy_prediction = correlation_matrix @ legacy_keci + legacy_empty_cluster
+        params, y_pred, _ = LocalClusterExpansion().fit(
+            alpha=settings["alpha"],
+            max_iter=1000000,
+            ekra_fname=str(target_file),
+            weight_fname=str(weight_file),
+            corr_fname=str(corr_file),
+            keci_fname=str(keci_file),
+            lce_params_fname=None,
+            lce_params_history_fname=None,
+            fit_results_fname=None,
+        )
+        keci_check = _value_check(np.array(params.keci), legacy_keci, atol=1e-9)
+        prediction_check = _value_check(np.array(y_pred), legacy_prediction, atol=1e-9)
+        rmse_abs_diff = abs(float(params.rmse) - float(fit_record["rmse"]))
+        loocv_abs_diff = abs(float(params.loocv) - float(fit_record["loocv"]))
+        if rmse_abs_diff > 1e-9 or loocv_abs_diff > 1e-9:
+            raise ValueError(
+                f"{label} fit metrics do not reproduce legacy values: "
+                f"rmse diff={rmse_abs_diff}, loocv diff={loocv_abs_diff}"
+            )
+        checks[label] = {
+            "alpha": settings["alpha"],
+            "keci": keci_check,
+            "prediction": prediction_check,
+            "empty_cluster_abs_diff": abs(
+                float(params.empty_cluster) - legacy_empty_cluster
+            ),
+            "rmse_abs_diff": rmse_abs_diff,
+            "loocv_abs_diff": loocv_abs_diff,
+        }
+    return checks
 
 
 def convert_legacy_lce_model(source_repo: Path, output_dir: Path) -> dict[str, Path]:
@@ -188,22 +328,31 @@ def convert_legacy_lce_model(source_repo: Path, output_dir: Path) -> dict[str, P
     _json_dump(lce_json, _legacy_lce_to_dict(legacy_lce, "NASICONLegacyLCE"))
 
     model_json = artifacts_dir / "model.json"
-    bundle = ConfigIO.build_model_bundle_from_legacy_files(
-        kra_lce=str(lce_json),
-        kra_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_ekra.json"),
-        site_lce=str(lce_json),
-        site_fit=str(source_repo / "local_cluster_expansion_new" / "fitting_esite.json"),
-    )
-    ConfigIO.save_model_bundle(bundle, str(model_json))
+    kra_fit_file = source_repo / "local_cluster_expansion_new" / "fitting_ekra.json"
+    site_fit_file = source_repo / "local_cluster_expansion_new" / "fitting_esite.json"
 
-    keci_length = len(bundle["kra"]["parameters"]["keci"])
-    cluster_count = len(bundle["kra"]["lce"]["cluster_site_indices"])
+    kra_model = LocalClusterExpansion.from_file(str(lce_json))
+    kra_model.set_parameters(LCEFitter.from_file(str(kra_fit_file)).model_parameters)
+    site_model = LocalClusterExpansion.from_file(str(lce_json))
+    site_model.set_parameters(LCEFitter.from_file(str(site_fit_file)).model_parameters)
+
+    model = CompositeLCEModel(
+        site_model=site_model,
+        kra_model=kra_model,
+        kra_fit_metadata=_latest_fit_record(kra_fit_file),
+        site_fit_metadata=_latest_fit_record(site_fit_file),
+    )
+    model.to(str(model_json))
+    model_data = model.as_dict()
+
+    keci_length = len(model_data["kra"]["parameters"]["keci"])
+    cluster_count = len(model_data["kra"]["lce"]["cluster_site_indices"])
     if keci_length != cluster_count:
         raise ValueError(
             f"Fitted KRA KECI length {keci_length} does not match "
             f"legacy LCE cluster count {cluster_count}"
         )
-    site_keci_length = len(bundle["site"]["parameters"]["keci"])
+    site_keci_length = len(model_data["site"]["parameters"]["keci"])
     if site_keci_length != cluster_count:
         raise ValueError(
             f"Fitted site KECI length {site_keci_length} does not match "
@@ -232,9 +381,18 @@ def convert_legacy_events(source_repo: Path, output_dir: Path) -> Path:
             )
         )
     event_lib.generate_event_dependencies()
+    primitive_structure = load_labeled_structure_from_cif(
+        str(source_repo / NASICON_STRUCTURE), primitive=True
+    )
+    active_site_order = ActiveSiteOrder.from_structure_and_mapping(
+        primitive_structure,
+        NASICON_SITE_MAPPING,
+        supercell_shape=(2, 2, 2),
+    )
+    event_lib.set_index_metadata(active_site_order)
 
     event_json = artifacts_dir / "events_222_double.json"
-    event_lib.to_json(str(event_json))
+    event_lib.to(str(event_json))
     return event_json
 
 
@@ -258,7 +416,7 @@ def run_quick_kmc(
     run_dir = output_dir / "run"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    structure_file = source_repo / "local_cluster_expansion_new" / "EntryWithCollCode15546_Na4Zr2Si3O12_573K.cif"
+    structure_file = source_repo / NASICON_STRUCTURE
     config = Configuration.create(
         structure_file=str(structure_file),
         model_file=str(model_json),
@@ -270,7 +428,7 @@ def run_quick_kmc(
         equilibration_passes=1,
         kmc_passes=20,
         supercell_shape=(2, 2, 2),
-        immutable_sites=("Zr", "O", "Zr4+", "O2-"),
+        site_mapping=NASICON_SITE_MAPPING,
         convert_to_primitive_cell=True,
         mobile_ion_charge=1.0,
         elementary_hop_distance=3.47782,
@@ -284,7 +442,7 @@ def run_quick_kmc(
     original_cwd = Path.cwd()
     try:
         os.chdir(run_dir)
-        tracker = kmc.run(config)
+        tracker = kmc.run()
     finally:
         os.chdir(original_cwd)
 
@@ -335,6 +493,7 @@ def run_reproduction(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     neb_summary = validate_neb_sources(source_repo)
+    fit_value_checks = validate_fit_reproduction(source_repo, output_dir)
     model_artifacts = convert_legacy_lce_model(source_repo, output_dir)
     event_json = convert_legacy_events(source_repo, output_dir)
     initial_occupations = load_initial_occupations(source_repo)
@@ -377,6 +536,7 @@ def run_reproduction(
             "kra": _latest_fit_record(Path(fitting_sources["kra"])),
             "site": _latest_fit_record(Path(fitting_sources["site"])),
         },
+        "fit_value_checks": fit_value_checks,
         "event_count": len(event_payload["events"]),
         "quick_run": run_summary,
     }

@@ -21,7 +21,7 @@ def test_write_template_creates_parseable_config(tmp_path: Path):
     assert "kmc_passes" in template_text
     assert "builtin_property_enabled" in template_text
     assert "property_callbacks" in template_text
-    assert "# ----- Runtime parameters -----" in template_text
+    assert "# ----- Runtime fields -----" in template_text
 
     from_file_config = Configuration.from_file(str(output_file))
     assert from_file_config.structure_file == "path/to/structure.cif"
@@ -40,7 +40,7 @@ def test_configuration_from_file_rejects_unknown_template_keys(tmp_path: Path):
     )
     output_file.write_text(template_text, encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Unknown parameters"):
+    with pytest.raises(ValueError, match="Unknown configuration fields"):
         Configuration.from_file(str(output_file))
 
 

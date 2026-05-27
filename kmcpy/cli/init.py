@@ -29,21 +29,21 @@ def build_template() -> str:
         kmc:
           type: default
           default:
-            # ----- Required system inputs -----
+            # ----- Required loader inputs -----
             # Path to crystal structure (CIF/structure file)
             structure_file: "path/to/structure.cif"
             # Path to migration event library JSON
             event_file: "path/to/event.json"
-            # Path to bundled model JSON (format: kmcpy.model_bundle.v1)
+            # Path to serialized model JSON
             model_file: "path/to/model.json"
 
-            # ----- Optional system files -----
+            # ----- Optional loader inputs -----
             # Optional serialized initial simulation state file
             initial_state_file: null
             # Optional direct initial occupations list (used if state file is null)
             initial_occupations: null
 
-            # ----- System parameters -----
+            # ----- System fields -----
             # Supercell replication factors [a, b, c]
             supercell_shape: [1, 1, 1]
             # Dimensionality of transport (1, 2, or 3)
@@ -54,14 +54,16 @@ def build_template() -> str:
             mobile_ion_charge: 1.0
             # Characteristic hop distance (Angstrom)
             elementary_hop_distance: 1.0
-            # Model selector: composite_lce / lce / tabulated
+            # Optional model selector for hand-written payloads. Files written
+            # by model.to(...) infer this from model_file.
             model_type: "composite_lce"
-            # Sites to freeze (indices, labels, or species depending on workflow)
-            immutable_sites: []
+            # Site mapping. One allowed species means fixed; multiple means active.
+            site_mapping:
+              Li: [Li, X]
             # Convert structure to primitive cell before simulation
             convert_to_primitive_cell: false
 
-            # ----- Runtime parameters -----
+            # ----- Runtime fields -----
             # Temperature in Kelvin
             temperature: 300.0
             # Attempt frequency (Hz)
@@ -78,11 +80,17 @@ def build_template() -> str:
             # ----- Optional property sampling controls -----
             # Global property sampling event-step interval (null = default once per pass)
             property_sampling_interval: null
-            # Global property sampling time interval (null = disabled)
+            # Global property sampling time interval in seconds (null = disabled)
             property_sampling_time_interval: null
             # Built-in property toggles (defaults to enabled for all fields)
             # Supported keys: msd, jump_diffusivity, tracer_diffusivity,
             #                 conductivity, havens_ratio, correlation_factor
+            # Output units:
+            #   time: s
+            #   msd: Angstrom^2
+            #   jump_diffusivity, tracer_diffusivity: cm^2/s
+            #   conductivity: mS/cm
+            #   havens_ratio, correlation_factor: dimensionless
             builtin_property_enabled: {}
             # Optional custom callback definitions resolved by import path.
             # Example:

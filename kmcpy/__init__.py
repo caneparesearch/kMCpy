@@ -10,14 +10,16 @@ from .models import (
     BaseModel,
     LocalClusterExpansion,
     CompositeLCEModel,
-    TabulatedEntry,
-    TabulatedModel,
+    LocalBarrierModel,
+    MappedOccupationChange,
+    SiteEnergyModel,
 )
 from .simulator.kmc import KMC
-from .event import Event, EventGenerator, NeighborInfoMatcher
+from .event import Event, EventGenerator
 from .simulator.config import Configuration, SystemConfig, RuntimeConfig
 from .simulator.state import State
 from .simulator.tracker import Tracker
+from .units import UNIT_CONVENTIONS, TRANSPORT_PROPERTY_UNITS, unit_for
 
 __author__ = "kMCpy Development Team"
 __author_email__ = "dengzeyu@gmail.com"
@@ -29,18 +31,21 @@ __all__ = [
     "get_logo",
     "BaseModel",
     "LocalClusterExpansion", 
-    "TabulatedModel",
-    "TabulatedEntry",
+    "LocalBarrierModel",
     "CompositeLCEModel",
+    "MappedOccupationChange",
+    "SiteEnergyModel",
     "KMC",
     "Event",
     "EventGenerator",
-    "NeighborInfoMatcher",
     "Configuration",
     "SystemConfig",
     "RuntimeConfig",
     "State",
-    "Tracker"
+    "Tracker",
+    "UNIT_CONVENTIONS",
+    "TRANSPORT_PROPERTY_UNITS",
+    "unit_for",
 ]
 
 

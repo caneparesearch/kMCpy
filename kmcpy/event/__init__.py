@@ -5,12 +5,21 @@ This module defines the Event class and EventLib for managing migration events i
 """
 
 from .base import Event, EventLib
-from .generators import EventGenerator, NeighborInfoMatcher
+from .generators import EventGenerator
+from .hop import (
+    HopStateLookup,
+    INVALID_STATE,
+    endpoint_direction_from_codes,
+    event_direction,
+)
 
 
 __all__ = [
     'Event',
     'EventLib',
     'EventGenerator',
-    'NeighborInfoMatcher',
+    'HopStateLookup',
+    'INVALID_STATE',
+    'endpoint_direction_from_codes',
+    'event_direction',
 ]

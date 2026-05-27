@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional
 
 import numpy as np
+
+from kmcpy.units import (
+    ANGSTROM_SQUARED_TO_CM_SQUARED,
+    BOLTZMANN_CONSTANT_MEV_PER_K,
+    CONDUCTIVITY_MS_PER_CM_FACTOR,
+    TRANSPORT_PROPERTY_UNITS,
+)
 
 if TYPE_CHECKING:
     from kmcpy.simulator.state import State
@@ -101,6 +108,212 @@ BUILTIN_PROPERTY_FIELDS = (
     "correlation_factor",
 )
 
+BUILTIN_PROPERTY_UNITS = {
+    field: TRANSPORT_PROPERTY_UNITS[field] for field in BUILTIN_PROPERTY_FIELDS
+}
+
+
+def make_property_spec(
+    func: Callable[["State", int, float], Any],
+    *,
+    interval: Optional[int] = None,
+    time_interval: Optional[float] = None,
+    name: Optional[str] = None,
+    store: bool = True,
+    max_records: Optional[int] = None,
+    on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
+    enabled: bool = True,
+    existing_names: set[str] | None = None,
+) -> PropertySpec:
+    """Validate callback metadata and return a property sampling spec."""
+    if not callable(func):
+        raise TypeError("func must be callable")
+
+    validate_schedule(interval=interval, time_interval=time_interval)
+    validate_max_records(max_records=max_records)
+
+    property_name = name or getattr(func, "__name__", "attached_property")
+    if property_name in BUILTIN_PROPERTY_FIELDS:
+        raise ValueError(
+            f"'{property_name}' is reserved for built-in properties"
+        )
+    if existing_names is not None and property_name in existing_names:
+        raise ValueError(f"Property '{property_name}' is already attached")
+
+    return PropertySpec(
+        name=property_name,
+        callback=func,
+        interval=interval,
+        time_interval=time_interval,
+        store=store,
+        max_records=max_records,
+        enabled=bool(enabled),
+        on_error=on_error,
+    )
+
+
+def describe_property_calculations(
+    *,
+    builtin_enabled: Mapping[str, bool],
+    attached_properties: Mapping[str, PropertySpec],
+) -> dict[str, list[str]]:
+    """Return enabled/disabled built-ins and custom callbacks."""
+    built_in_enabled = [
+        name for name in BUILTIN_PROPERTY_FIELDS if builtin_enabled.get(name, True)
+    ]
+    built_in_disabled = [
+        name for name in BUILTIN_PROPERTY_FIELDS if not builtin_enabled.get(name, True)
+    ]
+    attached_enabled = [
+        name for name, spec in attached_properties.items() if spec.enabled
+    ]
+    attached_disabled = [
+        name for name, spec in attached_properties.items() if not spec.enabled
+    ]
+    return {
+        "built_in_enabled": built_in_enabled,
+        "built_in_disabled": built_in_disabled,
+        "attached_enabled": attached_enabled,
+        "attached_disabled": attached_disabled,
+    }
+
+
+def set_property_enabled_flag(
+    *,
+    builtin_enabled: dict[str, bool],
+    attached_properties: dict[str, PropertySpec],
+    name: str,
+    enabled: bool,
+) -> None:
+    """Enable or disable one built-in metric or custom callback."""
+    if name in builtin_enabled:
+        builtin_enabled[name] = bool(enabled)
+        return
+
+    if name not in attached_properties:
+        raise ValueError(f"Unknown property '{name}'")
+    attached_properties[name].enabled = bool(enabled)
+
+
+class PropertyPlan:
+    """
+    Property sampling recipe for a KMC run.
+
+    The plan stores user intent: global cadence, enabled built-in fields, and
+    custom callback registrations. Runtime sampling state and stored records
+    belong to the Tracker.
+    """
+
+    def __init__(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        builtin_enabled: Mapping[str, bool] | None = None,
+    ) -> None:
+        validate_schedule(interval=interval, time_interval=time_interval)
+        self._global_interval = interval
+        self._global_time_interval = time_interval
+        self._enabled_builtin_properties = {
+            name: True for name in BUILTIN_PROPERTY_FIELDS
+        }
+        self._attached_properties: dict[str, PropertySpec] = {}
+        if builtin_enabled:
+            for name, enabled in builtin_enabled.items():
+                self.set_property_enabled(name, bool(enabled))
+
+    @property
+    def global_interval(self) -> Optional[int]:
+        """Return the configured global step interval."""
+        return self._global_interval
+
+    @property
+    def global_time_interval(self) -> Optional[float]:
+        """Return the configured global simulation-time interval."""
+        return self._global_time_interval
+
+    @property
+    def builtin_enabled(self) -> dict[str, bool]:
+        """Return a copy of built-in property enablement flags."""
+        return self._enabled_builtin_properties.copy()
+
+    def set_frequency(
+        self,
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+    ) -> None:
+        """Set the global sampling cadence for built-ins and callbacks."""
+        validate_schedule(interval=interval, time_interval=time_interval)
+        self._global_interval = interval
+        self._global_time_interval = time_interval
+
+    def attach(
+        self,
+        func: Callable[["State", int, float], Any],
+        interval: Optional[int] = None,
+        time_interval: Optional[float] = None,
+        name: Optional[str] = None,
+        store: bool = True,
+        max_records: Optional[int] = None,
+        on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
+        enabled: bool = True,
+    ) -> str:
+        """Register a custom property callback in the plan."""
+        spec = make_property_spec(
+            func,
+            interval=interval,
+            time_interval=time_interval,
+            name=name,
+            store=store,
+            max_records=max_records,
+            on_error=on_error,
+            enabled=enabled,
+            existing_names=set(self._attached_properties),
+        )
+        self._attached_properties[spec.name] = spec
+        return spec.name
+
+    def detach(self, name: str) -> None:
+        """Remove a custom property callback from the plan."""
+        if name not in self._attached_properties:
+            raise ValueError(f"Callback '{name}' is not attached")
+        del self._attached_properties[name]
+
+    def clear_attachments(self) -> None:
+        """Remove all custom callbacks while preserving built-in settings."""
+        self._attached_properties.clear()
+
+    def list_attachments(self) -> list[str]:
+        """Return registered custom callback names."""
+        return list(self._attached_properties.keys())
+
+    def list_property_calculations(self) -> dict[str, list[str]]:
+        """Return enabled/disabled built-ins and custom callbacks."""
+        return describe_property_calculations(
+            builtin_enabled=self._enabled_builtin_properties,
+            attached_properties=self._attached_properties,
+        )
+
+    def set_property_enabled(self, name: str, enabled: bool) -> None:
+        """Enable or disable one built-in field or custom callback."""
+        set_property_enabled_flag(
+            builtin_enabled=self._enabled_builtin_properties,
+            attached_properties=self._attached_properties,
+            name=name,
+            enabled=enabled,
+        )
+
+    def fresh_attachment_specs(self) -> list[PropertySpec]:
+        """
+        Return callback specs with runtime sampling counters reset.
+
+        Trackers mutate ``last_trigger_step`` and ``last_trigger_time`` while
+        sampling, so each run must receive fresh spec objects.
+        """
+        return [
+            replace(spec, last_trigger_step=0, last_trigger_time=None)
+            for spec in self._attached_properties.values()
+        ]
+
 
 def _is_enabled(enabled: Mapping[str, bool] | None, name: str) -> bool:
     """Return True when a metric is enabled under the provided toggle map."""
@@ -122,7 +335,24 @@ def compute_transport_properties(
     temperature: float,
     enabled: Mapping[str, bool] | None = None,
 ) -> dict[str, float]:
-    """Compute built-in transport properties from trajectory state."""
+    """Compute built-in transport properties from trajectory state.
+
+    Unit conventions:
+        displacement: Angstrom
+        sim_time: s
+        elementary_hop_distance: Angstrom
+        volume: Angstrom^3
+        mobile_ion_charge: units of the absolute elementary charge
+        temperature: K
+
+    Returned units are defined by ``TRANSPORT_PROPERTY_UNITS``:
+        msd: Angstrom^2
+        jump_diffusivity: cm^2/s
+        tracer_diffusivity: cm^2/s
+        conductivity: mS/cm
+        havens_ratio: dimensionless
+        correlation_factor: dimensionless
+    """
     nan = float("nan")
 
     displacement_norm_sq = np.linalg.norm(displacement, axis=1) ** 2
@@ -133,12 +363,12 @@ def compute_transport_properties(
         jump_diffusivity_internal = (
             displacement_vector_tot**2
             / (2 * dimension * sim_time * n_mobile_ion_specie)
-            * 10 ** (-16)
+            * ANGSTROM_SQUARED_TO_CM_SQUARED
         )
         tracer_diffusivity_internal = (
             msd_internal
             / (2 * dimension * sim_time)
-            * 10 ** (-16)
+            * ANGSTROM_SQUARED_TO_CM_SQUARED
         )
     else:
         jump_diffusivity_internal = nan
@@ -146,15 +376,13 @@ def compute_transport_properties(
 
     conductivity_internal = nan
     if np.isfinite(jump_diffusivity_internal):
-        k = 8.617333262145 * 10 ** (-2)  # meV/K
         n_carrier = n_mobile_ion_specie / volume
         conductivity_internal = (
             jump_diffusivity_internal
             * n_carrier
             * mobile_ion_charge**2
-            / (k * temperature)
-            * 1.602
-            * 10**11
+            / (BOLTZMANN_CONSTANT_MEV_PER_K * temperature)
+            * CONDUCTIVITY_MS_PER_CM_FACTOR
         )
 
     havens_ratio_internal = nan

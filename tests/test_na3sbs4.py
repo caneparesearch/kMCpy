@@ -6,6 +6,19 @@ file_path = os.path.join(current_dir, 'files')
 
 class TestNa3SbS4(unittest.TestCase):
 
+    def test_generate_events_infers_identifier_kind(self):
+        from kmcpy.event import EventGenerator
+
+        generator = EventGenerator()
+        self.assertEqual(
+            generator._infer_site_selection_kind(("Na+", "Na+"), ["Na"]),
+            "species",
+        )
+        self.assertEqual(
+            generator._infer_site_selection_kind(("Na1", "Na2"), ["Na"]),
+            "label",
+        )
+
     def test_generate_events(self):
         from pathlib import Path
         import os
@@ -14,9 +27,6 @@ class TestNa3SbS4(unittest.TestCase):
         original_cwd = Path.cwd()
         try:
             os.chdir(current_dir)
-            mobile_ion_identifier_type = "label"
-            mobile_ion_specie_identifier = "Na1"
-            mobile_ion_specie_2_identifier = "Na1"
             structure_file = f"{file_path}/Na3SbS4_cubic.cif"
             local_env_cutoff_dict = {("Na+", "Na+"): 5, ("Na+", "Sb5+"): 4}
             from kmcpy.event import EventGenerator
@@ -24,9 +34,8 @@ class TestNa3SbS4(unittest.TestCase):
             reference_local_env_dict = EventGenerator().generate_events(
                 structure_file=structure_file,
                 local_env_cutoff_dict=local_env_cutoff_dict,
-                mobile_ion_identifier_type=mobile_ion_identifier_type,
                 mobile_ion_identifiers=("Na1", "Na1"),
-                species_to_be_removed=["S2-", "S", "Zr4+", "Zr"],
+                site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                 distance_matrix_rtol=0.01,
                 distance_matrix_atol=0.01,
                 find_nearest_if_fail=False,
@@ -58,9 +67,8 @@ class TestNa3SbS4(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmpdir:
                 reference_local_env_dict = EventGenerator().generate_events(
                     structure_file=structure_file,
-                    mobile_species=["Na"],
+                    site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                     local_env_cutoff=5.0,
-                    exclude_species=["S2-", "S", "Zr4+", "Zr"],
                     supercell_shape=[2, 2, 2],
                     event_file=os.path.join(tmpdir, "events.json"),
                     rtol=0.01,
@@ -81,27 +89,18 @@ class TestNa3SbS4(unittest.TestCase):
             os.chdir(current_dir)
             from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
             from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
-            from kmcpy.external.structure import StructureKMCpy
+            from kmcpy.io.cif import load_labeled_structure_from_cif
 
-            mobile_ion_identifier_type = "label"
-            mobile_ion_specie_identifier = "Na1"
-            structure = StructureKMCpy.from_cif(
+            structure = load_labeled_structure_from_cif(
                 filename=f"{file_path}/Na3SbS4_cubic.cif", primitive=True
             )
             a = LocalClusterExpansion()
             local_lattice_structure = LocalLatticeStructure(template_structure=structure, center=0, cutoff=5,
-                                         specie_site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
+                                         site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
                                          basis_type="chebyshev")
             a.build(
                 local_lattice_structure=local_lattice_structure,
-                mobile_ion_identifier_type=mobile_ion_identifier_type,
-                mobile_ion_specie_identifier=mobile_ion_specie_identifier,
                 cutoff_cluster=[6, 6, 0],
-                cutoff_region=5,
-                template_structure_fname=f"{file_path}/Na3SbS4_cubic.cif",  # LCE still uses legacy param name
-                convert_to_primitive_cell=True,
-                is_write_basis=True,
-                species_to_be_removed=["S2-", "S"],
             )
             # Basic test - should verify object creation
             self.assertEqual(1, 1)
@@ -125,7 +124,7 @@ class TestNa3SbS4(unittest.TestCase):
             mobile_ion_charge=1.0,
             mobile_ion_specie="Na",
             supercell_shape=(2, 2, 2),  # Use tuple
-            immutable_sites=("S", "Sb"),  # Use tuple
+            site_mapping={"Na": ["Na", "X"], "Sb": "Sb", "S": "S"},
             
             model_file="fake_model.json",
             event_file="fake_events.json",
@@ -140,7 +139,7 @@ class TestNa3SbS4(unittest.TestCase):
             self.fail(f"Configuration creation failed: {e}")
         
         # Test dictionary conversion
-        config_dict = config.to_dict()
+        config_dict = config.as_dict()
         self.assertIn('name', config_dict)
         self.assertIn('temperature', config_dict)
         self.assertIn('equilibration_passes', config_dict)

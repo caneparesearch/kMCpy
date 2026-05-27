@@ -147,14 +147,9 @@ cython_debug/
 .DS_Store
 .vscode/
 
-# Local agent/LLM tooling
-AGENTS.md
-.agents/
-.claude/
-.codex/
-
 # Ignore results
 *.csv.gz
+results_units*.json.gz
 
 # PyCharm
 #  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can
@@ -175,6 +170,7 @@ reference_distance_matrix.csv
 
 0th_reference_cluster.cif
 0th_reference_local_env.cif
+*th_reference_local_env.cif
 dev/scalability/input/*
 nohup.out*
 

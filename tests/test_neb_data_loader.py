@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pymatgen.core import Lattice, Structure
 
-from kmcpy.io import NEBDataLoader
+from kmcpy.io.neb import NEBDataLoader
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 
@@ -19,7 +19,7 @@ def _build_reference_model():
         template_structure=structure,
         center=[0, 0, 0],
         cutoff=2.5,
-        specie_site_mapping={"Na": ["Na", "X"], "Cl": ["Cl"]},
+        site_mapping={"Na": ["Na", "X"], "Cl": ["Cl"]},
         basis_type="chebyshev",
     )
     model = LocalClusterExpansion()
@@ -38,7 +38,7 @@ def test_loader_adds_structures_directly_and_writes_fit_inputs(tmp_path):
 
     corr = loader.get_correlation_matrix()
     assert corr.shape == (2, len(model.cluster_site_indices))
-    assert loader.get_occupation_matrix().shape == (2, len(structure))
+    assert loader.get_occupation_matrix().shape == (2, 2)
     assert not np.array_equal(corr[0], corr[1])
 
     paths = loader.write_fitting_inputs(tmp_path, weight=[0.5, 2.0])
@@ -79,7 +79,7 @@ def test_lce_computes_correlation_vector_from_structure_with_reference():
         reference_local_lattice_structure=local_lattice,
     )
 
-    assert len(occupation) == len(structure)
+    assert len(occupation) == 2
     assert correlation.shape == (len(serialized_model.cluster_site_indices),)
 
 
@@ -95,7 +95,7 @@ def test_lce_correlation_vector_reflects_allowed_substitution():
         template_structure=structure,
         center=[0, 0, 0],
         cutoff=2.0,
-        specie_site_mapping={"Si": ["Si", "P"], "Na": ["Na", "X"]},
+        site_mapping={"Si": ["Si", "P"], "Na": ["Na", "X"]},
         basis_type="chebyshev",
     )
     model = LocalClusterExpansion()
@@ -113,7 +113,7 @@ def test_lce_correlation_vector_reflects_allowed_substitution():
     assert not np.array_equal(original_corr, substituted_corr)
 
 
-def test_loader_rejects_mismatched_reference_ordering():
+def test_loader_rejects_mismatched_reference_order():
     structure = Structure(
         Lattice.cubic(10.0),
         ["Na", "Na", "Na"],
@@ -124,7 +124,7 @@ def test_loader_rejects_mismatched_reference_ordering():
         template_structure=structure,
         center=[0, 0, 0],
         cutoff=2.5,
-        specie_site_mapping={"Na": ["Na", "X"]},
+        site_mapping={"Na": ["Na", "X"]},
         basis_type="chebyshev",
     )
     model = LocalClusterExpansion()
@@ -134,9 +134,9 @@ def test_loader_rejects_mismatched_reference_ordering():
         template_structure=structure,
         center=[0, 0, 0],
         cutoff=2.5,
-        specie_site_mapping={"Na": ["Na", "X"]},
+        site_mapping={"Na": ["Na", "X"]},
         basis_type="chebyshev",
-        ordering_convention={
+        local_site_order={
             "name": "by_x",
             "sort_keys": ["cartesian_x", "cartesian_y"],
         },
@@ -147,11 +147,11 @@ def test_loader_rejects_mismatched_reference_ordering():
         reference_local_lattice_structure=mismatched_reference,
     )
 
-    with pytest.raises(ValueError, match="ordering does not match"):
+    with pytest.raises(ValueError, match="order does not match"):
         loader.add_structure(structure, 100.0)
 
 
-def test_loader_applies_reference_excluded_species():
+def test_loader_uses_reference_active_site_mapping():
     lattice = Lattice.cubic(10.0)
     structure = Structure(
         lattice,
@@ -163,9 +163,8 @@ def test_loader_applies_reference_excluded_species():
         template_structure=structure,
         center=[0, 0, 0],
         cutoff=2.5,
-        specie_site_mapping={"Na": ["Na", "X"], "Cl": ["Cl"]},
+        site_mapping={"Na": ["Na", "X"], "Cl": ["Cl"]},
         basis_type="chebyshev",
-        exclude_species=["Cl"],
     )
     model = LocalClusterExpansion()
     model.build(local_lattice, cutoff_cluster=[3.0, 0.0, 0.0])
@@ -173,25 +172,29 @@ def test_loader_applies_reference_excluded_species():
     loader = NEBDataLoader(model=model)
     loader.add_structure(structure, 100.0)
 
-    filtered_structure = structure.copy()
-    filtered_structure.remove_species(["Cl"])
     np.testing.assert_allclose(
         loader.get_correlation_matrix()[0],
-        model.get_corr_from_structure(filtered_structure),
+        model.get_corr_from_structure(structure),
     )
+    assert loader.get_occupation_matrix().shape == (1, 2)
 
 
-def test_loader_builds_from_structure_files(tmp_path):
+def test_loader_builds_from_structure_paths(tmp_path):
     model, _, structure = _build_reference_model()
     structure_file = tmp_path / "neb_0001.cif"
     structure.to(filename=str(structure_file), fmt="cif")
 
-    loader = NEBDataLoader.from_structure_files(
+    loader = NEBDataLoader(model=model)
+    entry = loader.add_structure(structure_file, 95.0)
+
+    assert len(loader) == 1
+    assert entry.metadata["structure_file"] == str(structure_file)
+    np.testing.assert_allclose(loader.get_properties(), [95.0])
+
+    rebuilt_loader = NEBDataLoader.from_structures(
         [structure_file],
         [95.0],
         model=model,
     )
-
-    assert len(loader) == 1
-    assert loader.neb_entries[0].metadata["structure_file"] == str(structure_file)
-    np.testing.assert_allclose(loader.get_properties(), [95.0])
+    assert len(rebuilt_loader) == 1
+    assert rebuilt_loader.neb_entries[0].metadata["structure_file"] == str(structure_file)

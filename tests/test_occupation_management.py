@@ -6,6 +6,7 @@ from pymatgen.core import Lattice, Structure
 
 from kmcpy.simulator.config import RuntimeConfig, Configuration, SystemConfig
 from kmcpy.simulator.state import State
+from kmcpy.structure.active_site_order import ActiveSiteOrder
 
 
 class DummyEvent:
@@ -64,7 +65,7 @@ class TestOccupationManagement:
         occupation = np.zeros(len(test_structure), dtype=int)
         for i, site in enumerate(test_structure):
             if site.species_string == "Na":
-                occupation[i] = -1
+                occupation[i] = 0
             else:
                 occupation[i] = 1
         return occupation
@@ -95,7 +96,7 @@ class TestOccupationManagement:
         """Test that occupation vectors remain structure-consistent."""
         assert len(test_structure) == len(occupation_vector)
         assert test_structure.num_sites > 0
-        assert np.sum(occupation_vector == -1) > 0
+        assert np.sum(occupation_vector == 0) > 0
 
     def test_simulation_state_tracking(self, occupation_vector):
         """Test mutable simulation state tracking for occupation, time, and step."""
@@ -111,14 +112,41 @@ class TestOccupationManagement:
         assert state.time == 1.25
         assert state.step == 7
 
+    def test_state_from_occupations_filters_full_structure_values(self, test_structure):
+        """Test State.from_occupations handles full-structure occupation input."""
+        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
+            test_structure,
+            {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
+        )
+
+        state = State.from_occupations(
+            [0, 1, 1, 1],
+            active_site_order=active_site_order,
+        )
+
+        assert state.occupations == [0, 1]
+
+    def test_state_from_file_loads_initial_state(self, tmp_path, test_structure):
+        """Test initial-state files load through State.from_file."""
+        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
+            test_structure,
+            {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"},
+        )
+        state_file = tmp_path / "initial_state.json"
+        state_file.write_text('{"occupation": [0, 1, 1, 0]}', encoding="utf-8")
+
+        state = State.from_file(str(state_file), active_site_order=active_site_order)
+
+        assert state.occupations == [0, 1]
+
     def test_simulation_state_apply_event(self):
         """Test state updates through the strict core apply_event API."""
-        state = State(occupations=[-1, 1, 1, 1])
+        state = State(occupations=[0, 1, 1, 1])
         event = DummyEvent(from_site=0, to_site=1)
 
         state.apply_event(event, dt=0.2)
 
-        assert state.occupations == [1, -1, 1, 1]
+        assert state.occupations == [1, 0, 1, 1]
         assert state.step == 1
         assert state.time == pytest.approx(0.2)
 
