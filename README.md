@@ -139,7 +139,7 @@ def custom_property(state, step, sim_time):
 
 kmc.attach(custom_property, interval=100, name="occupied_fraction")
 kmc.set_property_enabled("conductivity", False)  # Optional: disable selected built-in fields
-tracker = kmc.run(config)
+tracker = kmc.run()
 
 # Stored custom callback records
 records = tracker.get_property_records("occupied_fraction")
