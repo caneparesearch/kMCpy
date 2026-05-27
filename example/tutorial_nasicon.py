@@ -174,7 +174,7 @@ def run_tutorial(args: argparse.Namespace) -> None:
     try:
         os.chdir(output_dir)
         print(f"Running simulation in: {output_dir}")
-        tracker = kmc.run(config)
+        tracker = kmc.run()
     finally:
         os.chdir(original_cwd)
 

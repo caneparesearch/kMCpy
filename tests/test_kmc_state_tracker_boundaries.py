@@ -66,7 +66,7 @@ def test_tracker_update_does_not_advance_state_time():
     tracker = Tracker(config=config, structure=structure, initial_state=state)
     event = types.SimpleNamespace(mobile_ion_indices=(0, 1), probability=1.0)
 
-    tracker.update(event=event, current_occ=state.occupations, dt=0.25)
+    tracker.update(event=event, dt=0.25)
 
     assert state.time == 0.0
     assert int(np.sum(tracker.hop_counter)) == 1
@@ -97,7 +97,7 @@ def test_tracker_uses_precomputed_nonzero_mobile_state():
         hop_state_lookup=lookup,
     )
 
-    tracker.update(event=event, current_occ=state.occupations, dt=0.25)
+    tracker.update(event=event, dt=0.25)
 
     assert tracker.mobile_ion_specie_locations.tolist() == [1]
     assert int(np.sum(tracker.hop_counter)) == 1
@@ -131,7 +131,7 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
             self.property_enabled = {}
             FakeTracker.last_instance = self
 
-        def update(self, event, current_occ, dt):
+        def update(self, event, dt):
             self.observed_times.append(self.state.time)
             self.received_dts.append(dt)
 
@@ -164,8 +164,8 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
         def show_current_info(self):
             return None
 
-        def write_results(self, final_occupations, label=None):
-            self.final_occupations = list(final_occupations)
+        def write_results(self, label=None):
+            self.final_occupations = list(self.state.occupations)
             self.label = label
 
     monkeypatch.setattr(kmc_module, "Tracker", FakeTracker)
@@ -200,7 +200,9 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
     kmc.propose = fake_propose
     kmc.update = fake_update
 
-    tracker = kmc.run(config=config, label="unit")
+    kmc.config = config
+
+    tracker = kmc.run(label="unit")
 
     assert tracker is FakeTracker.last_instance
     assert update_dt_calls == [0.0, 0.0, 0.11, 0.12, 0.21, 0.22]
@@ -325,7 +327,7 @@ def test_tracker_write_results_includes_custom_records(tmp_path):
     old_cwd = Path.cwd()
     try:
         os.chdir(tmp_path)
-        tracker.write_results(current_occupation=state.occupations, label="unit")
+        tracker.write_results(label="unit")
     finally:
         os.chdir(old_cwd)
 

@@ -11,8 +11,7 @@ def test_run_wrapper_uses_kmc_from_config_and_returns_tracker(monkeypatch):
     observed = {}
 
     class DummyKMC:
-        def run(self, config, label=None):
-            observed["run_config"] = config
+        def run(self, label=None):
             observed["run_label"] = label
             return expected_tracker
 
@@ -26,7 +25,6 @@ def test_run_wrapper_uses_kmc_from_config_and_returns_tracker(monkeypatch):
 
     assert tracker is expected_tracker
     assert observed["from_config"] is config
-    assert observed["run_config"] is config
     assert observed["run_label"] == "unit"
 
 
@@ -35,7 +33,7 @@ def test_run_wrapper_passes_none_label_by_default(monkeypatch):
     observed = {}
 
     class DummyKMC:
-        def run(self, config, label=None):
+        def run(self, label=None):
             observed["run_label"] = label
             return object()
 

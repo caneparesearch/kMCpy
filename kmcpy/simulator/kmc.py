@@ -83,12 +83,9 @@ class KMC:
         if self.hop_state_lookup is not None:
             self.hop_state_lookup.annotate_event_lib(self.event_lib)
         
-        # Initialize occupation state from simulation_state.
         if simulation_state is not None:
-            # Use State as single source of truth
             logger.info("Using State for occupation management")
             logger.debug(f"State occupations length: {len(simulation_state.occupations)}")
-            self.occ_global = simulation_state.occupations
         else:
             raise ValueError("State must be provided for clean architecture")
 
@@ -100,9 +97,6 @@ class KMC:
         # Calculate probabilities for all events using configured model
         self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
         for i, event in enumerate(self.event_lib.events):
-            # Update the occupation in simulation_state for each event calculation
-            self.simulation_state.occupations = self.occ_global.copy()
-
             self.prob_list[i] = self.model.compute_probability(
                 event=event,
                 runtime_config=self.config.runtime_config,
@@ -124,6 +118,11 @@ class KMC:
         self._configure_properties_from_runtime_config(self.config.runtime_config)
 
         logger.info("kMC initialization complete!")
+
+    @property
+    def occ_global(self):
+        """Read-only compatibility view of the current occupation vector."""
+        return self.simulation_state.occupations
 
     def _initialize_model_state(self) -> None:
         """Let stateful models initialize external occupancy/cache state once."""
@@ -417,11 +416,7 @@ class KMC:
         Side Effects:
             Modifies occupation state and probability lists via State delegation.
         """
-        # Delegate state update to State - clean architecture with single state object
         self.simulation_state.apply_event(event, dt)
-        
-        # Synchronize occupation reference for probability calculations
-        self.occ_global = self.simulation_state.occupations
 
         # Keep optional model-side state, such as external CE occupancy caches,
         # aligned with the accepted KMC event before future probabilities use it.
@@ -435,9 +430,6 @@ class KMC:
         
         # Update probabilities for dependent events using configured model
         for e_index in events_to_be_updated:
-            # Use single simulation_state for probability calculations
-            self.simulation_state.occupations = self.occ_global
-            
             # Recalculate probability using configured model
             self.prob_list[e_index] = self.model.compute_probability(
                 event=self.event_lib.events[e_index],
@@ -446,16 +438,15 @@ class KMC:
             )
         self.prob_cum_list = np.cumsum(self.prob_list)
 
-    def run(self, config: "Configuration", label: str = None) -> Tracker:
-        """Run KMC simulation from a Configuration object.
+    def run(self, label: str = None) -> Tracker:
+        """Run KMC simulation using this instance's Configuration object.
 
         This is the main method for running KMC simulations using the modern
         Configuration format.
 
         Args:
-            config (Configuration): Configuration object containing all necessary parameters.
             label (str, optional): Label for the simulation run. Defaults to None.
-                If None, will use config.name.
+                If None, will use ``self.config.name``.
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
@@ -463,14 +454,16 @@ class KMC:
         Example::
         
             # Using Configuration
-            config = Configuration.create(name="Test", temperature=400.0, ...)
-            tracker = kmc.run(config)
+            config = Configuration(name="Test", temperature=400.0, ...)
+            tracker = kmc.run()
             
             # Alternative usage patterns:
             # 1. Create KMC and run in one step
             kmc = KMC.from_config(config)
-            tracker = kmc.run(config)
+            tracker = kmc.run()
         """
+        config = self.config
+
         # Set label from config if not provided
         if label is None:
             label = config.name
@@ -496,7 +489,7 @@ class KMC:
         
         logger.info("============================================================")
         logger.info("Start running kMC ... ")
-        logger.info("Initial occ_global, prob_list and prob_cum_list")
+        logger.info("Initial probabilities and cumulative probabilities")
         logger.info("Starting Equilibrium ...")
         
         # Equilibration phase
@@ -528,9 +521,7 @@ class KMC:
             for _ in np.arange(pass_length):
                 event, dt = self.propose(self.event_lib.events)
                 
-                # Tracker observes the pre-event occupation snapshot.
-                current_occupations = self.simulation_state.occupations
-                tracker.update(event, current_occupations, dt)
+                tracker.update(event, dt)
                 # KMC is the single owner of mutable simulation state updates.
                 self.update(event, dt=dt)
                 tracker.sample_properties(
@@ -541,9 +532,7 @@ class KMC:
             tracker.update_current_pass(current_pass)
             tracker.show_current_info()
 
-        # Use State occupations for final output
-        final_occupations = self.simulation_state.occupations
-        tracker.write_results(final_occupations, label=label)
+        tracker.write_results(label=label)
         return tracker
 
 @njit

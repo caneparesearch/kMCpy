@@ -229,7 +229,6 @@ def test_kmc_update_commits_model_hook_after_state_update(hop_event):
     model = HookedProbabilityModel()
     kmc = KMC.__new__(KMC)
     kmc.simulation_state = state
-    kmc.occ_global = state.occupations
     kmc.model = model
     kmc.event_lib = MinimalEventLib(hop_event)
     kmc.config = type("Config", (), {"runtime_config": RuntimeConfig()})()
@@ -239,6 +238,7 @@ def test_kmc_update_commits_model_hook_after_state_update(hop_event):
     KMC.update(kmc, hop_event, dt=0.1)
 
     assert state.occupations == [1, 0]
+    assert kmc.occ_global == [1, 0]
     assert model.applied_occupations == [[1, 0]]
 
 

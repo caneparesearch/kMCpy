@@ -201,8 +201,8 @@ def run_kmc(args)-> None:
     kmc = KMC.from_config(config)
     print("KMC initialized, starting simulation...")
 
-    # run kmc with config
-    tracker = kmc.run(config)
+    # run kmc
+    tracker = kmc.run()
     
     # Optionally save results
     print("KMC simulation completed successfully!")

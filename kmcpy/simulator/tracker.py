@@ -504,13 +504,14 @@ class Tracker:
             if key != SUMMARY_PROPERTY_NAME
         }
 
-    def update(self, event, current_occ, dt) -> None:
-        """Update trajectory observables for a proposed kMC event."""
+    def update(self, event, dt) -> None:
+        """Update trajectory observables using the current pre-event State."""
         _ = dt
+        occupations = self.state.occupations
         mobile_ion_specie_1_coord = copy(self.frac_coords[event.mobile_ion_indices[0]])
         mobile_ion_specie_2_coord = copy(self.frac_coords[event.mobile_ion_indices[1]])
-        mobile_ion_specie_1_occ = current_occ[event.mobile_ion_indices[0]]
-        mobile_ion_specie_2_occ = current_occ[event.mobile_ion_indices[1]]
+        mobile_ion_specie_1_occ = occupations[event.mobile_ion_indices[0]]
+        mobile_ion_specie_2_occ = occupations[event.mobile_ion_indices[1]]
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("--------------------- Tracker Update Start ---------------------")
@@ -540,10 +541,10 @@ class Tracker:
             )
             logger.debug(
                 "Occupation before update: %s",
-                np.array2string(current_occ, precision=0, separator=", "),
+                np.array2string(occupations, precision=0, separator=", "),
             )
 
-        direction = event_direction(current_occ, event)
+        direction = event_direction(occupations, event)
         displacement_frac = copy(direction * (mobile_ion_specie_2_coord - mobile_ion_specie_1_coord))
         displacement_frac -= np.array([int(round(i)) for i in displacement_frac])
         displacement_cart = copy(self.latt.get_cartesian_coords(displacement_frac))
@@ -647,7 +648,7 @@ class Tracker:
             self.results["correlation_factor"][-1],
         )
 
-    def write_results(self, current_occupation: list, label: str | None = None) -> None:
+    def write_results(self, label: str | None = None) -> None:
         """Save displacement/hop arrays, summary CSV, and property records."""
         if label:
             prefix = f"{label}_{self.current_pass}"
@@ -665,7 +666,7 @@ class Tracker:
         )
         np.savetxt(
             f"current_occ_{prefix}.csv.gz",
-            current_occupation,
+            self.state.occupations,
             delimiter=",",
         )
 

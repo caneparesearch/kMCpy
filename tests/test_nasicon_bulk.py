@@ -273,7 +273,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             kmc = KMC.from_config(config)
 
-            kmc_tracker = kmc.run(config)
+            kmc_tracker = kmc.run()
 
             print(kmc_tracker.return_current_info())
             self.assertTrue(
@@ -335,7 +335,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             # Modern workflow
             kmc = KMC.from_config(config)
-            kmc_tracker = kmc.run(config)
+            kmc_tracker = kmc.run()
 
             print(
                 f"Modern Configuration results: {kmc_tracker.return_current_info()}"
@@ -536,7 +536,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             # Test KMC with Configuration
             kmc_simulation = KMC.from_config(config)
-            kmc_tracker_simulation = kmc_simulation.run(config)
+            kmc_tracker_simulation = kmc_simulation.run()
             simulation_results = kmc_tracker_simulation.return_current_info()
             print(f"Configuration results: {simulation_results}")
 
@@ -613,7 +613,7 @@ class TestNASICONbulk(unittest.TestCase):
 
             # Test 2: Run simulation using run method (recommended approach)
             print("Running KMC simulation using run method...")
-            tracker = kmc.run(config)
+            tracker = kmc.run()
             results = tracker.return_current_info()
             print(f"✓ Configuration results: {results}")
 

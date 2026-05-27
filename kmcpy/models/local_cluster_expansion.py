@@ -679,14 +679,10 @@ class LocalClusterExpansion(BaseModel):
             getattr(self, "parameter_local_environment_hash", None),
         )
             
-        # Get occupation array - prefer simulation_state over occ_global
-        if simulation_state is not None:
-            occ_global = simulation_state.occupations
-        elif occ_global is None:
-            raise ValueError("Either simulation_state or occ_global must be provided")
-            
-        # Ensure occ_global is a numpy array for proper indexing
-        occ_global = np.array(occ_global)
+        if simulation_state is None:
+            raise ValueError("simulation_state is required")
+
+        occupations = np.array(simulation_state.occupations)
             
         # Require event for local environment determination
         if event is None:
@@ -696,7 +692,7 @@ class LocalClusterExpansion(BaseModel):
         corr = np.empty(shape=len(self.cluster_site_indices))
         
         # Extract local occupation using event's local environment indices
-        occ_sublat = deepcopy(occ_global[list(event.local_env_indices)])
+        occ_sublat = deepcopy(occupations[list(event.local_env_indices)])
             
         self._calculate_correlation(corr, occ_sublat)
         

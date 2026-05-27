@@ -323,7 +323,7 @@ def main():
         kmc = KMC.from_config(config)
 
         # run kmc
-        kmc.run(config)
+        kmc.run()
 
     if args.command == "fitLCEmodel":
         from kmcpy.models.local_cluster_expansion import LocalClusterExpansion

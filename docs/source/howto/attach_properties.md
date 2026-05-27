@@ -27,7 +27,7 @@ def occupied_fraction(state, step, sim_time):
 kmc = KMC.from_config(config)
 kmc.attach(occupied_fraction, interval=100, name="occupied_fraction")
 
-tracker = kmc.run(config)
+tracker = kmc.run()
 records = tracker.get_property_records("occupied_fraction")
 ```
 
