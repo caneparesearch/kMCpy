@@ -7,7 +7,6 @@ MODEL_TASK_REGISTRY = {
     "local_barrier": "lce",
     "external_site_energy": "lce",
     "mapped_site_energy": "lce",
-    "zero_site_energy": "lce",
 }
 
 # Maps model names to fully-qualified model class paths.
@@ -18,5 +17,4 @@ MODEL_CLASS_REGISTRY = {
     "local_barrier": "kmcpy.models.local_barrier_model.LocalBarrierModel",
     "external_site_energy": "kmcpy.models.site_energy.ExternalSiteEnergyModel",
     "mapped_site_energy": "kmcpy.models.site_energy.MappedSiteEnergyModel",
-    "zero_site_energy": "kmcpy.models.site_energy.ZeroSiteEnergyModel",
 }

@@ -7,7 +7,6 @@ from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.site_energy import (
     ExternalSiteEnergyModel,
     MappedSiteEnergyModel,
-    ZeroSiteEnergyModel,
 )
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import RuntimeConfig
@@ -208,16 +207,6 @@ def test_external_site_energy_model_roundtrip_keeps_callable(hop_event):
         event=hop_event,
         simulation_state=State(occupations=[0, 1]),
     ) == 35.0
-
-
-@pytest.mark.unit
-def test_zero_site_energy_model_returns_zero(hop_event):
-    model = ZeroSiteEnergyModel()
-
-    assert model.compute_delta(
-        event=hop_event,
-        simulation_state=State(occupations=[0, 1]),
-    ) == 0.0
 
 
 @pytest.mark.unit

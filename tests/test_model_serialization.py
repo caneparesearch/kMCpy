@@ -314,7 +314,6 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
         model_module.LocalBarrierModel,
         model_module.ExternalSiteEnergyModel,
         model_module.MappedSiteEnergyModel,
-        model_module.ZeroSiteEnergyModel,
     ]
     for model_cls in concrete_models:
         assert callable(getattr(model_cls, "from_dict"))

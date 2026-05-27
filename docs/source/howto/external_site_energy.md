@@ -26,7 +26,7 @@ Use one of these three options:
 
 | Use case | Interface |
 | --- | --- |
-| No site-energy term | `site_model=None` or `ZeroSiteEnergyModel()` |
+| No site-energy term | `site_model=None` |
 | A simple function already returns `E_after - E_before` | `ExternalSiteEnergyModel` |
 | A live smol/CLEASE/ASE object must stay synchronized during KMC | `MappedSiteEnergyModel` |
 
@@ -261,17 +261,6 @@ If the KRA model already contains everything you need, omit the site model:
 model = CompositeLCEModel(
     kra_model=kra_lce_model,
     site_model=None,
-)
-```
-
-or use an explicit zero model:
-
-```python
-from kmcpy.models import ZeroSiteEnergyModel
-
-model = CompositeLCEModel(
-    kra_model=kra_lce_model,
-    site_model=ZeroSiteEnergyModel(),
 )
 ```
 

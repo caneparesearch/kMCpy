@@ -16,7 +16,6 @@ import numpy as np
 
 from kmcpy.models.base import CompositeModel, MODEL_FILETYPE, require_model_type
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
-from kmcpy.models.site_energy import ZeroSiteEnergyModel
 from kmcpy.event import Event
 from kmcpy.simulator.hop import event_direction
 from kmcpy.simulator.state import State
@@ -443,9 +442,6 @@ class CompositeLCEModel(CompositeModel):
     @staticmethod
     def _site_model_from_dict(site_data: dict[str, Any]):
         payload = site_data["model"]
-        model_type = site_data.get("model_type") or payload.get("model_type")
-        if model_type == ZeroSiteEnergyModel.MODEL_TYPE:
-            return ZeroSiteEnergyModel.from_dict(payload)
         module_path = payload.get("@module")
         class_name = payload.get("@class")
         if not module_path or not class_name:

@@ -14,7 +14,6 @@ from .models import (
     ExternalSiteEnergyModel,
     MappedOccupationChange,
     MappedSiteEnergyModel,
-    ZeroSiteEnergyModel,
 )
 from .simulator.kmc import KMC
 from .event import Event, EventGenerator
@@ -38,7 +37,6 @@ __all__ = [
     "ExternalSiteEnergyModel",
     "MappedOccupationChange",
     "MappedSiteEnergyModel",
-    "ZeroSiteEnergyModel",
     "KMC",
     "Event",
     "EventGenerator",

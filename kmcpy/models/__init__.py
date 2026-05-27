@@ -12,7 +12,6 @@ from .site_energy import (
     ExternalSiteEnergyModel,
     MappedOccupationChange,
     MappedSiteEnergyModel,
-    ZeroSiteEnergyModel,
 )
 from .composite_lce_model import CompositeLCEModel
 from .fitting.fitter import BaseFitter, LCEFitter
@@ -25,7 +24,6 @@ __all__ = [
     'ExternalSiteEnergyModel',
     'MappedOccupationChange',
     'MappedSiteEnergyModel',
-    'ZeroSiteEnergyModel',
     'CompositeLCEModel',
     'BaseFitter',
     'LCEFitter',
