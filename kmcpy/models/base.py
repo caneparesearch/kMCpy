@@ -80,6 +80,31 @@ class BaseModel(ABC):
         fitter = self.__class__.get_fitter_class()()
         return fitter.fit(*args, **kwargs)
 
+    def initialize_state(
+        self,
+        *,
+        simulation_state,
+        event_lib=None,
+        structure=None,
+        config=None,
+    ) -> None:
+        """Initialize optional stateful model caches from the KMC state.
+
+        Stateless models can ignore this hook. External adapters can use it to
+        build their own occupancy representation once, instead of rebuilding it
+        during every event-rate evaluation.
+        """
+        return None
+
+    def apply_event(self, *, event, simulation_state) -> None:
+        """Commit an accepted event to optional model-side state.
+
+        Stateless models can ignore this hook. Stateful external adapters should
+        update only the changed sites here so their internal state stays aligned
+        with kMCpy's ``State``.
+        """
+        return None
+
     @classmethod
     def from_config(cls, config):
         """Load the configured model.

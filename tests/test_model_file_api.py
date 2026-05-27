@@ -6,6 +6,7 @@ from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.site_energy import ExternalSiteEnergyModel
 from kmcpy.models.base import BaseModel
 from kmcpy.simulator.config import Configuration
 
@@ -101,6 +102,23 @@ def test_local_barrier_model_type_is_inferred_from_model_file(tmp_path: Path):
 
     model = BaseModel.from_config(config)
     assert isinstance(model, LocalBarrierModel)
+
+
+@pytest.mark.unit
+def test_external_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
+    model_file = tmp_path / "external_site_energy.json"
+    ExternalSiteEnergyModel(
+        callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
+        kwargs={"value": 10.0},
+    ).to(str(model_file))
+    config = Configuration(
+        structure_file="fake_structure.cif",
+        event_file="fake_events.json",
+        model_file=str(model_file),
+    )
+
+    model = BaseModel.from_config(config)
+    assert isinstance(model, ExternalSiteEnergyModel)
 
 
 @pytest.mark.unit

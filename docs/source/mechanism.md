@@ -128,15 +128,19 @@ The **barrier model** (E_KRA) predicts the barrier height at the transition stat
 
 kMCpy combines these contributions to compute the effective barrier for each hop:
 
-$$E_{\text{eff}} = E_{\text{KRA}} + \frac{\text{direction} \times \Delta E_{\text{site}}}{2}$$
+$$E_{\text{eff}} = E_{\text{KRA}} + \frac{\Delta E_{\text{event}}}{2}$$
 
-where direction indicates whether the hop is forward (+1), backward (-1), or
-currently unavailable (0). kMCpy derives this from precomputed mobile/vacancy
-state codes for each event endpoint, so multistate active sites do not rely on
-numeric subtraction of occupation labels. $\Delta E_{\text{site}}$ is the site
-energy difference between the final and initial sites. This formulation ensures
-that detailed balance is maintained: the ratio of forward to backward hop rates
-satisfies the Boltzmann factor for the site energy difference.
+where $\Delta E_{\text{event}} = E_{\text{after}} - E_{\text{before}}$ is the
+signed site-energy change for the current event. For historical kMCpy site LCE
+models, this is computed as $\text{direction} \times \Delta E_{\text{site}}$,
+where direction is forward (+1), backward (-1), or currently unavailable (0).
+kMCpy derives direction from precomputed mobile/vacancy state codes for each
+event endpoint, so multistate active sites do not rely on numeric subtraction of
+occupation labels. External site-energy adapters return
+$E_{\text{after}} - E_{\text{before}}$ directly. This formulation ensures that
+detailed balance is maintained: the ratio of forward to backward hop rates
+satisfies the Boltzmann factor for the site energy difference. See the
+[external site-energy how-to](howto/external_site_energy.md) for adapter details.
 
 ## Local Barrier Model
 

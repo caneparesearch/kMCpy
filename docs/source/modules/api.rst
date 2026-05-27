@@ -31,6 +31,7 @@ API Reference Documentation
     local_cluster_expansion.rst
     composite_lce_model.rst
     local_barrier_model.rst
+    site_energy.rst
     state.rst
     tracker.rst
     property.rst

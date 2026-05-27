@@ -9,12 +9,14 @@ composable and generic.
 Author: Zeyu Deng
 """
 
+import importlib
 import logging
 from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
 from kmcpy.models.base import CompositeModel, MODEL_FILETYPE, require_model_type
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.site_energy import ZeroSiteEnergyModel
 from kmcpy.event import Event
 from kmcpy.simulator.hop import event_direction
 from kmcpy.simulator.state import State
@@ -28,11 +30,14 @@ logger = logging.getLogger(__name__)
 
 class CompositeLCEModel(CompositeModel):
     """
-    A composite model that combines exactly two LocalClusterExpansion models.
+    A composite model that combines a KRA LCE with a site-energy difference model.
     
-    This class combines two LCE models: one for site energy difference and one for E_KRA. 
-    The model is designed to be stateless and generic, following ASE-like 
-    patterns where the model is separated from the structure and calculation context.
+    This class combines one ``LocalClusterExpansion`` for ``E_KRA`` with a
+    site-energy contribution. The site-energy contribution may be either the
+    historical kMCpy ``LocalClusterExpansion`` convention or any model exposing
+    ``compute_delta(event=..., simulation_state=...)``. External smol/CLEASE
+    adapters should return the actual event energy change,
+    ``E_after_hop - E_before_hop``, in meV.
     
     The composite model provides:
     
@@ -40,7 +45,7 @@ class CompositeLCEModel(CompositeModel):
     
     Example::
     
-        # Create individual LCE models with parameters
+        # Create individual models with parameters
         site_model = LocalClusterExpansion(...)
         site_model.load_parameters_from_file("site_parameters.json")
         
@@ -60,7 +65,7 @@ class CompositeLCEModel(CompositeModel):
     
     def __init__(
         self,
-        site_model: Optional[LocalClusterExpansion] = None,
+        site_model: Optional[Any] = None,
         kra_model: Optional[LocalClusterExpansion] = None,
         kra_fit_metadata: Optional[dict[str, Any]] = None,
         site_fit_metadata: Optional[dict[str, Any]] = None,
@@ -68,17 +73,24 @@ class CompositeLCEModel(CompositeModel):
         **kwargs,
     ):
         """
-        Initialize a composite LCE model with two submodels.
+        Initialize a composite LCE model.
         
         Args:
-            site_model: model for site energy difference calculations
+            site_model: model for site energy difference calculations. A
+                ``LocalClusterExpansion`` uses the historical directional
+                convention. Other models must expose ``compute_delta`` and
+                return ``E_after_hop - E_before_hop`` in meV.
             kra_model: model for E_KRA calculations
         """
-        if site_model is not None and not isinstance(site_model, LocalClusterExpansion):
-            raise TypeError(f"Site model must be a LocalClusterExpansion instance, got {type(site_model)}")
-        
         if kra_model is not None and not isinstance(kra_model, LocalClusterExpansion):
             raise TypeError(f"KRA model must be a LocalClusterExpansion instance, got {type(kra_model)}")
+        if site_model is not None and not isinstance(
+            site_model, LocalClusterExpansion
+        ) and not callable(getattr(site_model, "compute_delta", None)):
+            raise TypeError(
+                "Site model must be a LocalClusterExpansion or expose "
+                f"compute_delta(event=..., simulation_state=...), got {type(site_model)}"
+            )
 
         models = []
         if site_model:
@@ -103,10 +115,63 @@ class CompositeLCEModel(CompositeModel):
     def fit(self, *args, **kwargs):
         """Composite models are assembled from separately fitted LCE models."""
         raise NotImplementedError(
-            "Fit LocalClusterExpansion models separately, apply their "
-            "parameters with set_parameters(...), then pass them to "
+            "Fit LocalClusterExpansion models separately, build external "
+            "site-energy adapters separately, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
+
+    def _compute_site_energy_delta(
+        self,
+        event: Event,
+        simulation_state: State,
+        direction: int,
+    ) -> float:
+        """Return ``E_after_hop - E_before_hop`` in meV."""
+        if self.site_model is None:
+            return 0.0
+        if isinstance(self.site_model, LocalClusterExpansion):
+            # Historical kMCpy site LCE convention: compute() returns the
+            # canonical forward site-energy term, so direction sets the event
+            # sign. External adapters should return the signed delta directly.
+            return float(
+                direction
+                * self.site_model.compute(
+                    simulation_state=simulation_state,
+                    event=event,
+                )
+            )
+        return float(
+            self.site_model.compute_delta(
+                event=event,
+                simulation_state=simulation_state,
+            )
+        )
+
+    def initialize_state(
+        self,
+        *,
+        simulation_state: State,
+        event_lib=None,
+        structure=None,
+        config=None,
+    ) -> None:
+        """Initialize optional stateful submodel caches."""
+        for model in (self.kra_model, self.site_model):
+            initialize_state = getattr(model, "initialize_state", None)
+            if callable(initialize_state):
+                initialize_state(
+                    simulation_state=simulation_state,
+                    event_lib=event_lib,
+                    structure=structure,
+                    config=config,
+                )
+
+    def apply_event(self, *, event: Event, simulation_state: State) -> None:
+        """Commit an accepted event to optional stateful submodels."""
+        for model in (self.kra_model, self.site_model):
+            apply_event = getattr(model, "apply_event", None)
+            if callable(apply_event):
+                apply_event(event=event, simulation_state=simulation_state)
 
     def compute_probability(
         self,
@@ -119,12 +184,12 @@ class CompositeLCEModel(CompositeModel):
 
         This method calculates the transition probability for a migration event by:
         
-        - Computing the site energy (e_site, meV) using the site LocalClusterExpansion model and its stored parameters.
+        - Computing the site-energy change (delta_e_site, meV) using the site model.
         - Computing the barrier energy (e_kra, meV) using the barrier LocalClusterExpansion model and its stored parameters.
         - Determining the direction of the event from the occupation vector in the State.
-        - Calculating the effective barrier as: e_barrier = e_kra + direction * e_site / 2
+        - Calculating the effective barrier as: e_barrier = e_kra + delta_e_site / 2
         - Using the Arrhenius equation to compute the probability:
-          probability = abs(direction) * v * np.exp(-e_barrier / (k * temperature))
+          probability = hop_available * v * np.exp(-e_barrier / (k * temperature))
 
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.
@@ -135,27 +200,34 @@ class CompositeLCEModel(CompositeModel):
             float: The computed transition probability/rate in Hz.
         """
 
-        # Boltzmann constant in meV/K.
-        k = BOLTZMANN_CONSTANT_MEV_PER_K
-        # Compute site energy (esite) using stored parameters
-        e_site = self.site_model.compute(simulation_state=simulation_state, event=event)
-        # Compute barrier energy (ekra) using stored parameters
-        e_kra = self.kra_model.compute(simulation_state=simulation_state, event=event)
         # Get occupation from simulation_state
         occ = simulation_state.occupations
-        
+
         # Determine the direction of the event
         direction = event_direction(occ, event)
+        if direction == 0:
+            return 0.0
+
+        # Boltzmann constant in meV/K.
+        k = BOLTZMANN_CONSTANT_MEV_PER_K
+        # Compute barrier energy (ekra) using stored parameters
+        e_kra = self.kra_model.compute(simulation_state=simulation_state, event=event)
+        # Compute signed site-energy change in meV.
+        delta_e_site = self._compute_site_energy_delta(
+            event=event,
+            simulation_state=simulation_state,
+            direction=direction,
+        )
 
         # Calculate effective barrier
-        e_barrier = e_kra + direction * e_site / 2
+        e_barrier = e_kra + delta_e_site / 2
         
         # Get temperature and attempt frequency from runtime configuration
         temperature = runtime_config.temperature
         v = runtime_config.attempt_frequency
         
         # Compute probability using Arrhenius equation
-        probability = abs(direction) * v * np.exp(-e_barrier / (k * temperature))
+        probability = v * np.exp(-e_barrier / (k * temperature))
         
         return probability
 
@@ -180,7 +252,7 @@ class CompositeLCEModel(CompositeModel):
             ),
         }
         if self.site_model is not None:
-            data["site"] = self._submodel_as_dict(
+            data["site"] = self._site_model_as_dict(
                 self.site_model,
                 fit_metadata=self.site_fit_metadata,
                 label="site",
@@ -219,6 +291,31 @@ class CompositeLCEModel(CompositeModel):
             "fit_metadata": fit_metadata,
         }
 
+    @classmethod
+    def _site_model_as_dict(
+        cls,
+        model: Any,
+        fit_metadata: dict[str, Any],
+        label: str,
+    ) -> dict[str, Any]:
+        if isinstance(model, LocalClusterExpansion):
+            return cls._submodel_as_dict(
+                model,
+                fit_metadata=fit_metadata,
+                label=label,
+            )
+        if not callable(getattr(model, "as_dict", None)):
+            raise ValueError(
+                f"Cannot serialize '{label}' model: missing as_dict()."
+            )
+        return {
+            "model_type": getattr(model, "MODEL_TYPE", None),
+            "model": model.as_dict(),
+            "fit_metadata": fit_metadata,
+            "delta_convention": "after_minus_before",
+            "units": "meV",
+        }
+
     @staticmethod
     def _validate_submodel_payload(name: str, data: dict[str, Any]) -> None:
         if not isinstance(data, dict):
@@ -240,6 +337,18 @@ class CompositeLCEModel(CompositeModel):
                 "keys 'keci' and 'empty_cluster'"
             )
 
+    @staticmethod
+    def _validate_site_model_payload(data: dict[str, Any]) -> None:
+        if not isinstance(data, dict):
+            raise ValueError("Composite LCE submodel 'site' must be an object")
+        if "lce" in data:
+            CompositeLCEModel._validate_submodel_payload("site", data)
+            return
+        if "model" not in data or not isinstance(data["model"], dict):
+            raise ValueError(
+                "Composite LCE external site model must contain object key 'model'"
+            )
+
     @classmethod
     def _validate_dict(cls, data: dict[str, Any]) -> None:
         """Validate a composite LCE serialized payload."""
@@ -249,7 +358,7 @@ class CompositeLCEModel(CompositeModel):
 
         cls._validate_submodel_payload("kra", payload["kra"])
         if "site" in payload and payload["site"] is not None:
-            cls._validate_submodel_payload("site", payload["site"])
+            cls._validate_site_model_payload(payload["site"])
 
     def to(self, filename: str, indent: int = 2) -> None:
         """Write this composite model to a serialized model file."""
@@ -261,7 +370,8 @@ class CompositeLCEModel(CompositeModel):
     def build(self, *args, **kwargs):
         """Composite models are assembled from separately built LCE models."""
         raise NotImplementedError(
-            "Build LocalClusterExpansion models separately, then pass them to "
+            "Build LocalClusterExpansion models separately, build external "
+            "site-energy adapters separately, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
@@ -316,8 +426,11 @@ class CompositeLCEModel(CompositeModel):
         site_fit_metadata = None
         if data.get("site") is not None:
             site_data = data["site"]
-            site_model = LocalClusterExpansion.from_dict(site_data["lce"])
-            site_model.set_parameters(site_data["parameters"])
+            if "lce" in site_data:
+                site_model = LocalClusterExpansion.from_dict(site_data["lce"])
+                site_model.set_parameters(site_data["parameters"])
+            else:
+                site_model = cls._site_model_from_dict(site_data)
             site_fit_metadata = site_data.get("fit_metadata")
 
         return cls(
@@ -326,6 +439,32 @@ class CompositeLCEModel(CompositeModel):
             kra_fit_metadata=kra_data.get("fit_metadata"),
             site_fit_metadata=site_fit_metadata,
         )
+
+    @staticmethod
+    def _site_model_from_dict(site_data: dict[str, Any]):
+        payload = site_data["model"]
+        model_type = site_data.get("model_type") or payload.get("model_type")
+        if model_type == ZeroSiteEnergyModel.MODEL_TYPE:
+            return ZeroSiteEnergyModel.from_dict(payload)
+        module_path = payload.get("@module")
+        class_name = payload.get("@class")
+        if not module_path or not class_name:
+            raise ValueError(
+                "External site model payload must include '@module' and '@class'"
+            )
+        model_cls = getattr(importlib.import_module(module_path), class_name)
+        if not callable(getattr(model_cls, "from_dict", None)):
+            raise ValueError(
+                f"External site model class '{module_path}.{class_name}' "
+                "must provide from_dict()."
+            )
+        model = model_cls.from_dict(payload)
+        if not callable(getattr(model, "compute_delta", None)):
+            raise TypeError(
+                f"External site model '{module_path}.{class_name}' must expose "
+                "compute_delta(event=..., simulation_state=...)."
+            )
+        return model
 
     @classmethod
     def from_file(cls, model_file: str) -> "CompositeLCEModel":

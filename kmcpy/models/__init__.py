@@ -8,6 +8,7 @@ local cluster expansion models, and composite models for kinetic Monte Carlo sim
 from .base import BaseModel
 from .local_cluster_expansion import LocalClusterExpansion
 from .local_barrier_model import LocalBarrierModel
+from .site_energy import ExternalSiteEnergyModel, ZeroSiteEnergyModel
 from .composite_lce_model import CompositeLCEModel
 from .fitting.fitter import BaseFitter, LCEFitter
 from .fitting.registry import register_fitter, get_fitter_for_model
@@ -16,6 +17,8 @@ __all__ = [
     'BaseModel',
     'LocalClusterExpansion',
     'LocalBarrierModel',
+    'ExternalSiteEnergyModel',
+    'ZeroSiteEnergyModel',
     'CompositeLCEModel',
     'BaseFitter',
     'LCEFitter',

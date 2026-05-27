@@ -39,5 +39,6 @@ This code was recently employed to investigate `the transport properties of Na-i
    howto/local_environment_enumeration
    howto/neb_fitting
    howto/local_barrier_model
+   howto/external_site_energy
    modules/api
    about

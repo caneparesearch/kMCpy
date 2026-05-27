@@ -8,6 +8,7 @@ import kmcpy.models as model_module
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.site_energy import ExternalSiteEnergyModel
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from pymatgen.core import Lattice, Structure
 
@@ -275,6 +276,25 @@ def test_composite_lce_model_to_is_model_file_compatible(tmp_path):
     )
 
 
+def test_composite_lce_model_serializes_external_site_energy_model():
+    root = Path(__file__).parent / "files" / "input"
+    model = CompositeLCEModel.from_file(str(root / "model.json"))
+    model.site_model = ExternalSiteEnergyModel(
+        callable_ref="kmcpy.models.site_energy:constant_site_energy_delta",
+        units="eV",
+        kwargs={"value": 0.04},
+    )
+
+    payload = model.as_dict()
+    reloaded = CompositeLCEModel.from_dict(payload)
+
+    assert payload["site"]["model_type"] == "external_site_energy"
+    assert payload["site"]["delta_convention"] == "after_minus_before"
+    assert isinstance(reloaded.site_model, ExternalSiteEnergyModel)
+    assert reloaded.site_model.units == "eV"
+    assert reloaded.site_model.kwargs == {"value": 0.04}
+
+
 def test_local_barrier_model_from_file_is_repeatable(tmp_path):
     model_file = tmp_path / "local_barrier.json"
     LocalBarrierModel.constant_barrier(300.0).to(str(model_file))
@@ -290,6 +310,8 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
         model_module.LocalClusterExpansion,
         model_module.CompositeLCEModel,
         model_module.LocalBarrierModel,
+        model_module.ExternalSiteEnergyModel,
+        model_module.ZeroSiteEnergyModel,
     ]
     for model_cls in concrete_models:
         assert callable(getattr(model_cls, "from_dict"))

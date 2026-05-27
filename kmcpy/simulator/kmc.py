@@ -94,6 +94,8 @@ class KMC:
         else:
             raise ValueError("State must be provided for clean architecture")
 
+        self._initialize_model_state()
+
         # Calculate initial probabilities from runtime configuration and state.
         logger.info("Initializing probabilities...")
         
@@ -124,6 +126,23 @@ class KMC:
         self._configure_properties_from_runtime_config(self.config.runtime_config)
 
         logger.info("kMC initialization complete!")
+
+    def _initialize_model_state(self) -> None:
+        """Let stateful models initialize external occupancy/cache state once."""
+        initialize_state = getattr(self.model, "initialize_state", None)
+        if callable(initialize_state):
+            initialize_state(
+                simulation_state=self.simulation_state,
+                event_lib=self.event_lib,
+                structure=self.structure,
+                config=self.config,
+            )
+
+    def _apply_model_event(self, event: Event) -> None:
+        """Let stateful models commit an accepted event after State updates."""
+        apply_event = getattr(self.model, "apply_event", None)
+        if callable(apply_event):
+            apply_event(event=event, simulation_state=self.simulation_state)
 
     def _ensure_property_state(self) -> None:
         """Initialize the KMC property plan if missing."""
@@ -427,6 +446,10 @@ class KMC:
         
         # Synchronize occupation reference for probability calculations
         self.occ_global = self.simulation_state.occupations
+
+        # Keep optional model-side state, such as external CE occupancy caches,
+        # aligned with the accepted KMC event before future probabilities use it.
+        self._apply_model_event(event)
         
         # Find event index automatically from event library
         event_index = self.event_lib.events.index(event)
