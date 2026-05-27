@@ -105,13 +105,6 @@ class CompositeLCEModel(BaseModel):
         self.kra_fit_metadata = kra_fit_metadata or {"time_stamp": None, "time": None}
         self.site_fit_metadata = site_fit_metadata or {"time_stamp": None, "time": None}
         
-    def compute(self) -> None:
-        """
-        This method is not used in the CompositeLCEModel.
-        It is provided to maintain compatibility with the BaseModel interface.
-        """
-        raise NotImplementedError("CompositeLCEModel does not support direct compute method. Use compute_probability instead.")
-
     def fit(self, *args, **kwargs):
         """Composite models are assembled from separately fitted LCE models."""
         raise NotImplementedError(

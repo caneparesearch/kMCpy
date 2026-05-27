@@ -45,8 +45,10 @@ class BaseModel(MSONable, ABC):
     """
     Base class for models in kmcpy.
     
-    This abstract class provides a common interface for model objects,
-    including serialization, deserialization, and computation methods.
+    This base class provides common serialization and loading conventions for
+    model objects. Scientific operations such as ``compute``, ``build``, and
+    ``compute_probability`` are optional because different model classes have
+    different roles in a KMC workflow.
 
     Constructor convention (pymatgen-style):
     - `as_dict` and `from_dict` handle structured data.
@@ -182,54 +184,35 @@ class BaseModel(MSONable, ABC):
 
         return model_class.from_config(config)
 
-    @abstractmethod
     def __str__(self):
-        """
-        Return a string representation of the model object.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Return a compact string representation."""
+        return self.__repr__()
     
-    @abstractmethod
     def __repr__(self):
-        """
-        Return a detailed string representation of the model object.
-        This method must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")    
+        """Return a compact debug representation."""
+        name = getattr(self, "name", None)
+        if name is None:
+            return f"{self.__class__.__name__}()"
+        return f"{self.__class__.__name__}(name={name!r})"
     
-    @abstractmethod
     def compute(self, *args, **kwargs):
-        """
-        Generic computation method for the model. This method must be implemented by subclasses.
-        Can return either site energy or barrier energy depending on the model configuration.
-        
-        Returns:
-            float: The computed energy value (site energy, barrier energy, etc.)
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Compute this model's native quantity, when the model defines one."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement compute()."
+        )
     
-    @abstractmethod
     def compute_probability(self, *args, **kwargs):
-        """
-        Compute the transition probability based on the model's parameters and the current state.
-        This method must be implemented by subclasses.
-        
-        Returns:
-            float: The computed transition probability.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Compute an event rate/probability for KMC, when supported."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement compute_probability(). "
+            "Use a KMC rate model such as CompositeLCEModel or LocalBarrierModel."
+        )
     
-    @abstractmethod
     def build(self, *args, **kwargs):
-        """
-        Build the model based on the provided parameters.
-        This method must be implemented by subclasses.
-        
-        Returns:
-            None
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Build model data from scientific inputs, when supported."""
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement build()."
+        )
     
     @abstractmethod
     def as_dict(self):
@@ -247,12 +230,9 @@ class BaseModel(MSONable, ABC):
         raise NotImplementedError("Subclasses must implement this method.")
 
     @classmethod
-    @abstractmethod
     def from_file(cls, fname):
-        """
-        Create a model object from a serialized file.
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
+        """Create a model object from a serialized file."""
+        return cls.from_dict(loadfn(fname, cls=None))
 
     def to(self, fname):
         """

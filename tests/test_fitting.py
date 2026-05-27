@@ -92,30 +92,11 @@ def test_fitter_registry_resolves_lce_fitter_through_mro():
 
 def test_base_model_fit_dispatches_via_registry():
     class DummyModel(BaseModel):
-        def __str__(self):
-            return "DummyModel"
-
-        def __repr__(self):
-            return "DummyModel()"
-
-        def compute(self, *args, **kwargs):
-            return 0.0
-
-        def compute_probability(self, *args, **kwargs):
-            return 0.0
-
-        def build(self, *args, **kwargs):
-            return None
-
         def as_dict(self):
             return {}
 
         @classmethod
         def from_dict(cls, data):
-            return cls()
-
-        @classmethod
-        def from_file(cls, filename):
             return cls()
 
     class DummyFitter:
@@ -129,30 +110,11 @@ def test_base_model_fit_dispatches_via_registry():
 
 def test_base_model_fit_raises_without_registered_fitter():
     class UnregisteredModel(BaseModel):
-        def __str__(self):
-            return "UnregisteredModel"
-
-        def __repr__(self):
-            return "UnregisteredModel()"
-
-        def compute(self, *args, **kwargs):
-            return 0.0
-
-        def compute_probability(self, *args, **kwargs):
-            return 0.0
-
-        def build(self, *args, **kwargs):
-            return None
-
         def as_dict(self):
             return {}
 
         @classmethod
         def from_dict(cls, data):
-            return cls()
-
-        @classmethod
-        def from_file(cls, filename):
             return cls()
 
     with pytest.raises(NotImplementedError, match="has no fitter registered"):

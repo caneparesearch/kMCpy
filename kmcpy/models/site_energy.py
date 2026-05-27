@@ -93,28 +93,6 @@ class ExternalSiteEnergyModel(BaseModel):
         )
         return _numeric_delta_to_mev(raw_value, self.unit_factor_to_mev)
 
-    def compute(self, simulation_state, event) -> float:
-        """Alias for ``compute_delta`` for BaseModel compatibility."""
-        return self.compute_delta(event=event, simulation_state=simulation_state)
-
-    def compute_probability(self, *args, **kwargs):
-        raise NotImplementedError(
-            "ExternalSiteEnergyModel only computes site-energy differences. "
-            "Use it as CompositeLCEModel(site_model=...)."
-        )
-
-    def fit(self, *args, **kwargs):
-        raise NotImplementedError(
-            "ExternalSiteEnergyModel delegates to an external callable and "
-            "does not support fit()."
-        )
-
-    def build(self, *args, **kwargs):
-        raise NotImplementedError(
-            "ExternalSiteEnergyModel delegates to an external callable and "
-            "does not support build()."
-        )
-
     def as_dict(self) -> dict[str, Any]:
         return {
             "@module": self.__class__.__module__,
@@ -443,27 +421,6 @@ class MappedSiteEnergyModel(BaseModel):
 
         for change in changes:
             self.external_occupation[change.external_site] = change.new_value
-
-    def compute(self, simulation_state, event) -> float:
-        return self.compute_delta(event=event, simulation_state=simulation_state)
-
-    def compute_probability(self, *args, **kwargs):
-        raise NotImplementedError(
-            "MappedSiteEnergyModel only computes site-energy differences. "
-            "Use it as CompositeLCEModel(site_model=...)."
-        )
-
-    def fit(self, *args, **kwargs):
-        raise NotImplementedError(
-            "MappedSiteEnergyModel delegates to an external runtime and does "
-            "not support fit()."
-        )
-
-    def build(self, *args, **kwargs):
-        raise NotImplementedError(
-            "MappedSiteEnergyModel delegates to an external runtime and does "
-            "not support build()."
-        )
 
     def as_dict(self) -> dict[str, Any]:
         return {

@@ -661,9 +661,6 @@ class LocalClusterExpansion(BaseModel):
         result = np.inner(corr, self.keci) + self.empty_cluster
         return result
 
-    def compute_probability(self, *args, **kwargs):
-        raise NotImplementedError("You cannot compute probability from a single LCE model, you should use CompositeLCEModel.")
-    
     def set_parameters(self, parameters):
         """
         Set fitted parameters for this LocalClusterExpansion model.
