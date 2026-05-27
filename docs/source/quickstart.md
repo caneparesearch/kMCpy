@@ -1,25 +1,9 @@
 # Quickstart
 
-This page runs a small kMC simulation with the example files included in the
-repository. Use it to check that your installation, input files, model loading,
-and result writing are working.
+This page runs one small kMC simulation after kMCpy is installed. For
+installation options, see [Install](install.md).
 
-## Install
-
-From the repository root:
-
-```shell
-uv sync
-```
-
-For tests and documentation:
-
-```shell
-uv sync --extra dev
-uv sync --extra doc
-```
-
-## Run The Bundled Example
+## Run The Bundled Example From Source
 
 ```shell
 uv run python example/minimal_example.py
@@ -38,6 +22,9 @@ It writes results under:
 ```text
 example/output/minimal/
 ```
+
+Use this command when you have a source checkout, because the example data files
+live in the repository.
 
 ## Run From Python
 
@@ -70,7 +57,21 @@ uv run run_kmc --input input_template.yaml
 The generated template uses the modern `Configuration` format. Legacy
 `InputSet` style inputs are no longer supported.
 
-## Find Valid Configuration Fields
+## What The Input Must Provide
+
+A kMC run needs:
+
+- a structure containing all possible mobile-ion sites,
+- a `site_mapping` that says which sites are mutable and which species or
+  vacancy states are allowed,
+- an event library,
+- a model file that can assign rates to those events,
+- initial occupations,
+- runtime settings such as temperature, attempt frequency, and number of passes.
+
+The beginner tutorial explains how to prepare each part.
+
+## Inspect Configuration Fields
 
 If you are unsure which fields belong in the input file, ask kMCpy:
 

@@ -12,33 +12,33 @@ API Reference Documentation
     generators.rst
     hop.rst
     comparator.rst
-    basis.rst
-    lattice_structure.rst
-    local_lattice_structure.rst
-    local_environment_enumerator.rst
-    cluster.rst
-    sites.rst
-    neighbors.rst
-    species.rst
     active_site_order.rst
+    basis.rst
+    cluster.rst
+    lattice_structure.rst
+    local_environment_enumerator.rst
+    local_lattice_structure.rst
     local_site_order.rst
+    neighbors.rst
+    sites.rst
+    species.rst
     data.rst
-    io_registry.rst
     cif.rst
-    fitter.rst
+    io_registry.rst
     models_fitting_registry.rst
+    fitter.rst
     models_base.rst
-    local_cluster_expansion.rst
     composite_lce_model.rst
     local_barrier_model.rst
-    site_energy.rst
+    local_cluster_expansion.rst
     parameters.rst
-    state.rst
-    tracker.rst
-    property.rst
+    site_energy.rst
     config.rst
     kmc.rst
+    property.rst
     results.rst
+    state.rst
+    tracker.rst
     high_level_api.rst
     units.rst
     neb.rst

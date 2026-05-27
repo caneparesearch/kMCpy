@@ -13,25 +13,34 @@
 kMCpy Documentation
 ==================================================================================
 
+kMCpy is an open-source Python package for studying atomic migration in
+crystalline materials with kinetic Monte Carlo. It provides a Python workflow
+for preparing site occupations and event libraries, assigning event barriers,
+running rejection-free kMC, and extracting transport properties.
 
-kMCpy is an open-source Python package for studying atomic migration using the kinetic Monte Carlo technique. It offers a comprehensive Python-based approach to compute kinetic properties, suitable for research, development, and prediction of new functional materials.
+Version 0.3.0 focuses on clearer scientific workflows:
 
-Key features include a local cluster expansion model toolkit, a rejection-free kinetic Monte Carlo (rf-kMC) solver, and tools to extract ion transport properties like diffusivities and conductivities. The local cluster expansion model toolkit facilitates model fitting from ab initio or empirical barrier calculations. Post-training, the local cluster expansion model can compute migration barriers in crystalline materials within the transition state theory.
+- ``Configuration`` stores immutable setup and runtime controls.
+- ``State`` owns mutable occupations during a simulation.
+- ``LocalBarrierModel`` supports constant, rule-based, and exact local
+  environment barriers.
+- ``LocalClusterExpansion`` supports multicomponent Chebyshev basis functions.
+- ``SiteEnergyModel`` can connect mapped external site-energy evaluators without
+  rebuilding occupations at every kMC step.
+- ``ActiveSiteOrder`` and ``LocalSiteOrder`` record the global and local site
+  sequences used by fitted models and external adapters.
 
 Where to start:
 
-1. Use :doc:`quickstart` to run the bundled example and verify your installation.
-2. Use :doc:`tutorial` for a guided notebook-style walkthrough.
-3. Use :doc:`howto/index` when you have a specific task, such as attaching properties, preparing NEB fitting inputs, or using site-energy-difference models.
-4. Use :doc:`reference/index` when you need API documentation or field-level details.
+1. Install kMCpy using :doc:`install`.
+2. Run one small simulation with :doc:`quickstart`.
+3. Learn the full beginner workflow in :doc:`tutorial/index`.
+4. Use :doc:`mechanism` for the kMC equations and transport definitions.
+5. Use :doc:`howto/index` for advanced customization.
+6. Use :doc:`reference/index` when you need exact API documentation.
 
-Advantages of using kMCpy:
-
-1.  Written entirely in Python with a modular design, promoting developer-centricity and easy feature addition.
-2.  Cross-platform compatibility, supporting Windows, macOS, and Linux.
-3.  Performance-optimized kMC routines using `Numba <https://numba.pydata.org/>`_, resulting in significant speed improvements.
-
-This code was recently employed to investigate `the transport properties of Na-ion in NaSiCON solid electrolyte <https://www.nature.com/articles/s41467-022-32190-7>`_. In this study, rf-kMC was used to model Na-ion conductivity in NaSiCON, leading to the discovery that maximum conductivity is achieved at Na=3.4.
+The methodology has been used to study Na-ion transport in NASICON solid
+electrolytes. See :doc:`about` for citation information.
 
 .. toctree::
    :maxdepth: 1
@@ -39,17 +48,22 @@ This code was recently employed to investigate `the transport properties of Na-i
 
    install
    quickstart
-   tutorial
 
 .. toctree::
    :maxdepth: 1
-   :caption: Learn
+   :caption: Beginner Tutorial
+
+   tutorial/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Theory
 
    mechanism
 
 .. toctree::
    :maxdepth: 1
-   :caption: Workflows
+   :caption: Advanced Tutorials
 
    howto/index
 
