@@ -1,16 +1,18 @@
 import numpy as np
 import pytest
+from pymatgen.core import Lattice, Structure
 
 from kmcpy.event import Event
 from kmcpy.models.composite_lce_model import CompositeLCEModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.site_energy import (
-    ExternalSiteEnergyModel,
+    CallableSiteEnergyModel,
     MappedSiteEnergyModel,
 )
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import RuntimeConfig
 from kmcpy.simulator.state import State
+from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
 
@@ -117,6 +119,18 @@ def hop_event():
     return Event(mobile_ion_indices=(0, 1), local_env_indices=())
 
 
+def _active_site_index_map():
+    structure = Structure(
+        Lattice.cubic(4.0),
+        ["Na", "Na"],
+        [[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]],
+    )
+    return ActiveSiteIndexMap.from_structure_and_mapping(
+        structure,
+        {"Na": ["Na", "X"]},
+    )
+
+
 @pytest.mark.unit
 def test_composite_lce_accepts_external_site_difference_model(hop_event):
     model = CompositeLCEModel(
@@ -177,8 +191,8 @@ def test_composite_lce_applies_event_direction_to_site_lce_difference(hop_event)
 
 
 @pytest.mark.unit
-def test_external_site_energy_model_converts_ev_to_mev(hop_event):
-    model = ExternalSiteEnergyModel(
+def test_callable_site_energy_model_converts_ev_to_mev(hop_event):
+    model = CallableSiteEnergyModel(
         callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="eV",
         kwargs={"value": 0.04},
@@ -193,14 +207,14 @@ def test_external_site_energy_model_converts_ev_to_mev(hop_event):
 
 
 @pytest.mark.unit
-def test_external_site_energy_model_roundtrip_keeps_callable(hop_event):
-    model = ExternalSiteEnergyModel(
+def test_callable_site_energy_model_roundtrip_keeps_callable(hop_event):
+    model = CallableSiteEnergyModel(
         callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         units="meV",
         kwargs={"value": 35.0},
     )
 
-    reloaded = ExternalSiteEnergyModel.from_dict(model.as_dict())
+    reloaded = CallableSiteEnergyModel.from_dict(model.as_dict())
 
     assert reloaded.as_dict() == model.as_dict()
     assert reloaded.compute(
@@ -283,6 +297,61 @@ def test_mapped_site_energy_model_uses_cached_occupation_and_local_flips(hop_eve
         model.external_occupation,
         np.array([0, 0, 20, 0, 100, 0], dtype=np.int32),
     )
+
+
+@pytest.mark.unit
+def test_mapped_site_energy_model_records_site_order_hashes(hop_event):
+    index_map = _active_site_index_map()
+    model = MappedSiteEnergyModel(
+        delta_fn=smol_runtime_delta,
+        delta_kwargs={"coefficients": np.array([1.0])},
+        site_mapping={0: 4, 1: 2},
+        active_site_index_map=index_map,
+        external_size=5,
+    )
+
+    payload = model.as_dict()
+    reloaded = MappedSiteEnergyModel.from_dict(payload)
+
+    assert payload["active_site_index_map"]["fingerprint"] == index_map.fingerprint
+    assert payload["kmcpy_site_order_hash"] == index_map.fingerprint
+    assert payload["external_site_order_hash"] == model.external_site_order_hash
+    assert reloaded.kmcpy_site_order_hash == index_map.fingerprint
+    assert reloaded.external_site_order_hash == model.external_site_order_hash
+
+
+@pytest.mark.unit
+def test_mapped_site_energy_model_rejects_wrong_active_site_order(hop_event):
+    index_map = _active_site_index_map()
+    model = MappedSiteEnergyModel(
+        delta_fn=smol_runtime_delta,
+        delta_kwargs={"coefficients": np.array([1.0])},
+        site_mapping={0: 0, 1: 1},
+        active_site_index_map=index_map,
+    )
+
+    with pytest.raises(ValueError, match="active-site index map contains"):
+        model.initialize_state(simulation_state=State(occupations=[0]))
+
+
+@pytest.mark.unit
+def test_composite_lce_forwards_active_site_order_to_mapped_site_model(hop_event):
+    index_map = _active_site_index_map()
+    site_model = MappedSiteEnergyModel(
+        delta_fn=smol_runtime_delta,
+        delta_kwargs={"coefficients": np.array([1.0])},
+        site_mapping={0: 0, 1: 1},
+        active_site_index_map=None,
+    )
+    model = CompositeLCEModel(kra_model=FixedLCE(200.0), site_model=site_model)
+
+    model.initialize_state(
+        simulation_state=State(occupations=[0, 1]),
+        event_lib=MinimalEventLib(hop_event),
+        active_site_index_map=index_map,
+    )
+
+    assert site_model.kmcpy_site_order_hash == index_map.fingerprint
 
 
 @pytest.mark.unit

@@ -90,10 +90,11 @@ class BaseModel(MSONable, ABC):
         event_lib=None,
         structure=None,
         config=None,
+        active_site_index_map=None,
     ) -> None:
         """Initialize optional stateful model caches from the KMC state.
 
-        Stateless models can ignore this hook. External adapters can use it to
+        Stateless models can ignore this hook. Stateful adapters can use it to
         build their own occupancy representation once, instead of rebuilding it
         during every event-rate evaluation.
         """

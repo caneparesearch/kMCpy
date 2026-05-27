@@ -144,11 +144,11 @@ always uses one evaluator, `compute(simulation_state=..., event=...)`. A LCE
 passed as `kra_model` returns $E_{\text{KRA}}$; a LCE passed as
 `site_model` returns the site-energy-difference contribution for the canonical
 event orientation. kMCpy then applies the current event direction (+1 for
-forward, -1 for backward, 0 when unavailable). External site-energy-difference
-adapters return $E_{\text{after}} - E_{\text{before}}$ directly through
-`compute(...)`. This formulation ensures that detailed balance is
+forward, -1 for backward, 0 when unavailable). Callable and mapped
+site-energy-difference adapters return $E_{\text{after}} - E_{\text{before}}$
+directly through `compute(...)`. This formulation ensures that detailed balance is
 maintained: the ratio of forward to backward hop rates satisfies the Boltzmann
-factor for the site-energy difference. See the [external site-energy how-to](howto/external_site_energy.md)
+factor for the site-energy difference. See the [site-energy-difference how-to](howto/external_site_energy.md)
 for adapter details.
 
 ## Local Barrier Model

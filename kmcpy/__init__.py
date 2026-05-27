@@ -11,7 +11,7 @@ from .models import (
     LocalClusterExpansion,
     CompositeLCEModel,
     LocalBarrierModel,
-    ExternalSiteEnergyModel,
+    CallableSiteEnergyModel,
     MappedOccupationChange,
     MappedSiteEnergyModel,
 )
@@ -34,7 +34,7 @@ __all__ = [
     "LocalClusterExpansion", 
     "LocalBarrierModel",
     "CompositeLCEModel",
-    "ExternalSiteEnergyModel",
+    "CallableSiteEnergyModel",
     "MappedOccupationChange",
     "MappedSiteEnergyModel",
     "KMC",

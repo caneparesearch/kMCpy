@@ -7,9 +7,9 @@ workflow.
 
 - [Attach custom properties](attach_properties.md): sample user-defined
   quantities during a KMC run.
-- [Use external site-energy-difference models](external_site_energy.md): connect
-  smol, CLEASE, ASE, or project-specific energy-difference code without
-  converting the full occupation every KMC step.
+- [Use site-energy-difference models](external_site_energy.md): connect direct
+  callables or mapped external codes without converting the full occupation
+  every KMC step.
 
 ## Model And Fitting Workflows
 

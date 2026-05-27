@@ -9,7 +9,7 @@ from .base import BaseModel
 from .local_cluster_expansion import LocalClusterExpansion
 from .local_barrier_model import LocalBarrierModel
 from .site_energy import (
-    ExternalSiteEnergyModel,
+    CallableSiteEnergyModel,
     MappedOccupationChange,
     MappedSiteEnergyModel,
 )
@@ -21,7 +21,7 @@ __all__ = [
     'BaseModel',
     'LocalClusterExpansion',
     'LocalBarrierModel',
-    'ExternalSiteEnergyModel',
+    'CallableSiteEnergyModel',
     'MappedOccupationChange',
     'MappedSiteEnergyModel',
     'CompositeLCEModel',

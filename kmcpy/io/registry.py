@@ -6,6 +6,6 @@ MODEL_CLASS_REGISTRY = {
     "lce": "kmcpy.models.local_cluster_expansion.LocalClusterExpansion",
     "local_cluster_expansion": "kmcpy.models.local_cluster_expansion.LocalClusterExpansion",
     "local_barrier": "kmcpy.models.local_barrier_model.LocalBarrierModel",
-    "external_site_energy": "kmcpy.models.site_energy.ExternalSiteEnergyModel",
+    "callable_site_energy": "kmcpy.models.site_energy.CallableSiteEnergyModel",
     "mapped_site_energy": "kmcpy.models.site_energy.MappedSiteEnergyModel",
 }

@@ -1,8 +1,8 @@
-# Use External Site-Energy-Difference Models
+# Use Site-Energy-Difference Models
 
-This guide shows how to use a site-energy-difference model from another code,
-such as smol, CLEASE, ASE, or a project-specific cluster expansion, inside a
-kMCpy KMC simulation.
+This guide shows how to use site-energy-difference models inside a kMCpy KMC
+simulation, including direct Python callables and external codes such as smol,
+CLEASE, ASE, or a project-specific cluster expansion.
 
 The main rule is simple:
 
@@ -10,15 +10,16 @@ The main rule is simple:
 delta_e_site = E_after_hop - E_before_hop
 ```
 
-Your external model must return that signed energy difference for the proposed
-event. kMCpy combines it with the KRA barrier as:
+The site model must return that signed energy difference for the proposed event.
+kMCpy combines it with the KRA barrier as:
 
 ```text
 effective_barrier = e_kra + delta_e_site / 2
 ```
 
-In kMCpy, barriers and site-energy differences are consumed in `meV`. If the
-external code returns `eV`, set `units="eV"` and kMCpy will convert it.
+In kMCpy, barriers and site-energy differences are consumed in `meV`. If a
+callable or external code returns `eV`, set `units="eV"` and kMCpy will convert
+it.
 
 ## Choose The Interface
 
@@ -27,18 +28,22 @@ Use one of these three options:
 | Use case | Interface |
 | --- | --- |
 | No site-energy-difference term | `site_model=None` |
-| A simple function already returns `E_after - E_before` | `ExternalSiteEnergyModel` |
+| A kMCpy-native function already returns `E_after - E_before` | `CallableSiteEnergyModel` |
 | A live smol/CLEASE/ASE object must stay synchronized during KMC | `MappedSiteEnergyModel` |
 
-For production smol or CLEASE runs, use `MappedSiteEnergyModel`. It avoids
-rebuilding or converting the full occupation vector on every KMC step.
+`CallableSiteEnergyModel` passes kMCpy's `event` and `simulation_state`
+directly to your callable. It does not perform site-order or occupation-label
+mapping. For production smol, CLEASE, ASE, or any external code with its own
+site order or state labels, use `MappedSiteEnergyModel`. It builds the mapping
+once and avoids rebuilding or converting the full occupation vector on every KMC
+step.
 
 When the site contribution is another kMCpy `LocalClusterExpansion`, it still
 uses the regular `compute(simulation_state=..., event=...)` method. Its role in
 `CompositeLCEModel` determines the meaning: as `kra_model` it returns
 `E_KRA`, and as `site_model` it returns the site-energy-difference
-contribution. External adapters use the same public `compute(...)` method and
-return `E_after_hop - E_before_hop` directly.
+contribution. Callable and mapped adapters use the same public `compute(...)`
+method and return `E_after_hop - E_before_hop` directly.
 
 ## What kMCpy Stores
 
@@ -106,6 +111,33 @@ state_mapping_by_site = {
 kMCpy validates the site mapping during initialization. If an `event_lib` is
 available, it also checks that the endpoint state mappings needed by the events
 are present before the KMC loop starts.
+
+## Site-Order Traceability
+
+kMCpy's own compact active-site order is defined by `ActiveSiteIndexMap`, the
+same object used when structures, events, and occupations are loaded. When a
+`MappedSiteEnergyModel` is initialized during a normal KMC run, kMCpy passes
+that map to the model. The model records:
+
+- `kmcpy_site_order_hash`: the `ActiveSiteIndexMap.fingerprint` for the kMCpy
+  active-site order.
+- `external_site_order_hash`: a hash of the active-site to external-site
+  mapping and external occupation size.
+
+These hashes are serialized with the mapped model so model files can be traced
+back to the exact active-site ordering and external mapping they were built
+against. If you construct the adapter manually, pass the index map explicitly:
+
+```python
+site_model = MappedSiteEnergyModel(
+    runtime=external_evaluator,
+    delta_fn=external_delta,
+    site_mapping=kmcpy_to_external_site,
+    state_mapping=kmcpy_state_to_external_value,
+    active_site_index_map=active_site_index_map,
+    units="eV",
+)
+```
 
 ## Runtime Lifecycle
 
@@ -235,15 +267,17 @@ site_model.to("site_energy.json")
 At runtime, kMCpy resolves `runtime_ref`, `delta_ref`, and `apply_ref` from
 their import paths.
 
-## Simple Callable Adapter
+## Direct Callable Adapter
 
-Use `ExternalSiteEnergyModel` only when your callable already handles its own
-state and returns the signed event energy difference:
+Use `CallableSiteEnergyModel` only when your callable is written against kMCpy's
+own `event` and `simulation_state`, or when the callable handles any mapping
+internally. The adapter itself does not assume an external code has the same site
+order as kMCpy; it simply passes kMCpy objects through.
 
 ```python
-from kmcpy.models import ExternalSiteEnergyModel
+from kmcpy.models import CallableSiteEnergyModel
 
-site_model = ExternalSiteEnergyModel(
+site_model = CallableSiteEnergyModel(
     callable_ref="my_project.site_energy:site_energy_difference",
     units="eV",
     kwargs={"model_file": "site_ce.json"},
@@ -258,7 +292,7 @@ def site_energy_difference(event, simulation_state, model_file):
 ```
 
 Do not use this pattern if the callable rebuilds a full smol or CLEASE
-occupation object every time it is called.
+occupation object every time it is called. Use `MappedSiteEnergyModel` instead.
 
 ## No Site-Energy Term
 
@@ -276,7 +310,7 @@ model = CompositeLCEModel(
 Before running a simulation, check:
 
 - `delta_fn` returns `E_after_hop - E_before_hop`, not an absolute energy.
-- `units` matches the external model output.
+- `units` matches the model output.
 - `site_mapping` covers every kMCpy active site.
 - `state_mapping` or `state_mapping_by_site` covers every state needed by the
   events.

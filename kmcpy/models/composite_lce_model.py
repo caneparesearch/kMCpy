@@ -8,6 +8,7 @@ Author: Zeyu Deng
 """
 
 import importlib
+import inspect
 import logging
 from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
@@ -25,6 +26,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _accepts_keyword(callable_obj, keyword: str) -> bool:
+    """Return whether a callable accepts a specific keyword argument."""
+    try:
+        parameters = inspect.signature(callable_obj).parameters
+    except (TypeError, ValueError):
+        return False
+    return keyword in parameters or any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+
+
 class CompositeLCEModel(BaseModel):
     """
     A composite model that combines a KRA LCE with a site-energy-difference model.
@@ -34,9 +47,9 @@ class CompositeLCEModel(BaseModel):
     ``compute(simulation_state=..., event=...)``; its meaning comes from the
     role it is passed into. As ``kra_model`` it returns ``E_KRA``. As
     ``site_model`` it returns the site-energy-difference contribution for the
-    canonical event orientation. External smol/CLEASE adapters also expose
-    ``compute(event=..., simulation_state=...)`` and return the signed event
-    energy change, ``E_after_hop - E_before_hop``, in meV.
+    canonical event orientation. Callable and mapped site-energy models also
+    expose ``compute(event=..., simulation_state=...)`` and return the signed
+    event energy change, ``E_after_hop - E_before_hop``, in meV.
     
     The composite model provides:
     
@@ -107,8 +120,8 @@ class CompositeLCEModel(BaseModel):
     def fit(self, *args, **kwargs):
         """Composite models are assembled from separately fitted LCE models."""
         raise NotImplementedError(
-            "Fit LocalClusterExpansion models separately, build external "
-            "site-energy-difference adapters separately, then pass them to "
+            "Fit LocalClusterExpansion models separately, build callable or "
+            "mapped site-energy-difference adapters separately, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
@@ -139,17 +152,24 @@ class CompositeLCEModel(BaseModel):
         event_lib=None,
         structure=None,
         config=None,
+        active_site_index_map=None,
     ) -> None:
         """Initialize optional stateful submodel caches."""
         for model in (self.kra_model, self.site_model):
             initialize_state = getattr(model, "initialize_state", None)
             if callable(initialize_state):
-                initialize_state(
-                    simulation_state=simulation_state,
-                    event_lib=event_lib,
-                    structure=structure,
-                    config=config,
-                )
+                kwargs = {
+                    "simulation_state": simulation_state,
+                    "event_lib": event_lib,
+                    "structure": structure,
+                    "config": config,
+                }
+                if active_site_index_map is not None and _accepts_keyword(
+                    initialize_state,
+                    "active_site_index_map",
+                ):
+                    kwargs["active_site_index_map"] = active_site_index_map
+                initialize_state(**kwargs)
 
     def apply_event(self, *, event: Event, simulation_state: State) -> None:
         """Commit an accepted event to optional stateful submodels."""
@@ -357,8 +377,8 @@ class CompositeLCEModel(BaseModel):
     def build(self, *args, **kwargs):
         """Composite models are assembled from separately built LCE models."""
         raise NotImplementedError(
-            "Build LocalClusterExpansion models separately, build external "
-            "site-energy-difference adapters separately, then pass them to "
+            "Build LocalClusterExpansion models separately, build callable or "
+            "mapped site-energy-difference adapters separately, then pass them to "
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
@@ -396,18 +416,18 @@ class CompositeLCEModel(BaseModel):
         class_name = payload.get("@class")
         if not module_path or not class_name:
             raise ValueError(
-                "External site model payload must include '@module' and '@class'"
+                "Site model payload must include '@module' and '@class'"
             )
         model_cls = getattr(importlib.import_module(module_path), class_name)
         if not callable(getattr(model_cls, "from_dict", None)):
             raise ValueError(
-                f"External site model class '{module_path}.{class_name}' "
+                f"Site model class '{module_path}.{class_name}' "
                 "must provide from_dict()."
             )
         model = model_cls.from_dict(payload)
         if not callable(getattr(model, "compute", None)):
             raise TypeError(
-                f"External site model '{module_path}.{class_name}' must expose "
+                f"Site model '{module_path}.{class_name}' must expose "
                 "compute(event=..., simulation_state=...)."
             )
         return model

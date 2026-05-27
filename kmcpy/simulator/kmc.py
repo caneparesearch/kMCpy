@@ -9,6 +9,7 @@ from numba import njit
 from pymatgen.core import Structure
 import numpy as np
 import importlib
+import inspect
 from kmcpy.simulator.tracker import (
     CallbackExecutionError,
     Tracker,
@@ -28,6 +29,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
 
+
+def _accepts_keyword(callable_obj, keyword: str) -> bool:
+    """Return whether a callable accepts a specific keyword argument."""
+    try:
+        parameters = inspect.signature(callable_obj).parameters
+    except (TypeError, ValueError):
+        return False
+    return keyword in parameters or any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+
+
 class KMC:
     """Kinetic Monte Carlo Simulation Class.
 
@@ -43,6 +57,7 @@ class KMC:
                 config: "Configuration",
                 simulation_state: "State" = None,
                 hop_state_lookup: HopStateLookup | None = None,
+                active_site_index_map=None,
                 **kwargs) -> None:
         """Initialize the Kinetic Monte Carlo (kMC) simulation.
 
@@ -80,6 +95,7 @@ class KMC:
 
         # Store and apply precomputed hop-state metadata for fast direction checks.
         self.hop_state_lookup = hop_state_lookup
+        self.active_site_index_map = active_site_index_map
         if self.hop_state_lookup is not None:
             self.hop_state_lookup.annotate_event_lib(self.event_lib)
         
@@ -128,12 +144,18 @@ class KMC:
         """Let stateful models initialize external occupancy/cache state once."""
         initialize_state = getattr(self.model, "initialize_state", None)
         if callable(initialize_state):
-            initialize_state(
-                simulation_state=self.simulation_state,
-                event_lib=self.event_lib,
-                structure=self.structure,
-                config=self.config,
-            )
+            kwargs = {
+                "simulation_state": self.simulation_state,
+                "event_lib": self.event_lib,
+                "structure": self.structure,
+                "config": self.config,
+            }
+            if self.active_site_index_map is not None and _accepts_keyword(
+                initialize_state,
+                "active_site_index_map",
+            ):
+                kwargs["active_site_index_map"] = self.active_site_index_map
+            initialize_state(**kwargs)
 
     def _apply_model_event(self, event: Event) -> None:
         """Let stateful models commit an accepted event after State updates."""
@@ -249,6 +271,7 @@ class KMC:
             config=config,
             simulation_state=simulation_state,
             hop_state_lookup=hop_state_lookup,
+            active_site_index_map=active_site_index_map,
         )
 
     def show_project_info(self):

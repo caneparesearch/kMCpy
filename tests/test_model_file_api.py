@@ -8,7 +8,7 @@ from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.local_barrier_model import LocalBarrierModel
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.models.site_energy import (
-    ExternalSiteEnergyModel,
+    CallableSiteEnergyModel,
     MappedSiteEnergyModel,
 )
 from kmcpy.models.base import BaseModel
@@ -112,14 +112,14 @@ def test_local_barrier_model_type_is_inferred_from_model_file(tmp_path: Path):
 
 
 @pytest.mark.unit
-def test_external_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
-    model_file = tmp_path / "external_site_energy.json"
-    ExternalSiteEnergyModel(
+def test_callable_site_energy_model_type_is_inferred_from_model_file(tmp_path: Path):
+    model_file = tmp_path / "callable_site_energy.json"
+    CallableSiteEnergyModel(
         callable_ref="kmcpy.models.site_energy:constant_site_energy_difference",
         kwargs={"value": 10.0},
     ).to(str(model_file))
     payload = json.loads(model_file.read_text(encoding="utf-8"))
-    assert payload["@class"] == "ExternalSiteEnergyModel"
+    assert payload["@class"] == "CallableSiteEnergyModel"
     assert "filetype" not in payload
     config = Configuration(
         structure_file="fake_structure.cif",
@@ -128,7 +128,7 @@ def test_external_site_energy_model_type_is_inferred_from_model_file(tmp_path: P
     )
 
     model = BaseModel.from_config(config)
-    assert isinstance(model, ExternalSiteEnergyModel)
+    assert isinstance(model, CallableSiteEnergyModel)
 
 
 @pytest.mark.unit

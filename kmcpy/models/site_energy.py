@@ -1,10 +1,12 @@
-"""Site-energy difference adapters for composite KMC models."""
+"""Site-energy-difference adapters for composite KMC models."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+import hashlib
 import importlib
+import json
 import logging
 from typing import Any, Optional
 
@@ -12,6 +14,7 @@ import numpy as np
 from monty.serialization import loadfn
 
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
+from kmcpy.structure.active_site_index_map import ActiveSiteIndexMap
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +44,17 @@ class MappedOccupationChange:
         return (self.external_site, self.old_value, self.new_value)
 
 
-class ExternalSiteEnergyModel(BaseModel):
-    """Adapter for simple external site-energy-difference callables.
+class CallableSiteEnergyModel(BaseModel):
+    """Adapter for direct kMCpy-native site-energy-difference callables.
 
     The wrapped callable must return the event energy change
     ``E_after_hop - E_before_hop`` for the current ``simulation_state`` and
-    ``event``. kMCpy consumes this value in meV, so the adapter converts from
-    ``eV`` when requested.
+    ``event``. It receives kMCpy site indices and kMCpy occupation labels. Use
+    :class:`MappedSiteEnergyModel` instead when an external code has a different
+    site order, state encoding, or live runtime object.
+
+    kMCpy consumes this value in meV, so the adapter converts from ``eV`` when
+    requested.
 
     The callable is resolved from a string reference such as
     ``"package.module:function"`` or ``"package.module.function"`` and is called
@@ -56,15 +63,15 @@ class ExternalSiteEnergyModel(BaseModel):
         callable(event=event, simulation_state=simulation_state, **kwargs)
     """
 
-    MODEL_TYPE = "external_site_energy"
-    PAYLOAD_KEY = "external_site_energy"
+    MODEL_TYPE = "callable_site_energy"
+    PAYLOAD_KEY = "callable_site_energy"
 
     def __init__(
         self,
         callable_ref: str,
         units: str = "meV",
         kwargs: Optional[dict[str, Any]] = None,
-        name: str = "ExternalSiteEnergyModel",
+        name: str = "CallableSiteEnergyModel",
     ) -> None:
         super().__init__(name=name)
         if not isinstance(callable_ref, str) or not callable_ref.strip():
@@ -104,22 +111,22 @@ class ExternalSiteEnergyModel(BaseModel):
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ExternalSiteEnergyModel":
+    def from_dict(cls, data: dict[str, Any]) -> "CallableSiteEnergyModel":
         if not isinstance(data, dict):
-            raise ValueError("ExternalSiteEnergyModel payload must be a JSON object")
+            raise ValueError("CallableSiteEnergyModel payload must be a JSON object")
         if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
             data = data[cls.PAYLOAD_KEY]
         if not isinstance(data, dict):
-            raise ValueError("ExternalSiteEnergyModel payload must be a JSON object")
+            raise ValueError("CallableSiteEnergyModel payload must be a JSON object")
         return cls(
             callable_ref=data.get("callable_ref") or data.get("callable"),
             units=data.get("units", "meV"),
             kwargs=data.get("kwargs"),
-            name=data.get("name", "ExternalSiteEnergyModel"),
+            name=data.get("name", "CallableSiteEnergyModel"),
         )
 
     @classmethod
-    def from_file(cls, filename: str) -> "ExternalSiteEnergyModel":
+    def from_file(cls, filename: str) -> "CallableSiteEnergyModel":
         data = loadfn(filename, cls=None)
         if isinstance(data, dict) and data.get("filetype") == MODEL_FILETYPE:
             data = require_model_type(data, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
@@ -129,20 +136,20 @@ class ExternalSiteEnergyModel(BaseModel):
         from monty.serialization import dumpfn
 
         logger.info(
-            "Saving external site-energy-difference adapter to: %s",
+            "Saving callable site-energy-difference adapter to: %s",
             filename,
         )
         dumpfn(self.as_dict(), filename, indent=indent)
 
     def __str__(self) -> str:
         return (
-            f"ExternalSiteEnergyModel(callable_ref={self.callable_ref!r}, "
+            f"CallableSiteEnergyModel(callable_ref={self.callable_ref!r}, "
             f"units={self.units!r})"
         )
 
     def __repr__(self) -> str:
         return (
-            "ExternalSiteEnergyModel("
+            "CallableSiteEnergyModel("
             f"callable_ref={self.callable_ref!r}, units={self.units!r}, "
             f"kwargs={self.kwargs!r})"
         )
@@ -201,6 +208,8 @@ class MappedSiteEnergyModel(BaseModel):
         external_size: int | None = None,
         external_fill_value: Any = 0,
         external_dtype: str | None = None,
+        active_site_index_map: ActiveSiteIndexMap | Mapping[str, Any] | None = None,
+        kmcpy_site_order_hash: str | None = None,
         units: str = "eV",
         name: str = "MappedSiteEnergyModel",
     ) -> None:
@@ -225,6 +234,24 @@ class MappedSiteEnergyModel(BaseModel):
         )
         self.external_fill_value = external_fill_value
         self.external_dtype = external_dtype
+        self.active_site_index_map = _normalize_active_site_index_map(
+            active_site_index_map
+        )
+        normalized_site_order_hash = _normalize_optional_ref(kmcpy_site_order_hash)
+        if (
+            self.active_site_index_map is not None
+            and normalized_site_order_hash is not None
+            and normalized_site_order_hash != self.active_site_index_map.fingerprint
+        ):
+            raise ValueError(
+                "MappedSiteEnergyModel kmcpy_site_order_hash does not match "
+                "the active_site_index_map fingerprint."
+            )
+        self.kmcpy_site_order_hash = (
+            self.active_site_index_map.fingerprint
+            if self.active_site_index_map is not None
+            else normalized_site_order_hash
+        )
         self.units = _normalize_energy_units(units)
 
         self.external_occupation: np.ndarray | None = None
@@ -236,6 +263,15 @@ class MappedSiteEnergyModel(BaseModel):
     def unit_factor_to_mev(self) -> float:
         """Conversion factor from configured units to meV."""
         return _unit_factor_to_mev(self.units)
+
+    @property
+    def external_site_order_hash(self) -> str:
+        """Order-sensitive hash of the active-site to external-site mapping."""
+        return _external_site_order_hash(
+            site_mapping=self.site_mapping,
+            external_size=self.external_size,
+            initial_occupation=self.initial_occupation,
+        )
 
     def _resolve_runtime(self):
         if self.runtime is None and self.runtime_ref is not None:
@@ -272,9 +308,12 @@ class MappedSiteEnergyModel(BaseModel):
         event_lib=None,
         structure=None,
         config=None,
+        active_site_index_map=None,
     ) -> None:
         """Build and validate external occupation caches once."""
         occupations = list(simulation_state.occupations)
+        self._set_active_site_index_map(active_site_index_map)
+        self._validate_kmcpy_site_order(len(occupations))
         self._site_lookup = _build_site_lookup(
             n_sites=len(occupations),
             site_mapping=self.site_mapping,
@@ -284,6 +323,31 @@ class MappedSiteEnergyModel(BaseModel):
         self.external_occupation = self._build_external_occupation(occupations)
         self._validate_event_mappings(event_lib, occupations)
         self._resolve_runtime()
+
+    def _set_active_site_index_map(self, active_site_index_map) -> None:
+        if active_site_index_map is None:
+            return
+        normalized = _normalize_active_site_index_map(active_site_index_map)
+        if (
+            self.kmcpy_site_order_hash is not None
+            and normalized.fingerprint != self.kmcpy_site_order_hash
+        ):
+            raise ValueError(
+                "MappedSiteEnergyModel active-site order hash does not "
+                "match the current kMCpy active-site index map."
+            )
+        self.active_site_index_map = normalized
+        self.kmcpy_site_order_hash = normalized.fingerprint
+
+    def _validate_kmcpy_site_order(self, occupation_count: int) -> None:
+        if self.active_site_index_map is None:
+            return
+        if self.active_site_index_map.active_site_count != int(occupation_count):
+            raise ValueError(
+                "MappedSiteEnergyModel active-site index map contains "
+                f"{self.active_site_index_map.active_site_count} active sites, "
+                f"but the simulation state contains {occupation_count} occupations."
+            )
 
     def _ensure_initialized(self, simulation_state) -> None:
         if self.external_occupation is None or self._site_lookup is None:
@@ -443,6 +507,13 @@ class MappedSiteEnergyModel(BaseModel):
             "external_size": self.external_size,
             "external_fill_value": self.external_fill_value,
             "external_dtype": self.external_dtype,
+            "active_site_index_map": (
+                self.active_site_index_map.as_dict()
+                if self.active_site_index_map is not None
+                else None
+            ),
+            "kmcpy_site_order_hash": self.kmcpy_site_order_hash,
+            "external_site_order_hash": self.external_site_order_hash,
             "units": self.units,
         }
 
@@ -452,7 +523,7 @@ class MappedSiteEnergyModel(BaseModel):
             raise ValueError("MappedSiteEnergyModel payload must be a JSON object")
         if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
             data = data[cls.PAYLOAD_KEY]
-        return cls(
+        model = cls(
             delta_ref=data.get("delta_ref"),
             delta_kwargs=data.get("delta_kwargs"),
             apply_ref=data.get("apply_ref"),
@@ -466,9 +537,21 @@ class MappedSiteEnergyModel(BaseModel):
             external_size=data.get("external_size"),
             external_fill_value=data.get("external_fill_value", 0),
             external_dtype=data.get("external_dtype"),
+            active_site_index_map=data.get("active_site_index_map"),
+            kmcpy_site_order_hash=data.get("kmcpy_site_order_hash"),
             units=data.get("units", "eV"),
             name=data.get("name", "MappedSiteEnergyModel"),
         )
+        stored_external_hash = data.get("external_site_order_hash")
+        if (
+            stored_external_hash is not None
+            and str(stored_external_hash) != model.external_site_order_hash
+        ):
+            raise ValueError(
+                "MappedSiteEnergyModel external_site_order_hash does not "
+                "match its site_mapping/external_size metadata."
+            )
+        return model
 
     @classmethod
     def from_file(cls, filename: str) -> "MappedSiteEnergyModel":
@@ -590,6 +673,47 @@ def _normalize_state_mapping_by_site(
         for site, mapping in enumerate(state_mapping_by_site)
         if mapping is not None
     }
+
+
+def _normalize_active_site_index_map(
+    active_site_index_map: ActiveSiteIndexMap | Mapping[str, Any] | None,
+) -> ActiveSiteIndexMap | None:
+    if active_site_index_map is None:
+        return None
+    if isinstance(active_site_index_map, ActiveSiteIndexMap):
+        return active_site_index_map
+    if isinstance(active_site_index_map, Mapping):
+        return ActiveSiteIndexMap.from_dict(active_site_index_map)
+    raise TypeError(
+        "active_site_index_map must be an ActiveSiteIndexMap, a serialized "
+        "mapping, or None"
+    )
+
+
+def _external_site_order_hash(
+    *,
+    site_mapping: dict[int, int] | None,
+    external_size: int | None,
+    initial_occupation: np.ndarray | None,
+) -> str:
+    initial_length = (
+        int(len(initial_occupation)) if initial_occupation is not None else None
+    )
+    payload = {
+        "format": "kmcpy.mapped_site_energy.external_site_order.v1",
+        "site_mapping": (
+            [
+                [int(site), int(external_site)]
+                for site, external_site in sorted(site_mapping.items())
+            ]
+            if site_mapping is not None
+            else None
+        ),
+        "external_size": int(external_size) if external_size is not None else None,
+        "initial_occupation_length": initial_length,
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def _build_site_lookup(
