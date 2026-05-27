@@ -1,9 +1,14 @@
-from pymatgen.core.structure import Structure, Species
+from pymatgen.core.structure import Structure
 import numpy as np
 from kmcpy.structure.basis import Occupation, get_basis
 from abc import ABC
 import logging
-from kmcpy.structure.vacancy import Vacancy
+from kmcpy.structure.species import (
+    is_vacancy_species,
+    normalize_species,
+    species_equivalent,
+    species_tokens,
+)
 
 logger = logging.getLogger(__name__) 
 
@@ -25,36 +30,23 @@ class LatticeStructure(ABC):
         '''
         self.template_structure = template_structure
 
-        # Avoid modifying the dictionary while iterating
-        items = list(site_mapping.items())
-        for key, value in items:
-            if isinstance(key, str):
-                # If the key is a string, convert it to Pymatgen Species
-                site_mapping[Species(key)] = site_mapping.pop(key)
-        items = list(site_mapping.items())
-        for key, value in items:
-            if isinstance(value, str):
-                if value == 'X':
-                    # If the value is 'X', treat it as a vacancy
-                    site_mapping[key] = [Vacancy()]
-                else:
-                    # Otherwise, treat it as a regular species
-                    site_mapping[key] = [Species(value)]
-            elif isinstance(value, list):
-                # If the value is a list, convert each string to Pymatgen Species
-                site_mapping[key] = [
-                    Vacancy() if (isinstance(v, str) and v == 'X') else (Species(v) if isinstance(v, str) else v)
-                    for v in value
-                ]
-        self.site_mapping = site_mapping
+        self.site_mapping = {
+            normalize_species(key): [
+                normalize_species(item)
+                for item in (value if isinstance(value, (list, tuple)) else [value])
+            ]
+            for key, value in site_mapping.items()
+        }
                 
         # Initialization of species for LatticeStructure
         # allowed_species is like [["Na","Va"],["Na","Va"],["Na","Va"],["Na","Va"], ... ,["Sb","W"],["Sb","W"],["Sb","W"]]
         self.allowed_species = []
         for site in self.template_structure:
-            species = Species(site.species_string)
-            # Create a list of allowed species for the site
-            allowed_specie = self.site_mapping.get(species)
+            allowed_specie = None
+            for mapped_species, mapped_allowed_species in self.site_mapping.items():
+                if species_equivalent(site.specie, mapped_species):
+                    allowed_specie = mapped_allowed_species
+                    break
             self.allowed_species.append(allowed_specie)
 
         if len(self.allowed_species) != len(self.template_structure):
@@ -287,28 +279,15 @@ class LatticeStructure(ABC):
 
     @staticmethod
     def _species_matches(actual, expected) -> bool:
-        return bool(
-            LatticeStructure._species_tokens(actual).intersection(
-                LatticeStructure._species_tokens(expected)
-            )
-        )
+        return species_equivalent(actual, expected)
 
     @staticmethod
     def _is_vacancy_species(specie) -> bool:
-        return isinstance(specie, Vacancy) or specie == "X" or getattr(specie, "symbol", None) == "X"
+        return is_vacancy_species(specie)
 
     @staticmethod
     def _species_tokens(specie) -> set[str]:
-        if LatticeStructure._is_vacancy_species(specie):
-            return {"X", "Vacancy"}
-        tokens = {str(specie)}
-        symbol = getattr(specie, "symbol", None)
-        if symbol is not None:
-            tokens.add(str(symbol))
-        element = getattr(specie, "element", None)
-        if element is not None:
-            tokens.add(str(element))
-        return tokens
+        return species_tokens(specie)
 
     def _missing_occupation_value(self, allowed_species):
         if not allowed_species:
@@ -383,7 +362,7 @@ class LatticeStructure(ABC):
         # Remove vacancy sites in reverse order to avoid index shifting issues
         vacancy_indices = []
         for i, site in enumerate(new_lattice_structure.template_structure):
-            if isinstance(site.specie, Vacancy) or getattr(site.specie, "symbol", None) == "X":
+            if is_vacancy_species(site.specie):
                 vacancy_indices.append(i)
         
         # Remove vacancy sites from the end to avoid index issues

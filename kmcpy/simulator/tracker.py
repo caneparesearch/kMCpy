@@ -7,7 +7,6 @@ from copy import copy
 import gzip
 import json
 import logging
-import warnings
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import numpy as np
@@ -349,28 +348,6 @@ class Tracker:
             raise ValueError(f"Property '{name}' is not attached")
         del self._properties[name]
         self._property_records.pop(name, None)
-
-    def detach_property(self, name: str) -> None:
-        """Detach a previously attached property callback."""
-        self.detach(name)
-
-    def disable_property(self, name: str) -> None:
-        """
-        Compatibility alias for old API.
-
-        - Built-ins: disable by setting enabled=False.
-        - Custom callbacks: detach from tracker.
-        """
-        warnings.warn(
-            "disable_property(...) is deprecated. "
-            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name in self._enabled_builtin_properties:
-            self.set_property_enabled(name, False)
-            return
-        self.detach(name)
 
     def clear_attachments(self) -> None:
         """Remove all user attachments while preserving built-in summary sampling."""

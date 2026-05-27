@@ -1,14 +1,5 @@
 """Shared registry definitions for I/O modules."""
 
-# Maps legacy model names to legacy task names.
-MODEL_TASK_REGISTRY = {
-    "lce": "lce",
-    "composite_lce": "lce",
-    "local_barrier": "lce",
-    "external_site_energy": "lce",
-    "mapped_site_energy": "lce",
-}
-
 # Maps model names to fully-qualified model class paths.
 MODEL_CLASS_REGISTRY = {
     "composite_lce": "kmcpy.models.composite_lce_model.CompositeLCEModel",

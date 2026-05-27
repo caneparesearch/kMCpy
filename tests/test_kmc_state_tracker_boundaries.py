@@ -364,12 +364,10 @@ def test_kmc_attachment_management():
     kmc.set_property_enabled("msd", False)
     assert kmc.property_plan.builtin_enabled["msd"] is False
 
-    with pytest.deprecated_call():
-        kmc.disable_property("p1")
+    kmc.detach("p1")
     assert kmc.list_attachments() == []
 
-    with pytest.deprecated_call():
-        kmc.disable_property("conductivity")
+    kmc.set_property_enabled("conductivity", False)
     assert kmc.property_plan.builtin_enabled["conductivity"] is False
 
     name = kmc.attach(custom_prop, interval=3, name="p1")

@@ -14,7 +14,7 @@ import logging
 from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
-from kmcpy.models.base import CompositeModel, MODEL_FILETYPE, require_model_type
+from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event
 from kmcpy.simulator.hop import event_direction
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CompositeLCEModel(CompositeModel):
+class CompositeLCEModel(BaseModel):
     """
     A composite model that combines a KRA LCE with a site-energy difference model.
     
@@ -97,8 +97,9 @@ class CompositeLCEModel(CompositeModel):
         if kra_model:
             models.append(kra_model)
 
-        super().__init__(models=models, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         
+        self.models = models
         self.site_model = site_model
         self.kra_model = kra_model
         self.kra_fit_metadata = kra_fit_metadata or {"time_stamp": None, "time": None}
@@ -374,44 +375,6 @@ class CompositeLCEModel(CompositeModel):
             "CompositeLCEModel(site_model=..., kra_model=...)."
         )
 
-    def get_occ_from_structure(self, structure, use_model='site_model'):
-        """
-        Get the occupation vector from a structure.
-        
-        Args:
-            structure (Structure): The structure from which to compute the occupation vector.
-            use_model (str): Specify which model to use for occupation calculation ('site_model' or 'kra_model').
-        
-        Returns:
-            np.ndarray: The occupation vector for the given structure.
-        """
-        if use_model == 'site_model' and self.site_model:
-            return self.site_model.local_lattice_structure.get_occ_from_structure(structure)
-        elif use_model == 'kra_model' and self.kra_model:
-            return self.kra_model.local_lattice_structure.get_occ_from_structure(structure)
-        else:
-            raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
-    
-    def get_corr_from_structure(self, structure, use_model='site_model', tol=1e-2, angle_tol=5):
-        """
-        Get the correlation vector from a structure.
-        
-        Args:
-            structure (Structure): The structure from which to compute the correlation vector.
-            use_model (str): Specify which model to use for correlation calculation ('site_model' or 'kra_model').
-            tol (float): Tolerance for occupation comparison.
-            angle_tol (float): Angle tolerance for structure matching.
-        
-        Returns:
-            np.ndarray: The correlation vector for the given structure.
-        """
-        if use_model == 'site_model' and self.site_model:
-            return self.site_model.get_corr_from_structure(structure, tol=tol, angle_tol=angle_tol)
-        elif use_model == 'kra_model' and self.kra_model:
-            return self.kra_model.get_corr_from_structure(structure, tol=tol, angle_tol=angle_tol)
-        else:
-            raise ValueError(f"Invalid model specified: {use_model}. Available models are 'site_model' and 'kra_model'.")
-        
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "CompositeLCEModel":
         """Create a CompositeLCEModel from a serialized payload."""

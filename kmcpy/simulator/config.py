@@ -693,11 +693,6 @@ class Configuration:
         print("  config = Configuration.create(temperature=300, kmc_passes=10000)")
         print("  print(config.temperature)  # Direct access to any field")
 
-    @classmethod
-    def help_parameters(cls):
-        """Compatibility alias for :meth:`help_fields`."""
-        cls.help_fields()
-
     def which_config(self, field_name: str) -> str:
         """Show which sub-config contains a field."""
         if field_name in SYSTEM_FIELD_NAMES:

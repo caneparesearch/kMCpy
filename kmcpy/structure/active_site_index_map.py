@@ -8,9 +8,13 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
 import numpy as np
-from pymatgen.core import Species, Structure
+from pymatgen.core import Structure
 
-from kmcpy.structure.vacancy import Vacancy
+from kmcpy.structure.species import (
+    normalize_species,
+    species_equivalent,
+    species_label,
+)
 
 
 INDEX_MAP_FORMAT = "kmcpy.active_site_index_map.v1"
@@ -95,10 +99,10 @@ class ActiveSiteIndexMap:
                 fixed_original_indices.append(full_index)
 
         species_by_primitive_site = tuple(
-            _species_label(site.specie) for site in template_structure
+            species_label(site.specie) for site in template_structure
         )
         allowed_species_by_primitive_site = tuple(
-            tuple(_species_label(specie) for specie in allowed)
+            tuple(species_label(specie) for specie in allowed)
             for allowed in allowed_species
         )
         fingerprint = _fingerprint(
@@ -366,7 +370,7 @@ def _allowed_species_by_site(
     site_mapping: Mapping[Any, Any],
 ) -> list[tuple[Any, ...]]:
     entries = [
-        (_normalize_species(key), _normalize_allowed_species(value))
+        (normalize_species(key), _normalize_allowed_species(value))
         for key, value in site_mapping.items()
     ]
     allowed_species = []
@@ -374,7 +378,7 @@ def _allowed_species_by_site(
         matches = [
             allowed
             for key_species, allowed in entries
-            if _species_equivalent(site.specie, key_species)
+            if species_equivalent(site.specie, key_species)
         ]
         if not matches:
             raise ValueError(
@@ -387,44 +391,8 @@ def _allowed_species_by_site(
 
 def _normalize_allowed_species(value: Any) -> tuple[Any, ...]:
     if isinstance(value, (list, tuple)):
-        return tuple(_normalize_species(item) for item in value)
-    return (_normalize_species(value),)
-
-
-def _normalize_species(value: Any) -> Any:
-    if isinstance(value, Vacancy):
-        return value
-    if isinstance(value, str):
-        if value == "X":
-            return Vacancy()
-        return Species(value)
-    return value
-
-
-def _species_equivalent(left: Any, right: Any) -> bool:
-    return bool(_species_tokens(left).intersection(_species_tokens(right)))
-
-
-def _species_tokens(specie: Any) -> set[str]:
-    if isinstance(specie, Vacancy) or specie == "X":
-        return {"X", "Vacancy"}
-    tokens = {str(specie)}
-    symbol = getattr(specie, "symbol", None)
-    if symbol is not None:
-        tokens.add(str(symbol))
-    element = getattr(specie, "element", None)
-    if element is not None:
-        tokens.add(str(element))
-    return tokens
-
-
-def _species_label(specie: Any) -> str:
-    if isinstance(specie, Vacancy) or specie == "X":
-        return "X"
-    symbol = getattr(specie, "symbol", None)
-    if symbol is not None:
-        return str(symbol)
-    return str(specie)
+        return tuple(normalize_species(item) for item in value)
+    return (normalize_species(value),)
 
 
 def _fingerprint(payload: Mapping[str, Any]) -> str:

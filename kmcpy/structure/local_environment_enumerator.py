@@ -13,7 +13,11 @@ from pymatgen.core import DummySpecies, PeriodicSite, Species, Structure
 from kmcpy.structure.basis import Occupation
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.local_site_ordering import LocalSiteOrderingConvention
-from kmcpy.structure.vacancy import Vacancy
+from kmcpy.structure.species import (
+    is_vacancy_species,
+    species_label,
+    species_tokens,
+)
 
 
 @dataclass(frozen=True)
@@ -794,38 +798,16 @@ def _species_matches_token(specie: Any, token: Any) -> bool:
 
 
 def _species_label(specie: Any) -> str:
-    if _is_vacancy(specie):
-        return "X"
-    return _species_token_label(specie)
+    return species_label(specie)
 
 
 def _species_token_label(token: Any) -> str:
-    if _is_vacancy(token):
-        return "X"
-    if isinstance(token, str):
-        return token
-    symbol = getattr(token, "symbol", None)
-    if symbol is not None:
-        return str(symbol)
-    return str(token)
+    return species_label(token)
 
 
 def _species_tokens(specie: Any) -> set[str]:
-    if _is_vacancy(specie):
-        return {"X", "Vacancy"}
-    tokens = {str(specie)}
-    symbol = getattr(specie, "symbol", None)
-    if symbol is not None:
-        tokens.add(str(symbol))
-    element = getattr(specie, "element", None)
-    if element is not None:
-        tokens.add(str(element))
-    return tokens
+    return species_tokens(specie)
 
 
 def _is_vacancy(specie: Any) -> bool:
-    return (
-        isinstance(specie, Vacancy)
-        or specie == "X"
-        or getattr(specie, "symbol", None) == "X"
-    )
+    return is_vacancy_species(specie)

@@ -11,7 +11,6 @@ API Reference Documentation
     event_base.rst
     generators.rst
     comparator.rst
-    vacancy.rst
     basis.rst
     lattice_structure.rst
     local_site_ordering.rst
@@ -21,6 +20,7 @@ API Reference Documentation
     cluster.rst
     sites.rst
     neighbors.rst
+    species.rst
     data.rst
     io_registry.rst
     cif.rst

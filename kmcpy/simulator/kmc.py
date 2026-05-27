@@ -9,15 +9,13 @@ from numba import njit
 from pymatgen.core import Structure
 import numpy as np
 import importlib
-import warnings
 from kmcpy.simulator.tracker import (
     CallbackExecutionError,
     Tracker,
 )
 from kmcpy.simulator.hop import HopStateLookup
-from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, PropertyPlan
+from kmcpy.simulator.property import PropertyPlan
 from kmcpy.event import Event, EventLib
-from monty.serialization import dumpfn, loadfn
 import logging
 import kmcpy
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -348,28 +346,6 @@ class KMC:
         if self._active_tracker is not None:
             self._active_tracker.detach(name)
 
-    def detach_property(self, name: str) -> None:
-        """Detach a custom property callback by name."""
-        self.detach(name)
-
-    def disable_property(self, name: str) -> None:
-        """
-        Compatibility alias for old API.
-
-        - Built-ins: disable by setting enabled=False.
-        - Custom callbacks: detach from run.
-        """
-        warnings.warn(
-            "disable_property(...) is deprecated. "
-            "Use set_property_enabled(name, False) for built-ins or detach(name) for callbacks.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name in BUILTIN_PROPERTY_FIELDS:
-            self.set_property_enabled(name, False)
-            return
-        self.detach(name)
-
     def clear_attachments(self) -> None:
         """Remove all attached custom property callbacks."""
         self._ensure_property_state()
@@ -569,34 +545,6 @@ class KMC:
         final_occupations = self.simulation_state.occupations
         tracker.write_results(final_occupations, label=label)
         return tracker
-
-    def as_dict(self)-> dict:
-        """Serialize KMC object state to dictionary form."""
-        d = {
-            "@module": self.__class__.__module__,
-            "@class": self.__class__.__name__,
-            "structure": self.structure.as_dict(),
-            "model": self.model.as_dict() if hasattr(self.model, 'as_dict') else str(self.model),
-            "config": self.config.as_dict() if hasattr(self.config, 'as_dict') else str(self.config),
-            "occ_global": self.occ_global,
-            "event_lib": self.event_lib.as_dict(),
-        }
-        return d
-
-    def to(self, filename)-> None:
-        """Write serialized KMC state to a file."""
-        logger.info(f"Saving: {filename}")
-        dumpfn(self.as_dict(), filename, indent=4)
-
-    @classmethod
-    def from_file(cls, filename)-> "KMC":
-        """Load a serialized KMC object state from a file."""
-        logger.info(f"Loading: {filename}")
-        objDict = loadfn(filename, cls=None)
-        obj = KMC()
-        obj.__dict__ = objDict
-        logger.info("load complete")
-        return obj
 
 @njit
 def _propose(prob_cum_list, rng)-> tuple[int, float]:
