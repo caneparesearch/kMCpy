@@ -113,6 +113,88 @@ BUILTIN_PROPERTY_UNITS = {
 }
 
 
+def make_property_spec(
+    func: Callable[["State", int, float], Any],
+    *,
+    interval: Optional[int] = None,
+    time_interval: Optional[float] = None,
+    name: Optional[str] = None,
+    store: bool = True,
+    max_records: Optional[int] = None,
+    on_error: Optional[Callable[[Exception, "State", int, float], bool]] = None,
+    enabled: bool = True,
+    existing_names: set[str] | None = None,
+) -> PropertySpec:
+    """Validate callback metadata and return a property sampling spec."""
+    if not callable(func):
+        raise TypeError("func must be callable")
+
+    validate_schedule(interval=interval, time_interval=time_interval)
+    validate_max_records(max_records=max_records)
+
+    property_name = name or getattr(func, "__name__", "attached_property")
+    if property_name in BUILTIN_PROPERTY_FIELDS:
+        raise ValueError(
+            f"'{property_name}' is reserved for built-in properties"
+        )
+    if existing_names is not None and property_name in existing_names:
+        raise ValueError(f"Property '{property_name}' is already attached")
+
+    return PropertySpec(
+        name=property_name,
+        callback=func,
+        interval=interval,
+        time_interval=time_interval,
+        store=store,
+        max_records=max_records,
+        enabled=bool(enabled),
+        on_error=on_error,
+    )
+
+
+def describe_property_calculations(
+    *,
+    builtin_enabled: Mapping[str, bool],
+    attached_properties: Mapping[str, PropertySpec],
+) -> dict[str, list[str]]:
+    """Return enabled/disabled built-ins and custom callbacks."""
+    built_in_enabled = [
+        name for name in BUILTIN_PROPERTY_FIELDS if builtin_enabled.get(name, True)
+    ]
+    built_in_disabled = [
+        name for name in BUILTIN_PROPERTY_FIELDS if not builtin_enabled.get(name, True)
+    ]
+    attached_enabled = [
+        name for name, spec in attached_properties.items() if spec.enabled
+    ]
+    attached_disabled = [
+        name for name, spec in attached_properties.items() if not spec.enabled
+    ]
+    return {
+        "built_in_enabled": built_in_enabled,
+        "built_in_disabled": built_in_disabled,
+        "attached_enabled": attached_enabled,
+        "attached_disabled": attached_disabled,
+    }
+
+
+def set_property_enabled_flag(
+    *,
+    builtin_enabled: dict[str, bool],
+    attached_properties: dict[str, PropertySpec],
+    name: str,
+    enabled: bool,
+) -> None:
+    """Enable or disable one built-in metric or custom callback."""
+    if name in builtin_enabled:
+        builtin_enabled[name] = bool(enabled)
+        return
+
+    if name not in attached_properties:
+        raise ValueError(f"Unknown property '{name}'")
+    attached_properties[name].enabled = bool(enabled)
+
+
 class PropertyPlan:
     """
     Property sampling recipe for a KMC run.
@@ -176,31 +258,19 @@ class PropertyPlan:
         enabled: bool = True,
     ) -> str:
         """Register a custom property callback in the plan."""
-        if not callable(func):
-            raise TypeError("func must be callable")
-
-        validate_schedule(interval=interval, time_interval=time_interval)
-        validate_max_records(max_records=max_records)
-
-        property_name = name or getattr(func, "__name__", "attached_property")
-        if property_name in BUILTIN_PROPERTY_FIELDS:
-            raise ValueError(
-                f"'{property_name}' is reserved for built-in properties"
-            )
-        if property_name in self._attached_properties:
-            raise ValueError(f"Callback '{property_name}' is already attached")
-
-        self._attached_properties[property_name] = PropertySpec(
-            name=property_name,
-            callback=func,
+        spec = make_property_spec(
+            func,
             interval=interval,
             time_interval=time_interval,
+            name=name,
             store=store,
             max_records=max_records,
-            enabled=bool(enabled),
             on_error=on_error,
+            enabled=enabled,
+            existing_names=set(self._attached_properties),
         )
-        return property_name
+        self._attached_properties[spec.name] = spec
+        return spec.name
 
     def detach(self, name: str) -> None:
         """Remove a custom property callback from the plan."""
@@ -218,42 +288,19 @@ class PropertyPlan:
 
     def list_property_calculations(self) -> dict[str, list[str]]:
         """Return enabled/disabled built-ins and custom callbacks."""
-        built_in_enabled = [
-            name
-            for name in BUILTIN_PROPERTY_FIELDS
-            if self._enabled_builtin_properties.get(name, True)
-        ]
-        built_in_disabled = [
-            name
-            for name in BUILTIN_PROPERTY_FIELDS
-            if not self._enabled_builtin_properties.get(name, True)
-        ]
-        attached_enabled = [
-            name
-            for name, spec in self._attached_properties.items()
-            if spec.enabled
-        ]
-        attached_disabled = [
-            name
-            for name, spec in self._attached_properties.items()
-            if not spec.enabled
-        ]
-        return {
-            "built_in_enabled": built_in_enabled,
-            "built_in_disabled": built_in_disabled,
-            "attached_enabled": attached_enabled,
-            "attached_disabled": attached_disabled,
-        }
+        return describe_property_calculations(
+            builtin_enabled=self._enabled_builtin_properties,
+            attached_properties=self._attached_properties,
+        )
 
     def set_property_enabled(self, name: str, enabled: bool) -> None:
         """Enable or disable one built-in field or custom callback."""
-        if name in self._enabled_builtin_properties:
-            self._enabled_builtin_properties[name] = bool(enabled)
-            return
-
-        if name not in self._attached_properties:
-            raise ValueError(f"Unknown property '{name}'")
-        self._attached_properties[name].enabled = bool(enabled)
+        set_property_enabled_flag(
+            builtin_enabled=self._enabled_builtin_properties,
+            attached_properties=self._attached_properties,
+            name=name,
+            enabled=enabled,
+        )
 
     def fresh_attachment_specs(self) -> list[PropertySpec]:
         """

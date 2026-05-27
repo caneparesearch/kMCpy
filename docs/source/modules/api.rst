@@ -38,4 +38,5 @@ API Reference Documentation
     property.rst
     config.rst
     kmc.rst
+    results.rst
     units.rst
