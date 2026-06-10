@@ -8,6 +8,7 @@ API Reference Documentation
     init.rst
     main.rst
     run_kmc.rst
+    sample.rst
     event_base.rst
     generators.rst
     hop.rst

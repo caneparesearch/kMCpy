@@ -63,3 +63,15 @@ def test_kmcpy_init_subcommand_writes_template(tmp_path: Path):
 
     assert exit_code == 0
     assert output_file.exists()
+
+
+@pytest.mark.unit
+def test_kmcpy_init_help_includes_examples(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        kmcpy_main(["init", "--help"])
+
+    assert exc_info.value.code == 0
+    output = capsys.readouterr().out
+    assert "Generate a commented YAML template" in output
+    assert "Examples:" in output
+    assert "run_kmc --input input.yaml" in output

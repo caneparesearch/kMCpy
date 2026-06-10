@@ -42,7 +42,7 @@ tracker = run(config)
 
 ## Run From The Command Line
 
-Create a template input file:
+Create a commented template input file:
 
 ```shell
 uv run kmcpy init --output input_template.yaml
@@ -51,11 +51,31 @@ uv run kmcpy init --output input_template.yaml
 Edit the file paths and runtime fields, then run:
 
 ```shell
-uv run run_kmc --input input_template.yaml
+uv run kmcpy run --input input_template.yaml
 ```
+
+The standalone `run_kmc --input input_template.yaml` command is also supported.
 
 The generated template uses the modern `Configuration` format. Legacy
 `InputSet` style inputs are no longer supported.
+
+To write concrete starter files instead of a commented template, use:
+
+```shell
+uv run kmcpy sample all --output-dir kmcpy_sample
+```
+
+This writes:
+
+- `kmcpy_sample/input.yaml`,
+- `kmcpy_sample/model.json`,
+- `kmcpy_sample/initial_state.json`.
+
+The sample model is a constant-barrier `LocalBarrierModel`. You still need to
+provide a real structure file and event library before running a physical
+simulation.
+
+See [Command Line Interface](cli.md) for all scaffold and run commands.
 
 ## What The Input Must Provide
 

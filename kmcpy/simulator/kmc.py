@@ -2,7 +2,7 @@
 """
 This module provides the KMC class and associated functions for performing Kinetic Monte Carlo (kMC) simulations, 
 particularly for modeling processes in materials such as ion diffusion. The KMC class manages the 
-initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports 
+initialization, event handling, rate calculations, and simulation loop for kMC workflows. It supports
 loading input data from various sources, updating system states, and tracking simulation results.
 """
 from numba import njit
@@ -15,7 +15,7 @@ from kmcpy.simulator.tracker import (
     Tracker,
 )
 from kmcpy.simulator.property import PropertyPlan
-from kmcpy.event import Event, EventLib, HopStateLookup
+from kmcpy.event import Event, EventLib, HopStateLookup, INVALID_STATE
 import logging
 import kmcpy
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -106,10 +106,11 @@ class KMC:
 
         self._initialize_model_state()
 
-        # Calculate initial probabilities from runtime configuration and state.
-        logger.info("Initializing probabilities...")
+        # Calculate initial event rates from runtime configuration and state.
+        logger.info("Initializing event rates...")
         
-        # Calculate probabilities for all events using configured model
+        # Calculate rates for all events using configured model. The historical
+        # prob_list name is kept as an internal compatibility detail.
         self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
         for i, event in enumerate(self.event_lib.events):
             self.prob_list[i] = self.model.compute_probability(
@@ -122,8 +123,8 @@ class KMC:
         np.cumsum(self.prob_list, out=self.prob_cum_list)
         
         logger.info(f"Event dependency matrix with {len(self.event_lib)} events")
-        logger.info(f"Hopping probabilities: {self.prob_list}")
-        logger.info(f"Cumulative sum of hopping probabilities: {self.prob_cum_list}")
+        logger.info(f"Hopping rates: {self.prob_list}")
+        logger.info(f"Cumulative sum of hopping rates: {self.prob_cum_list}")
         
         # Display dependency matrix statistics
         stats = self.event_lib.get_dependency_statistics()
@@ -269,11 +270,11 @@ class KMC:
         )
 
     def show_project_info(self):
-        """Log current probability vectors for quick diagnostics."""
+        """Log current event-rate vectors for quick diagnostics."""
         try:
-            logger.info("Probabilities:")
+            logger.info("Rates:")
             logger.info(self.prob_list)
-            logger.info("Cumultative probability list:")
+            logger.info("Cumulative rate fractions:")
             logger.info(self.prob_cum_list / sum(self.prob_list))
         except Exception:
             pass
@@ -409,12 +410,17 @@ class KMC:
         """
         proposed_event_index, dt = _propose(prob_cum_list=self.prob_cum_list, rng=self.rng)
         event = events[proposed_event_index]
-        return event, dt
+        return event, dt, proposed_event_index
     
 
-    def update(self, event: Event, dt: float = 0.0) -> None:
+    def update(
+        self,
+        event: Event,
+        dt: float = 0.0,
+        event_index: int | None = None,
+    ) -> None:
         """
-        Updates the system state and event probabilities after an event occurs.
+        Updates the system state and event rates after an event occurs.
         
         This method delegates state management to State, following clean
         architecture principles with single responsibility and separation of concerns.
@@ -422,38 +428,74 @@ class KMC:
         This method performs the following steps:
         1. Delegates occupation updates to State.apply_event()
         2. Automatically finds the event index in the event library
-        3. Identifies all events that need probability updates using EventLib
-        4. Recalculates probabilities for affected events
-        5. Updates the cumulative probability list for event selection
+        3. Identifies all events that need rate updates using EventLib
+        4. Recalculates rates for affected events
+        5. Updates the cumulative rate list for event selection
 
         Args:
             event: The event object that has just occurred.
             dt (float, optional): Time increment for this event. Used for state tracking.
+            event_index: Index of ``event`` in ``self.event_lib``. If omitted,
+                the index is resolved by equality for direct/backward-compatible
+                calls.
             
         Side Effects:
-            Modifies occupation state and probability lists via State delegation.
+            Modifies occupation state and rate lists via State delegation.
         """
         self.simulation_state.apply_event(event, dt)
 
         # Keep optional model-side state, such as external CE occupancy caches,
-        # aligned with the accepted KMC event before future probabilities use it.
+        # aligned with the accepted KMC event before future rates use it.
         self._apply_model_event(event)
         
-        # Find event index automatically from event library
-        event_index = self.event_lib.events.index(event)
+        if event_index is None:
+            event_index = self.event_lib.events.index(event)
         
         # Use EventLib to get dependent events
         events_to_be_updated = self.event_lib.get_dependent_events(event_index)
         
-        # Update probabilities for dependent events using configured model
+        # Update rates for dependent events using configured model.
         for e_index in events_to_be_updated:
-            # Recalculate probability using configured model
             self.prob_list[e_index] = self.model.compute_probability(
                 event=self.event_lib.events[e_index],
                 runtime_config=self.config.runtime_config,
                 simulation_state=self.simulation_state
             )
         self.prob_cum_list = np.cumsum(self.prob_list)
+
+    def _mobile_site_count_for_pass(self) -> int:
+        """Return the number of active sites that can host the mobile species."""
+        lookup = getattr(self, "hop_state_lookup", None)
+        if lookup is not None:
+            mobile_states = lookup.mobile_state_by_site
+            return int(np.count_nonzero(mobile_states != INVALID_STATE))
+
+        return len([
+            el.symbol
+            for el in self.structure.species
+            if self.config.mobile_ion_specie in el.symbol
+        ])
+
+    def _propose_event(self) -> tuple[Event, float, int | None]:
+        """Return a proposed event, dt, and optional event-library index."""
+        proposal = self.propose(self.event_lib.events)
+        if len(proposal) == 3:
+            event, dt, event_index = proposal
+            return event, dt, int(event_index)
+        event, dt = proposal
+        return event, dt, None
+
+    def _update_after_proposal(
+        self,
+        event: Event,
+        dt: float,
+        event_index: int | None,
+    ) -> None:
+        """Update KMC state using the proposed event index when supported."""
+        if event_index is not None and _accepts_keyword(self.update, "event_index"):
+            self.update(event, dt=dt, event_index=event_index)
+        else:
+            self.update(event, dt=dt)
 
     def run(self, label: str = None) -> Tracker:
         """Run KMC simulation using this instance's Configuration object.
@@ -497,24 +539,23 @@ class KMC:
             config.temperature,
         )
         
-        # Calculate pass length based on mobile ions
-        pass_length = len([
-            el.symbol
-            for el in self.structure.species
-            if config.mobile_ion_specie in el.symbol
-        ])
+        # Calculate pass length from active-site state metadata when available.
+        # One pass means one attempt per active site that can host the mobile
+        # species, preserving historical kMCpy pass semantics without relying
+        # on species-string matching in the active structure.
+        pass_length = self._mobile_site_count_for_pass()
         
         logger.info("============================================================")
         logger.info("Start running kMC ... ")
-        logger.info("Initial probabilities and cumulative probabilities")
+        logger.info("Initial rates and cumulative rates")
         logger.info("Starting Equilibrium ...")
         
         # Equilibration phase
         for _ in np.arange(config.equilibration_passes):
             for _ in np.arange(pass_length):
-                event, dt = self.propose(self.event_lib.events)
+                event, dt, event_index = self._propose_event()
                 # Keep equilibration out of production time accounting.
-                self.update(event, dt=0.0)
+                self._update_after_proposal(event, dt=0.0, event_index=event_index)
 
         logger.info("Start running kMC ...")
 
@@ -536,11 +577,11 @@ class KMC:
         # Main KMC loop
         for current_pass in np.arange(config.kmc_passes):
             for _ in np.arange(pass_length):
-                event, dt = self.propose(self.event_lib.events)
+                event, dt, event_index = self._propose_event()
                 
                 tracker.update(event, dt)
                 # KMC is the single owner of mutable simulation state updates.
-                self.update(event, dt=dt)
+                self._update_after_proposal(event, dt=dt, event_index=event_index)
                 tracker.sample_properties(
                     step=int(self.simulation_state.step),
                     sim_time=float(self.simulation_state.time),

@@ -67,7 +67,7 @@ tracker = run(config)
 
 ## Run From The CLI
 
-Create a template:
+Create a commented template:
 
 ```shell
 kmcpy init --output input_template.yaml
@@ -76,8 +76,20 @@ kmcpy init --output input_template.yaml
 Edit the fields, then run:
 
 ```shell
-run_kmc --input input_template.yaml
+kmcpy run --input input_template.yaml
 ```
+
+The standalone `run_kmc --input input_template.yaml` command is also supported.
+
+For concrete starter files, generate a small local-barrier sample set:
+
+```shell
+kmcpy sample all --output-dir kmcpy_sample
+```
+
+This writes `input.yaml`, `model.json`, and `initial_state.json`. Replace the
+placeholder `structure_file` and `event_file` values with files prepared for
+your system.
 
 ## Change Runtime Conditions
 
