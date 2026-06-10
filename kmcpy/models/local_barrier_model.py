@@ -433,7 +433,7 @@ class LocalBarrierModel(BaseModel):
         default_barrier: Shortcut for ``default_properties={"barrier": value}``.
         default_property: Property returned by ``compute`` when
             ``property_name`` is not supplied.
-        probability_mode: Probability calculation mode. Currently only
+        probability_mode: Rate calculation mode. Currently only
             ``"barrier_arrhenius"`` is supported.
         probability_property: Property used as the barrier in
             ``compute_probability``.
@@ -1013,10 +1013,10 @@ class LocalBarrierModel(BaseModel):
         temperature = runtime_config.temperature
         attempt_frequency = runtime_config.attempt_frequency
 
-        probability = hop_factor * attempt_frequency * np.exp(
+        rate = hop_factor * attempt_frequency * np.exp(
             -barrier / (self.BOLTZMANN_CONSTANT_MEV_PER_K * temperature)
         )
-        return float(probability)
+        return float(rate)
 
     def __str__(self) -> str:
         return (

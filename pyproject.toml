@@ -86,6 +86,10 @@ markers = [
     "unit: marks tests as unit tests",
     "nasicon: marks tests specific to NASICON materials",
 ]
+filterwarnings = [
+    "ignore:Parameter payload is missing orbit_fingerprints;.*:UserWarning",
+    "ignore:Parameter payload is missing local_environment_hash;.*:UserWarning",
+]
 
 [project.scripts]
 kmcpy = "kmcpy.cli.main:main"

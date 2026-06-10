@@ -52,7 +52,7 @@ class CompositeLCEModel(BaseModel):
     
     The composite model provides:
     
-    - compute_probability(): compute transition probability from an event
+    - compute_probability(): compute transition rate from an event
     
     Example::
     
@@ -67,7 +67,7 @@ class CompositeLCEModel(BaseModel):
         composite = CompositeLCEModel(site_model, kra_model)
         
         # Use the composite model with State (preferred)
-        probability = composite.compute_probability(
+        rate = composite.compute_probability(
             event=event,
             runtime_config=runtime_config,
             simulation_state=simulation_state
@@ -184,16 +184,16 @@ class CompositeLCEModel(BaseModel):
         simulation_state: State,
     ) -> float:
         """
-        Compute the transition probability/rate in Hz for a given event using the composite LCE model.
+        Compute the transition rate in Hz for a given event using the composite LCE model.
 
-        This method calculates the transition probability for a migration event by:
+        This method calculates the transition rate for a migration event by:
         
         - Computing the site-energy difference (delta_e_site, meV) using the site model.
         - Computing the barrier energy (e_kra, meV) using the barrier LocalClusterExpansion model and its stored parameters.
         - Determining the direction of the event from the occupation vector in the State.
         - Calculating the effective barrier as: e_barrier = e_kra + delta_e_site / 2
-        - Using the Arrhenius equation to compute the probability:
-          probability = hop_available * v * np.exp(-e_barrier / (k * temperature))
+        - Using the Arrhenius equation to compute the rate:
+          rate = hop_available * v * np.exp(-e_barrier / (k * temperature))
 
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.
@@ -201,7 +201,7 @@ class CompositeLCEModel(BaseModel):
             simulation_state (State): Contains the current occupation vector.
 
         Returns:
-            float: The computed transition probability/rate in Hz.
+            float: The computed transition rate in Hz.
         """
 
         # Get occupation from simulation_state
@@ -230,10 +230,10 @@ class CompositeLCEModel(BaseModel):
         temperature = runtime_config.temperature
         v = runtime_config.attempt_frequency
         
-        # Compute probability using Arrhenius equation
-        probability = v * np.exp(-e_barrier / (k * temperature))
+        # Compute rate using Arrhenius equation
+        rate = v * np.exp(-e_barrier / (k * temperature))
         
-        return probability
+        return rate
 
     def __str__(self):
         return f"CompositeLCEModel(site_model={self.site_model}, kra_model={self.kra_model})"
