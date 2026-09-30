@@ -11,11 +11,17 @@ import importlib
 import inspect
 import logging
 from typing import Any, Optional, TYPE_CHECKING
+import numba as nb
 import numpy as np
 
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
-from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.models.local_cluster_expansion import (
+    LocalClusterExpansion,
+    _calc_corr,
+    _calc_corr_decorated,
+)
 from kmcpy.event import Event, event_direction
+from kmcpy.event.hop import DEFAULT_HOP_STATE_CODES
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
@@ -170,12 +176,54 @@ class CompositeLCEModel(BaseModel):
                     kwargs["active_site_order"] = active_site_order
                 initialize_state(**kwargs)
 
+        self._batch_evaluator = _LCEBatchRateEvaluator.build(
+            self,
+            event_lib=event_lib,
+            simulation_state=simulation_state,
+        )
+
     def apply_event(self, *, event: Event, simulation_state: State) -> None:
         """Commit an accepted event to optional stateful submodels."""
         for model in (self.kra_model, self.site_model):
             apply_event = getattr(model, "apply_event", None)
             if callable(apply_event):
                 apply_event(event=event, simulation_state=simulation_state)
+
+        evaluator = getattr(self, "_batch_evaluator", None)
+        if evaluator is not None:
+            evaluator.apply_event(event, simulation_state)
+
+    def compute_probabilities(
+        self,
+        *,
+        events,
+        event_indices,
+        runtime_config: "RuntimeConfig",
+        simulation_state: State,
+    ) -> np.ndarray:
+        """Compute rates in Hz for ``events[i]`` for each ``i`` in ``event_indices``.
+
+        When both submodels are plain ``LocalClusterExpansion`` objects and
+        ``initialize_state`` received the event library, all rates are
+        evaluated in one compiled call. The result is identical to calling
+        ``compute_probability`` for each event, which is the fallback.
+        """
+        evaluator = getattr(self, "_batch_evaluator", None)
+        if evaluator is not None and evaluator.can_evaluate(
+            self, events, simulation_state
+        ):
+            return evaluator.compute(
+                self,
+                event_indices=event_indices,
+                runtime_config=runtime_config,
+                simulation_state=simulation_state,
+            )
+        return super().compute_probabilities(
+            events=events,
+            event_indices=event_indices,
+            runtime_config=runtime_config,
+            simulation_state=simulation_state,
+        )
 
     def compute_probability(
         self,
@@ -438,3 +486,273 @@ class CompositeLCEModel(BaseModel):
 
         logger.info("Loading composite model file from: %s", model_file)
         return cls.from_dict(loadfn(model_file, cls=None))
+
+
+def _uses_default_lce_evaluation(model) -> bool:
+    """Return whether ``model`` evaluates exactly like ``LocalClusterExpansion.compute``."""
+    model_type = type(model)
+    return (
+        isinstance(model, LocalClusterExpansion)
+        and model_type.compute is LocalClusterExpansion.compute
+        and model_type._calculate_correlation is LocalClusterExpansion._calculate_correlation
+        and hasattr(model, "keci")
+        and hasattr(model, "empty_cluster")
+        and hasattr(model, "cluster_site_indices")
+    )
+
+
+def _lce_kernel_inputs(model) -> tuple:
+    """Return the arrays the batch kernel needs to evaluate one LCE submodel."""
+    correlation_count = model._validate_keci_once()
+    correlation_basis_indices = getattr(model, "correlation_basis_indices", None)
+    site_basis_values = getattr(model, "site_basis_values", None)
+    decorated = correlation_basis_indices is not None and site_basis_values is not None
+    orbit_offsets, cluster_offsets, sites, basis = model._flat_cluster_indices(
+        correlation_basis_indices if decorated else None
+    )
+    if not decorated:
+        site_basis_values = _EMPTY_SITE_BASIS_VALUES
+    return (
+        decorated,
+        correlation_count,
+        orbit_offsets,
+        cluster_offsets,
+        sites,
+        basis,
+        np.asarray(site_basis_values, dtype=np.float64),
+        np.asarray(model.keci, dtype=np.float64),
+        float(model.empty_cluster),
+    )
+
+
+_EMPTY_SITE_BASIS_VALUES = np.zeros((1, 1, 1), dtype=np.float64)
+_NO_SITE_MODEL_INPUTS = (
+    False,
+    0,
+    np.zeros(1, dtype=np.int64),
+    np.zeros(1, dtype=np.int64),
+    np.zeros(0, dtype=np.int64),
+    np.zeros(0, dtype=np.int64),
+    _EMPTY_SITE_BASIS_VALUES,
+    np.zeros(0, dtype=np.float64),
+    0.0,
+)
+
+
+class _LCEBatchRateEvaluator:
+    """Batched rate evaluation for a composite of plain LCE submodels.
+
+    It keeps an ``int64`` copy of the active-site occupations, which is updated
+    at the two hop endpoints in ``apply_event`` and fully resynchronized if
+    the ``State`` object or its step counter changes unexpectedly.
+    """
+
+    def __init__(self, kra_model, site_model, events, simulation_state):
+        self.kra_model = kra_model
+        self.site_model = site_model
+        self.events = events
+        self.event_count = len(events)
+
+        from_sites = np.empty(self.event_count, dtype=np.int64)
+        to_sites = np.empty(self.event_count, dtype=np.int64)
+        hop_codes = np.empty((self.event_count, 4), dtype=np.int64)
+        env_offsets = np.zeros(self.event_count + 1, dtype=np.int64)
+        env_sites = []
+        for event_index, event in enumerate(events):
+            from_site, to_site = event.mobile_ion_indices
+            from_sites[event_index] = int(from_site)
+            to_sites[event_index] = int(to_site)
+            hop_codes[event_index] = getattr(
+                event, "hop_state_codes", DEFAULT_HOP_STATE_CODES
+            )
+            env_sites.extend(int(site) for site in event.local_env_indices)
+            env_offsets[event_index + 1] = len(env_sites)
+        self.from_sites = from_sites
+        self.to_sites = to_sites
+        self.hop_codes = hop_codes
+        self.env_offsets = env_offsets
+        self.env_sites = np.asarray(env_sites, dtype=np.int64)
+        self._sync_occupations(simulation_state)
+
+    @classmethod
+    def build(cls, model, *, event_lib, simulation_state):
+        """Return an evaluator, or ``None`` when the model/events are not eligible."""
+        if event_lib is None or simulation_state is None:
+            return None
+        if not _uses_default_lce_evaluation(model.kra_model):
+            return None
+        if model.site_model is not None and not _uses_default_lce_evaluation(
+            model.site_model
+        ):
+            return None
+        events = getattr(event_lib, "events", event_lib)
+        try:
+            if any(len(event.mobile_ion_indices) != 2 for event in events):
+                return None
+            return cls(model.kra_model, model.site_model, events, simulation_state)
+        except (TypeError, ValueError):
+            return None
+
+    def _sync_occupations(self, simulation_state) -> None:
+        self.state = simulation_state
+        self.occupations = np.asarray(simulation_state.occupations, dtype=np.int64).copy()
+        self.state_step = simulation_state.step
+
+    def can_evaluate(self, model, events, simulation_state) -> bool:
+        return (
+            events is self.events
+            and len(events) == self.event_count
+            and model.kra_model is self.kra_model
+            and model.site_model is self.site_model
+            and simulation_state is not None
+        )
+
+    def apply_event(self, event, simulation_state) -> None:
+        if simulation_state is not self.state:
+            self._sync_occupations(simulation_state)
+            return
+        occupations = simulation_state.occupations
+        for site in event.mobile_ion_indices:
+            self.occupations[site] = occupations[site]
+        self.state_step = simulation_state.step
+
+    def compute(self, model, *, event_indices, runtime_config, simulation_state) -> np.ndarray:
+        if simulation_state is not self.state or simulation_state.step != self.state_step:
+            self._sync_occupations(simulation_state)
+        site_inputs = (
+            _lce_kernel_inputs(self.site_model)
+            if self.site_model is not None
+            else _NO_SITE_MODEL_INPUTS
+        )
+        rates = np.empty(len(event_indices), dtype=np.float64)
+        _compute_composite_lce_rates(
+            rates,
+            np.asarray(event_indices, dtype=np.int64),
+            self.occupations,
+            self.from_sites,
+            self.to_sites,
+            self.hop_codes,
+            self.env_offsets,
+            self.env_sites,
+            *_lce_kernel_inputs(self.kra_model),
+            self.site_model is not None,
+            *site_inputs,
+            float(runtime_config.attempt_frequency),
+            float(BOLTZMANN_CONSTANT_MEV_PER_K * runtime_config.temperature),
+        )
+        return rates
+
+
+@nb.njit
+def _lce_value(
+    local_occupation,
+    decorated,
+    correlation_count,
+    orbit_offsets,
+    cluster_offsets,
+    sites,
+    basis,
+    site_basis_values,
+    keci,
+    empty_cluster,
+):
+    corr = np.empty(correlation_count)
+    if decorated:
+        _calc_corr_decorated(
+            corr,
+            local_occupation,
+            orbit_offsets,
+            cluster_offsets,
+            sites,
+            basis,
+            site_basis_values,
+        )
+    else:
+        _calc_corr(corr, local_occupation, orbit_offsets, cluster_offsets, sites)
+    return np.dot(corr, keci) + empty_cluster
+
+
+@nb.njit
+def _compute_composite_lce_rates(
+    rates,
+    event_indices,
+    occupations,
+    from_sites,
+    to_sites,
+    hop_codes,
+    env_offsets,
+    env_sites,
+    kra_decorated,
+    kra_correlation_count,
+    kra_orbit_offsets,
+    kra_cluster_offsets,
+    kra_sites,
+    kra_basis,
+    kra_site_basis_values,
+    kra_keci,
+    kra_empty_cluster,
+    has_site_model,
+    site_decorated,
+    site_correlation_count,
+    site_orbit_offsets,
+    site_cluster_offsets,
+    site_sites,
+    site_basis,
+    site_site_basis_values,
+    site_keci,
+    site_empty_cluster,
+    attempt_frequency,
+    k_times_temperature,
+):
+    """Evaluate ``CompositeLCEModel.compute_probability`` for many events.
+
+    The arithmetic mirrors the scalar path operation by operation so that
+    batched and per-event rates are identical.
+    """
+    for position in range(len(event_indices)):
+        event_index = event_indices[position]
+        from_occ = occupations[from_sites[event_index]]
+        to_occ = occupations[to_sites[event_index]]
+        if from_occ == hop_codes[event_index, 0] and to_occ == hop_codes[event_index, 1]:
+            direction = 1
+        elif from_occ == hop_codes[event_index, 2] and to_occ == hop_codes[event_index, 3]:
+            direction = -1
+        else:
+            rates[position] = 0.0
+            continue
+
+        start = env_offsets[event_index]
+        stop = env_offsets[event_index + 1]
+        local_occupation = np.empty(stop - start, dtype=np.int64)
+        for offset in range(stop - start):
+            local_occupation[offset] = occupations[env_sites[start + offset]]
+
+        e_kra = _lce_value(
+            local_occupation,
+            kra_decorated,
+            kra_correlation_count,
+            kra_orbit_offsets,
+            kra_cluster_offsets,
+            kra_sites,
+            kra_basis,
+            kra_site_basis_values,
+            kra_keci,
+            kra_empty_cluster,
+        )
+        delta_e_site = 0.0
+        if has_site_model:
+            delta_e_site = direction * _lce_value(
+                local_occupation,
+                site_decorated,
+                site_correlation_count,
+                site_orbit_offsets,
+                site_cluster_offsets,
+                site_sites,
+                site_basis,
+                site_site_basis_values,
+                site_keci,
+                site_empty_cluster,
+            )
+        e_barrier = e_kra + delta_e_site / 2
+        rates[position] = attempt_frequency * np.exp(-e_barrier / k_times_temperature)
+

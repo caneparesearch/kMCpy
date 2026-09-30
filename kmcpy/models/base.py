@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import importlib
 import logging
 
+import numpy as np
 from monty.json import MSONable
 from monty.serialization import loadfn
 
@@ -207,6 +208,33 @@ class BaseModel(MSONable, ABC):
         raise NotImplementedError(
             f"{self.__class__.__name__} does not implement compute_probability(). "
             "Use a KMC rate model such as CompositeLCEModel or LocalBarrierModel."
+        )
+
+    def compute_probabilities(
+        self,
+        *,
+        events,
+        event_indices,
+        runtime_config,
+        simulation_state,
+    ) -> np.ndarray:
+        """Compute rates in Hz for ``events[i]`` for each ``i`` in ``event_indices``.
+
+        KMC calls this after every accepted event to refresh the dependent
+        event rates. The default evaluates ``compute_probability`` one event at
+        a time; models can override it with a batched implementation that
+        returns the same values.
+        """
+        return np.array(
+            [
+                self.compute_probability(
+                    event=events[event_index],
+                    runtime_config=runtime_config,
+                    simulation_state=simulation_state,
+                )
+                for event_index in event_indices
+            ],
+            dtype=np.float64,
         )
     
     def build(self, *args, **kwargs):

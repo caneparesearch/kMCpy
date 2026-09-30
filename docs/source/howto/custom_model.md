@@ -68,6 +68,23 @@ Use these hooks to build caches once and update them after accepted events. Do
 not rebuild full external occupations inside every `compute_probability(...)`
 call.
 
+After each accepted event, KMC refreshes the rates of all dependent events
+through:
+
+```python
+compute_probabilities(
+    events=events,
+    event_indices=event_indices,
+    runtime_config=runtime_config,
+    simulation_state=state,
+)
+```
+
+`BaseModel` implements it by calling `compute_probability(...)` for each index,
+so most models do not need it. Override it only for a batched implementation,
+and return exactly the same rates in Hz as the per-event method.
+`CompositeLCEModel` does this for plain `LocalClusterExpansion` submodels.
+
 ## Serialization
 
 kMCpy follows Monty-style serialization:

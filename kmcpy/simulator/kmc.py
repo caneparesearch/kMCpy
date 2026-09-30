@@ -5,7 +5,6 @@ particularly for modeling processes in materials such as ion diffusion. The KMC 
 initialization, event handling, rate calculations, and simulation loop for kMC workflows. It supports
 loading input data from various sources, updating system states, and tracking simulation results.
 """
-from numba import njit
 from pymatgen.core import Structure
 import numpy as np
 import importlib
@@ -456,15 +455,25 @@ class KMC:
         
         # Update rates for dependent events using configured model.
         events = self.event_lib.events
-        compute_probability = self.model.compute_probability
         runtime_config = self.config.runtime_config
         simulation_state = self.simulation_state
-        for e_index in events_to_be_updated:
-            self.prob_list[e_index] = compute_probability(
-                event=events[e_index],
-                runtime_config=runtime_config,
-                simulation_state=simulation_state,
-            )
+        compute_probabilities = getattr(self.model, "compute_probabilities", None)
+        if compute_probabilities is not None:
+            if events_to_be_updated:
+                self.prob_list[events_to_be_updated] = compute_probabilities(
+                    events=events,
+                    event_indices=events_to_be_updated,
+                    runtime_config=runtime_config,
+                    simulation_state=simulation_state,
+                )
+        else:
+            compute_probability = self.model.compute_probability
+            for e_index in events_to_be_updated:
+                self.prob_list[e_index] = compute_probability(
+                    event=events[e_index],
+                    runtime_config=runtime_config,
+                    simulation_state=simulation_state,
+                )
         np.cumsum(self.prob_list, out=self.prob_cum_list)
 
     def _mobile_site_count_for_pass(self) -> int:
@@ -613,13 +622,16 @@ class KMC:
         tracker.write_results(label=label)
         return tracker
 
-@njit
 def _propose(prob_cum_list, rng)-> tuple[int, float]:
-    """Sample one event index and waiting time from cumulative rates."""
+    """Sample one event index and waiting time from cumulative rates.
+
+    Plain NumPy: passing a ``Generator`` into an ``njit`` function costs more
+    than the sampling itself. The random stream is the same either way.
+    """
     random_seed = rng.random()
     random_seed_2 = rng.random()
     proposed_event_index = np.searchsorted(
         prob_cum_list / prob_cum_list[-1], random_seed, side="right"
     )
     dt = (-1.0 / prob_cum_list[-1]) * np.log(random_seed_2)
-    return proposed_event_index, dt
+    return int(proposed_event_index), float(dt)

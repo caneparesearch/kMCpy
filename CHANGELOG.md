@@ -4,15 +4,26 @@
 
 ### Performance
 
-- Faster KMC rate updates (about 2.2x per step on the NASICON test system)
-  with bit-identical seeded trajectories:
+- KMC steps are about 8x faster on the NASICON test system (605 to 72 us per
+  step), with bit-identical seeded trajectories:
   - `LocalClusterExpansion.compute` gathers only local-environment
     occupations instead of copying the full occupation vector, and validates
     `keci` once per parameter assignment instead of on every call.
   - Correlation kernels use cached flat index arrays instead of nested
     `numba.typed.List` arguments.
+  - `CompositeLCEModel` evaluates all dependent-event rates in one compiled
+    call when both submodels are plain `LocalClusterExpansion` objects.
   - `EventLib.get_dependent_events` caches dependency rows as Python tuples.
+  - Event sampling no longer passes the random generator into numba, the
+    tracker caches fractional coordinates, and the per-pass summary table is
+    only formatted when INFO logging is enabled.
   - Callable signature checks in `KMC` and `SiteEnergyModel` are cached.
+
+### Added
+
+- `BaseModel.compute_probabilities(...)` batched rate hook. The default calls
+  `compute_probability(...)` per event; KMC uses it for dependent-event
+  updates.
 
 ## 0.3.0 - 2026-05-27
 
