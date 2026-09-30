@@ -31,6 +31,29 @@
   dictionaries. `BarrierRule.from_dict`/`as_dict` validate and serialize rules;
   model files and the `rules=[...]`/`add_*_rule` inputs are unchanged, and
   `add_rule` also accepts a `BarrierRule`.
+- Model file I/O lives in `BaseModel`: one `to(fname, indent=2)`, one
+  `from_file`, and one envelope unwrapper driven by each class's `MODEL_TYPE`
+  and `PAYLOAD_KEY`. `LocalClusterExpansion.to` now writes with indent 2
+  (was 4), and `SiteEnergyModel.from_file` now rejects files with an unknown
+  `filetype` instead of reading them as a bare payload.
+- The model-type registry moved from `kmcpy.io.registry` to
+  `kmcpy.models.registry`, with `model_class_for_type` and
+  `model_class_for_payload`. `BaseModel.from_config` and `CompositeLCEModel`
+  site-model loading both use it, so composite files also fall back to the
+  registered class when a site model's module path has moved.
+- Local-environment enumeration is implemented by
+  `kmcpy.structure.LocalEnvironmentEnumerator`, which builds the active lattice
+  once per lattice structure; `enumerate_local_environments`,
+  `generate_neb_endpoint_pair`, and `enumerate_neb_endpoint_pairs` are
+  unchanged wrappers around it. `LocalLatticeStructure` and the enumerator
+  share one local-site selection (`resolve_center_site` and
+  `LocalSiteOrder.order_local_env_sites`).
+- Numba kernels for LCE correlations and batched composite rates live in
+  `kmcpy.models.lce_kernels`; `LocalClusterExpansion.kernel_inputs()` exposes
+  a model's arrays to them.
+- Callable helpers (`module:function` references and keyword-support checks)
+  live in `kmcpy.callables` instead of being duplicated in `KMC`,
+  `CompositeLCEModel`, and `SiteEnergyModel`.
 - `site_mapping` parsing lives in one place, the new
   `kmcpy.structure.SiteMapping`, used by `LatticeStructure`, `ActiveSiteOrder`,
   and `EventGenerator`.

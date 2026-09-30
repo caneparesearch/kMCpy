@@ -24,13 +24,14 @@ API Reference Documentation
     species.rst
     data.rst
     cif.rst
-    io_registry.rst
+    models_registry.rst
     models_fitting_registry.rst
     fitter.rst
     models_base.rst
     composite_lce_model.rst
     local_barrier_model.rst
     local_cluster_expansion.rst
+    lce_kernels.rst
     parameters.rst
     site_energy.rst
     config.rst
@@ -41,4 +42,5 @@ API Reference Documentation
     tracker.rst
     high_level_api.rst
     units.rst
+    callables.rst
     neb.rst

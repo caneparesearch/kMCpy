@@ -15,6 +15,28 @@ from kmcpy.structure.local_site_order import (
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
 
+def resolve_center_site(structure: Structure, center) -> tuple[PeriodicSite, int | None]:
+    """Return ``(center_site, center_index)`` for a local-environment center.
+
+    ``center`` is a site index of ``structure`` or fractional coordinates. For
+    coordinates, the center is a dummy ``X`` site and ``center_index`` is
+    ``None``.
+    """
+    if isinstance(center, int):
+        return structure[center], center
+    if isinstance(center, (list, tuple, np.ndarray)):
+        return (
+            PeriodicSite(
+                species=DummySpecies("X"),
+                coords=center,
+                coords_are_cartesian=False,
+                lattice=structure.lattice.copy(),
+            ),
+            None,
+        )
+    raise ValueError("Center must be an index or a list of fractional coordinates.")
+
+
 class LocalLatticeStructure(LatticeStructure):
     """
     Class to handle local environment around a site in a structure.
@@ -74,30 +96,16 @@ class LocalLatticeStructure(LatticeStructure):
         self.is_write_basis = is_write_basis
         self.local_site_order = order
 
-        if isinstance(center, int):
-            self.center_site = self.template_structure[center]
-            self.center_index = center
-        elif isinstance(center, list) or isinstance(center, tuple) or isinstance(center, np.ndarray):
-            self.center_site = PeriodicSite(species=DummySpecies('X'),
-                              coords=center,
-                              coords_are_cartesian=False,
-                              lattice = self.template_structure.lattice.copy())
-            self.center_index = None
-            logger.debug(f"Dummy site: {self.center_site}")
-        else:
-            raise ValueError("Center must be an index or a list of fractional coordinates.")
-
-        local_env_sites = self.template_structure.get_sites_in_sphere(
-            self.center_site.coords, cutoff, include_index=True
+        self.center_site, self.center_index = resolve_center_site(
+            self.template_structure, center
         )
-        if self.local_site_order.exclude_center_site:
-            local_env_sites = [
-                site_info
-                for site_info in local_env_sites
-                if not self._is_center_site(site_info)
-            ]
-        
-        local_env_sites = self.local_site_order.sort_local_env_sites(local_env_sites)
+        local_env_sites = self.local_site_order.order_local_env_sites(
+            self.template_structure.get_sites_in_sphere(
+                self.center_site.coords, cutoff, include_index=True
+            ),
+            self.center_site,
+            self.center_index,
+        )
 
         self.site_indices = [site[2] for site in local_env_sites]
         
@@ -118,17 +126,6 @@ class LocalLatticeStructure(LatticeStructure):
         self.local_environment_signature = ordered_site_signature(self.structure)
         self.local_environment_hash = ordered_site_hash(self.local_environment_signature)
 
-
-    def _is_center_site(self, site_info) -> bool:
-        """Return whether a sphere result corresponds to the center site."""
-        site = site_info[0]
-        site_index = site_info[2]
-        if self.center_index is not None and int(site_index) == int(self.center_index):
-            return True
-        return (
-            np.linalg.norm(site.coords - self.center_site.coords)
-            <= self.local_site_order.center_match_tolerance
-        )
 
     @staticmethod
     def sort_neighbor_info(neighbor_info: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

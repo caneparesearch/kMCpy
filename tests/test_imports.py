@@ -8,6 +8,8 @@ import pytest
     "kmcpy.structure.species",
     "kmcpy.event.hop",
     "kmcpy.models.local_barrier_model",
+    "kmcpy.models.lce_kernels",
+    "kmcpy.callables",
     "kmcpy.simulator",  # New simulator module
     "kmcpy.simulator.kmc",
     "kmcpy.event",

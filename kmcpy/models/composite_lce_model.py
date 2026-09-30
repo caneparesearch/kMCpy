@@ -7,19 +7,15 @@ for transition-rate calculations.
 Author: Zeyu Deng
 """
 
-import importlib
-import inspect
 import logging
 from typing import Any, Optional, TYPE_CHECKING
-import numba as nb
 import numpy as np
 
+from kmcpy.callables import accepts_keyword
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
-from kmcpy.models.local_cluster_expansion import (
-    LocalClusterExpansion,
-    _calc_corr,
-    _calc_corr_decorated,
-)
+from kmcpy.models.registry import model_class_for_payload
+from kmcpy.models.lce_kernels import LCEKernelInputs, composite_lce_rates
+from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event, event_direction
 from kmcpy.event.hop import DEFAULT_HOP_STATE_CODES
 from kmcpy.simulator.state import State
@@ -30,17 +26,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
-def _accepts_keyword(callable_obj, keyword: str) -> bool:
-    """Return whether a callable accepts a specific keyword argument."""
-    try:
-        parameters = inspect.signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    return keyword in parameters or any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD
-        for parameter in parameters.values()
-    )
 
 
 class CompositeLCEModel(BaseModel):
@@ -79,7 +64,9 @@ class CompositeLCEModel(BaseModel):
             simulation_state=simulation_state
         )
     """
-    
+
+    MODEL_TYPE = "composite_lce"
+
     def __init__(
         self,
         site_model: Optional[Any] = None,
@@ -169,7 +156,7 @@ class CompositeLCEModel(BaseModel):
                     "structure": structure,
                     "config": config,
                 }
-                if active_site_order is not None and _accepts_keyword(
+                if active_site_order is not None and accepts_keyword(
                     initialize_state,
                     "active_site_order",
                 ):
@@ -298,7 +285,7 @@ class CompositeLCEModel(BaseModel):
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "filetype": MODEL_FILETYPE,
-            "model_type": "composite_lce",
+            "model_type": self.MODEL_TYPE,
             "kra": self._submodel_as_dict(
                 self.kra_model,
                 fit_metadata=self.kra_fit_metadata,
@@ -414,13 +401,6 @@ class CompositeLCEModel(BaseModel):
         if "site" in payload and payload["site"] is not None:
             cls._validate_site_model_payload(payload["site"])
 
-    def to(self, filename: str, indent: int = 2) -> None:
-        """Write this composite model to a serialized model file."""
-        from monty.serialization import dumpfn
-
-        logger.info("Saving composite model file to: %s", filename)
-        dumpfn(self.as_dict(), filename, indent=indent)
-
     def build(self, *args, **kwargs):
         """Composite models are assembled from separately built LCE models."""
         raise NotImplementedError(
@@ -465,7 +445,7 @@ class CompositeLCEModel(BaseModel):
             raise ValueError(
                 "Site model payload must include '@module' and '@class'"
             )
-        model_cls = getattr(importlib.import_module(module_path), class_name)
+        model_cls = model_class_for_payload(payload)
         if not callable(getattr(model_cls, "from_dict", None)):
             raise ValueError(
                 f"Site model class '{module_path}.{class_name}' "
@@ -479,15 +459,6 @@ class CompositeLCEModel(BaseModel):
             )
         return model
 
-    @classmethod
-    def from_file(cls, model_file: str) -> "CompositeLCEModel":
-        """Create a CompositeLCEModel from a serialized model file."""
-        from monty.serialization import loadfn
-
-        logger.info("Loading composite model file from: %s", model_file)
-        return cls.from_dict(loadfn(model_file, cls=None))
-
-
 def _uses_default_lce_evaluation(model) -> bool:
     """Return whether ``model`` evaluates exactly like ``LocalClusterExpansion.compute``."""
     model_type = type(model)
@@ -499,44 +470,6 @@ def _uses_default_lce_evaluation(model) -> bool:
         and hasattr(model, "empty_cluster")
         and hasattr(model, "cluster_site_indices")
     )
-
-
-def _lce_kernel_inputs(model) -> tuple:
-    """Return the arrays the batch kernel needs to evaluate one LCE submodel."""
-    correlation_count = model._validate_keci_once()
-    correlation_basis_indices = getattr(model, "correlation_basis_indices", None)
-    site_basis_values = getattr(model, "site_basis_values", None)
-    decorated = correlation_basis_indices is not None and site_basis_values is not None
-    orbit_offsets, cluster_offsets, sites, basis = model._flat_cluster_indices(
-        correlation_basis_indices if decorated else None
-    )
-    if not decorated:
-        site_basis_values = _EMPTY_SITE_BASIS_VALUES
-    return (
-        decorated,
-        correlation_count,
-        orbit_offsets,
-        cluster_offsets,
-        sites,
-        basis,
-        np.asarray(site_basis_values, dtype=np.float64),
-        np.asarray(model.keci, dtype=np.float64),
-        float(model.empty_cluster),
-    )
-
-
-_EMPTY_SITE_BASIS_VALUES = np.zeros((1, 1, 1), dtype=np.float64)
-_NO_SITE_MODEL_INPUTS = (
-    False,
-    0,
-    np.zeros(1, dtype=np.int64),
-    np.zeros(1, dtype=np.int64),
-    np.zeros(0, dtype=np.int64),
-    np.zeros(0, dtype=np.int64),
-    _EMPTY_SITE_BASIS_VALUES,
-    np.zeros(0, dtype=np.float64),
-    0.0,
-)
 
 
 class _LCEBatchRateEvaluator:
@@ -620,12 +553,12 @@ class _LCEBatchRateEvaluator:
         if simulation_state is not self.state or simulation_state.step != self.state_step:
             self._sync_occupations(simulation_state)
         site_inputs = (
-            _lce_kernel_inputs(self.site_model)
+            self.site_model.kernel_inputs()
             if self.site_model is not None
-            else _NO_SITE_MODEL_INPUTS
+            else LCEKernelInputs.empty()
         )
         rates = np.empty(len(event_indices), dtype=np.float64)
-        _compute_composite_lce_rates(
+        composite_lce_rates(
             rates,
             np.asarray(event_indices, dtype=np.int64),
             self.occupations,
@@ -634,125 +567,10 @@ class _LCEBatchRateEvaluator:
             self.hop_codes,
             self.env_offsets,
             self.env_sites,
-            *_lce_kernel_inputs(self.kra_model),
+            *self.kra_model.kernel_inputs(),
             self.site_model is not None,
             *site_inputs,
             float(runtime_config.attempt_frequency),
             float(BOLTZMANN_CONSTANT_MEV_PER_K * runtime_config.temperature),
         )
         return rates
-
-
-@nb.njit
-def _lce_value(
-    local_occupation,
-    decorated,
-    correlation_count,
-    orbit_offsets,
-    cluster_offsets,
-    sites,
-    basis,
-    site_basis_values,
-    keci,
-    empty_cluster,
-):
-    corr = np.empty(correlation_count)
-    if decorated:
-        _calc_corr_decorated(
-            corr,
-            local_occupation,
-            orbit_offsets,
-            cluster_offsets,
-            sites,
-            basis,
-            site_basis_values,
-        )
-    else:
-        _calc_corr(corr, local_occupation, orbit_offsets, cluster_offsets, sites)
-    return np.dot(corr, keci) + empty_cluster
-
-
-@nb.njit
-def _compute_composite_lce_rates(
-    rates,
-    event_indices,
-    occupations,
-    from_sites,
-    to_sites,
-    hop_codes,
-    env_offsets,
-    env_sites,
-    kra_decorated,
-    kra_correlation_count,
-    kra_orbit_offsets,
-    kra_cluster_offsets,
-    kra_sites,
-    kra_basis,
-    kra_site_basis_values,
-    kra_keci,
-    kra_empty_cluster,
-    has_site_model,
-    site_decorated,
-    site_correlation_count,
-    site_orbit_offsets,
-    site_cluster_offsets,
-    site_sites,
-    site_basis,
-    site_site_basis_values,
-    site_keci,
-    site_empty_cluster,
-    attempt_frequency,
-    k_times_temperature,
-):
-    """Evaluate ``CompositeLCEModel.compute_probability`` for many events.
-
-    The arithmetic mirrors the scalar path operation by operation so that
-    batched and per-event rates are identical.
-    """
-    for position in range(len(event_indices)):
-        event_index = event_indices[position]
-        from_occ = occupations[from_sites[event_index]]
-        to_occ = occupations[to_sites[event_index]]
-        if from_occ == hop_codes[event_index, 0] and to_occ == hop_codes[event_index, 1]:
-            direction = 1
-        elif from_occ == hop_codes[event_index, 2] and to_occ == hop_codes[event_index, 3]:
-            direction = -1
-        else:
-            rates[position] = 0.0
-            continue
-
-        start = env_offsets[event_index]
-        stop = env_offsets[event_index + 1]
-        local_occupation = np.empty(stop - start, dtype=np.int64)
-        for offset in range(stop - start):
-            local_occupation[offset] = occupations[env_sites[start + offset]]
-
-        e_kra = _lce_value(
-            local_occupation,
-            kra_decorated,
-            kra_correlation_count,
-            kra_orbit_offsets,
-            kra_cluster_offsets,
-            kra_sites,
-            kra_basis,
-            kra_site_basis_values,
-            kra_keci,
-            kra_empty_cluster,
-        )
-        delta_e_site = 0.0
-        if has_site_model:
-            delta_e_site = direction * _lce_value(
-                local_occupation,
-                site_decorated,
-                site_correlation_count,
-                site_orbit_offsets,
-                site_cluster_offsets,
-                site_sites,
-                site_basis,
-                site_site_basis_values,
-                site_keci,
-                site_empty_cluster,
-            )
-        e_barrier = e_kra + delta_e_site / 2
-        rates[position] = attempt_frequency * np.exp(-e_barrier / k_times_temperature)
-

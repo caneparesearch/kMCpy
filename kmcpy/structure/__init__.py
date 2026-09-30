@@ -23,6 +23,7 @@ from .local_site_order import (
 )
 from .local_environment_enumerator import (
     LocalEnvironmentEnumeration,
+    LocalEnvironmentEnumerator,
     NEBEndpointPair,
     enumerate_local_environments,
     enumerate_neb_endpoint_pairs,
@@ -68,6 +69,7 @@ __all__ = [
     "ordered_site_hash",
     "ordered_site_signature",
     "LocalEnvironmentEnumeration",
+    "LocalEnvironmentEnumerator",
     "NEBEndpointPair",
     "enumerate_local_environments",
     "enumerate_neb_endpoint_pairs",

@@ -2,15 +2,14 @@
 Base model classes used across kMCpy.
 """
 from abc import ABC, abstractmethod
-import importlib
 import logging
 
 import numpy as np
 from monty.json import MSONable
-from monty.serialization import loadfn
+from monty.serialization import dumpfn, loadfn
 
-from kmcpy.io.registry import MODEL_CLASS_REGISTRY
 from kmcpy.models.fitting.registry import get_fitter_for_model
+from kmcpy.models.registry import model_class_for_payload, model_class_for_type
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
@@ -55,10 +54,20 @@ class BaseModel(MSONable, ABC):
     - `as_dict` and `from_dict` handle structured data.
     - `to` and `from_file` handle file I/O.
     
+    Model files come in two forms, both handled by :meth:`from_file`:
+
+    - the ``as_dict`` payload written by :meth:`to`, with ``@module`` and
+      ``@class``;
+    - an envelope ``{"filetype": "kmcpy.model_file", "model_type": MODEL_TYPE,
+      PAYLOAD_KEY: payload}``. Subclasses set ``MODEL_TYPE`` and, when the
+      payload is nested, ``PAYLOAD_KEY``.
+
     Attributes:
         name (str, optional): Name of the model instance.
     """
     fitter_class = None
+    MODEL_TYPE: str | None = None
+    PAYLOAD_KEY: str | None = None
 
     def __init__(self, *args, **kwargs):
         """
@@ -123,7 +132,6 @@ class BaseModel(MSONable, ABC):
             return cls.from_file(config.model_file)
 
         model_file = getattr(config, "model_file", "")
-        model_type = None
         if model_file:
             payload = loadfn(model_file, cls=None)
             if isinstance(payload, dict) and "filetype" in payload:
@@ -133,58 +141,18 @@ class BaseModel(MSONable, ABC):
                     raise ValueError(
                         "Model file must include a non-empty 'model_type'"
                     )
-            elif (
-                isinstance(payload, dict)
-                and "@module" in payload
-                and "@class" in payload
-            ):
-                module_path = payload["@module"]
-                class_name = payload["@class"]
-                try:
-                    module = importlib.import_module(module_path)
-                    model_class = getattr(module, class_name)
-                except (ImportError, AttributeError) as e:
-                    registered_path = next(
-                        (
-                            path
-                            for path in MODEL_CLASS_REGISTRY.values()
-                            if path.rsplit(".", 1)[1] == class_name
-                        ),
-                        None,
-                    )
-                    if registered_path is None:
-                        raise ValueError(
-                            f"Cannot import model class "
-                            f"'{module_path}.{class_name}': {e}"
-                        )
-                    module_path, class_name = registered_path.rsplit(".", 1)
-                    module = importlib.import_module(module_path)
-                    model_class = getattr(module, class_name)
+                return model_class_for_type(model_type).from_config(config)
+            if isinstance(payload, dict) and "@module" in payload and "@class" in payload:
+                model_class = model_class_for_payload(payload)
                 if not callable(getattr(model_class, "from_file", None)):
                     raise ValueError(
-                        f"Serialized model class '{module_path}.{class_name}' "
-                        "does not provide from_file()."
+                        f"Serialized model class '{payload['@module']}."
+                        f"{payload['@class']}' does not provide from_file()."
                     )
                 return model_class.from_file(model_file)
 
-        if model_type is None:
-            model_type = getattr(config, "model_type", None) or "composite_lce"
-
-        if model_type not in MODEL_CLASS_REGISTRY:
-            available_types = list(MODEL_CLASS_REGISTRY.keys())
-            raise ValueError(
-                f"Unknown model type '{model_type}'. Available types: {available_types}"
-            )
-
-        model_class_path = MODEL_CLASS_REGISTRY[model_type]
-        module_path, class_name = model_class_path.rsplit(".", 1)
-        try:
-            module = importlib.import_module(module_path)
-            model_class = getattr(module, class_name)
-        except (ImportError, AttributeError) as e:
-            raise ValueError(f"Cannot import model class '{model_class_path}': {e}")
-
-        return model_class.from_config(config)
+        model_type = getattr(config, "model_type", None) or "composite_lce"
+        return model_class_for_type(model_type).from_config(config)
 
     def __str__(self):
         """Return a compact string representation."""
@@ -260,14 +228,36 @@ class BaseModel(MSONable, ABC):
 
     @classmethod
     def from_file(cls, fname):
-        """Create a model object from a serialized file."""
+        """Create a model object from a serialized file or model-file envelope."""
+        logger.info("Loading %s from: %s", cls.__name__, fname)
         return cls.from_dict(loadfn(fname, cls=None))
 
-    def to(self, fname):
-        """
-        Save the model object to a JSON file.
-        """
-        from monty.serialization import dumpfn
+    def to(self, fname, indent: int = 2):
+        """Save the model's ``as_dict`` payload to a JSON file."""
+        logger.info("Saving %s to: %s", self.__class__.__name__, fname)
+        dumpfn(self.as_dict(), fname, indent=indent)
 
-        logger.info("Saving model to: %s", fname)
-        dumpfn(self.as_dict(), fname, indent=4)
+    @classmethod
+    def _unwrap_model_file(cls, data):
+        """Return the model payload from a model-file envelope, or ``data`` unchanged.
+
+        Envelopes with ``filetype`` are validated against ``MODEL_TYPE``. For
+        compatibility, an envelope without ``filetype`` is unwrapped when its
+        ``model_type`` matches.
+        """
+        if not isinstance(data, dict) or cls.MODEL_TYPE is None:
+            return data
+        if "filetype" in data:
+            require_model_type(data, cls.MODEL_TYPE)
+        elif data.get("model_type") != cls.MODEL_TYPE or (
+            cls.PAYLOAD_KEY is not None and cls.PAYLOAD_KEY not in data
+        ):
+            return data
+        if cls.PAYLOAD_KEY is None:
+            return data
+        payload = data.get(cls.PAYLOAD_KEY)
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"{cls.__name__} model file is missing object key '{cls.PAYLOAD_KEY}'"
+            )
+        return payload

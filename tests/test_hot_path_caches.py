@@ -4,11 +4,13 @@ import numpy as np
 import pytest
 
 from kmcpy.event import Event, EventLib
+from kmcpy.models.lce_kernels import (
+    correlation,
+    decorated_correlation,
+    flatten_cluster_indices,
+)
 from kmcpy.models.local_cluster_expansion import (
     LocalClusterExpansion,
-    _calc_corr,
-    _calc_corr_decorated,
-    _flatten_cluster_indices,
     _to_numba_cluster_site_indices,
 )
 from kmcpy.models.site_energy import SiteEnergyModel
@@ -59,12 +61,12 @@ def _reference_decorated_corr(occupation, cluster_site_indices, basis_indices, v
 @pytest.mark.unit
 def test_flat_correlation_kernel_matches_nested_reference():
     occupation = np.array([1, -1, -1, 1], dtype=np.int64)
-    orbit_offsets, cluster_offsets, sites, _ = _flatten_cluster_indices(
+    orbit_offsets, cluster_offsets, sites, _ = flatten_cluster_indices(
         CLUSTER_SITE_INDICES
     )
     corr = np.empty(len(CLUSTER_SITE_INDICES))
 
-    _calc_corr(corr, occupation, orbit_offsets, cluster_offsets, sites)
+    correlation(corr, occupation, orbit_offsets, cluster_offsets, sites)
 
     np.testing.assert_array_equal(
         corr, _reference_corr(occupation, CLUSTER_SITE_INDICES)
@@ -76,13 +78,13 @@ def test_flat_decorated_kernel_matches_nested_reference():
     occupation = np.array([0, 2, 1, 2], dtype=np.int64)
     rng = np.random.default_rng(0)
     site_basis_values = rng.normal(size=(4, 3, 2))
-    orbit_offsets, cluster_offsets, sites, basis = _flatten_cluster_indices(
+    orbit_offsets, cluster_offsets, sites, basis = flatten_cluster_indices(
         CLUSTER_SITE_INDICES,
         CLUSTER_BASIS_INDICES,
     )
     corr = np.empty(len(CLUSTER_SITE_INDICES))
 
-    _calc_corr_decorated(
+    decorated_correlation(
         corr,
         occupation,
         orbit_offsets,

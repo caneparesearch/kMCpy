@@ -57,11 +57,10 @@ def test_simulation_config_integration():
     assert hasattr(KMC, "from_config")
     assert hasattr(KMC, "run")
 
-    try:
+    # No site_mapping: loading stops at validation, before the fake input
+    # files are opened.
+    with pytest.raises(ValueError, match="site_mapping is required"):
         KMC.from_config(config)
-        assert False, "Expected missing-file error"
-    except Exception as exc:
-        assert "unknown parameters" not in str(exc).lower()
 
 
 def test_configuration_field_serialization():

@@ -10,10 +10,16 @@ import json
 import hashlib
 import logging
 import warnings
-from monty.serialization import loadfn
 from kmcpy.models.base import BaseModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.fitting.registry import register_fitter
+from kmcpy.models.lce_kernels import (
+    EMPTY_SITE_BASIS_VALUES,
+    LCEKernelInputs,
+    correlation,
+    decorated_correlation,
+    flatten_cluster_indices,
+)
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
@@ -23,7 +29,6 @@ from kmcpy.structure.local_site_order import (
     ordered_site_hash,
     ordered_site_signature,
 )
-import numba as nb
 
 if TYPE_CHECKING:
     from kmcpy.simulator.config import Configuration
@@ -116,19 +121,6 @@ class LocalClusterExpansion(BaseModel):
         )
         for orbit in self.orbits:
             orbit.show_representative_cluster()
-
-    @classmethod
-    def from_file(cls, filename: str):
-        """
-        Load a LocalClusterExpansion object from a serialized file.
-        
-        Args:
-            filename: Path to the JSON file containing the LocalClusterExpansion data
-            
-        Returns:
-            LocalClusterExpansion: The loaded LocalClusterExpansion object
-        """
-        return cls.from_dict(loadfn(filename, cls=None))
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -611,7 +603,7 @@ class LocalClusterExpansion(BaseModel):
             correlation_basis_indices if decorated else None
         )
         if decorated:
-            _calc_corr_decorated(
+            decorated_correlation(
                 corr,
                 occupation.astype(np.int64),
                 orbit_offsets,
@@ -621,7 +613,7 @@ class LocalClusterExpansion(BaseModel):
                 site_basis_values,
             )
         else:
-            _calc_corr(corr, occupation, orbit_offsets, cluster_offsets, sites)
+            correlation(corr, occupation, orbit_offsets, cluster_offsets, sites)
 
     def _flat_cluster_indices(self, correlation_basis_indices=None):
         """Return cached flat (CSR-style) arrays for the nested cluster indices.
@@ -640,7 +632,7 @@ class LocalClusterExpansion(BaseModel):
         ):
             return cache[2]
 
-        flat = _flatten_cluster_indices(cluster_site_indices, correlation_basis_indices)
+        flat = flatten_cluster_indices(cluster_site_indices, correlation_basis_indices)
         self._flat_cluster_indices_cache = (
             cluster_site_indices,
             correlation_basis_indices,
@@ -727,6 +719,29 @@ class LocalClusterExpansion(BaseModel):
             correlation_count,
         )
         return correlation_count
+
+    def kernel_inputs(self) -> LCEKernelInputs:
+        """Return this model's validated parameters as arrays for batch kernels."""
+        correlation_count = self._validate_keci_once()
+        correlation_basis_indices = getattr(self, "correlation_basis_indices", None)
+        site_basis_values = getattr(self, "site_basis_values", None)
+        decorated = correlation_basis_indices is not None and site_basis_values is not None
+        orbit_offsets, cluster_offsets, sites, basis = self._flat_cluster_indices(
+            correlation_basis_indices if decorated else None
+        )
+        if not decorated:
+            site_basis_values = EMPTY_SITE_BASIS_VALUES
+        return LCEKernelInputs(
+            decorated,
+            correlation_count,
+            orbit_offsets,
+            cluster_offsets,
+            sites,
+            basis,
+            np.asarray(site_basis_values, dtype=np.float64),
+            np.asarray(self.keci, dtype=np.float64),
+            float(self.empty_cluster),
+        )
 
     def set_parameters(self, parameters):
         """
@@ -887,91 +902,3 @@ def _to_numba_cluster_basis_indices(cluster_basis_indices):
             for feature in cluster_basis_indices
         ]
     )
-
-
-def _flatten_cluster_indices(cluster_site_indices, cluster_basis_indices=None):
-    """Flatten nested ``[orbit][cluster][site]`` indices into CSR-style arrays.
-
-    Returns ``(orbit_offsets, cluster_offsets, sites, basis)``. Clusters of
-    orbit ``i`` are ``orbit_offsets[i]:orbit_offsets[i + 1]`` and sites of
-    cluster ``j`` are ``sites[cluster_offsets[j]:cluster_offsets[j + 1]]``.
-    ``basis`` is aligned with ``sites`` (all zeros when no basis indices are
-    given).
-    """
-    orbit_offsets = [0]
-    cluster_offsets = [0]
-    sites = []
-    basis = []
-    for orbit_index, orbit in enumerate(cluster_site_indices):
-        basis_orbit = (
-            cluster_basis_indices[orbit_index]
-            if cluster_basis_indices is not None
-            else None
-        )
-        for cluster_index, cluster in enumerate(orbit):
-            basis_cluster = (
-                basis_orbit[cluster_index] if basis_orbit is not None else None
-            )
-            for site_position, site_index in enumerate(cluster):
-                sites.append(int(site_index))
-                basis.append(
-                    int(basis_cluster[site_position])
-                    if basis_cluster is not None
-                    else 0
-                )
-            cluster_offsets.append(len(sites))
-        orbit_offsets.append(len(cluster_offsets) - 1)
-    return (
-        np.asarray(orbit_offsets, dtype=np.int64),
-        np.asarray(cluster_offsets, dtype=np.int64),
-        np.asarray(sites, dtype=np.int64),
-        np.asarray(basis, dtype=np.int64),
-    )
-
-
-@nb.njit
-def _calc_corr(corr, occ_latt, orbit_offsets, cluster_offsets, sites):
-    """
-    Calculate correlation function for cluster expansion.
-    
-    Args:
-        corr: Output correlation array
-        occ_latt: Occupation array for the lattice
-        orbit_offsets, cluster_offsets, sites: Flat cluster indices from
-            ``_flatten_cluster_indices``
-    """
-    for i in range(len(orbit_offsets) - 1): # loop through orbits
-        corr[i] = 0
-        for cluster in range(orbit_offsets[i], orbit_offsets[i + 1]): # loop through clusters in the orbit
-            corr_cluster = 1
-            for position in range(cluster_offsets[cluster], cluster_offsets[cluster + 1]):
-                corr_cluster *= occ_latt[sites[position]]
-            corr[i] += corr_cluster
-
-
-@nb.njit
-def _calc_corr_decorated(
-    corr,
-    occ_latt,
-    orbit_offsets,
-    cluster_offsets,
-    sites,
-    basis,
-    site_basis_values,
-):
-    """
-    Calculate decorated multicomponent correlation functions.
-
-    ``occ_latt`` stores species-state indices. ``site_basis_values`` maps
-    ``[local_site, state_index, basis_index]`` to the scalar basis value.
-    """
-    for i in range(len(orbit_offsets) - 1):
-        corr[i] = 0.0
-        for cluster in range(orbit_offsets[i], orbit_offsets[i + 1]):
-            corr_cluster = 1.0
-            for position in range(cluster_offsets[cluster], cluster_offsets[cluster + 1]):
-                occ_site = sites[position]
-                state_index = int(occ_latt[occ_site])
-                basis_index = int(basis[position])
-                corr_cluster *= site_basis_values[occ_site, state_index, basis_index]
-            corr[i] += corr_cluster

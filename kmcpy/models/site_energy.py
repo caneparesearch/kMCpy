@@ -5,17 +5,18 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import hashlib
-import functools
-import inspect
-import importlib
 import json
 import logging
 from typing import Any, Optional
 
 import numpy as np
-from monty.serialization import loadfn
 
-from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
+from kmcpy.callables import (
+    call_with_supported_keywords,
+    resolve_callable_reference,
+    supported_keyword_names,
+)
+from kmcpy.models.base import BaseModel
 from kmcpy.structure.active_site_order import ActiveSiteOrder
 
 logger = logging.getLogger(__name__)
@@ -370,8 +371,17 @@ class SiteEnergyModel(BaseModel):
         changes = self._changes_from_pre_state(event, simulation_state.occupations)
         if not changes:
             return 0.0
-        raw_value = _call_with_supported_keywords(
-            self._resolve_compute_fn(),
+        compute_fn = self._resolve_compute_fn()
+        accepted = supported_keyword_names(compute_fn)
+        if accepted is not None:
+            unused_kwargs = sorted(set(self.compute_kwargs) - accepted)
+            if unused_kwargs:
+                raise TypeError(
+                    "SiteEnergyModel compute_kwargs contains keys not accepted by "
+                    f"{compute_fn}: {unused_kwargs}"
+                )
+        raw_value = call_with_supported_keywords(
+            compute_fn,
             {
                 "runtime": self._resolve_runtime(),
                 "external_occupation": self.external_occupation,
@@ -380,7 +390,6 @@ class SiteEnergyModel(BaseModel):
                 "simulation_state": simulation_state,
                 **self.compute_kwargs,
             },
-            user_kwarg_names=set(self.compute_kwargs),
         )
         return _numeric_delta_to_mev(raw_value, self.unit_factor_to_mev)
 
@@ -437,8 +446,7 @@ class SiteEnergyModel(BaseModel):
     def from_dict(cls, data: dict[str, Any]) -> "SiteEnergyModel":
         if not isinstance(data, dict):
             raise ValueError("SiteEnergyModel payload must be a JSON object")
-        if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
-            data = data[cls.PAYLOAD_KEY]
+        data = cls._unwrap_model_file(data)
         model = cls(
             compute_ref=data.get("compute_ref"),
             compute_kwargs=data.get("compute_kwargs"),
@@ -469,19 +477,6 @@ class SiteEnergyModel(BaseModel):
             )
         return model
 
-    @classmethod
-    def from_file(cls, filename: str) -> "SiteEnergyModel":
-        data = loadfn(filename, cls=None)
-        if isinstance(data, dict) and data.get("filetype") == MODEL_FILETYPE:
-            data = require_model_type(data, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
-        return cls.from_dict(data)
-
-    def to(self, filename: str, indent: int = 2) -> None:
-        from monty.serialization import dumpfn
-
-        logger.info("Saving site-energy-difference model to: %s", filename)
-        dumpfn(self.as_dict(), filename, indent=indent)
-
     def __str__(self) -> str:
         return (
             "SiteEnergyModel("
@@ -494,83 +489,6 @@ class SiteEnergyModel(BaseModel):
             f"compute_ref={self.compute_ref!r}, runtime_ref={self.runtime_ref!r}, "
             f"units={self.units!r})"
         )
-
-
-def resolve_callable_reference(callable_ref: str):
-    """Resolve ``module:function`` or ``module.function`` references."""
-    if ":" in callable_ref:
-        module_path, attr_path = callable_ref.split(":", 1)
-    else:
-        module_path, _, attr_path = callable_ref.rpartition(".")
-    if not module_path or not attr_path:
-        raise ValueError(
-            f"Invalid callable reference '{callable_ref}'. Use "
-            "'package.module:function' or 'package.module.function'."
-        )
-    module = importlib.import_module(module_path)
-    obj: Any = module
-    for attr in attr_path.split("."):
-        obj = getattr(obj, attr)
-    if not callable(obj):
-        raise TypeError(f"Resolved object '{callable_ref}' is not callable")
-    return obj
-
-
-def _call_with_supported_keywords(
-    func,
-    kwargs: dict[str, Any],
-    *,
-    user_kwarg_names: set[str],
-):
-    """Call a user function with only the keyword arguments it accepts."""
-    try:
-        accepted = _cached_supported_keyword_names(func, frozenset(user_kwarg_names))
-    except TypeError as exc:
-        if "unhashable" not in str(exc):
-            raise
-        accepted = _supported_keyword_names(func, frozenset(user_kwarg_names))
-
-    if accepted is None:
-        return func(**kwargs)
-    return func(**{key: value for key, value in kwargs.items() if key in accepted})
-
-
-def _supported_keyword_names(func, user_kwarg_names: frozenset[str]):
-    """Return accepted keyword names for ``func``, or ``None`` to pass all kwargs."""
-    try:
-        parameters = inspect.signature(func).parameters
-    except (TypeError, ValueError):
-        return None
-
-    if any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD
-        for parameter in parameters.values()
-    ):
-        return None
-
-    accepted = frozenset(
-        name
-        for name, parameter in parameters.items()
-        if parameter.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.KEYWORD_ONLY,
-        )
-    )
-    unused_user_kwargs = sorted(user_kwarg_names - accepted)
-    if unused_user_kwargs:
-        raise TypeError(
-            "SiteEnergyModel compute_kwargs contains keys not accepted by "
-            f"{func}: {unused_user_kwargs}"
-        )
-    return accepted
-
-
-# compute() runs for every dependent event on every KMC step, so avoid
-# re-inspecting the same callable signature each time.
-_cached_supported_keyword_names = functools.lru_cache(maxsize=128)(
-    _supported_keyword_names
-)
 
 
 def constant_site_energy_difference(

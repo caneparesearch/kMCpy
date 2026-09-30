@@ -7,13 +7,12 @@ loading input data from various sources, updating system states, and tracking si
 """
 from pymatgen.core import Structure
 import numpy as np
-import importlib
-import inspect
 from kmcpy.simulator.tracker import (
     CallbackExecutionError,
     Tracker,
 )
 from kmcpy.simulator.property import PropertyPlan
+from kmcpy.callables import accepts_keyword, resolve_callable_reference
 from kmcpy.event import Event, EventLib, HopStateLookup, INVALID_STATE
 import logging
 import kmcpy
@@ -27,17 +26,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
 
-
-def _accepts_keyword(callable_obj, keyword: str) -> bool:
-    """Return whether a callable accepts a specific keyword argument."""
-    try:
-        parameters = inspect.signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    return keyword in parameters or any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD
-        for parameter in parameters.values()
-    )
 
 
 class KMC:
@@ -144,7 +132,7 @@ class KMC:
                 "structure": self.structure,
                 "config": self.config,
             }
-            if self.active_site_order is not None and _accepts_keyword(
+            if self.active_site_order is not None and accepts_keyword(
                 initialize_state,
                 "active_site_order",
             ):
@@ -164,28 +152,6 @@ class KMC:
         if not hasattr(self, "_active_tracker"):
             self._active_tracker: Optional[Tracker] = None
 
-    @staticmethod
-    def _resolve_callback_reference(callable_ref: str) -> Callable[["State", int, float], Any]:
-        """Resolve callback path strings like `module.path:func` or `module.path.func`."""
-        if ":" in callable_ref:
-            module_path, attr_path = callable_ref.split(":", 1)
-        else:
-            module_path, _, attr_path = callable_ref.rpartition(".")
-            if not module_path:
-                raise ValueError(
-                    f"Invalid callback reference '{callable_ref}'. "
-                    "Use 'package.module:function' or 'package.module.function'."
-                )
-
-        module = importlib.import_module(module_path)
-        callback_obj: Any = module
-        for attr in attr_path.split("."):
-            callback_obj = getattr(callback_obj, attr)
-
-        if not callable(callback_obj):
-            raise TypeError(f"Resolved callback '{callable_ref}' is not callable")
-        return callback_obj
-
     def _configure_properties_from_runtime_config(self, runtime_config: Any) -> None:
         """Apply runtime property controls from configuration."""
         self._ensure_property_state()
@@ -200,7 +166,7 @@ class KMC:
 
         for callback_spec in getattr(runtime_config, "property_callbacks", []):
             callback_ref = callback_spec["callable"]
-            callback_func = self._resolve_callback_reference(callback_ref)
+            callback_func = resolve_callable_reference(callback_ref)
             self.attach(
                 callback_func,
                 interval=callback_spec.get("interval"),
@@ -522,7 +488,7 @@ class KMC:
         cache = getattr(self, "_update_signature_cache", None)
         if cache is not None and cache[0] is update_function:
             return cache[1]
-        accepts = _accepts_keyword(update, "event_index")
+        accepts = accepts_keyword(update, "event_index")
         self._update_signature_cache = (update_function, accepts)
         return accepts
 

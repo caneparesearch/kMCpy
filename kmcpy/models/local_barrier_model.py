@@ -52,7 +52,7 @@ from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING
 import numpy as np
 
 from kmcpy.event import Event, event_direction
-from kmcpy.models.base import BaseModel, require_model_type
+from kmcpy.models.base import BaseModel
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K as K_B_MEV_PER_K
 
@@ -1053,19 +1053,12 @@ class LocalBarrierModel(BaseModel):
             "rules": [rule.as_dict() for rule in self.rules],
         }
 
-    def to(self, filename: str, indent: int = 2) -> None:
-        """Write this local barrier model."""
-        from monty.serialization import dumpfn
-
-        dumpfn(self.as_dict(), filename, indent=indent)
-
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "LocalBarrierModel":
         """Deserialize from in-memory payload."""
         if not isinstance(data, dict):
             raise ValueError("LocalBarrierModel payload must be a JSON object")
-        if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
-            data = data[cls.PAYLOAD_KEY]
+        data = cls._unwrap_model_file(data)
 
         return cls(
             rules=data.get("rules", []),
@@ -1079,18 +1072,3 @@ class LocalBarrierModel(BaseModel):
             probability_property=data.get("probability_property", "barrier"),
             site_species=data.get("site_species"),
         )
-
-    @classmethod
-    def from_file(cls, filename: str) -> "LocalBarrierModel":
-        """Load from a model file or direct model payload."""
-        from monty.serialization import loadfn
-
-        payload = loadfn(filename, cls=None)
-        if isinstance(payload, dict) and "filetype" in payload:
-            payload = require_model_type(payload, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
-            if not isinstance(payload, dict):
-                raise ValueError(
-                    "Local barrier model file is missing object key "
-                    f"'{cls.PAYLOAD_KEY}'"
-                )
-        return cls.from_dict(payload)
