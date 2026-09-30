@@ -11,11 +11,7 @@ import numpy as np
 from monty.json import MSONable
 from pymatgen.core import Structure
 
-from kmcpy.structure.species import (
-    normalize_species,
-    species_equivalent,
-    species_label,
-)
+from kmcpy.structure.species import SiteMapping, species_label
 
 
 ACTIVE_SITE_ORDER_FORMAT = "kmcpy.active_site_order.v1"
@@ -65,8 +61,8 @@ class ActiveSiteOrder(MSONable):
     ) -> "ActiveSiteOrder":
         """Build an active-site order from a full template and site mapping."""
         shape = _normalize_supercell_shape(supercell_shape)
-        allowed_species = _allowed_species_by_site(
-            template_structure, site_mapping
+        allowed_species = SiteMapping(site_mapping).allowed_species_by_site(
+            template_structure
         )
         primitive_active_indices = tuple(
             index
@@ -366,36 +362,6 @@ def _make_supercell_with_properties(
         active_indices.append(primitive_active_lookup.get(primitive_index, -1))
     supercell.add_site_property(ACTIVE_SITE_PROPERTY, active_indices)
     return supercell
-
-
-def _allowed_species_by_site(
-    template_structure: Structure,
-    site_mapping: Mapping[Any, Any],
-) -> list[tuple[Any, ...]]:
-    entries = [
-        (normalize_species(key), _normalize_allowed_species(value))
-        for key, value in site_mapping.items()
-    ]
-    allowed_species = []
-    for index, site in enumerate(template_structure):
-        matches = [
-            allowed
-            for key_species, allowed in entries
-            if species_equivalent(site.specie, key_species)
-        ]
-        if not matches:
-            raise ValueError(
-                "No site_mapping entry found for template site "
-                f"{index} with species {site.species_string}."
-            )
-        allowed_species.append(matches[0])
-    return allowed_species
-
-
-def _normalize_allowed_species(value: Any) -> tuple[Any, ...]:
-    if isinstance(value, (list, tuple)):
-        return tuple(normalize_species(item) for item in value)
-    return (normalize_species(value),)
 
 
 def _fingerprint(payload: Mapping[str, Any]) -> str:

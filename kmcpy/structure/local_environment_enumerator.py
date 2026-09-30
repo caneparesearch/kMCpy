@@ -8,13 +8,14 @@ from itertools import product
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
-from pymatgen.core import DummySpecies, PeriodicSite, Species, Structure
+from pymatgen.core import DummySpecies, PeriodicSite, Structure
 
 from kmcpy.structure.basis import Occupation
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.local_site_order import LocalSiteOrder
 from kmcpy.structure.species import (
     is_vacancy_species,
+    species_equivalent,
     species_label,
     species_tokens,
 )
@@ -85,7 +86,6 @@ def enumerate_local_environments(
         active_lattice_structure,
         center=center,
         cutoff=cutoff,
-        exclude_species=None,
         local_site_order=local_site_order,
         exclude_center_site=exclude_center_site,
     )
@@ -136,7 +136,7 @@ def enumerate_local_environments(
     results: list[LocalEnvironmentEnumeration] = []
     for choices in product(*(choices_by_site[index] for index in variable_sites)):
         species_by_site = {
-            site_index: _species_label(specie)
+            site_index: species_label(specie)
             for site_index, specie in zip(variable_sites, choices)
         }
         if not _matches_counts(species_by_site, exact_counts):
@@ -144,8 +144,7 @@ def enumerate_local_environments(
 
         occupation = base_occupation.copy()
         for site_index, specie in zip(variable_sites, choices):
-            occupation[site_index] = _occupation_value_for_species(
-                active_lattice_structure,
+            occupation[site_index] = active_lattice_structure.occupation_value_for_species(
                 site_index,
                 specie,
             )
@@ -193,9 +192,9 @@ def generate_neb_endpoint_pair(
 
     from_species = _first_allowed_species(active_lattice_structure, from_site)
     to_species = _first_allowed_species(active_lattice_structure, to_site)
-    if _is_vacancy(from_species) or _is_vacancy(to_species):
+    if is_vacancy_species(from_species) or is_vacancy_species(to_species):
         raise ValueError("mobile-ion sites must use a real species as the first mapping")
-    if not _species_equivalent(from_species, to_species):
+    if not species_equivalent(from_species, to_species):
         raise ValueError("hop sites must have the same first allowed mobile species")
 
     initial_occupation = initial_occupation.copy()
@@ -297,7 +296,6 @@ def _local_site_indices(
     lattice_structure: LatticeStructure,
     center,
     cutoff: float,
-    exclude_species: Sequence[str] | None,
     local_site_order,
     exclude_center_site,
 ) -> tuple[int, ...]:
@@ -321,19 +319,11 @@ def _local_site_indices(
     else:
         raise ValueError("Center must be an index or a list of fractional coordinates.")
 
-    excluded = set(_normalize_exclude_species(exclude_species))
     local_env_sites = structure.get_sites_in_sphere(
         center_site.coords,
         cutoff,
         include_index=True,
     )
-    if excluded:
-        local_env_sites = [
-            site_info
-            for site_info in local_env_sites
-            if site_info[0].species_string not in excluded
-            and str(site_info[0].specie) not in excluded
-        ]
     if order.exclude_center_site:
         local_env_sites = [
             site_info
@@ -356,19 +346,6 @@ def _is_center_site(
         return True
     return np.linalg.norm(site.coords - center_site.coords) <= order.center_match_tolerance
 
-
-def _normalize_exclude_species(exclude_species) -> list[str]:
-    tokens = []
-    for species in exclude_species or []:
-        token = str(species)
-        tokens.append(token)
-        try:
-            parsed_species = Species(token)
-        except Exception:
-            continue
-        tokens.append(str(parsed_species.symbol))
-        tokens.append(str(parsed_species.element))
-    return list(dict.fromkeys(tokens))
 
 
 def _base_occupation(
@@ -444,7 +421,7 @@ def _allowed_choices(
         choices = tuple(
             specie
             for specie in choices
-            if any(_species_matches_token(specie, token) for token in variable_species)
+            if any(species_label(token) in species_tokens(specie) for token in variable_species)
         )
     if not choices:
         raise ValueError(f"No variable species are allowed at site {site_index}")
@@ -533,12 +510,11 @@ def _build_disordered_structure(
             )
             entry = _partial_species_entry(choices)
         else:
-            specie = _species_for_occupation(
-                lattice_structure,
+            specie = lattice_structure.species_for_occupation_value(
                 site_index,
                 base_occupation[site_index],
             )
-            if _is_vacancy(specie):
+            if is_vacancy_species(specie):
                 continue
             entry = specie
         species_entries.append(entry)
@@ -552,7 +528,7 @@ def _build_disordered_structure(
 
 
 def _partial_species_entry(choices: Sequence[Any]) -> dict[Any, float]:
-    real_species = [specie for specie in choices if not _is_vacancy(specie)]
+    real_species = [specie for specie in choices if not is_vacancy_species(specie)]
     if not real_species:
         raise ValueError("A disordered transformation site cannot contain only vacancy")
     occupancy = 1.0 / len(choices)
@@ -624,28 +600,26 @@ def _ordered_endpoint_structures(
             final_sites.append(_periodic_site_from_site(template_site, template_site.specie))
             continue
 
-        initial_species = _species_for_occupation(
-            active_lattice_structure,
+        initial_species = active_lattice_structure.species_for_occupation_value(
             active_site_index,
             initial_occupation[active_site_index],
         )
-        if _is_vacancy(initial_species):
+        if is_vacancy_species(initial_species):
             continue
 
         initial_sites.append(_periodic_site_from_site(template_site, initial_species))
         if active_site_index == from_site:
             final_template_site = full_structure[original_to_site]
-            final_species = _species_for_occupation(
-                active_lattice_structure, to_site, final_occupation[to_site]
+            final_species = active_lattice_structure.species_for_occupation_value(
+                to_site, final_occupation[to_site]
             )
         else:
             final_template_site = template_site
-            final_species = _species_for_occupation(
-                active_lattice_structure,
+            final_species = active_lattice_structure.species_for_occupation_value(
                 active_site_index,
                 final_occupation[active_site_index],
             )
-        if _is_vacancy(final_species):
+        if is_vacancy_species(final_species):
             raise ValueError("final endpoint lost an initially occupied non-hop site")
         final_sites.append(_periodic_site_from_site(final_template_site, final_species))
 
@@ -668,30 +642,16 @@ def _structure_from_active_occupation(
         if active_site_index is None:
             sites.append(_periodic_site_from_site(template_site, template_site.specie))
             continue
-        species = _species_for_occupation(
-            active_lattice_structure, active_site_index, occupation[active_site_index]
+        species = active_lattice_structure.species_for_occupation_value(
+            active_site_index, occupation[active_site_index]
         )
-        if _is_vacancy(species):
+        if is_vacancy_species(species):
             continue
         sites.append(_periodic_site_from_site(template_site, species))
     return Structure.from_sites(sites)
 
 
 def _periodic_site_from_site(template_site, specie: Any) -> PeriodicSite:
-    return PeriodicSite(
-        species=specie,
-        coords=template_site.frac_coords,
-        lattice=template_site.lattice,
-        coords_are_cartesian=False,
-        properties=dict(template_site.properties),
-    )
-
-def _periodic_site_from_template(
-    lattice_structure: LatticeStructure,
-    site_index: int,
-    specie: Any,
-) -> PeriodicSite:
-    template_site = lattice_structure.template_structure[site_index]
     return PeriodicSite(
         species=specie,
         coords=template_site.frac_coords,
@@ -730,27 +690,13 @@ def _species_by_site(
     site_indices: Sequence[int],
 ) -> dict[int, str]:
     return {
-        int(site_index): _species_label(
-            _species_for_occupation(lattice_structure, int(site_index), occupation[int(site_index)])
+        int(site_index): species_label(
+            lattice_structure.species_for_occupation_value(int(site_index), occupation[int(site_index)])
         )
         for site_index in site_indices
     }
 
 
-def _species_for_occupation(
-    lattice_structure: LatticeStructure,
-    site_index: int,
-    value: int,
-) -> Any:
-    return lattice_structure.species_for_occupation_value(site_index, value)
-
-
-def _occupation_value_for_species(
-    lattice_structure: LatticeStructure,
-    site_index: int,
-    specie: Any,
-) -> int:
-    return lattice_structure.occupation_value_for_species(site_index, specie)
 
 
 def _first_allowed_species(lattice_structure: LatticeStructure, site_index: int) -> Any:
@@ -772,7 +718,7 @@ def _matches_counts(
 def _canonical_counts(species_counts: Mapping[Any, int] | None) -> dict[str, int] | None:
     if species_counts is None:
         return None
-    return {_species_token_label(key): int(value) for key, value in species_counts.items()}
+    return {species_label(key): int(value) for key, value in species_counts.items()}
 
 
 def _environment_label(species_by_site: Mapping[int, str]) -> str:
@@ -787,27 +733,3 @@ def _environment_label(species_by_site: Mapping[int, str]) -> str:
 def _validate_site_index(lattice_structure: LatticeStructure, site_index: int) -> None:
     if site_index < 0 or site_index >= len(lattice_structure.template_structure):
         raise IndexError(f"site index {site_index} is out of range")
-
-
-def _species_equivalent(left: Any, right: Any) -> bool:
-    return any(_species_matches_token(left, token) for token in _species_tokens(right))
-
-
-def _species_matches_token(specie: Any, token: Any) -> bool:
-    return _species_token_label(token) in _species_tokens(specie)
-
-
-def _species_label(specie: Any) -> str:
-    return species_label(specie)
-
-
-def _species_token_label(token: Any) -> str:
-    return species_label(token)
-
-
-def _species_tokens(specie: Any) -> set[str]:
-    return species_tokens(specie)
-
-
-def _is_vacancy(specie: Any) -> bool:
-    return is_vacancy_species(specie)

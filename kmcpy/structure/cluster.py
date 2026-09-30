@@ -85,27 +85,22 @@ class Orbit(MSONable):
         self.clusters.append(cluster)
         self.multiplicity += 1
 
-    def get_cluster_function(self, occupancy):
-        """Return the orbit-averaged cluster function."""
-        return (1 / self.multiplicity) * sum(
-            cluster.get_cluster_function(occupancy) for cluster in self.clusters
-        )
-
     def __str__(self):
-        try:
-            for i, cluster in enumerate(self.clusters):
-                logger.info(
-                    "Cluster[%d]: %5s\t%10s\t%8.3f\t%8.3f\t%5s\t%5d",
-                    i,
-                    cluster.type,
-                    str(cluster.site_indices),
-                    cluster.max_length,
-                    cluster.min_length,
-                    cluster.sym,
-                    self.multiplicity,
-                )
-        except TypeError:
-            logger.info("No cluster in this orbit!")
+        if not self.clusters:
+            return "No cluster in this orbit!"
+        return "\n".join(
+            "Cluster[%d]: %5s\t%10s\t%8.3f\t%8.3f\t%5s\t%5d"
+            % (
+                i,
+                cluster.type,
+                str(cluster.site_indices),
+                cluster.max_length,
+                cluster.min_length,
+                cluster.sym,
+                self.multiplicity,
+            )
+            for i, cluster in enumerate(self.clusters)
+        )
 
     def to_xyz(self, fname):
         self.clusters[0].to_xyz(fname)
@@ -361,10 +356,6 @@ class Cluster(MSONable):
         )
         bond_distances.sort()
         return max(bond_distances), min(bond_distances), bond_distances
-
-    def get_cluster_function(self, occupation):
-        """Return the occupation product for this cluster."""
-        return np.prod([occupation[i] for i in self.site_indices])
 
     def to_xyz(self, fname):
         """Write the cluster structure as XYZ."""

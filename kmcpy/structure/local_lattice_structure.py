@@ -1,4 +1,4 @@
-from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule, Species
+from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule
 import numpy as np
 import logging
 from typing import List, Dict, Any
@@ -86,7 +86,6 @@ class LocalLatticeStructure(LatticeStructure):
             logger.debug(f"Dummy site: {self.center_site}")
         else:
             raise ValueError("Center must be an index or a list of fractional coordinates.")
-        self.exclude_species = []
 
         local_env_sites = self.template_structure.get_sites_in_sphere(
             self.center_site.coords, cutoff, include_index=True
@@ -119,21 +118,6 @@ class LocalLatticeStructure(LatticeStructure):
         self.local_environment_signature = ordered_site_signature(self.structure)
         self.local_environment_hash = ordered_site_hash(self.local_environment_signature)
 
-
-    @staticmethod
-    def _normalize_exclude_species(exclude_species) -> list[str]:
-        """Return exclude tokens that match oxidized and neutral structures."""
-        tokens = []
-        for species in exclude_species or []:
-            token = str(species)
-            tokens.append(token)
-            try:
-                parsed_species = Species(token)
-            except Exception:
-                continue
-            tokens.append(str(parsed_species.symbol))
-            tokens.append(str(parsed_species.element))
-        return list(dict.fromkeys(tokens))
 
     def _is_center_site(self, site_info) -> bool:
         """Return whether a sphere result corresponds to the center site."""

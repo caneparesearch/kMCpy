@@ -167,7 +167,6 @@ class NEBDataLoader:
         self.neb_entries: List[NEBEntry] = []
         self.model = model
         self.reference_local_lattice_structure = reference_local_lattice_structure
-        self.exclude_species = None
         if model is not None:
             self.model_name = getattr(model, "name", "unknown")
 
@@ -222,11 +221,6 @@ class NEBDataLoader:
         neb_entry.compute_occ_corr(
             resolved_model,
             reference_local_lattice_structure=reference,
-            exclude_species=(
-                exclude_species
-                if exclude_species is not None
-                else self.exclude_species
-            ),
             tol=tol,
             angle_tol=angle_tol,
         )

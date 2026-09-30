@@ -12,6 +12,7 @@ import numpy as np
 from kmcpy.event.base import Event, EventLib
 from kmcpy.io.cif import load_labeled_structure_from_cif
 from kmcpy.structure.active_site_order import ActiveSiteOrder
+from kmcpy.structure.species import SiteMapping
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 from kmcpy.structure.cluster import Cluster, ClusterMatcher
 from kmcpy.structure.neighbors import (
@@ -73,20 +74,8 @@ class EventGenerator:
         return [str(identifier)]
 
     @staticmethod
-    def _mapping_values(value: Any) -> List[str]:
-        if isinstance(value, (list, tuple, set)):
-            return [str(item) for item in value]
-        return [str(value)]
-
-    @classmethod
-    def _mobile_species_from_site_mapping(cls, site_mapping: Dict) -> List[str]:
-        mobile_species = []
-        for species, allowed_species in site_mapping.items():
-            allowed_tokens = {
-                token.upper() for token in cls._mapping_values(allowed_species)
-            }
-            if "X" in allowed_tokens or "VACANCY" in allowed_tokens:
-                mobile_species.append(str(species))
+    def _mobile_species_from_site_mapping(site_mapping: Dict) -> List[str]:
+        mobile_species = SiteMapping(site_mapping).mobile_species()
         if not mobile_species:
             raise ValueError(
                 "Could not infer mobile species from site_mapping. Include a "

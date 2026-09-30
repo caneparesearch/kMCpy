@@ -4,10 +4,9 @@ from kmcpy.structure.basis import Occupation, get_basis
 from abc import ABC
 import logging
 from kmcpy.structure.species import (
+    SiteMapping,
     is_vacancy_species,
-    normalize_species,
     species_equivalent,
-    species_tokens,
 )
 
 logger = logging.getLogger(__name__) 
@@ -30,27 +29,17 @@ class LatticeStructure(ABC):
         '''
         self.template_structure = template_structure
 
-        self.site_mapping = {
-            normalize_species(key): [
-                normalize_species(item)
-                for item in (value if isinstance(value, (list, tuple)) else [value])
-            ]
-            for key, value in site_mapping.items()
-        }
-                
-        # Initialization of species for LatticeStructure
-        # allowed_species is like [["Na","Va"],["Na","Va"],["Na","Va"],["Na","Va"], ... ,["Sb","W"],["Sb","W"],["Sb","W"]]
-        self.allowed_species = []
-        for site in self.template_structure:
-            allowed_specie = None
-            for mapped_species, mapped_allowed_species in self.site_mapping.items():
-                if species_equivalent(site.specie, mapped_species):
-                    allowed_specie = mapped_allowed_species
-                    break
-            self.allowed_species.append(allowed_specie)
+        mapping = SiteMapping(site_mapping)
+        self.site_mapping = mapping.as_dict()
 
-        if len(self.allowed_species) != len(self.template_structure):
-            raise ValueError(f"Species length {len(self.allowed_species)} does not match template structure length {len(self.template_structure)}!")
+        # allowed_species is like [["Na","X"],["Na","X"], ... ,["Sb","W"],["Sb","W"]];
+        # sites without a site_mapping entry get None.
+        self.allowed_species = [
+            list(allowed) if allowed is not None else None
+            for allowed in mapping.allowed_species_by_site(
+                self.template_structure, strict=False
+            )
+        ]
 
         # Initialize basis using the registry.
         max_states = max(
@@ -277,23 +266,11 @@ class LatticeStructure(ABC):
             )
         return template_site_indices
 
-    @staticmethod
-    def _species_matches(actual, expected) -> bool:
-        return species_equivalent(actual, expected)
-
-    @staticmethod
-    def _is_vacancy_species(specie) -> bool:
-        return is_vacancy_species(specie)
-
-    @staticmethod
-    def _species_tokens(specie) -> set[str]:
-        return species_tokens(specie)
-
     def _missing_occupation_value(self, allowed_species):
         if not allowed_species:
             return self.basis.mismatch_value
         for state_index, specie in enumerate(allowed_species):
-            if self._is_vacancy_species(specie):
+            if is_vacancy_species(specie):
                 return self.basis.state_value(state_index, len(allowed_species))
         fallback_state = 1 if len(allowed_species) > 1 else 0
         return self.basis.state_value(fallback_state, len(allowed_species))
@@ -313,7 +290,7 @@ class LatticeStructure(ABC):
         if not allowed_species:
             raise ValueError(f"No allowed species defined for site {site_index}")
         for state_index, allowed in enumerate(allowed_species):
-            if self._species_matches(specie, allowed):
+            if species_equivalent(specie, allowed):
                 return self.basis.state_value(state_index, len(allowed_species))
         raise ValueError(f"Species {specie} is not allowed at site {site_index}")
 

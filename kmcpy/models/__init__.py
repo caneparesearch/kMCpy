@@ -7,7 +7,7 @@ local cluster expansion models, and composite models for kinetic Monte Carlo sim
 
 from .base import BaseModel
 from .local_cluster_expansion import LocalClusterExpansion
-from .local_barrier_model import LocalBarrierModel
+from .local_barrier_model import BarrierRule, LocalBarrierModel
 from .site_energy import (
     MappedOccupationChange,
     SiteEnergyModel,
@@ -20,6 +20,7 @@ __all__ = [
     'BaseModel',
     'LocalClusterExpansion',
     'LocalBarrierModel',
+    'BarrierRule',
     'MappedOccupationChange',
     'SiteEnergyModel',
     'CompositeLCEModel',

@@ -12,7 +12,6 @@ API Reference Documentation
     event_base.rst
     generators.rst
     hop.rst
-    comparator.rst
     active_site_order.rst
     basis.rst
     cluster.rst

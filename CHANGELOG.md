@@ -25,6 +25,36 @@
   `compute_probability(...)` per event; KMC uses it for dependent-event
   updates.
 
+### Changed
+
+- `LocalBarrierModel.rules` holds `BarrierRule` objects instead of plain
+  dictionaries. `BarrierRule.from_dict`/`as_dict` validate and serialize rules;
+  model files and the `rules=[...]`/`add_*_rule` inputs are unchanged, and
+  `add_rule` also accepts a `BarrierRule`.
+- `site_mapping` parsing lives in one place, the new
+  `kmcpy.structure.SiteMapping`, used by `LatticeStructure`, `ActiveSiteOrder`,
+  and `EventGenerator`.
+
+### Removed
+
+- `kmcpy.structure.SupercellComparator`. It was unused and matched every pair
+  of species; use pymatgen's `FrameworkComparator` for species-agnostic
+  structure matching.
+- `Orbit.get_cluster_function` and `Cluster.get_cluster_function`. They
+  assumed the old binary occupation encoding and did not match the correlation
+  functions used by `LocalClusterExpansion`.
+- Internal pass-through helpers and unreachable `exclude_species` filtering in
+  the structure code.
+
+### Fixed
+
+- Vacancy labels are recognized consistently everywhere. `EventGenerator`
+  previously accepted only `X`/`Vacancy` when inferring the mobile species, so
+  a `site_mapping` using `Va` failed with "Could not infer mobile species".
+  Vacancy labels (`X`, `Va`, `Vacancy`) are now case-insensitive.
+- `str(orbit)` returned `None` (and raised `TypeError`) instead of the cluster
+  summary.
+
 ## 0.3.0 - 2026-05-27
 
 This release is a breaking cleanup release focused on making kMCpy easier to
