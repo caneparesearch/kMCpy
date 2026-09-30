@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Performance
+
+- Faster KMC rate updates (about 2.2x per step on the NASICON test system)
+  with bit-identical seeded trajectories:
+  - `LocalClusterExpansion.compute` gathers only local-environment
+    occupations instead of copying the full occupation vector, and validates
+    `keci` once per parameter assignment instead of on every call.
+  - Correlation kernels use cached flat index arrays instead of nested
+    `numba.typed.List` arguments.
+  - `EventLib.get_dependent_events` caches dependency rows as Python tuples.
+  - Callable signature checks in `KMC` and `SiteEnergyModel` are cached.
+
 ## 0.3.0 - 2026-05-27
 
 This release is a breaking cleanup release focused on making kMCpy easier to

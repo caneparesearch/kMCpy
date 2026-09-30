@@ -14,7 +14,6 @@ from monty.serialization import loadfn
 from kmcpy.models.base import BaseModel
 from kmcpy.models.fitting.fitter import LCEFitter
 from kmcpy.models.fitting.registry import register_fitter
-from copy import deepcopy
 from kmcpy.event import Event
 from kmcpy.simulator.state import State
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
@@ -603,19 +602,51 @@ class LocalClusterExpansion(BaseModel):
 
     def _calculate_correlation(self, corr: np.ndarray, occupation: np.ndarray) -> None:
         """Fill a correlation vector for an occupation array."""
-        if (
-            getattr(self, "correlation_basis_indices", None) is not None
-            and getattr(self, "site_basis_values", None) is not None
-        ):
+        correlation_basis_indices = getattr(self, "correlation_basis_indices", None)
+        site_basis_values = getattr(self, "site_basis_values", None)
+        decorated = (
+            correlation_basis_indices is not None and site_basis_values is not None
+        )
+        orbit_offsets, cluster_offsets, sites, basis = self._flat_cluster_indices(
+            correlation_basis_indices if decorated else None
+        )
+        if decorated:
             _calc_corr_decorated(
                 corr,
                 occupation.astype(np.int64),
-                self.cluster_site_indices,
-                self.correlation_basis_indices,
-                self.site_basis_values,
+                orbit_offsets,
+                cluster_offsets,
+                sites,
+                basis,
+                site_basis_values,
             )
         else:
-            _calc_corr(corr, occupation, self.cluster_site_indices)
+            _calc_corr(corr, occupation, orbit_offsets, cluster_offsets, sites)
+
+    def _flat_cluster_indices(self, correlation_basis_indices=None):
+        """Return cached flat (CSR-style) arrays for the nested cluster indices.
+
+        Passing nested ``numba.typed.List`` objects into an ``njit`` function
+        costs more than the correlation calculation itself, so the nested
+        indices are flattened once per assignment of ``cluster_site_indices``
+        or ``correlation_basis_indices``.
+        """
+        cluster_site_indices = self.cluster_site_indices
+        cache = getattr(self, "_flat_cluster_indices_cache", None)
+        if (
+            cache is not None
+            and cache[0] is cluster_site_indices
+            and cache[1] is correlation_basis_indices
+        ):
+            return cache[2]
+
+        flat = _flatten_cluster_indices(cluster_site_indices, correlation_basis_indices)
+        self._flat_cluster_indices_cache = (
+            cluster_site_indices,
+            correlation_basis_indices,
+            flat,
+        )
+        return flat
 
     def compute(self, simulation_state:State, event:Event):
         """
@@ -637,32 +668,65 @@ class LocalClusterExpansion(BaseModel):
         # Check if parameters are stored
         if not hasattr(self, 'keci') or not hasattr(self, 'empty_cluster'):
             raise ValueError("No stored parameters found. Call set_parameters() or load_parameters_from_file() first.")
-        self.keci = self._validate_parameter_orbits(
-            self.keci,
-            getattr(self, "parameter_orbit_fingerprints", None),
-            getattr(self, "parameter_local_environment_hash", None),
-        )
-            
+        correlation_count = self._validate_keci_once()
+
         if simulation_state is None:
             raise ValueError("simulation_state is required")
 
-        occupations = np.array(simulation_state.occupations)
-            
         # Require event for local environment determination
         if event is None:
             raise ValueError("Event object is required for LocalClusterExpansion.compute() to determine local environment")
-            
+
         # Initialize correlation array using stored cluster_site_indices
-        corr = np.empty(shape=len(self.cluster_site_indices))
-        
-        # Extract local occupation using event's local environment indices
-        occ_sublat = deepcopy(occupations[list(event.local_env_indices)])
-            
+        corr = np.empty(shape=correlation_count)
+
+        # Gather only the local-environment occupations; copying the full
+        # occupation vector here would make every rate evaluation O(N_sites).
+        occupations = simulation_state.occupations
+        occ_sublat = np.array(
+            [occupations[site_index] for site_index in event.local_env_indices]
+        )
+
         self._calculate_correlation(corr, occ_sublat)
-        
+
         # Compute energy using stored parameters
         result = np.inner(corr, self.keci) + self.empty_cluster
         return result
+
+    def _validate_keci_once(self) -> int:
+        """Validate ``keci`` and return the correlation-vector length.
+
+        ``compute`` runs for every dependent event on every KMC step, so the
+        orbit-order validation is only repeated when ``keci``, its parameter
+        metadata, or ``cluster_site_indices`` are reassigned.
+        """
+        orbit_fingerprints = getattr(self, "parameter_orbit_fingerprints", None)
+        local_environment_hash = getattr(self, "parameter_local_environment_hash", None)
+        cluster_site_indices = self.cluster_site_indices
+        cache = getattr(self, "_keci_cache", None)
+        if (
+            cache is not None
+            and cache[0] is self.keci
+            and cache[1] is orbit_fingerprints
+            and cache[2] == local_environment_hash
+            and cache[3] is cluster_site_indices
+        ):
+            return cache[4]
+
+        self.keci = self._validate_parameter_orbits(
+            self.keci,
+            orbit_fingerprints,
+            local_environment_hash,
+        )
+        correlation_count = len(cluster_site_indices)
+        self._keci_cache = (
+            self.keci,
+            orbit_fingerprints,
+            local_environment_hash,
+            cluster_site_indices,
+            correlation_count,
+        )
+        return correlation_count
 
     def set_parameters(self, parameters):
         """
@@ -825,33 +889,74 @@ def _to_numba_cluster_basis_indices(cluster_basis_indices):
     )
 
 
+def _flatten_cluster_indices(cluster_site_indices, cluster_basis_indices=None):
+    """Flatten nested ``[orbit][cluster][site]`` indices into CSR-style arrays.
+
+    Returns ``(orbit_offsets, cluster_offsets, sites, basis)``. Clusters of
+    orbit ``i`` are ``orbit_offsets[i]:orbit_offsets[i + 1]`` and sites of
+    cluster ``j`` are ``sites[cluster_offsets[j]:cluster_offsets[j + 1]]``.
+    ``basis`` is aligned with ``sites`` (all zeros when no basis indices are
+    given).
+    """
+    orbit_offsets = [0]
+    cluster_offsets = [0]
+    sites = []
+    basis = []
+    for orbit_index, orbit in enumerate(cluster_site_indices):
+        basis_orbit = (
+            cluster_basis_indices[orbit_index]
+            if cluster_basis_indices is not None
+            else None
+        )
+        for cluster_index, cluster in enumerate(orbit):
+            basis_cluster = (
+                basis_orbit[cluster_index] if basis_orbit is not None else None
+            )
+            for site_position, site_index in enumerate(cluster):
+                sites.append(int(site_index))
+                basis.append(
+                    int(basis_cluster[site_position])
+                    if basis_cluster is not None
+                    else 0
+                )
+            cluster_offsets.append(len(sites))
+        orbit_offsets.append(len(cluster_offsets) - 1)
+    return (
+        np.asarray(orbit_offsets, dtype=np.int64),
+        np.asarray(cluster_offsets, dtype=np.int64),
+        np.asarray(sites, dtype=np.int64),
+        np.asarray(basis, dtype=np.int64),
+    )
+
+
 @nb.njit
-def _calc_corr(corr, occ_latt, cluster_site_indices):
+def _calc_corr(corr, occ_latt, orbit_offsets, cluster_offsets, sites):
     """
     Calculate correlation function for cluster expansion.
     
     Args:
         corr: Output correlation array
         occ_latt: Occupation array for the lattice
-        cluster_site_indices: Nested list structure [orbit][cluster][site]
+        orbit_offsets, cluster_offsets, sites: Flat cluster indices from
+            ``_flatten_cluster_indices``
     """
-    i = 0
-    for sublat_ind_orbit in cluster_site_indices: # loop through orbits
+    for i in range(len(orbit_offsets) - 1): # loop through orbits
         corr[i] = 0
-        for sublat_ind_cluster in sublat_ind_orbit: # loop through clusters in the orbit
+        for cluster in range(orbit_offsets[i], orbit_offsets[i + 1]): # loop through clusters in the orbit
             corr_cluster = 1
-            for occ_site in sublat_ind_cluster:
-                corr_cluster *= occ_latt[occ_site]
+            for position in range(cluster_offsets[cluster], cluster_offsets[cluster + 1]):
+                corr_cluster *= occ_latt[sites[position]]
             corr[i] += corr_cluster
-        i += 1
 
 
 @nb.njit
 def _calc_corr_decorated(
     corr,
     occ_latt,
-    cluster_site_indices,
-    cluster_basis_indices,
+    orbit_offsets,
+    cluster_offsets,
+    sites,
+    basis,
     site_basis_values,
 ):
     """
@@ -860,16 +965,13 @@ def _calc_corr_decorated(
     ``occ_latt`` stores species-state indices. ``site_basis_values`` maps
     ``[local_site, state_index, basis_index]`` to the scalar basis value.
     """
-    i = 0
-    for sublat_ind_orbit in cluster_site_indices:
+    for i in range(len(orbit_offsets) - 1):
         corr[i] = 0.0
-        basis_ind_orbit = cluster_basis_indices[i]
-        for cluster_index, sublat_ind_cluster in enumerate(sublat_ind_orbit):
+        for cluster in range(orbit_offsets[i], orbit_offsets[i + 1]):
             corr_cluster = 1.0
-            basis_ind_cluster = basis_ind_orbit[cluster_index]
-            for site_position, occ_site in enumerate(sublat_ind_cluster):
+            for position in range(cluster_offsets[cluster], cluster_offsets[cluster + 1]):
+                occ_site = sites[position]
                 state_index = int(occ_latt[occ_site])
-                basis_index = int(basis_ind_cluster[site_position])
+                basis_index = int(basis[position])
                 corr_cluster *= site_basis_values[occ_site, state_index, basis_index]
             corr[i] += corr_cluster
-        i += 1

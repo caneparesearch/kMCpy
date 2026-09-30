@@ -455,13 +455,17 @@ class KMC:
         events_to_be_updated = self.event_lib.get_dependent_events(event_index)
         
         # Update rates for dependent events using configured model.
+        events = self.event_lib.events
+        compute_probability = self.model.compute_probability
+        runtime_config = self.config.runtime_config
+        simulation_state = self.simulation_state
         for e_index in events_to_be_updated:
-            self.prob_list[e_index] = self.model.compute_probability(
-                event=self.event_lib.events[e_index],
-                runtime_config=self.config.runtime_config,
-                simulation_state=self.simulation_state
+            self.prob_list[e_index] = compute_probability(
+                event=events[e_index],
+                runtime_config=runtime_config,
+                simulation_state=simulation_state,
             )
-        self.prob_cum_list = np.cumsum(self.prob_list)
+        np.cumsum(self.prob_list, out=self.prob_cum_list)
 
     def _mobile_site_count_for_pass(self) -> int:
         """Return the number of active sites that can host the mobile species."""
@@ -492,10 +496,26 @@ class KMC:
         event_index: int | None,
     ) -> None:
         """Update KMC state using the proposed event index when supported."""
-        if event_index is not None and _accepts_keyword(self.update, "event_index"):
+        if event_index is not None and self._update_accepts_event_index():
             self.update(event, dt=dt, event_index=event_index)
         else:
             self.update(event, dt=dt)
+
+    def _update_accepts_event_index(self) -> bool:
+        """Return whether ``self.update`` takes ``event_index``, cached per function.
+
+        Subclasses and tests may override ``update`` with the older
+        ``update(event, dt)`` signature. The signature inspection is cached
+        because this check runs on every KMC step.
+        """
+        update = self.update
+        update_function = getattr(update, "__func__", update)
+        cache = getattr(self, "_update_signature_cache", None)
+        if cache is not None and cache[0] is update_function:
+            return cache[1]
+        accepts = _accepts_keyword(update, "event_index")
+        self._update_signature_cache = (update_function, accepts)
+        return accepts
 
     def run(self, label: str = None) -> Tracker:
         """Run KMC simulation using this instance's Configuration object.

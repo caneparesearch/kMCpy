@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import hashlib
+import functools
 import inspect
 import importlib
 import json
@@ -523,17 +524,31 @@ def _call_with_supported_keywords(
 ):
     """Call a user function with only the keyword arguments it accepts."""
     try:
+        accepted = _cached_supported_keyword_names(func, frozenset(user_kwarg_names))
+    except TypeError as exc:
+        if "unhashable" not in str(exc):
+            raise
+        accepted = _supported_keyword_names(func, frozenset(user_kwarg_names))
+
+    if accepted is None:
+        return func(**kwargs)
+    return func(**{key: value for key, value in kwargs.items() if key in accepted})
+
+
+def _supported_keyword_names(func, user_kwarg_names: frozenset[str]):
+    """Return accepted keyword names for ``func``, or ``None`` to pass all kwargs."""
+    try:
         parameters = inspect.signature(func).parameters
     except (TypeError, ValueError):
-        return func(**kwargs)
+        return None
 
     if any(
         parameter.kind == inspect.Parameter.VAR_KEYWORD
         for parameter in parameters.values()
     ):
-        return func(**kwargs)
+        return None
 
-    accepted = {
+    accepted = frozenset(
         name
         for name, parameter in parameters.items()
         if parameter.kind
@@ -541,14 +556,21 @@ def _call_with_supported_keywords(
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.KEYWORD_ONLY,
         )
-    }
+    )
     unused_user_kwargs = sorted(user_kwarg_names - accepted)
     if unused_user_kwargs:
         raise TypeError(
             "SiteEnergyModel compute_kwargs contains keys not accepted by "
             f"{func}: {unused_user_kwargs}"
         )
-    return func(**{key: value for key, value in kwargs.items() if key in accepted})
+    return accepted
+
+
+# compute() runs for every dependent event on every KMC step, so avoid
+# re-inspecting the same callable signature each time.
+_cached_supported_keyword_names = functools.lru_cache(maxsize=128)(
+    _supported_keyword_names
+)
 
 
 def constant_site_energy_difference(
