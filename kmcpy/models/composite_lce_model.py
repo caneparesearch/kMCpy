@@ -22,7 +22,7 @@ from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import Configuration, RuntimeConfig
+    from kmcpy.simulator.config import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -305,7 +305,7 @@ class CompositeLCEModel(BaseModel):
     @staticmethod
     def _parameter_payload(model: LocalClusterExpansion, label: str) -> dict:
         """Extract fitted parameters from one LCE submodel."""
-        if not hasattr(model, "keci") or not hasattr(model, "empty_cluster"):
+        if getattr(model, "keci", None) is None or getattr(model, "empty_cluster", None) is None:
             raise ValueError(
                 f"Cannot serialize '{label}' model: missing fitted parameters "
                 "(expected attributes 'keci' and 'empty_cluster')."
@@ -466,9 +466,8 @@ def _uses_default_lce_evaluation(model) -> bool:
         isinstance(model, LocalClusterExpansion)
         and model_type.compute is LocalClusterExpansion.compute
         and model_type._calculate_correlation is LocalClusterExpansion._calculate_correlation
-        and hasattr(model, "keci")
-        and hasattr(model, "empty_cluster")
-        and hasattr(model, "cluster_site_indices")
+        and model.has_parameters()
+        and model.cluster_site_indices is not None
     )
 
 

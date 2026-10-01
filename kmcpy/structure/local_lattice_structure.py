@@ -61,15 +61,8 @@ class LocalLatticeStructure(LatticeStructure):
                  site_mapping=None,
                  basis_type = 'chebyshev',
                  is_write_basis=False, 
-                 exclude_species=None,
                  local_site_order=None,
                  exclude_center_site=None):
-        if exclude_species:
-            raise ValueError(
-                "exclude_species is no longer supported; encode fixed sites in "
-                "site_mapping with a single allowed species."
-            )
-
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
         active_site_order = ActiveSiteOrder.from_structure_and_mapping(
@@ -246,7 +239,7 @@ class LocalLatticeStructure(LatticeStructure):
     @classmethod
     def from_lattice_structure(cls, lattice_structure: LatticeStructure, center, cutoff,
                                site_mapping=None, basis_type='chebyshev',
-                               is_write_basis=False, exclude_species=None,
+                               is_write_basis=False,
                                local_site_order=None, exclude_center_site=None):
         """
         Create a LocalLatticeStructure from an existing LatticeStructure.
@@ -258,7 +251,6 @@ class LocalLatticeStructure(LatticeStructure):
             site_mapping (dict): Mapping of species to sites.
             basis_type (str): Type of basis to use.
             is_write_basis (bool): Whether to write the basis to a file.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
         
         Returns:
             LocalLatticeStructure: The created local lattice structure.
@@ -274,7 +266,6 @@ class LocalLatticeStructure(LatticeStructure):
             ),
             basis_type=basis_type,
             is_write_basis=is_write_basis,
-            exclude_species=exclude_species,
             local_site_order=local_site_order,
             exclude_center_site=exclude_center_site,
         )

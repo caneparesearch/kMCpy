@@ -9,6 +9,7 @@ import pytest
     "kmcpy.event.hop",
     "kmcpy.models.local_barrier_model",
     "kmcpy.models.lce_kernels",
+    "kmcpy.models.external_site_mapping",
     "kmcpy.callables",
     "kmcpy.simulator",  # New simulator module
     "kmcpy.simulator.kmc",

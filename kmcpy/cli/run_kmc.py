@@ -270,9 +270,7 @@ def run_kmc(args) -> None:
     print("KMC initialized, starting simulation...")
 
     # run kmc
-    tracker = kmc.run()
-    
-    # Optionally save results
+    kmc.run()
     print("KMC simulation completed successfully!")
 
 

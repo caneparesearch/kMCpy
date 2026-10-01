@@ -31,6 +31,25 @@
   dictionaries. `BarrierRule.from_dict`/`as_dict` validate and serialize rules;
   model files and the `rules=[...]`/`add_*_rule` inputs are unchanged, and
   `add_rule` also accepts a `BarrierRule`.
+- `Configuration` forwards system/runtime fields (`config.temperature`, ...)
+  through one `__getattr__` instead of 23 hand-written properties, and the
+  routing sets `SYSTEM_FIELD_NAMES`/`RUNTIME_FIELD_NAMES` are derived from the
+  `SystemConfig`/`RuntimeConfig` dataclass fields (now `frozenset`s). A new
+  config field only needs to be added to its dataclass.
+- `SiteEnergyModel`'s mapping onto an external code's sites and occupation
+  values is the new `kmcpy.models.ExternalSiteMapping`, held as
+  `model.external_mapping`. Constructor arguments and model files are
+  unchanged; the mapping fields (`site_mapping`, `state_mapping`,
+  `state_mapping_by_site`, `initial_occupation`, `external_size`,
+  `external_fill_value`, `external_dtype`) are now read from
+  `model.external_mapping` instead of the model itself.
+- `LocalClusterExpansion` declares all of its fields in `__init__` (unset
+  fields are `None`; `has_parameters()` reports whether `keci` and
+  `empty_cluster` are set). `from_dict` decodes the known payload keys
+  explicitly instead of setting every key as an attribute: the old
+  `MigrationUnit_structure` key is renamed, the unused `clusters` and
+  `template_structure` keys are dropped, and other unknown keys are ignored
+  with a warning. `str()`/`repr()` no longer fail on a model without orbits.
 - Model file I/O lives in `BaseModel`: one `to(fname, indent=2)`, one
   `from_file`, and one envelope unwrapper driven by each class's `MODEL_TYPE`
   and `PAYLOAD_KEY`. `LocalClusterExpansion.to` now writes with indent 2
@@ -60,17 +79,43 @@
 
 ### Removed
 
+- The `exclude_species` parameters of `LocalLatticeStructure`,
+  `LocalClusterExpansion.get_occ_corr_from_structure`/`get_corr_from_structure`,
+  `NEBEntry`/`NEBDataLoader`, and the local-environment enumeration functions.
+  They only raised "no longer supported" since 0.3.0; encode fixed sites in
+  `site_mapping` with a single allowed species.
+- `kmcpy.tools` (`gather_kmc_data`, `gather_mc_data`, `get_data`). These
+  NASICON/CASM analysis scripts moved to `scripts/`, and `glob2` and `joblib`
+  are no longer direct runtime dependencies.
 - `kmcpy.structure.SupercellComparator`. It was unused and matched every pair
   of species; use pymatgen's `FrameworkComparator` for species-agnostic
   structure matching.
 - `Orbit.get_cluster_function` and `Cluster.get_cluster_function`. They
   assumed the old binary occupation encoding and did not match the correlation
   functions used by `LocalClusterExpansion`.
+- `example/input_example.yaml` and `example/lce_only.yaml`. They used a
+  pre-0.3 configuration schema and missing input paths and could not be
+  loaded; use `kmcpy init` or `kmcpy sample` to generate current inputs.
 - Internal pass-through helpers and unreachable `exclude_species` filtering in
   the structure code.
 
 ### Fixed
 
+- Configuration YAML files written by `Configuration.to`/`kmcpy init`/`kmcpy
+  sample` could not be read back with monty 2026.x, which decodes their
+  `@module`/`@class` entries into objects; they are now always loaded as plain
+  data.
+- `pymatgen` is limited to `<2026`. pymatgen 2026.x picks different (equivalent)
+  primitive lattice vectors, which reorders primitive-cell sites and silently
+  invalidates event, initial-state, and model files generated with earlier
+  versions.
+- `SiteEnergyModel` with a string `initial_occupation` (fixed-width NumPy
+  string dtype) silently truncated longer mapped values, e.g. `"Va"` became
+  `"V"`. The external occupation dtype is now widened to fit every mapped
+  state value.
+- The GUI's (`start_kmcpy_gui`) "LocalClusterExpansion" command always failed
+  with `UnboundLocalError`: a later function-local import made
+  `LocalClusterExpansion` a local name for the whole function.
 - Vacancy labels are recognized consistently everywhere. `EventGenerator`
   previously accepted only `X`/`Vacancy` when inferring the mobile species, so
   a `site_mapping` using `Va` failed with "Could not infer mobile species".

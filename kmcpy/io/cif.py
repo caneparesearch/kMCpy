@@ -4,7 +4,7 @@ The parser implementation is adapted from pymatgen; see cif_LICENSE.rst.
 """
 
 from pymatgen.io.cif import CifParser
-from pymatgen.core.operations import MagSymmOp, SymmOp
+from pymatgen.core.operations import MagSymmOp
 import warnings
 from pymatgen.util.coord import find_in_coord_list_pbc, in_coord_list_pbc
 from io import StringIO
@@ -16,7 +16,6 @@ from pymatgen.core.composition import Composition
 from pymatgen.core.periodic_table import DummySpecies, Element, Species, get_el_sp
 from pymatgen.symmetry.analyzer import SpacegroupOperations
 from pymatgen.symmetry.structure import SymmetrizedStructure
-from pymatgen.util.coord import find_in_coord_list_pbc
 from monty.io import zopen
 from pymatgen.core import Structure
 
@@ -189,26 +188,12 @@ class _LabeledCifParser(CifParser):
                     raise NotImplementedError(
                         "Disordered magnetic structures not currently supported."
                     )
-        # print(coord_to_species)
         if coord_to_species.items():
-            """
-            for idx, (comp, group) in enumerate(
-                    sorted(list(coord_to_species.items()), key=lambda x: x[1])
-                ):
-                print(comp,group)
-            """
-
             for idx, (coord, comp) in enumerate(list(coord_to_species.items())):
-                # I delete the weird group function
-                # now just for every initial site, generate all sites
-
-                # print(idx,comp)#debug
-
-                tmp_coords = [coord]  # follow the fashion
-
+                # Unlike pymatgen, expand each CIF site on its own (no grouping of
+                # equivalent compositions) so every generated site keeps its label.
+                tmp_coords = [coord]
                 tmp_magmom = [coord_to_magmoms[tmp_coord] for tmp_coord in tmp_coords]
-                tmp_label = [coord_to_labels[tmp_coord] for tmp_coord in tmp_coords]
-                # print(tmp_coords,tmp_magmom,tmp_label)#debug
 
                 if self.feature_flags["magcif"]:
                     coords, magmoms, _ = self._unique_coords(

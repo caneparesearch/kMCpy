@@ -69,13 +69,9 @@ for root, dirs, files in os.walk("./kmcpy", topdown=False):
             filename[-3:] == ".py"
             and ("__init__" not in filename)
             and ("_version" not in filename)
-            and ("tools" not in root)
             and ("external" not in root)
             and ("sites_and_lattices" not in filename)
         ):
-            # for now, skip the tools
-            # need to modify documentation
-
             print(root, name, " is python script")
 
             package = name.replace(".py", "")
@@ -86,6 +82,8 @@ for root, dirs, files in os.walk("./kmcpy", topdown=False):
             module_entries.append((module_name, package))
 
 module_entries.append(("kmcpy.io", "neb"))
+# os.walk order depends on the filesystem; sort so api.rst is stable.
+module_entries.sort()
 
 package_counts = {}
 for _, package in module_entries:

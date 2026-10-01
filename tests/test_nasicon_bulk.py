@@ -354,7 +354,7 @@ class TestNASICONbulk(unittest.TestCase):
 
     @pytest.mark.slow
     def test_gather_mc_data(self):
-        from kmcpy.tools.gather_mc_data import generate_supercell, gather_data
+        from scripts.gather_mc_data import generate_supercell, gather_data
         from kmcpy.io.cif import load_labeled_structure_from_cif
         from kmcpy.structure.sites import make_kmc_supercell
         import numpy as np
@@ -377,7 +377,7 @@ class TestNASICONbulk(unittest.TestCase):
         occ2 = df2["occ"]
         for i in range(0, len(occ1[0])):
             if occ1[0][i] != occ2[0][i]:
-                print(i, occ1[i], occ2[i])
+                print(i, occ1[0][i], occ2[0][i])
         self.assertTrue(np.allclose(occ1[0], occ2[0], rtol=0.001, atol=0.001))
 
     def test_simulation_config_with_nasicon(self):

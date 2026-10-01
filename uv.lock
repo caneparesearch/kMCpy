@@ -436,12 +436,6 @@ wheels = [
 ]
 
 [[package]]
-name = "glob2"
-version = "0.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/a5/bbbc3b74a94fbdbd7915e7ad030f16539bfdc1362f7e9003b594f0537950/glob2-0.7.tar.gz", hash = "sha256:85c3dbd07c8aa26d63d7aacee34fa86e9a91a3873bc30bf62ec46e531f92ab8c", size = 10697, upload-time = "2019-06-10T23:33:48.308Z" }
-
-[[package]]
 name = "gooey"
 version = "1.0.8.1"
 source = { registry = "https://pypi.org/simple" }
@@ -600,8 +594,6 @@ name = "kmcpy"
 version = "0.3.0"
 source = { editable = "." }
 dependencies = [
-    { name = "glob2" },
-    { name = "joblib" },
     { name = "monty" },
     { name = "numba", version = "0.62.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
     { name = "numba", version = "0.63.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'" },
@@ -633,16 +625,14 @@ gui = [
 [package.metadata]
 requires-dist = [
     { name = "furo", marker = "extra == 'doc'" },
-    { name = "glob2", specifier = ">=0.7" },
     { name = "gooey", marker = "extra == 'gui'" },
-    { name = "joblib", specifier = ">=1.5.3" },
     { name = "monty", specifier = ">=2025.3.3" },
     { name = "myst-parser", marker = "extra == 'doc'" },
     { name = "numba", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'", specifier = ">=0.63.1" },
     { name = "numba", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=0.62,<0.63" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "pymatgen", specifier = ">=2025.10.7" },
+    { name = "pymatgen", specifier = ">=2025.10.7,<2026" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },

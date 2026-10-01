@@ -5,6 +5,9 @@ API Reference Documentation
     :maxdepth: 4
     :caption: Contents:
 
+    high_level_api.rst
+    callables.rst
+    units.rst
     init.rst
     main.rst
     run_kmc.rst
@@ -12,6 +15,26 @@ API Reference Documentation
     event_base.rst
     generators.rst
     hop.rst
+    cif.rst
+    neb.rst
+    data.rst
+    models_base.rst
+    composite_lce_model.rst
+    external_site_mapping.rst
+    lce_kernels.rst
+    local_barrier_model.rst
+    local_cluster_expansion.rst
+    parameters.rst
+    models_registry.rst
+    site_energy.rst
+    fitter.rst
+    models_fitting_registry.rst
+    config.rst
+    kmc.rst
+    property.rst
+    results.rst
+    state.rst
+    tracker.rst
     active_site_order.rst
     basis.rst
     cluster.rst
@@ -22,25 +45,3 @@ API Reference Documentation
     neighbors.rst
     sites.rst
     species.rst
-    data.rst
-    cif.rst
-    models_registry.rst
-    models_fitting_registry.rst
-    fitter.rst
-    models_base.rst
-    composite_lce_model.rst
-    local_barrier_model.rst
-    local_cluster_expansion.rst
-    lce_kernels.rst
-    parameters.rst
-    site_energy.rst
-    config.rst
-    kmc.rst
-    property.rst
-    results.rst
-    state.rst
-    tracker.rst
-    high_level_api.rst
-    units.rst
-    callables.rst
-    neb.rst

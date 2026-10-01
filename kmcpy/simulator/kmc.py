@@ -8,7 +8,7 @@ loading input data from various sources, updating system states, and tracking si
 from pymatgen.core import Structure
 import numpy as np
 from kmcpy.simulator.tracker import (
-    CallbackExecutionError,
+    CallbackExecutionError,  # noqa: F401  re-exported for `from kmcpy.simulator.kmc import ...`
     Tracker,
 )
 from kmcpy.simulator.property import PropertyPlan
@@ -60,7 +60,7 @@ class KMC:
             The config object contains all immutable configuration parameters.
         """
         logger.info(kmcpy.get_logo())
-        logger.info(f"Initializing kMC calculations ...")
+        logger.info("Initializing kMC calculations ...")
 
         self._ensure_property_state()
         

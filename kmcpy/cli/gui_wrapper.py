@@ -8,15 +8,13 @@ try:
     from gooey import Gooey, GooeyParser
     HAS_GOOEY = True
 except ImportError:
+    # main() requires Gooey; this no-op decorator only keeps the module importable.
     HAS_GOOEY = False
-    # Create dummy decorators for when gooey is not available
+
     def Gooey(*args, **kwargs):
         def decorator(func):
             return func
         return decorator
-    
-    import argparse
-    GooeyParser = argparse.ArgumentParser
 
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import Configuration
@@ -357,7 +355,6 @@ def main():
         kmc.run()
 
     if args.command == "fitLCEmodel":
-        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 
         os.chdir(args.work_dir)
         _, y_pred, y_true = LocalClusterExpansion().fit(

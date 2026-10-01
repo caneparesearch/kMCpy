@@ -6,8 +6,6 @@ and the generalized Occupation class that works with any registered basis functi
 """
 
 import pytest
-import numpy as np
-from typing import List, Union
 
 from kmcpy.structure.basis import (
     BasisFunction,

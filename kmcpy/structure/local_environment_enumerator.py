@@ -54,12 +54,6 @@ class NEBEndpointPair:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-EXCLUDE_SPECIES_ERROR = (
-    "exclude_species is no longer supported; encode fixed sites in "
-    "site_mapping with a single allowed species."
-)
-
-
 class LocalEnvironmentEnumerator:
     """Enumerate local environments and NEB endpoints for one lattice structure.
 
@@ -540,7 +534,6 @@ def enumerate_local_environments(
     species_counts: Mapping[Any, int] | None = None,
     variable_species: Sequence[Any] | None = None,
     variable_site_indices: Sequence[int] | None = None,
-    exclude_species: Sequence[str] | None = None,
     local_site_order=None,
     exclude_center_site=None,
     base_structure: Structure | None = None,
@@ -559,8 +552,6 @@ def enumerate_local_environments(
     """
     if max_results < 1:
         raise ValueError("max_results must be at least 1")
-    if exclude_species:
-        raise ValueError(EXCLUDE_SPECIES_ERROR)
     return LocalEnvironmentEnumerator(lattice_structure).enumerate(
         center=center,
         cutoff=cutoff,
@@ -597,7 +588,6 @@ def enumerate_neb_endpoint_pairs(
     species_counts: Mapping[Any, int] | None = None,
     variable_species: Sequence[Any] | None = None,
     variable_site_indices: Sequence[int] | None = None,
-    exclude_species: Sequence[str] | None = None,
     local_site_order=None,
     exclude_center_site=None,
     base_structure: Structure | None = None,
@@ -611,8 +601,6 @@ def enumerate_neb_endpoint_pairs(
     resolved_mobile_ion_indices = _mobile_ion_indices(mobile_ion_indices)
     if max_results < 1:
         raise ValueError("max_results must be at least 1")
-    if exclude_species:
-        raise ValueError(EXCLUDE_SPECIES_ERROR)
     return LocalEnvironmentEnumerator(lattice_structure).endpoint_pairs(
         resolved_mobile_ion_indices,
         cutoff=cutoff,

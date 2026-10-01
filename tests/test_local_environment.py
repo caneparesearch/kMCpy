@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from pymatgen.core import Structure, Lattice
 from kmcpy.structure.lattice_structure import LatticeStructure
 from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
