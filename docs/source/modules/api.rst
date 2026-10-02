@@ -7,6 +7,7 @@ API Reference Documentation
 
     high_level_api.rst
     callables.rst
+    simulation.rst
     units.rst
     init.rst
     main.rst
@@ -16,6 +17,7 @@ API Reference Documentation
     generators.rst
     hop.rst
     cif.rst
+    files.rst
     neb.rst
     data.rst
     models_base.rst
@@ -38,6 +40,7 @@ API Reference Documentation
     active_site_order.rst
     basis.rst
     cluster.rst
+    lattice_basis.rst
     lattice_structure.rst
     local_environment_enumerator.rst
     local_lattice_structure.rst

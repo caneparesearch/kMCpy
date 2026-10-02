@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+from pathlib import Path
+
+from kmcpy.io.files import load_raw_data
+from kmcpy.simulation import Simulation, is_simulation_input
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.kmc import KMC
 import kmcpy
@@ -11,10 +15,10 @@ RUN_HELP_EPILOG = """
 Recommended workflow:
   kmcpy init --output input_template.yaml
   # or: kmcpy sample all --output-dir kmcpy_sample
-  run_kmc --input input_template.yaml
+  kmcpy run --input input_template.yaml
 
 The input-file workflow is preferred for research runs because it records the
-full Configuration in one place. Direct flags are kept for quick checks and
+full setup in one place. Direct flags are kept for quick checks and
 simple scripts. For less common fields such as property callbacks and built-in
 property schedules, use a YAML or JSON input file.
 """
@@ -77,9 +81,17 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         "--input",
         type=str,
         help=(
-            "Preferred. Path to a modern Configuration YAML/JSON input file. "
+            "Preferred. Path to a YAML/JSON input file: a simulation input with "
+            "lattice_structure/events/model/state/run sections, or a Configuration file. "
             "Generate one with `kmcpy init` or `kmcpy sample all`."
         ),
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=None,
+        help="Folder for result files (default: the input's run.output_dir, "
+        "then the working directory).",
     )
 
     system_group = parser.add_argument_group("common system fields")
@@ -99,7 +111,7 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     system_group.add_argument(
         "--structure_file",
         type=str,
-        help="Path to the structure/CIF file containing all possible mobile-ion sites.",
+        help="Path to the structure/CIF file containing every site that can be occupied.",
     )
     system_group.add_argument(
         "--event_file",
@@ -223,28 +235,22 @@ def run_kmc(args) -> None:
     Returns:
         None
     """
-    config = None
-    
+    output_dir = getattr(args, "output_dir", None)
     print("Starting KMC simulation...")
-    
+
     if args.input:
-        # Load modern Configuration format only
-        try:
-            print(f"Loading configuration from {args.input}")
-            config = Configuration.from_file(args.input)
-            print(f"✓ Configuration loaded: {config.runtime_config.name}")
-        except Exception as e:
-            # Provide clear error message for legacy formats
-            raise ValueError(
-                f"Unable to load configuration from {args.input}. "
-                f"Legacy InputSet format is no longer supported. "
-                f"Please convert your configuration to the modern Configuration format. "
-                f"Use `kmcpy init` to create a new configuration file. "
-                f"Original error: {e}"
-            )
+        print(f"Loading input from {args.input}")
+        data = load_raw_data(args.input)
+        if is_simulation_input(data):
+            simulation = Simulation.from_dict(data, base_dir=Path(args.input).parent)
+            print(f"Running {simulation.config.name} ...")
+            simulation.run(output_dir=output_dir)
+            print("KMC simulation completed successfully!")
+            return
+        config = Configuration.from_file(args.input)
     else:
         # Build a dictionary from the argparse Namespace, excluding None values and 'input'
-        ignored_keys = {"command", "input"}
+        ignored_keys = {"command", "input", "output_dir"}
         input_dict = {
             k: v
             for k, v in vars(args).items()
@@ -270,7 +276,7 @@ def run_kmc(args) -> None:
     print("KMC initialized, starting simulation...")
 
     # run kmc
-    kmc.run()
+    kmc.run(output_dir=output_dir)
     print("KMC simulation completed successfully!")
 
 

@@ -18,7 +18,8 @@ from dataclasses import asdict, dataclass, field, fields, replace
 from pathlib import Path
 
 from monty.json import MSONable
-from monty.serialization import dumpfn, loadfn
+from monty.serialization import dumpfn
+from kmcpy.io.files import load_raw_data
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
 from kmcpy.units import UNIT_CONVENTIONS
 
@@ -57,20 +58,6 @@ def _detect_config_file_format(filepath: str) -> str:
     if suffix in {".yaml", ".yml"}:
         return "yaml"
     return "unknown"
-
-
-def _load_raw_data(filename: str | Path) -> Any:
-    """Load a JSON/YAML file as plain data, without decoding ``@module`` objects.
-
-    Configuration files written by ``Configuration.to`` contain ``@module`` and
-    ``@class`` keys. Newer monty releases decode those into objects for YAML
-    unless ``cls=None`` is passed; older releases reject ``cls`` for YAML and
-    never decode it.
-    """
-    try:
-        return loadfn(filename, cls=None)
-    except TypeError:
-        return loadfn(filename)
 
 
 def _extract_section_data(
@@ -145,7 +132,7 @@ class SystemConfig:
     model_type: str = "composite_lce"
     model_file: str = ""
     event_file: str = ""
-    # Site-space definition
+    # Allowed species per site (see LatticeStructure)
     site_mapping: Optional[dict] = None
     convert_to_primitive_cell: bool = False
     
@@ -418,7 +405,7 @@ class Configuration(MSONable):
         file_format = _detect_config_file_format(str(filename))
 
         if file_format in {"json", "yaml"}:
-            raw_data = _load_raw_data(filename)
+            raw_data = load_raw_data(filename)
         else:
             raise ValueError(
                 f"Unsupported file format for {filename}. Supported: .json, .yaml, .yml"
@@ -461,7 +448,7 @@ class Configuration(MSONable):
             path = Path(filename)
             if path.exists():
                 try:
-                    yaml_data = _load_raw_data(path)
+                    yaml_data = load_raw_data(path)
                 except Exception:
                     yaml_data = {}
             else:

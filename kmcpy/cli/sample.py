@@ -6,6 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
+from monty.serialization import dumpfn
+
+from kmcpy.cli.init import TEMPLATE_FORMATS
 from kmcpy.models import LocalBarrierModel
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.state import State
@@ -57,6 +60,35 @@ def sample_configuration(
     )
 
 
+def sample_simulation_input(
+    model_file: str = DEFAULT_SAMPLE_MODEL_FILENAME,
+    initial_state_file: str = DEFAULT_SAMPLE_STATE_FILENAME,
+    event_file: str = "events.json",
+    structure_file: str = "structure.cif",
+) -> dict:
+    """Return a small simulation input (``Simulation.from_dict`` sections)."""
+    return {
+        "lattice_structure": {
+            "structure": structure_file,
+            "site_mapping": {"Li": ["Li", "X"]},
+            "supercell_shape": [1, 1, 1],
+            "primitive": False,
+        },
+        "events": event_file,
+        "model": model_file,
+        "state": initial_state_file,
+        "run": {
+            "temperature": 300.0,
+            "attempt_frequency": 1e13,
+            "equilibration_passes": 0,
+            "kmc_passes": 100,
+            "random_seed": 12345,
+            "name": "SampleSimulation",
+            "output_dir": "results",
+        },
+    }
+
+
 def write_sample_config(
     output: str | Path,
     force: bool = False,
@@ -64,9 +96,30 @@ def write_sample_config(
     initial_state_file: str = DEFAULT_SAMPLE_STATE_FILENAME,
     event_file: str = "events.json",
     structure_file: str = "structure.cif",
+    input_format: str = "simulation",
 ) -> Path:
-    """Write a sample Configuration YAML or JSON file."""
+    """Write a sample input file (YAML or JSON by suffix).
+
+    ``input_format="simulation"`` writes sectioned input for
+    ``Simulation.from_file``/``kmcpy run``; ``"configuration"`` writes the flat
+    ``Configuration`` format.
+    """
+    if input_format not in TEMPLATE_FORMATS:
+        raise ValueError(f"Unknown input format {input_format!r}; use one of {TEMPLATE_FORMATS}")
     output_path = _prepare_output_path(output, force=force)
+    if input_format == "simulation":
+        data = sample_simulation_input(
+            model_file=model_file,
+            initial_state_file=initial_state_file,
+            event_file=event_file,
+            structure_file=structure_file,
+        )
+        if output_path.suffix.lower() in {".yaml", ".yml"}:
+            dumpfn(data, str(output_path))
+        else:
+            dumpfn(data, str(output_path), indent=2)
+        return output_path
+
     config = sample_configuration(
         model_file=model_file,
         initial_state_file=initial_state_file,
@@ -127,11 +180,12 @@ def write_sample_set(
     root.mkdir(parents=True, exist_ok=True)
     write_sample_model(paths["model"], force=force, barrier=barrier)
     write_sample_state(paths["state"], occupations=occupations, force=force)
+    # Relative names: the input resolves them from its own folder.
     write_sample_config(
         paths["config"],
         force=force,
-        model_file=str(paths["model"]),
-        initial_state_file=str(paths["state"]),
+        model_file=paths["model"].name,
+        initial_state_file=paths["state"].name,
     )
     return paths
 
@@ -157,8 +211,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
 
     config_parser = subparsers.add_parser(
         "config",
-        help="Write a sample Configuration YAML or JSON file.",
-        description="Write a sample reloadable Configuration input file.",
+        help="Write a sample input YAML or JSON file.",
+        description="Write a sample input file.",
         epilog=(
             "Examples:\n"
             "  kmcpy sample config --output input.yaml\n"
@@ -200,6 +254,13 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         "--structure-file",
         default="structure.cif",
         help="Structure path written into the sample config (default: structure.cif).",
+    )
+    config_parser.add_argument(
+        "--format",
+        choices=TEMPLATE_FORMATS,
+        default="simulation",
+        help="simulation (default): lattice_structure/events/model/state/run sections; "
+        "configuration: flat Configuration fields.",
     )
 
     model_parser = subparsers.add_parser(
@@ -327,6 +388,7 @@ def run_sample_command(args: argparse.Namespace):
             initial_state_file=args.initial_state_file,
             event_file=args.event_file,
             structure_file=args.structure_file,
+            input_format=args.format,
         )
     if args.sample_command == "model":
         return write_sample_model(args.output, force=args.force, barrier=args.barrier)

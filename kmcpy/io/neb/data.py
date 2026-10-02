@@ -416,6 +416,29 @@ class NEBDataLoader:
             )
         return weight_array
 
+    def fit(
+        self,
+        alpha: float,
+        weights=None,
+        model: Optional['LocalClusterExpansion'] = None,
+        max_iter: int = 1000000,
+        normalize: bool = True,
+    ):
+        """Fit the model's ECIs to the loaded data in memory and attach them.
+
+        Uses the model given here or at construction. Returns
+        ``(parameters, predicted, targets)``; see
+        ``LocalClusterExpansion.fit_data``.
+        """
+        return self._resolve_model(model).fit_data(
+            self.get_correlation_matrix(),
+            self.get_properties(),
+            alpha=alpha,
+            weights=weights,
+            max_iter=max_iter,
+            normalize=normalize,
+        )
+
     def write_fitting_inputs(
         self,
         output_dir: str | os.PathLike[str] = ".",

@@ -542,10 +542,14 @@ class Tracker:
             self.results["correlation_factor"][-1],
         )
 
-    def write_results(self, label: str | None = None) -> None:
-        """Write trajectory arrays, built-in summaries, and custom-property records."""
+    def write_results(self, label: str | None = None, output_dir=None) -> None:
+        """Write trajectory arrays, built-in summaries, and custom-property records.
+
+        Files go to ``output_dir`` (created if needed), or the working directory.
+        """
         write_tracker_results(
             label=label,
+            output_dir=output_dir,
             current_pass=self.current_pass,
             displacement=self.displacement,
             hop_counter=self.hop_counter,

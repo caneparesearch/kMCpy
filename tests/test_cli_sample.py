@@ -9,7 +9,9 @@ from kmcpy.cli.sample import (
     write_sample_set,
     write_sample_state,
 )
+from kmcpy.io.files import load_raw_data
 from kmcpy.models import BaseModel, LocalBarrierModel
+from kmcpy.simulation import validate_simulation_input
 from kmcpy.simulator.config import Configuration
 from kmcpy.simulator.state import State
 
@@ -18,6 +20,7 @@ from kmcpy.simulator.state import State
 def test_write_sample_config_yaml_and_json_are_parseable(tmp_path: Path):
     yaml_file = tmp_path / "input.yaml"
     json_file = tmp_path / "input.json"
+    config_file = tmp_path / "config.json"
 
     write_sample_config(
         yaml_file,
@@ -25,15 +28,18 @@ def test_write_sample_config_yaml_and_json_are_parseable(tmp_path: Path):
         initial_state_file="sample_state.json",
     )
     write_sample_config(json_file)
+    write_sample_config(config_file, input_format="configuration")
 
-    yaml_config = Configuration.from_file(yaml_file)
-    json_config = Configuration.from_file(json_file)
+    for path in (yaml_file, json_file):
+        data = load_raw_data(path)
+        validate_simulation_input(data)
+        assert data["run"]["temperature"] == 300.0
+    assert load_raw_data(yaml_file)["model"] == "sample_model.json"
+    assert load_raw_data(yaml_file)["state"] == "sample_state.json"
 
-    assert yaml_config.model_type == "local_barrier"
-    assert yaml_config.model_file == "sample_model.json"
-    assert yaml_config.initial_state_file == "sample_state.json"
-    assert json_config.model_type == "local_barrier"
-    assert json_config.temperature == 300.0
+    config = Configuration.from_file(config_file)
+    assert config.model_type == "local_barrier"
+    assert config.temperature == 300.0
 
 
 @pytest.mark.unit
@@ -65,9 +71,11 @@ def test_write_sample_set_creates_linked_artifacts(tmp_path: Path):
     assert set(paths) == {"config", "model", "state"}
     assert all(path.exists() for path in paths.values())
 
-    config = Configuration.from_file(paths["config"])
-    model = BaseModel.from_config(config)
-    state = State.from_file(config.initial_state_file)
+    data = load_raw_data(paths["config"])
+    validate_simulation_input(data)
+    folder = paths["config"].parent
+    model = BaseModel.load(folder / data["model"])
+    state = State.from_file(str(folder / data["state"]))
 
     assert isinstance(model, LocalBarrierModel)
     assert model.default_properties == {"barrier": 250.0}

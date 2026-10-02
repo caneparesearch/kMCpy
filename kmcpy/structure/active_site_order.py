@@ -185,6 +185,14 @@ class ActiveSiteOrder(MSONable):
         return len(self.active_to_original)
 
     @property
+    def allowed_species_by_active_site(self) -> tuple[tuple[str, ...], ...]:
+        """Allowed species labels of each active site; occupation ``i`` is entry ``i``."""
+        return tuple(
+            self.allowed_species_by_primitive_site[primitive_site]
+            for primitive_site in self.active_to_primitive
+        )
+
+    @property
     def original_to_active(self) -> dict[int, int]:
         return {
             int(original_index): active_index
@@ -227,7 +235,7 @@ class ActiveSiteOrder(MSONable):
         }
 
     def assert_same_order(self, other: "ActiveSiteOrder | Mapping[str, Any]") -> None:
-        """Raise if another order or metadata payload describes a different site space."""
+        """Raise if another order or metadata payload describes different active sites."""
         other_order = (
             ActiveSiteOrder.from_dict(other)
             if isinstance(other, Mapping)

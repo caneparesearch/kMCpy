@@ -124,35 +124,42 @@ class BaseModel(MSONable, ABC):
         """Load the configured model.
 
         Called on ``BaseModel``, this dispatches to the concrete model class
-        declared by the model file or ``config.model_type``. Called on a
-        concrete subclass, it loads that subclass directly from
+        declared by the model file or ``config.model_type`` (see :meth:`load`).
+        Called on a concrete subclass, it loads that subclass directly from
         ``config.model_file``.
         """
         if cls is not BaseModel:
             return cls.from_file(config.model_file)
+        return BaseModel.load(
+            getattr(config, "model_file", ""),
+            model_type=getattr(config, "model_type", None),
+        )
 
-        model_file = getattr(config, "model_file", "")
-        if model_file:
-            payload = loadfn(model_file, cls=None)
-            if isinstance(payload, dict) and "filetype" in payload:
-                require_model_file_payload(payload)
-                model_type = payload.get("model_type")
-                if not isinstance(model_type, str) or not model_type.strip():
-                    raise ValueError(
-                        "Model file must include a non-empty 'model_type'"
-                    )
-                return model_class_for_type(model_type).from_config(config)
-            if isinstance(payload, dict) and "@module" in payload and "@class" in payload:
-                model_class = model_class_for_payload(payload)
-                if not callable(getattr(model_class, "from_file", None)):
-                    raise ValueError(
-                        f"Serialized model class '{payload['@module']}."
-                        f"{payload['@class']}' does not provide from_file()."
-                    )
-                return model_class.from_file(model_file)
+    @staticmethod
+    def load(model_file, model_type: str | None = None) -> "BaseModel":
+        """Load a model file of any registered model type.
 
-        model_type = getattr(config, "model_type", None) or "composite_lce"
-        return model_class_for_type(model_type).from_config(config)
+        The class is taken from the file: the ``model_type`` of a
+        ``kmcpy.model_file`` envelope, or the ``@module``/``@class`` of a
+        payload written by :meth:`to`. ``model_type`` (default
+        ``"composite_lce"``) is only used for files that carry neither.
+        """
+        payload = loadfn(model_file, cls=None)
+        if isinstance(payload, dict) and "filetype" in payload:
+            require_model_file_payload(payload)
+            file_model_type = payload.get("model_type")
+            if not isinstance(file_model_type, str) or not file_model_type.strip():
+                raise ValueError("Model file must include a non-empty 'model_type'")
+            return model_class_for_type(file_model_type).from_file(model_file)
+        if isinstance(payload, dict) and "@module" in payload and "@class" in payload:
+            model_class = model_class_for_payload(payload)
+            if not callable(getattr(model_class, "from_file", None)):
+                raise ValueError(
+                    f"Serialized model class '{payload['@module']}."
+                    f"{payload['@class']}' does not provide from_file()."
+                )
+            return model_class.from_file(model_file)
+        return model_class_for_type(model_type or "composite_lce").from_file(model_file)
 
     def __str__(self):
         """Return a compact string representation."""

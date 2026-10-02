@@ -19,7 +19,7 @@ def test_run_kmc_direct_args_accept_model_file(monkeypatch):
             cls.called = True
             return cls(config)
 
-        def run(self):
+        def run(self, **kwargs):
             return {"ok": True, "name": self.config.name}
 
     monkeypatch.setattr(run_kmc_module, "KMC", DummyKMC)
@@ -52,7 +52,7 @@ def test_run_kmc_direct_args_parse_list_like_strings(monkeypatch):
             captured["site_mapping"] = config.system_config.site_mapping
             return cls()
 
-        def run(self):
+        def run(self, **kwargs):
             return {"ok": True}
 
     monkeypatch.setattr(run_kmc_module, "KMC", DummyKMC)

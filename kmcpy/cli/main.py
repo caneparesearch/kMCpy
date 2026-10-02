@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 from typing import Sequence
 
-from kmcpy.cli.init import DEFAULT_TEMPLATE_FILENAME, write_template
+from kmcpy.cli.init import INIT_DESCRIPTION, INIT_EPILOG, run_init_command
+from kmcpy.cli.init import configure_parser as configure_init_parser
 from kmcpy.cli.run_kmc import RUN_HELP_EPILOG
 from kmcpy.cli.run_kmc import configure_parser as configure_run_parser
 from kmcpy.cli.run_kmc import run_kmc
@@ -31,35 +32,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser = subparsers.add_parser(
         "init",
-        help="Generate a commented YAML template for a KMC simulation.",
-        description=(
-            "Generate a commented YAML template for a kMCpy Configuration. "
-            "Edit the paths and runtime settings before running it."
-        ),
-        epilog=(
-            "Examples:\n"
-            "  kmcpy init --output input_template.yaml\n"
-            "  kmcpy init --output input.yaml --force\n"
-            "  run_kmc --input input.yaml"
-        ),
+        help="Generate a commented YAML input template.",
+        description=INIT_DESCRIPTION,
+        epilog=INIT_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    init_parser.add_argument(
-        "-o",
-        "--output",
-        default=DEFAULT_TEMPLATE_FILENAME,
-        help=f"Output YAML path (default: {DEFAULT_TEMPLATE_FILENAME})",
-    )
-    init_parser.add_argument(
-        "-f",
-        "--force",
-        action="store_true",
-        help="Overwrite output file if it already exists.",
-    )
+    configure_init_parser(init_parser)
 
     run_parser = subparsers.add_parser(
         "run",
-        help="Run a kMC simulation from a Configuration input file.",
+        help="Run a kMC simulation from an input file.",
         description=(
             "Run a kMC simulation. The preferred interface is "
             "`kmcpy run --input input.yaml`."
@@ -85,9 +67,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "init":
-        output_path = write_template(args.output, force=args.force)
-        print(f"Template written to: {output_path}")
-        print(f"Next step: run_kmc --input {output_path}")
+        run_init_command(args)
         return 0
 
     if args.command == "run":

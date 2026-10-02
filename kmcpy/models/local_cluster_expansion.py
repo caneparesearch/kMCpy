@@ -80,17 +80,61 @@ class LocalClusterExpansion(BaseModel):
         self._flat_cluster_indices_cache = None
 
     def fit(self, *args, **kwargs):
-        """Fit parameters and include this model's local-environment metadata."""
+        """Fit parameters from fitting files (see ``LCEFitter.fit``).
+
+        Includes this model's local-environment metadata. Returns the
+        parameters without attaching them; see :meth:`fit_data` for in-memory
+        fitting that also sets them.
+        """
+        for key, value in self._fit_metadata().items():
+            kwargs.setdefault(key, value)
+        return super().fit(*args, **kwargs)
+
+    def fit_data(
+        self,
+        correlation_matrix,
+        targets,
+        *,
+        alpha: float,
+        weights=None,
+        max_iter: int = 1000000,
+        normalize: bool = True,
+    ):
+        """Fit ECIs to target values in memory and attach them to this model.
+
+        Args:
+            correlation_matrix: ``(n_samples, n_features)`` correlation vectors
+                of this model, e.g. ``NEBDataLoader.get_correlation_matrix()``.
+            targets: Target values in meV (E_KRA or site-energy differences).
+            alpha: Lasso regularization strength.
+            weights: Optional per-sample weights (default 1).
+
+        Returns:
+            ``(parameters, predicted, targets)``.
+        """
+        parameters, predicted, actual = self.get_fitter_class()().fit_arrays(
+            correlation_matrix,
+            targets,
+            weights,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
+            **self._fit_metadata(),
+        )
+        self.set_parameters(parameters)
+        return parameters, predicted, actual
+
+    def _fit_metadata(self) -> dict:
+        """Orbit fingerprints and local-environment hash recorded with fitted ECIs."""
+        metadata = {}
         orbit_fingerprints = self.orbit_fingerprints
         if orbit_fingerprints is None and self.orbits is not None:
             orbit_fingerprints = self.get_orbit_fingerprints()
         if orbit_fingerprints is not None:
-            kwargs.setdefault("orbit_fingerprints", orbit_fingerprints)
-
+            metadata["orbit_fingerprints"] = orbit_fingerprints
         if self.local_environment_hash is not None:
-            kwargs.setdefault("local_environment_hash", str(self.local_environment_hash))
-
-        return super().fit(*args, **kwargs)
+            metadata["local_environment_hash"] = str(self.local_environment_hash)
+        return metadata
 
     def build(self, local_lattice_structure:LocalLatticeStructure, 
         cutoff_cluster: list = [6, 6, 6], **kwargs) -> None:

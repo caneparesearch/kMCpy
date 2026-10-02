@@ -21,6 +21,71 @@
 
 ### Added
 
+- `kmcpy.Simulation`: a simulation is assembled from one shared
+  `LatticeStructure` (exported as `kmcpy.LatticeStructure`) and one component
+  per slot, so models, event sources, and initial states can be swapped
+  independently and used in memory without intermediate files:
+  - events: an event file, an `EventLib`, or a generator such as
+    `kmcpy.HopEvents(cutoff=...)`;
+  - model: a model file of any registered type or a model object;
+  - state: an initial-state file, a `State`, occupations, or a builder such as
+    `kmcpy.RandomOccupation({"Na": 0.75}, seed=...)`.
+  `Configuration`/`KMC.from_config` and input files keep working; both paths
+  build the simulation through the new `KMC.from_parts`.
+- `Simulation` derives settings that previously had to be entered by hand,
+  unless given explicitly: the mobile ion (from `site_mapping`), its charge
+  (from the structure's oxidation states, guessed if the CIF has none;
+  previously defaulted to 1 for every ion), and `elementary_hop_distance`
+  (from the event hop lengths, root mean square with a warning if they
+  differ; previously defaulted to 1 Angstrom). A run needs only
+  `temperature` and `kmc_passes` (plus `random_seed` for reproducibility);
+  the `kmcpy init` template's `run:` section lists only these.
+- `LatticeStructure` is the disordered structure a simulation runs on: every
+  site that can be occupied and the species it may hold.
+  - Partial occupancies in the CIF define the allowed species (`Li: 0.5` is Li
+    or vacancy `"X"`), so `site_mapping` is optional. When given, it lists only
+    the varying species; unlisted species are fixed.
+  - `LatticeStructure.from_cif(...)` loads a CIF; `make_supercell((2, 1, 1))`
+    makes the supercell, in place or as a new object (`in_place=False`) as in
+    pymatgen. The template stays the unit cell and `supercell_shape` is
+    stored and serialized. It replaces the old `make_supercell(sc_matrix)`,
+    which expanded the template in place without updating the active-site
+    order; `get_structure_from_occ` is replaced by
+    `structure_from_occupations`. The CIF path and `primitive` flag are loading options and
+    are not stored.
+  - `occupations_from_structure(structure)` and
+    `structure_from_occupations(occupations)` convert between active-site
+    occupations and ordered pymatgen structures, so `Simulation(state=...)`
+    also accepts an ordered `Structure`.
+  - Plain pymatgen structures get default `label`/`local_index`/
+    `wyckoff_sequence` site properties, so they can generate events like
+    CIF-loaded structures.
+  - `as_dict`/`from_dict` round-trip it, and `to`/`from_file` write and read
+    it.
+- Sectioned input files (`lattice_structure`, `events`, `model`, `state`, `run`) for
+  `Simulation.from_file` and `kmcpy run --input`. Components are file paths
+  or `{type: ..., ...}` plugin specs (`hop` events, `random` state, any
+  registered model type); relative paths resolve from the input file's
+  folder. `validate_simulation_input` checks an input without reading files.
+  `kmcpy init` and `kmcpy sample` write this format by default
+  (`--format configuration` for the flat `Configuration` format, which
+  `kmcpy run` still accepts). `kmcpy run --output_dir` sets the result folder.
+- `register_event_source` / `register_state_builder` make custom event sources
+  and initial-state builders available by `type` name in input files.
+- In-memory LCE fitting: `LocalClusterExpansion.fit_data(correlation_matrix,
+  targets, alpha=...)` and `NEBDataLoader.fit(alpha=...)` fit and attach the
+  parameters without writing fitting files (`LCEFitter.fit_arrays` is the
+  shared core of the file-based `fit`).
+- `LocalLatticeStructure.from_lattice_structure(...)` accepts an event as
+  `center`, and `LocalEnvironmentEnumerator(lattice)` uses the supercell's
+  active-site indices for a supercell lattice, so LCE and NEB steps reuse the
+  simulation's structure and `site_mapping`.
+- `kmcpy.register_model("name")` registers custom model classes so model files
+  and `BaseModel.load(path)` can refer to them by type.
+- `output_dir=` for `KMC.run`, `Simulation.run`, and `Tracker.write_results`
+  (result files previously always went to the working directory).
+- `EventGenerator.generate_events` accepts a loaded `structure=` and
+  `event_file=None`; the generated library is available as `generator.event_lib`.
 - Active-site metadata (in event files and site-energy models) records the
   supercell lattice and active-site positions. Loading a file whose site
   indices refer to a different cell or lattice basis now raises an error
@@ -101,6 +166,9 @@
 - `Orbit.get_cluster_function` and `Cluster.get_cluster_function`. They
   assumed the old binary occupation encoding and did not match the correlation
   functions used by `LocalClusterExpansion`.
+- Stale example artifacts: `example/files/input/kmc_input.json` (pre-0.3
+  input format) and old generated files under `example/output/`, which is now
+  ignored.
 - `example/input_example.yaml` and `example/lce_only.yaml`. They used a
   pre-0.3 configuration schema and missing input paths and could not be
   loaded; use `kmcpy init` or `kmcpy sample` to generate current inputs.
@@ -109,6 +177,23 @@
 
 ### Fixed
 
+- Event generation silently produced wrong events when the supercell was
+  shorter than the local-environment cutoff along some axis: periodic images
+  of one site folded onto the same supercell site, giving self-hops such as
+  `(0, 0)`, duplicate events, and local environments that counted a site more
+  than once. It now raises an error asking for a larger `supercell_shape` (or
+  a smaller cutoff).
+- `kmcpy run --input` reported every loading error as "Legacy InputSet format
+  is no longer supported"; the original error is now shown.
+- `example/NASICON.ipynb` used the pre-0.3 API (`cluster_expansion_file`,
+  `immutable_sites`, ...) and could not run. It is rewritten around
+  `LatticeStructure`/`Simulation` (events, LCE building and in-memory fitting, model
+  assembly, swapping models, input files) and its code is run by the test
+  suite.
+- `example/minimal_example.py` (the Quickstart's first command) and
+  `example/tutorial_nasicon.py` failed with "Unknown configuration fields:
+  ['immutable_sites']". Both are rewritten with `LatticeStructure`/`Simulation` and
+  are now run by the test suite.
 - Configuration YAML files written by `Configuration.to`/`kmcpy init`/`kmcpy
   sample` could not be read back with monty 2026.x, which decodes their
   `@module`/`@class` entries into objects; they are now always loaded as plain

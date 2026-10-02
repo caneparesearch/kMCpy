@@ -9,6 +9,8 @@ from collections.abc import Iterable
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from pymatgen.core import Structure
+
 from kmcpy.event.base import Event, EventLib
 from kmcpy.io.cif import load_labeled_structure_from_cif
 from kmcpy.structure.active_site_order import ActiveSiteOrder
@@ -318,12 +320,13 @@ class EventGenerator:
         find_nearest_if_fail: bool = True,
         export_local_env_structure: bool = False,
         supercell_shape: Optional[List[int]] = None,
-        event_file: str = "events.json",
+        event_file: Optional[str] = "events.json",
         mobile_species: Optional[List[str]] = None,
         site_mapping: Optional[Dict] = None,
         local_env_cutoff: Optional[float] = None,
         rtol: Optional[float] = None,
         atol: Optional[float] = None,
+        structure: Optional[Structure] = None,
     ) -> Dict:
         """
         Generate migration events and save as bundled event library.
@@ -339,6 +342,12 @@ class EventGenerator:
         include a vacancy state such as ``"X"``. Label identifiers are only needed
         when the hop endpoints must be restricted to specific crystallographic
         labels, for example ``("Na1", "Na2")``.
+
+        ``structure`` can replace ``structure_file`` with an already loaded
+        structure (its CIF ``label`` site properties are needed for label
+        identifiers; ``convert_to_primitive_cell`` is then ignored). With
+        ``event_file=None`` nothing is written. The generated library is
+        available as ``self.event_lib`` afterwards.
         """
         import kmcpy
 
@@ -370,9 +379,12 @@ class EventGenerator:
             )
 
         logger.info(kmcpy.get_logo())
-        full_primitive_cell = load_labeled_structure_from_cif(
-            structure_file, primitive=convert_to_primitive_cell
-        )
+        if structure is not None:
+            full_primitive_cell = structure.copy()
+        else:
+            full_primitive_cell = load_labeled_structure_from_cif(
+                structure_file, primitive=convert_to_primitive_cell
+            )
         full_primitive_cell.add_oxidation_state_by_guess()
         primitive_active_site_order = ActiveSiteOrder.from_structure_and_mapping(
             full_primitive_cell, site_mapping
@@ -491,6 +503,20 @@ class EventGenerator:
                     indices_dict_from_identifier[tuple_key_of_neighbor_site]
                 )
 
+            # Neighbors are periodic images in the primitive cell. If the
+            # supercell is too short, two images fold onto one supercell site
+            # (or onto the center), giving self-hops and duplicate sites.
+            if (
+                supercell_migrating_ion_index in local_env_info
+                or len(set(local_env_info)) != len(local_env_info)
+            ):
+                raise ValueError(
+                    f"supercell_shape {tuple(supercell_shape)} is too small for the "
+                    f"local-environment cutoff: the environment of site "
+                    f"{supercell_migrating_ion_index} contains the same supercell site "
+                    "more than once (periodic images of one site, or the site itself). "
+                    "Use a larger supercell_shape or a smaller cutoff."
+                )
             local_env_indices = tuple(local_env_info)
             for target_site_index in local_env_info:
                 if self._is_valid_target_site(
@@ -522,9 +548,10 @@ class EventGenerator:
         logger.info("Generating event dependency matrix...")
         event_lib.generate_event_dependencies()
 
-        # Save in bundled format (events + dependencies in single file)
-        logger.info("Saving bundled event library to: %s", event_file)
-        event_lib.to(event_file)
+        if event_file is not None:
+            # Save in bundled format (events + dependencies in single file)
+            logger.info("Saving bundled event library to: %s", event_file)
+            event_lib.to(event_file)
 
         stats = event_lib.get_dependency_statistics()
         logger.info(
@@ -533,6 +560,7 @@ class EventGenerator:
             stats,
         )
 
+        self.event_lib = event_lib
         self.reference_local_env_dict = reference_local_env_dict
         self.local_env_info_dict = local_env_info_dict
         return reference_local_env_dict

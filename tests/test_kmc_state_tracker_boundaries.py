@@ -164,7 +164,7 @@ def test_kmc_run_routes_dt_to_kmc_update(monkeypatch):
         def show_current_info(self):
             return None
 
-        def write_results(self, label=None):
+        def write_results(self, label=None, output_dir=None):
             self.final_occupations = list(self.state.occupations)
             self.label = label
 

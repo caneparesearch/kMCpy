@@ -253,6 +253,103 @@ class LCEFitter(BaseFitter):
             squared_errors.append((float(y[excluded_index]) - y_pred) ** 2)
         return float(np.sqrt(np.mean(squared_errors)))
 
+    def fit_arrays(
+        self,
+        correlation_matrix,
+        targets,
+        weights=None,
+        *,
+        alpha,
+        max_iter=1000000,
+        normalize=True,
+        orbit_fingerprints=None,
+        local_environment_hash=None,
+    ) -> tuple[LCEModelParameters, object, object]:
+        """Fit ECIs in memory, without reading or writing files.
+
+        Args:
+            correlation_matrix: ``(n_samples, n_features)`` correlation vectors.
+            targets: ``n_samples`` target values in meV (e.g. E_KRA).
+            weights: Optional per-sample weights (default 1).
+            alpha: Lasso regularization strength.
+
+        Returns:
+            Fitted parameters, predicted targets, and the targets.
+        """
+        from sklearn.metrics import root_mean_squared_error
+
+        from copy import copy
+        from datetime import datetime
+        import numpy as np
+
+        correlation_matrix = np.asarray(correlation_matrix, dtype=float)
+        e_kra = np.asarray(targets, dtype=float)
+        weight = (
+            np.ones(len(e_kra)) if weights is None else np.asarray(weights, dtype=float)
+        )
+        weight_copy = copy(weight)
+
+        keci, empty_cluster, y_pred = self._fit_lasso_values(
+            correlation_matrix=correlation_matrix,
+            e_kra=e_kra,
+            weight=weight,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
+        )
+        if orbit_fingerprints is not None and len(keci) != len(orbit_fingerprints):
+            raise ValueError(
+                "orbit_fingerprints length does not match fitted keci length: "
+                f"{len(orbit_fingerprints)} != {len(keci)}"
+            )
+        logger.info("Lasso Results:")
+        logger.info("KECI = \n%s", np.round(keci, 2))
+        logger.info(
+            "There are %s Non Zero KECI", np.count_nonzero(abs(keci) > 1e-2)
+        )
+        logger.info("Empty Cluster = %s", empty_cluster)
+
+        y_true = e_kra
+        logger.info("index\tNEB\tLCE\tNEB-LCE")
+        index = np.linspace(1, len(y_true), num=len(y_true), dtype="int")
+        logger.info(
+            "\n%s",
+            np.round(np.array([index, y_true, y_pred, y_true - y_pred]).T, decimals=2),
+        )
+
+        # cv = sqrt(mean(scores)) + N_nonzero_eci*penalty, penalty = 0 here
+        loocv = self._leave_one_out_rmse(
+            correlation_matrix=correlation_matrix,
+            e_kra=e_kra,
+            alpha=alpha,
+            max_iter=max_iter,
+            normalize=normalize,
+        )
+        logger.info("LOOCV = %s meV", np.round(loocv, 2))
+        # compute RMS error
+        rmse = root_mean_squared_error(y_true, y_pred)
+        logger.info("RMSE = %s meV", np.round(rmse, 2))
+        now = datetime.now()
+        time_stamp = now.timestamp()
+        time = now.strftime("%m/%d/%Y, %H:%M:%S")
+        lce_model_params = LCEModelParameters(
+            keci=keci.tolist(),
+            empty_cluster=empty_cluster,
+            cluster_site_indices=[],
+            weight=weight_copy.tolist(),
+            alpha=alpha,
+            time_stamp=time_stamp,
+            time=time,
+            rmse=rmse,
+            loocv=loocv,
+            normalize=normalize,
+            orbit_fingerprints=orbit_fingerprints,
+            local_environment_hash=local_environment_hash,
+        )
+        self.model_parameters = lce_model_params
+
+        return lce_model_params, y_pred, y_true
+
     def fit(
         self,
         alpha,
@@ -301,77 +398,24 @@ class LCEFitter(BaseFitter):
         m is the number of E_KRA
         n is the number of clusers
         """
-        from sklearn.metrics import root_mean_squared_error
-
-        from copy import copy
-        from datetime import datetime
         import numpy as np
 
         logger.info("Loading E_KRA from %s ...", ekra_fname)
         e_kra = np.loadtxt(ekra_fname)
         weight = np.loadtxt(weight_fname)
-        weight_copy = copy(weight)
         correlation_matrix = np.loadtxt(corr_fname)
 
-        keci, empty_cluster, y_pred = self._fit_lasso_values(
-            correlation_matrix=correlation_matrix,
-            e_kra=e_kra,
-            weight=weight,
+        lce_model_params, y_pred, y_true = self.fit_arrays(
+            correlation_matrix,
+            e_kra,
+            weights=weight,
             alpha=alpha,
             max_iter=max_iter,
-            normalize=normalize,
-        )
-        if orbit_fingerprints is not None and len(keci) != len(orbit_fingerprints):
-            raise ValueError(
-                "orbit_fingerprints length does not match fitted keci length: "
-                f"{len(orbit_fingerprints)} != {len(keci)}"
-            )
-        logger.info("Lasso Results:")
-        logger.info("KECI = \n%s", np.round(keci, 2))
-        logger.info(
-            "There are %s Non Zero KECI", np.count_nonzero(abs(keci) > 1e-2)
-        )
-        logger.info("Empty Cluster = %s", empty_cluster)
-
-        y_true = e_kra
-        logger.info("index\tNEB\tLCE\tNEB-LCE")
-        index = np.linspace(1, len(y_true), num=len(y_true), dtype="int")
-        logger.info(
-            "\n%s",
-            np.round(np.array([index, y_true, y_pred, y_true - y_pred]).T, decimals=2),
-        )
-
-        # cv = sqrt(mean(scores)) + N_nonzero_eci*penalty, penalty = 0 here
-        loocv = self._leave_one_out_rmse(
-            correlation_matrix=correlation_matrix,
-            e_kra=e_kra,
-            alpha=alpha,
-            max_iter=max_iter,
-            normalize=normalize,
-        )
-        logger.info("LOOCV = %s meV", np.round(loocv, 2))
-        # compute RMS error
-        rmse = root_mean_squared_error(y_true, y_pred)
-        logger.info("RMSE = %s meV", np.round(rmse, 2))
-        np.savetxt(fname=keci_fname, X=keci, fmt="%.8f")
-        now = datetime.now()
-        time_stamp = now.timestamp()
-        time = now.strftime("%m/%d/%Y, %H:%M:%S")
-        lce_model_params = LCEModelParameters(
-            keci=keci.tolist(),
-            empty_cluster=empty_cluster,
-            cluster_site_indices=[],
-            weight=weight_copy.tolist(),
-            alpha=alpha,
-            time_stamp=time_stamp,
-            time=time,
-            rmse=rmse,
-            loocv=loocv,
             normalize=normalize,
             orbit_fingerprints=orbit_fingerprints,
             local_environment_hash=local_environment_hash,
         )
-        self.model_parameters = lce_model_params
+        np.savetxt(fname=keci_fname, X=lce_model_params.keci, fmt="%.8f")
 
         if fit_results_fname:
             self._save_fit_results_history(lce_model_params, fit_results_fname)

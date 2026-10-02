@@ -179,11 +179,10 @@ class KMC:
         
     @classmethod
     def from_config(cls, config: "Configuration") -> "KMC":
-        """Create a KMC instance from a Configuration."""
-        from kmcpy.io.cif import load_labeled_structure_from_cif
+        """Create a KMC instance from a Configuration whose inputs are files."""
         from kmcpy.models.base import BaseModel
         from kmcpy.simulator.state import State
-        from kmcpy.structure.active_site_order import ActiveSiteOrder
+        from kmcpy.structure.lattice_structure import LatticeStructure
 
         if config.site_mapping is None:
             raise ValueError(
@@ -191,41 +190,59 @@ class KMC:
                 "data use the same active-site index space."
             )
 
-        full_structure = load_labeled_structure_from_cif(
+        lattice_structure = LatticeStructure.from_cif(
             config.structure_file,
+            site_mapping=config.site_mapping,
             primitive=config.convert_to_primitive_cell,
-        )
-        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
-            full_structure,
-            config.site_mapping,
             supercell_shape=config.supercell_shape,
         )
-        structure = active_site_order.active_structure()
-
         model = BaseModel.from_config(config)
         event_lib = EventLib.from_file(config.event_file)
-        event_lib.validate_index_metadata(active_site_order)
-        hop_state_lookup = HopStateLookup.from_active_site_order(
-            active_site_order,
-            config.mobile_ion_specie,
-        )
 
         if config.initial_occupations is not None:
             simulation_state = State.from_occupations(
                 config.initial_occupations,
-                active_site_order=active_site_order,
+                active_site_order=lattice_structure.active_site_order,
             )
         elif config.initial_state_file:
             simulation_state = State.from_file(
                 config.initial_state_file,
                 supercell_shape=config.supercell_shape,
-                active_site_order=active_site_order,
+                active_site_order=lattice_structure.active_site_order,
             )
         else:
             raise ValueError("Initial occupations could not be determined.")
 
+        return cls.from_parts(lattice_structure, model, event_lib, simulation_state, config)
+
+    @classmethod
+    def from_parts(
+        cls,
+        lattice_structure,
+        model: "BaseModel",
+        event_lib: EventLib,
+        simulation_state: "State",
+        config: "Configuration",
+    ) -> "KMC":
+        """Create a KMC instance from a lattice structure (the simulated
+        supercell), model, events, and state held in memory.
+
+        ``event_lib`` must have been generated for ``lattice_structure``
+        (checked against its active-site order and positions).
+        """
+        active_site_order = lattice_structure.active_site_order
+        event_lib.validate_index_metadata(active_site_order)
+        if len(simulation_state.occupations) != active_site_order.active_site_count:
+            raise ValueError(
+                f"State has {len(simulation_state.occupations)} occupations, but the "
+                f"lattice structure has {active_site_order.active_site_count} active sites."
+            )
+        hop_state_lookup = HopStateLookup.from_active_site_order(
+            active_site_order,
+            config.mobile_ion_specie,
+        )
         return cls(
-            structure=structure,
+            structure=active_site_order.active_structure(),
             model=model,
             event_lib=event_lib,
             config=config,
@@ -492,7 +509,7 @@ class KMC:
         self._update_signature_cache = (update_function, accepts)
         return accepts
 
-    def run(self, label: str = None) -> Tracker:
+    def run(self, label: str = None, output_dir=None) -> Tracker:
         """Run KMC simulation using this instance's Configuration object.
 
         This is the main method for running KMC simulations using the modern
@@ -501,6 +518,8 @@ class KMC:
         Args:
             label (str, optional): Label for the simulation run. Defaults to None.
                 If None, will use ``self.config.name``.
+            output_dir (str | Path, optional): Directory for result files
+                (created if needed). Defaults to the working directory.
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
@@ -585,7 +604,7 @@ class KMC:
             tracker.update_current_pass(current_pass)
             tracker.show_current_info()
 
-        tracker.write_results(label=label)
+        tracker.write_results(label=label, output_dir=output_dir)
         return tracker
 
 def _propose(prob_cum_list, rng)-> tuple[int, float]:

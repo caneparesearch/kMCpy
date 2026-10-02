@@ -246,7 +246,10 @@ class LocalLatticeStructure(LatticeStructure):
         
         Args:
             lattice_structure (LatticeStructure): The base lattice structure.
-            center: Center site or coordinates for the local environment.
+            center: Center of the local environment: a site index of
+                ``lattice_structure.template_structure``, fractional
+                coordinates, or an event of this lattice (centered on its
+                first mobile-ion site).
             cutoff (float): Cutoff distance for the local environment.
             site_mapping (dict): Mapping of species to sites.
             basis_type (str): Type of basis to use.
@@ -255,6 +258,9 @@ class LocalLatticeStructure(LatticeStructure):
         Returns:
             LocalLatticeStructure: The created local lattice structure.
         """
+        if hasattr(center, "mobile_ion_indices"):
+            active_site = int(center.mobile_ion_indices[0])
+            center = int(lattice_structure.active_site_order.active_to_primitive[active_site])
         return cls(
             template_structure=lattice_structure.template_structure,
             center=center,

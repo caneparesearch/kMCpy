@@ -83,25 +83,20 @@ An LCE is built in two stages:
    local environment.
 
 ```python
-from pymatgen.core import Structure
-
+import kmcpy
 from kmcpy.models import LocalClusterExpansion
 from kmcpy.structure import LocalLatticeStructure
 
-structure = Structure.from_file("nasicon.cif")
-site_mapping = {
-    "Na": ["Na", "X"],
-    "Zr": "Zr",
-    "Si": ["Si", "P"],
-    "O": "O",
-}
+lattice = kmcpy.LatticeStructure.from_cif(
+    "nasicon.cif",
+    site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]},
+    primitive=True,
+)
 
-local_lattice = LocalLatticeStructure(
-    template_structure=structure,
-    center=0,
+local_lattice = LocalLatticeStructure.from_lattice_structure(
+    lattice,
+    center=0,          # a structure site index, fractional coordinates, or an event
     cutoff=4.0,
-    site_mapping=site_mapping,
-    basis_type="chebyshev",
     local_site_order="kmcpy_default",
 )
 
@@ -111,6 +106,13 @@ kra_lce.build(
     cutoff_cluster=[6.0, 6.0, 0.0],
 )
 ```
+
+`from_lattice_structure` takes the structure and `site_mapping` from the
+[`LatticeStructure`](../modules/lattice_structure.rst) used for the whole
+study, so the local
+environment cannot drift from the simulated structure. The constructor
+`LocalLatticeStructure(template_structure=..., site_mapping=..., ...)` takes the
+same arguments explicitly.
 
 The important `LocalLatticeStructure` arguments are:
 

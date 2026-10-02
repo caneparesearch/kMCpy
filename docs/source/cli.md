@@ -14,7 +14,8 @@ kmcpy run --input kmcpy_sample/input.yaml
 ```
 
 For real simulations, replace the placeholder structure and event paths in the
-generated input with files prepared for your system.
+generated input with files prepared for your system. Paths in an input file are
+resolved from the input file's folder.
 
 ## Create Input Files
 
@@ -24,8 +25,11 @@ Use `kmcpy init` when you want a commented template:
 kmcpy init --output input_template.yaml
 ```
 
-The template is intended for reading and editing. It shows the available
-`Configuration` fields, units, and property-sampling options.
+The template is intended for reading and editing. It has one section per part
+of a simulation (`lattice_structure`, `events`, `model`, `state`, `run`) and shows the
+built-in options, units, and property-sampling settings. `kmcpy init --format
+configuration` writes the flat `Configuration` format instead; `kmcpy run`
+accepts both.
 
 Use `kmcpy sample` when you want concrete starter files:
 
@@ -42,8 +46,8 @@ This writes:
 The generated model is a constant-barrier
 [`LocalBarrierModel`](modules/local_barrier_model.rst). The generated state is a
 small active-site occupation vector. These files are useful for learning the file
-format, but they are not a physical system until `structure_file` and
-`event_file` are replaced with real files.
+format, but they are not a physical system until `lattice_structure.structure` and
+`events` point to real data.
 
 ## Generate Individual Sample Files
 

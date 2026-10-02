@@ -1,3 +1,7 @@
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from monty.serialization import dumpfn, loadfn
 from pymatgen.core.structure import Structure
 import numpy as np
 from kmcpy.structure.basis import Occupation, get_basis
@@ -6,31 +10,62 @@ import logging
 from kmcpy.structure.species import (
     SiteMapping,
     is_vacancy_species,
+    normalize_species,
     species_equivalent,
+    species_label,
 )
 
 logger = logging.getLogger(__name__) 
 
 
 class LatticeStructure(ABC):
-    '''LatticeStructure deal with the structure template which converts the structure to an occupation array and vice versa
+    '''The lattice of a kMC study: every site and the species it may hold.
+
+    Think of it as the disordered structure: a site that "can be Na or a
+    vacancy" is one lattice site with two possible states. A configuration
+    (``State``) picks one species per site.
+
+    Build it from a disordered structure or CIF, where partial occupancies
+    define the possible species, or from an ordered structure plus
+    ``site_mapping``::
+
+        lattice = LatticeStructure.from_cif("Li_xCoO2.cif")          # Li: 0.5 -> Li or X
+        lattice = LatticeStructure.from_cif(
+            "nasicon.cif", site_mapping={"Na": ["Na", "X"], "Si": ["Si", "P"]}
+        )
+        lattice.make_supercell((2, 1, 1))
     '''
     def __init__(self, template_structure: Structure,
-                 site_mapping: dict,
-                 basis_type: str = 'chebyshev'):
-        '''Initialization of LatticeStructure
-            Args:
-            template_structure: pymatgen Structure object, this should include all possible sites (no doping, vacancy etc.)
-            site_mapping: a dictionary mapping template species to allowed species; fixed sites have a single allowed species,
-            e.g. {"Na":["Na","X"],"X":["Na","X"],"Sb":["Sb","W"],"W":["Sb","W"]} X is the vacancy site
-            basis_type: str, the type of basis function. For 'chebyshev',
-                occupations store species-state indices and the LCE evaluates
-                q - 1 Chebyshev site functions for q allowed species.
+                 site_mapping: Mapping[Any, Any] | None = None,
+                 basis_type: str = 'chebyshev',
+                 supercell_shape: Sequence[int] = (1, 1, 1)):
         '''
+        Args:
+            template_structure: Structure with every site that can be occupied.
+                Disordered sites (partial occupancies) define their possible
+                species; a site whose occupancies sum to less than 1 can also
+                be a vacancy ``"X"``. Ordered sites hold their species.
+            site_mapping: Optional ``{species: [allowed species]}`` for the
+                species whose sites vary, e.g. ``{"Na": ["Na", "X"]}``.
+                Entries override possibilities derived from partial
+                occupancies; species that are not listed are fixed. The order
+                of the allowed species defines the state indices.
+            basis_type: Occupation basis for cluster expansions. For
+                'chebyshev', occupations store species-state indices and the
+                LCE evaluates q - 1 Chebyshev site functions for q allowed
+                species.
+            supercell_shape: Repetitions of the template that are simulated
+                (see :meth:`make_supercell`).
+        '''
+        template_structure, site_mapping = _ordered_template_and_mapping(
+            template_structure, site_mapping
+        )
         self.template_structure = template_structure
+        self.supercell_shape = _supercell_shape(supercell_shape)
 
         mapping = SiteMapping(site_mapping)
-        self.site_mapping = mapping.as_dict()
+        # Plain {label: [labels]} for every template species; fixed species map to themselves.
+        self.site_mapping = site_mapping
 
         # allowed_species is like [["Na","X"],["Na","X"], ... ,["Sb","W"],["Sb","W"]];
         # sites without a site_mapping entry get None.
@@ -60,12 +95,149 @@ class LatticeStructure(ABC):
         except ValueError:
             self.active_site_order = None
  
+    @classmethod
+    def from_cif(
+        cls,
+        filename: str | Path,
+        site_mapping: Mapping[Any, Any] | None = None,
+        primitive: bool = False,
+        supercell_shape: Sequence[int] = (1, 1, 1),
+        basis_type: str = "chebyshev",
+    ) -> "LatticeStructure":
+        """Load the lattice from a CIF, keeping its site labels.
+
+        Partial occupancies in the CIF define the possible species; see the
+        constructor for ``site_mapping``. With ``primitive=True`` the CIF is
+        reduced to its primitive cell first.
+        """
+        from kmcpy.io.cif import load_labeled_structure_from_cif
+
+        structure = load_labeled_structure_from_cif(str(filename), primitive=primitive)
+        return cls(
+            structure,
+            site_mapping,
+            basis_type=basis_type,
+            supercell_shape=supercell_shape,
+        )
+
+    def make_supercell(self, scaling_matrix, in_place: bool = True) -> "LatticeStructure":
+        """Repeat the lattice into a supercell, like pymatgen's ``Structure.make_supercell``.
+
+        ``scaling_matrix`` is an int, three ints ``(a, b, c)``, or a diagonal
+        3x3 matrix; it multiplies the current ``supercell_shape``. The template
+        stays the unit cell. Simulations run on the supercell; site indices in
+        events, states, and results refer to its active sites.
+
+        Returns the supercell: this object (``in_place=True``) or a new one.
+        """
+        matrix = np.array(scaling_matrix, dtype=int)
+        if matrix.ndim == 0:
+            shape = (int(matrix),) * 3
+        elif matrix.shape == (3,):
+            shape = tuple(int(value) for value in matrix)
+        elif matrix.shape == (3, 3) and np.count_nonzero(matrix - np.diag(np.diag(matrix))) == 0:
+            shape = tuple(int(value) for value in np.diag(matrix))
+        else:
+            raise ValueError(
+                "scaling_matrix must be an int, three ints, or a diagonal 3x3 matrix; "
+                f"got {scaling_matrix!r}"
+            )
+        shape = _supercell_shape(shape)
+        supercell_shape = tuple(a * b for a, b in zip(self.supercell_shape, shape))
+        if not in_place:
+            return LatticeStructure(
+                self.template_structure,
+                self.site_mapping,
+                basis_type=self.basis_type,
+                supercell_shape=supercell_shape,
+            )
+        self.supercell_shape = supercell_shape
+        self.active_site_order = self.get_active_site_order()
+        return self
+
+    @property
+    def n_active_sites(self) -> int:
+        """Number of sites whose occupation can change (in the supercell)."""
+        return self.active_site_order.active_site_count
+
+    @property
+    def mobile_species(self) -> list[str]:
+        """Species whose possible states include a vacancy."""
+        return SiteMapping(self.site_mapping).mobile_species()
+
+    def active_structure(self) -> Structure:
+        """Supercell structure with only the active sites, in active-site order."""
+        return self.active_site_order.active_structure()
+
+    def occupations_from_structure(self, structure: Structure, tol: float = 0.1) -> list[int]:
+        """Return active-site occupations (state indices) of an ordered structure.
+
+        ``structure`` is one configuration of this supercell: the same
+        lattice, with every atom on a lattice site (within ``tol`` Angstrom)
+        and vacancies left out. Fixed sites are ignored.
+        """
+        order = self.active_site_order
+        active = order.active_structure()
+        if not np.allclose(structure.lattice.matrix, active.lattice.matrix, atol=tol):
+            raise ValueError(
+                "The structure's lattice does not match this supercell "
+                f"(supercell_shape {self.supercell_shape})."
+            )
+        states = order.allowed_species_by_active_site
+        occupations: list[int | None] = [None] * len(states)
+        distances = active.lattice.get_all_distances(structure.frac_coords, active.frac_coords)
+        for atom, site_distances in zip(structure, distances):
+            site = int(np.argmin(site_distances))
+            if site_distances[site] > tol:
+                continue
+            label = species_label(atom.specie)
+            if label not in states[site]:
+                raise ValueError(
+                    f"{label} is not allowed on active site {site} (allowed: {list(states[site])})"
+                )
+            occupations[site] = states[site].index(label)
+        for site, occupation in enumerate(occupations):
+            if occupation is None:
+                if "X" not in states[site]:
+                    raise ValueError(f"Active site {site} has no atom and no vacancy state")
+                occupations[site] = states[site].index("X")
+        return occupations
+
+    def structure_from_occupations(self, occupations: Sequence[int]) -> Structure:
+        """Return the ordered supercell structure for active-site occupations.
+
+        Vacancies are left out; fixed sites keep their species.
+        """
+        order = self.active_site_order
+        states = order.allowed_species_by_active_site
+        if len(occupations) != len(states):
+            raise ValueError(
+                f"Expected {len(states)} occupations for this supercell, got {len(occupations)}"
+            )
+        structure = order.full_structure_with_properties()
+        vacancies = []
+        for site, (original, occupation) in enumerate(zip(order.active_to_original, occupations)):
+            label = states[site][int(occupation)]
+            if is_vacancy_species(label):
+                vacancies.append(original)
+            else:
+                structure.replace(
+                    original,
+                    normalize_species(label),
+                    properties=structure[original].properties,
+                )
+        structure.remove_sites(vacancies)
+        for name in [key for key in structure.site_properties if key.startswith("_kmcpy_")]:
+            structure.remove_site_property(name)
+        return structure
+
     def get_active_site_order(self, supercell_shape=None):
-        """Return the compact active-site order for this lattice."""
+        """Return the compact active-site order (of ``supercell_shape``, default this supercell)."""
         from kmcpy.structure.active_site_order import ActiveSiteOrder
 
         return ActiveSiteOrder.from_lattice_structure(
-            self, supercell_shape=supercell_shape
+            self,
+            supercell_shape=supercell_shape if supercell_shape is not None else self.supercell_shape,
         )
 
     def get_active_lattice_structure(self, supercell_shape=None):
@@ -304,69 +476,13 @@ class LatticeStructure(ABC):
                 return specie
         raise ValueError(f"Unsupported occupation value {value} at site {site_index}")
         
-    def get_structure_from_occ(self, occ: Occupation, sc_matrix=None) -> Structure:
-        '''get_structure_from_occ() takes an Occupation object and returns a pymatgen Structure
-        
-        Args:
-            occ: Occupation object containing site occupation data
-            sc_matrix: Supercell matrix for creating the supercell
-            
-        Returns:
-            Structure: pymatgen Structure with species assigned based on match/mismatch
-        '''
-        if sc_matrix is None:
-            sc_matrix = np.eye(3, dtype=int)
-        else:
-            sc_matrix = np.array(sc_matrix, dtype=int)
-
-        supercell_lattice_structure = self.copy()
-        supercell_lattice_structure.make_supercell(sc_matrix)
-        
-        if len(occ) != len(supercell_lattice_structure.template_structure):
-            raise ValueError(f"Occupation array length {len(occ)} does not match template structure length {len(supercell_lattice_structure.template_structure)}!")
-        
-        # Create a new structure based on the template
-        new_lattice_structure = supercell_lattice_structure.copy()
-        
-        # Iterate through the sites and set species based on occupation
-        for i, site in enumerate(new_lattice_structure.template_structure):
-            occ_value = occ[i]  # Get occupation value at site i
-            site.species = new_lattice_structure.species_for_occupation_value(
-                i,
-                occ_value,
-            )
-        
-        # Remove vacancy sites in reverse order to avoid index shifting issues
-        vacancy_indices = []
-        for i, site in enumerate(new_lattice_structure.template_structure):
-            if is_vacancy_species(site.specie):
-                vacancy_indices.append(i)
-        
-        # Remove vacancy sites from the end to avoid index issues
-        for i in reversed(vacancy_indices):
-            new_lattice_structure.template_structure.remove_sites([i])
-
-        return new_lattice_structure.template_structure
-
     def copy(self):
         '''Create a copy of the LatticeStructure'''
         return LatticeStructure(self.template_structure.copy(),
                                 self.site_mapping.copy(),
-                                self.basis_type)
+                                self.basis_type,
+                                supercell_shape=self.supercell_shape)
     
-    def make_supercell(self, sc_matrix: np.ndarray):
-        '''Create a supercell of the template structure'''
-        self.template_structure.make_supercell(sc_matrix)
-        # Update allowed_species accordingly
-        original_allowed_species = self.allowed_species.copy()
-        self.allowed_species = []
-        for i in range(sc_matrix[0,0]):
-            for j in range(sc_matrix[1,1]):
-                for k in range(sc_matrix[2,2]):
-                    self.allowed_species.extend(original_allowed_species)
-        if len(self.allowed_species) != len(self.template_structure):
-            raise ValueError(f"After supercell, species length {len(self.allowed_species)} does not match template structure length {len(self.template_structure)}!")
-        
     def __str__(self):
         return f"""LatticeStructure with {len(self.template_structure)} sites
         Template structure:\n {self.template_structure}
@@ -382,7 +498,100 @@ class LatticeStructure(ABC):
         Convert the model object to a dictionary representation.
         """
         return {
+            "@module": self.__class__.__module__,
+            "@class": self.__class__.__name__,
             "template_structure": self.template_structure.as_dict(),
             "site_mapping": self.site_mapping,
-            "basis_type": self.basis_type
+            "basis_type": self.basis_type,
+            "supercell_shape": list(self.supercell_shape),
         }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "LatticeStructure":
+        return cls(
+            Structure.from_dict(data["template_structure"]),
+            data.get("site_mapping"),
+            basis_type=data.get("basis_type", "chebyshev"),
+            supercell_shape=tuple(data.get("supercell_shape", (1, 1, 1))),
+        )
+
+    def to(self, filename: str | Path) -> None:
+        """Write the lattice (including its structure) to a JSON file."""
+        dumpfn(self.as_dict(), str(filename), indent=2)
+
+    @classmethod
+    def from_file(cls, filename: str | Path) -> "LatticeStructure":
+        return cls.from_dict(loadfn(str(filename), cls=None))
+
+
+def _supercell_shape(values: Sequence[int]) -> tuple[int, int, int]:
+    shape = tuple(int(value) for value in values)
+    if len(shape) != 3 or any(value <= 0 for value in shape):
+        raise ValueError("supercell_shape must contain three positive integers")
+    return shape
+
+
+def _ordered_template_and_mapping(
+    structure: Structure, site_mapping: Mapping[Any, Any] | None
+) -> tuple[Structure, dict[str, list[str]]]:
+    """Return an ordered template and a complete ``{label: [labels]}`` site mapping.
+
+    Disordered sites become their first species, and their species (plus a
+    vacancy if the occupancies sum to less than 1) become the allowed states
+    of that species. ``site_mapping`` entries override those; species left
+    unmapped are fixed.
+    """
+    structure = _with_site_labels(structure)
+    derived: dict[str, list[str]] = {}
+    if not structure.is_ordered:
+        first_species = []
+        for site in structure:
+            species = list(site.species.items())
+            labels = [species_label(specie) for specie, _ in species]
+            if sum(amount for _, amount in species) < 1 - 1e-4:
+                labels.append("X")
+            allowed = derived.setdefault(labels[0], [])
+            allowed.extend(label for label in labels if label not in allowed)
+            first_species.append(species[0][0])
+        structure = Structure(
+            structure.lattice,
+            first_species,
+            structure.frac_coords,
+            site_properties=structure.site_properties,
+        )
+
+    mapping = dict(derived)
+    for key, value in (site_mapping or {}).items():
+        values = value if isinstance(value, (list, tuple)) else [value]
+        mapping[species_label(normalize_species(key))] = [
+            species_label(normalize_species(item)) for item in values
+        ]
+    for site in structure:
+        label = species_label(site.specie)
+        if not any(species_equivalent(site.specie, normalize_species(key)) for key in mapping):
+            mapping[label] = [label]
+    return structure, mapping
+
+
+def _with_site_labels(structure: Structure) -> Structure:
+    """Return ``structure`` with ``label``/``local_index``/``wyckoff_sequence`` site properties.
+
+    Structures loaded from CIF already have them; event generation uses them.
+    """
+    properties = structure.site_properties
+    if {"label", "local_index", "wyckoff_sequence"} <= set(properties):
+        return structure
+    structure = structure.copy()
+    labels = properties.get("label") or [
+        species_label(next(iter(site.species))) for site in structure
+    ]
+    counts: dict[str, int] = {}
+    sequence = []
+    for label in labels:
+        sequence.append(counts.get(label, 0))
+        counts[label] = sequence[-1] + 1
+    structure.add_site_property("label", labels)
+    structure.add_site_property("local_index", list(range(len(structure))))
+    structure.add_site_property("wyckoff_sequence", sequence)
+    return structure
+

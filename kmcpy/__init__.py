@@ -15,11 +15,20 @@ from .models import (
     SiteEnergyModel,
 )
 from .simulator.kmc import KMC
-from .event import Event, EventGenerator
+from .event import Event, EventGenerator, EventLib
 from .simulator.config import Configuration, SystemConfig, RuntimeConfig
 from .simulator.state import State
 from .simulator.tracker import Tracker
 from .units import UNIT_CONVENTIONS, TRANSPORT_PROPERTY_UNITS, unit_for
+from .models.registry import register_model
+from .structure.lattice_structure import LatticeStructure
+from .simulation import (
+    HopEvents,
+    RandomOccupation,
+    Simulation,
+    register_event_source,
+    register_state_builder,
+)
 
 __author__ = "kMCpy Development Team"
 __author_email__ = "dengzeyu@gmail.com"
@@ -28,6 +37,14 @@ __author_email__ = "dengzeyu@gmail.com"
 __all__ = [
     "__version__", 
     "run",
+    "LatticeStructure",
+    "Simulation",
+    "HopEvents",
+    "RandomOccupation",
+    "register_model",
+    "register_event_source",
+    "register_state_builder",
+    "EventLib",
     "get_logo",
     "BaseModel",
     "LocalClusterExpansion", 

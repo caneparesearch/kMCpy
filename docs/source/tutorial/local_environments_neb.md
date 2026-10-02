@@ -15,21 +15,10 @@ when you want to generate representative ordered configurations around one hop
 and turn each configuration into an initial/final NEB endpoint pair:
 
 ```python
-from pymatgen.core import Structure
-from kmcpy.structure import LatticeStructure
-from kmcpy.structure.local_environment_enumerator import enumerate_neb_endpoint_pairs
+from kmcpy.structure import LocalEnvironmentEnumerator
 
-structure = Structure.from_file("nasicon.cif")
-site_mapping = {"Na": ["Na", "X"], "Zr": "Zr", "Si": ["Si", "P"], "O": "O"}
-
-lattice = LatticeStructure(
-    template_structure=structure,
-    site_mapping=site_mapping,
-    basis_type="chebyshev",
-)
-
-endpoint_pairs = enumerate_neb_endpoint_pairs(
-    lattice_structure=lattice,
+enumerator = LocalEnvironmentEnumerator(lattice)
+endpoint_pairs = enumerator.endpoint_pairs(
     mobile_ion_indices=(0, 1),
     center=0,
     cutoff=4.0,
@@ -39,15 +28,16 @@ endpoint_pairs = enumerate_neb_endpoint_pairs(
 )
 ```
 
-This uses [`LatticeStructure`](../modules/lattice_structure.rst), the global
-active-site lattice. The LCE itself uses `LocalLatticeStructure`, the local
-reference extracted from the same structure and `site_mapping`. Keep both built
-from the same structure convention.
+`lattice` is the unit-cell [`LatticeStructure`](../modules/lattice_structure.rst)
+from [Choose And Build A Model](models.md), so the enumeration uses the same
+structure and `site_mapping` as the LCE's `LocalLatticeStructure`, and its site
+indices are active-site indices of the unit cell. After
+`lattice.make_supercell(...)` they are active-site indices of the supercell. The
+function `enumerate_neb_endpoint_pairs(lattice_structure=lattice, ...)` does
+the same.
 
 The important arguments are:
 
-- `lattice_structure`: global structure model with the same `site_mapping` used
-  by the simulation.
 - `mobile_ion_indices`: compact active-site indices for the hop endpoints.
   These should correspond to the event you plan to fit.
 - `center`: local-environment origin. If omitted, kMCpy uses the initial
@@ -88,7 +78,7 @@ loader.add_structures(
     property_values=[310.0, 355.0, 332.0],  # meV
 )
 
-fit_files = loader.write_fitting_inputs(output_dir="fit_kra")
+params, y_pred, y_true = loader.fit(alpha=1e-4)   # fits and sets kra_lce's ECIs
 ```
 
 The important [`NEBDataLoader`](../modules/neb.rst) arguments are:
@@ -98,23 +88,15 @@ The important [`NEBDataLoader`](../modules/neb.rst) arguments are:
   LCE. This keeps the occupation vector order fixed.
 - `structures`: endpoint-derived structures or paths readable by pymatgen.
 - `property_values`: target values in meV, one per structure.
-- `output_dir`: directory for the fitting input files.
-
-`write_fitting_inputs(...)` writes:
+`loader.fit(...)` fits in memory. To keep the fitting inputs as files instead,
+`loader.write_fitting_inputs(output_dir="fit_kra")` writes:
 
 - `correlation_matrix.txt`,
 - `e_kra.txt` by default, or another target filename if you choose one,
 - `weight.txt`.
 
-These are the files consumed by `LocalClusterExpansion.fit(...)`.
-The returned dictionary can be passed directly into the fitting call on the next
-page:
-
-```python
-fit_files = loader.write_fitting_inputs(output_dir="fit_kra")
-# later:
-# params, y_pred, y_true = kra_lce.fit(**fit_files, alpha=1e-4)
-```
+These are the files consumed by `LocalClusterExpansion.fit(...)`; the returned
+dictionary can be passed directly to it (see the next page).
 
 ## Keep The Reference Fixed
 
