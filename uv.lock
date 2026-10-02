@@ -632,7 +632,7 @@ requires-dist = [
     { name = "numba", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=0.62,<0.63" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "pymatgen", specifier = ">=2025.10.7,<2026" },
+    { name = "pymatgen", specifier = ">=2025.10.7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },

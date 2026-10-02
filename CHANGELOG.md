@@ -21,6 +21,11 @@
 
 ### Added
 
+- Active-site metadata (in event files and site-energy models) records the
+  supercell lattice and active-site positions. Loading a file whose site
+  indices refer to a different cell or lattice basis now raises an error
+  instead of running with mismatched sites; older files without positions are
+  accepted with a warning.
 - `BaseModel.compute_probabilities(...)` batched rate hook. The default calls
   `compute_probability(...)` per event; KMC uses it for dependent-event
   updates.
@@ -50,6 +55,9 @@
   `MigrationUnit_structure` key is renamed, the unused `clusters` and
   `template_structure` keys are dropped, and other unknown keys are ignored
   with a warning. `str()`/`repr()` no longer fail on a model without orbits.
+- `kmcpy.io.cif` uses pymatgen's public `CifParser` instead of a modified copy
+  of pymatgen's private parser code (removed with `cif_LICENSE.rst`). Site
+  properties `label`, `wyckoff_sequence`, and `local_index` are unchanged.
 - Model file I/O lives in `BaseModel`: one `to(fname, indent=2)`, one
   `from_file`, and one envelope unwrapper driven by each class's `MODEL_TYPE`
   and `PAYLOAD_KEY`. `LocalClusterExpansion.to` now writes with indent 2
@@ -105,10 +113,13 @@
   sample` could not be read back with monty 2026.x, which decodes their
   `@module`/`@class` entries into objects; they are now always loaded as plain
   data.
-- `pymatgen` is limited to `<2026`. pymatgen 2026.x picks different (equivalent)
-  primitive lattice vectors, which reorders primitive-cell sites and silently
-  invalidates event, initial-state, and model files generated with earlier
-  versions.
+- kMCpy works with pymatgen 2026.x. pymatgen 2026 picks different (equivalent)
+  primitive lattice vectors, which changed supercell site indices and made
+  existing event, initial-state, and model files silently describe other sites
+  (e.g. 2x the NASICON conductivity). Primitive cells loaded from CIF are now
+  expressed in a kMCpy-defined lattice basis
+  (`kmcpy.structure.lattice_basis.standardize_lattice_basis`), which reproduces
+  the files generated with earlier versions under both pymatgen 2025 and 2026.
 - `SiteEnergyModel` with a string `initial_occupation` (fixed-width NumPy
   string dtype) silently truncated longer mapped values, e.g. `"Va"` became
   `"V"`. The external occupation dtype is now widened to fit every mapped

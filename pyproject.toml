@@ -37,10 +37,7 @@ dependencies = [
     "numba>=0.63.1; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "numpy>=1.26",
     "pandas>=2.2",
-    # pymatgen 2026.x chooses different (equivalent) primitive lattice vectors,
-    # which reorders primitive-cell sites relative to existing event, state,
-    # and model files. Lift the bound once primitive cells are canonicalized.
-    "pymatgen>=2025.10.7,<2026",
+    "pymatgen>=2025.10.7",
     "pyyaml>=6.0.3",
     "scipy>=1.13",
     "scikit-learn>=1.8.0",
