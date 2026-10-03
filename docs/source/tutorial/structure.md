@@ -67,7 +67,8 @@ site_mapping = {
 In this example:
 
 - Na sites are active mobile-ion sites. They can be occupied by `Na` or vacancy
-  state `X`.
+  state `X`. `Va` and `Vacancy` (any capitalization) also mean vacancy and are
+  stored as `X`.
 - Si sites are active substitutional sites. They can be `Si` or `P`.
 - Zr and O sites are fixed because only one species is allowed.
 

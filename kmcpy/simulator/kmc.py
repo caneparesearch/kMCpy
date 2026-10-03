@@ -2,20 +2,18 @@
 """
 This module provides the KMC class and associated functions for performing Kinetic Monte Carlo (kMC) simulations, 
 particularly for modeling processes in materials such as ion diffusion. The KMC class manages the 
-initialization, event handling, probability calculations, and simulation loop for kMC workflows. It supports 
+initialization, event handling, rate calculations, and simulation loop for kMC workflows. It supports
 loading input data from various sources, updating system states, and tracking simulation results.
 """
-from numba import njit
 from pymatgen.core import Structure
 import numpy as np
-import importlib
-import inspect
 from kmcpy.simulator.tracker import (
-    CallbackExecutionError,
+    CallbackExecutionError,  # noqa: F401  re-exported for `from kmcpy.simulator.kmc import ...`
     Tracker,
 )
 from kmcpy.simulator.property import PropertyPlan
-from kmcpy.event import Event, EventLib, HopStateLookup
+from kmcpy.callables import accepts_keyword, resolve_callable_reference
+from kmcpy.event import Event, EventLib, HopStateLookup, INVALID_STATE
 import logging
 import kmcpy
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -28,17 +26,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__) 
 logging.getLogger('numba').setLevel(logging.WARNING)
 
-
-def _accepts_keyword(callable_obj, keyword: str) -> bool:
-    """Return whether a callable accepts a specific keyword argument."""
-    try:
-        parameters = inspect.signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    return keyword in parameters or any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD
-        for parameter in parameters.values()
-    )
 
 
 class KMC:
@@ -73,7 +60,7 @@ class KMC:
             The config object contains all immutable configuration parameters.
         """
         logger.info(kmcpy.get_logo())
-        logger.info(f"Initializing kMC calculations ...")
+        logger.info("Initializing kMC calculations ...")
 
         self._ensure_property_state()
         
@@ -106,10 +93,11 @@ class KMC:
 
         self._initialize_model_state()
 
-        # Calculate initial probabilities from runtime configuration and state.
-        logger.info("Initializing probabilities...")
+        # Calculate initial event rates from runtime configuration and state.
+        logger.info("Initializing event rates...")
         
-        # Calculate probabilities for all events using configured model
+        # Calculate rates for all events using configured model. The historical
+        # prob_list name is kept as an internal compatibility detail.
         self.prob_list = np.empty(len(self.event_lib), dtype=np.float64)
         for i, event in enumerate(self.event_lib.events):
             self.prob_list[i] = self.model.compute_probability(
@@ -122,8 +110,8 @@ class KMC:
         np.cumsum(self.prob_list, out=self.prob_cum_list)
         
         logger.info(f"Event dependency matrix with {len(self.event_lib)} events")
-        logger.info(f"Hopping probabilities: {self.prob_list}")
-        logger.info(f"Cumulative sum of hopping probabilities: {self.prob_cum_list}")
+        logger.info(f"Hopping rates: {self.prob_list}")
+        logger.info(f"Cumulative sum of hopping rates: {self.prob_cum_list}")
         
         # Display dependency matrix statistics
         stats = self.event_lib.get_dependency_statistics()
@@ -144,7 +132,7 @@ class KMC:
                 "structure": self.structure,
                 "config": self.config,
             }
-            if self.active_site_order is not None and _accepts_keyword(
+            if self.active_site_order is not None and accepts_keyword(
                 initialize_state,
                 "active_site_order",
             ):
@@ -164,28 +152,6 @@ class KMC:
         if not hasattr(self, "_active_tracker"):
             self._active_tracker: Optional[Tracker] = None
 
-    @staticmethod
-    def _resolve_callback_reference(callable_ref: str) -> Callable[["State", int, float], Any]:
-        """Resolve callback path strings like `module.path:func` or `module.path.func`."""
-        if ":" in callable_ref:
-            module_path, attr_path = callable_ref.split(":", 1)
-        else:
-            module_path, _, attr_path = callable_ref.rpartition(".")
-            if not module_path:
-                raise ValueError(
-                    f"Invalid callback reference '{callable_ref}'. "
-                    "Use 'package.module:function' or 'package.module.function'."
-                )
-
-        module = importlib.import_module(module_path)
-        callback_obj: Any = module
-        for attr in attr_path.split("."):
-            callback_obj = getattr(callback_obj, attr)
-
-        if not callable(callback_obj):
-            raise TypeError(f"Resolved callback '{callable_ref}' is not callable")
-        return callback_obj
-
     def _configure_properties_from_runtime_config(self, runtime_config: Any) -> None:
         """Apply runtime property controls from configuration."""
         self._ensure_property_state()
@@ -200,7 +166,7 @@ class KMC:
 
         for callback_spec in getattr(runtime_config, "property_callbacks", []):
             callback_ref = callback_spec["callable"]
-            callback_func = self._resolve_callback_reference(callback_ref)
+            callback_func = resolve_callable_reference(callback_ref)
             self.attach(
                 callback_func,
                 interval=callback_spec.get("interval"),
@@ -213,11 +179,10 @@ class KMC:
         
     @classmethod
     def from_config(cls, config: "Configuration") -> "KMC":
-        """Create a KMC instance from a Configuration."""
-        from kmcpy.io.cif import load_labeled_structure_from_cif
+        """Create a KMC instance from a Configuration whose inputs are files."""
         from kmcpy.models.base import BaseModel
         from kmcpy.simulator.state import State
-        from kmcpy.structure.active_site_order import ActiveSiteOrder
+        from kmcpy.structure.lattice_structure import LatticeStructure
 
         if config.site_mapping is None:
             raise ValueError(
@@ -225,41 +190,59 @@ class KMC:
                 "data use the same active-site index space."
             )
 
-        full_structure = load_labeled_structure_from_cif(
+        lattice_structure = LatticeStructure.from_cif(
             config.structure_file,
+            site_mapping=config.site_mapping,
             primitive=config.convert_to_primitive_cell,
-        )
-        active_site_order = ActiveSiteOrder.from_structure_and_mapping(
-            full_structure,
-            config.site_mapping,
             supercell_shape=config.supercell_shape,
         )
-        structure = active_site_order.active_structure()
-
         model = BaseModel.from_config(config)
         event_lib = EventLib.from_file(config.event_file)
-        event_lib.validate_index_metadata(active_site_order)
-        hop_state_lookup = HopStateLookup.from_active_site_order(
-            active_site_order,
-            config.mobile_ion_specie,
-        )
 
         if config.initial_occupations is not None:
             simulation_state = State.from_occupations(
                 config.initial_occupations,
-                active_site_order=active_site_order,
+                active_site_order=lattice_structure.active_site_order,
             )
         elif config.initial_state_file:
             simulation_state = State.from_file(
                 config.initial_state_file,
                 supercell_shape=config.supercell_shape,
-                active_site_order=active_site_order,
+                active_site_order=lattice_structure.active_site_order,
             )
         else:
             raise ValueError("Initial occupations could not be determined.")
 
+        return cls.from_parts(lattice_structure, model, event_lib, simulation_state, config)
+
+    @classmethod
+    def from_parts(
+        cls,
+        lattice_structure,
+        model: "BaseModel",
+        event_lib: EventLib,
+        simulation_state: "State",
+        config: "Configuration",
+    ) -> "KMC":
+        """Create a KMC instance from a lattice structure (the simulated
+        supercell), model, events, and state held in memory.
+
+        ``event_lib`` must have been generated for ``lattice_structure``
+        (checked against its active-site order and positions).
+        """
+        active_site_order = lattice_structure.active_site_order
+        event_lib.validate_index_metadata(active_site_order)
+        if len(simulation_state.occupations) != active_site_order.active_site_count:
+            raise ValueError(
+                f"State has {len(simulation_state.occupations)} occupations, but the "
+                f"lattice structure has {active_site_order.active_site_count} active sites."
+            )
+        hop_state_lookup = HopStateLookup.from_active_site_order(
+            active_site_order,
+            config.mobile_ion_specie,
+        )
         return cls(
-            structure=structure,
+            structure=active_site_order.active_structure(),
             model=model,
             event_lib=event_lib,
             config=config,
@@ -269,11 +252,11 @@ class KMC:
         )
 
     def show_project_info(self):
-        """Log current probability vectors for quick diagnostics."""
+        """Log current event-rate vectors for quick diagnostics."""
         try:
-            logger.info("Probabilities:")
+            logger.info("Rates:")
             logger.info(self.prob_list)
-            logger.info("Cumultative probability list:")
+            logger.info("Cumulative rate fractions:")
             logger.info(self.prob_cum_list / sum(self.prob_list))
         except Exception:
             pass
@@ -409,12 +392,17 @@ class KMC:
         """
         proposed_event_index, dt = _propose(prob_cum_list=self.prob_cum_list, rng=self.rng)
         event = events[proposed_event_index]
-        return event, dt
+        return event, dt, proposed_event_index
     
 
-    def update(self, event: Event, dt: float = 0.0) -> None:
+    def update(
+        self,
+        event: Event,
+        dt: float = 0.0,
+        event_index: int | None = None,
+    ) -> None:
         """
-        Updates the system state and event probabilities after an event occurs.
+        Updates the system state and event rates after an event occurs.
         
         This method delegates state management to State, following clean
         architecture principles with single responsibility and separation of concerns.
@@ -422,40 +410,106 @@ class KMC:
         This method performs the following steps:
         1. Delegates occupation updates to State.apply_event()
         2. Automatically finds the event index in the event library
-        3. Identifies all events that need probability updates using EventLib
-        4. Recalculates probabilities for affected events
-        5. Updates the cumulative probability list for event selection
+        3. Identifies all events that need rate updates using EventLib
+        4. Recalculates rates for affected events
+        5. Updates the cumulative rate list for event selection
 
         Args:
             event: The event object that has just occurred.
             dt (float, optional): Time increment for this event. Used for state tracking.
+            event_index: Index of ``event`` in ``self.event_lib``. If omitted,
+                the index is resolved by equality for direct/backward-compatible
+                calls.
             
         Side Effects:
-            Modifies occupation state and probability lists via State delegation.
+            Modifies occupation state and rate lists via State delegation.
         """
         self.simulation_state.apply_event(event, dt)
 
         # Keep optional model-side state, such as external CE occupancy caches,
-        # aligned with the accepted KMC event before future probabilities use it.
+        # aligned with the accepted KMC event before future rates use it.
         self._apply_model_event(event)
         
-        # Find event index automatically from event library
-        event_index = self.event_lib.events.index(event)
+        if event_index is None:
+            event_index = self.event_lib.events.index(event)
         
         # Use EventLib to get dependent events
         events_to_be_updated = self.event_lib.get_dependent_events(event_index)
         
-        # Update probabilities for dependent events using configured model
-        for e_index in events_to_be_updated:
-            # Recalculate probability using configured model
-            self.prob_list[e_index] = self.model.compute_probability(
-                event=self.event_lib.events[e_index],
-                runtime_config=self.config.runtime_config,
-                simulation_state=self.simulation_state
-            )
-        self.prob_cum_list = np.cumsum(self.prob_list)
+        # Update rates for dependent events using configured model.
+        events = self.event_lib.events
+        runtime_config = self.config.runtime_config
+        simulation_state = self.simulation_state
+        compute_probabilities = getattr(self.model, "compute_probabilities", None)
+        if compute_probabilities is not None:
+            if events_to_be_updated:
+                self.prob_list[events_to_be_updated] = compute_probabilities(
+                    events=events,
+                    event_indices=events_to_be_updated,
+                    runtime_config=runtime_config,
+                    simulation_state=simulation_state,
+                )
+        else:
+            compute_probability = self.model.compute_probability
+            for e_index in events_to_be_updated:
+                self.prob_list[e_index] = compute_probability(
+                    event=events[e_index],
+                    runtime_config=runtime_config,
+                    simulation_state=simulation_state,
+                )
+        np.cumsum(self.prob_list, out=self.prob_cum_list)
 
-    def run(self, label: str = None) -> Tracker:
+    def _mobile_site_count_for_pass(self) -> int:
+        """Return the number of active sites that can host the mobile species."""
+        lookup = getattr(self, "hop_state_lookup", None)
+        if lookup is not None:
+            mobile_states = lookup.mobile_state_by_site
+            return int(np.count_nonzero(mobile_states != INVALID_STATE))
+
+        return len([
+            el.symbol
+            for el in self.structure.species
+            if self.config.mobile_ion_specie in el.symbol
+        ])
+
+    def _propose_event(self) -> tuple[Event, float, int | None]:
+        """Return a proposed event, dt, and optional event-library index."""
+        proposal = self.propose(self.event_lib.events)
+        if len(proposal) == 3:
+            event, dt, event_index = proposal
+            return event, dt, int(event_index)
+        event, dt = proposal
+        return event, dt, None
+
+    def _update_after_proposal(
+        self,
+        event: Event,
+        dt: float,
+        event_index: int | None,
+    ) -> None:
+        """Update KMC state using the proposed event index when supported."""
+        if event_index is not None and self._update_accepts_event_index():
+            self.update(event, dt=dt, event_index=event_index)
+        else:
+            self.update(event, dt=dt)
+
+    def _update_accepts_event_index(self) -> bool:
+        """Return whether ``self.update`` takes ``event_index``, cached per function.
+
+        Subclasses and tests may override ``update`` with the older
+        ``update(event, dt)`` signature. The signature inspection is cached
+        because this check runs on every KMC step.
+        """
+        update = self.update
+        update_function = getattr(update, "__func__", update)
+        cache = getattr(self, "_update_signature_cache", None)
+        if cache is not None and cache[0] is update_function:
+            return cache[1]
+        accepts = accepts_keyword(update, "event_index")
+        self._update_signature_cache = (update_function, accepts)
+        return accepts
+
+    def run(self, label: str = None, output_dir=None) -> Tracker:
         """Run KMC simulation using this instance's Configuration object.
 
         This is the main method for running KMC simulations using the modern
@@ -464,6 +518,8 @@ class KMC:
         Args:
             label (str, optional): Label for the simulation run. Defaults to None.
                 If None, will use ``self.config.name``.
+            output_dir (str | Path, optional): Directory for result files
+                (created if needed). Defaults to the working directory.
 
         Returns:
             kmcpy.tracker.Tracker: Tracker object containing simulation results.
@@ -497,24 +553,23 @@ class KMC:
             config.temperature,
         )
         
-        # Calculate pass length based on mobile ions
-        pass_length = len([
-            el.symbol
-            for el in self.structure.species
-            if config.mobile_ion_specie in el.symbol
-        ])
+        # Calculate pass length from active-site state metadata when available.
+        # One pass means one attempt per active site that can host the mobile
+        # species, preserving historical kMCpy pass semantics without relying
+        # on species-string matching in the active structure.
+        pass_length = self._mobile_site_count_for_pass()
         
         logger.info("============================================================")
         logger.info("Start running kMC ... ")
-        logger.info("Initial probabilities and cumulative probabilities")
+        logger.info("Initial rates and cumulative rates")
         logger.info("Starting Equilibrium ...")
         
         # Equilibration phase
         for _ in np.arange(config.equilibration_passes):
             for _ in np.arange(pass_length):
-                event, dt = self.propose(self.event_lib.events)
+                event, dt, event_index = self._propose_event()
                 # Keep equilibration out of production time accounting.
-                self.update(event, dt=0.0)
+                self._update_after_proposal(event, dt=0.0, event_index=event_index)
 
         logger.info("Start running kMC ...")
 
@@ -536,11 +591,11 @@ class KMC:
         # Main KMC loop
         for current_pass in np.arange(config.kmc_passes):
             for _ in np.arange(pass_length):
-                event, dt = self.propose(self.event_lib.events)
+                event, dt, event_index = self._propose_event()
                 
                 tracker.update(event, dt)
                 # KMC is the single owner of mutable simulation state updates.
-                self.update(event, dt=dt)
+                self._update_after_proposal(event, dt=dt, event_index=event_index)
                 tracker.sample_properties(
                     step=int(self.simulation_state.step),
                     sim_time=float(self.simulation_state.time),
@@ -549,16 +604,19 @@ class KMC:
             tracker.update_current_pass(current_pass)
             tracker.show_current_info()
 
-        tracker.write_results(label=label)
+        tracker.write_results(label=label, output_dir=output_dir)
         return tracker
 
-@njit
 def _propose(prob_cum_list, rng)-> tuple[int, float]:
-    """Sample one event index and waiting time from cumulative rates."""
+    """Sample one event index and waiting time from cumulative rates.
+
+    Plain NumPy: passing a ``Generator`` into an ``njit`` function costs more
+    than the sampling itself. The random stream is the same either way.
+    """
     random_seed = rng.random()
     random_seed_2 = rng.random()
     proposed_event_index = np.searchsorted(
         prob_cum_list / prob_cum_list[-1], random_seed, side="right"
     )
     dt = (-1.0 / prob_cum_list[-1]) * np.log(random_seed_2)
-    return proposed_event_index, dt
+    return int(proposed_event_index), float(dt)

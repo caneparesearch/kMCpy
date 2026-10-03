@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -55,12 +56,19 @@ def write_tracker_results(
     results: Mapping[str, Sequence[float]],
     result_units: Mapping[str, str],
     property_records: Mapping[str, Sequence[PropertyRecord]],
+    output_dir: str | Path | None = None,
 ) -> None:
-    """Write trajectory arrays, built-in summaries, and custom-property records."""
+    """Write trajectory arrays, built-in summaries, and custom-property records.
+
+    Files go to ``output_dir`` (created if needed), or the working directory.
+    """
+    directory = Path(output_dir) if output_dir is not None else Path(".")
+    directory.mkdir(parents=True, exist_ok=True)
     trajectory_prefix = (
         f"{label}_{current_pass}" if label else str(current_pass)
     )
     _write_trajectory_arrays(
+        directory=directory,
         prefix=trajectory_prefix,
         displacement=displacement,
         hop_counter=hop_counter,
@@ -69,19 +77,20 @@ def write_tracker_results(
 
     suffix = f"_{label}" if label else ""
     _write_summary_results(
-        results_file=f"results{suffix}.csv.gz",
-        results_units_file=f"results_units{suffix}.json.gz",
+        results_file=directory / f"results{suffix}.csv.gz",
+        results_units_file=directory / f"results_units{suffix}.json.gz",
         results=results,
         result_units=result_units,
     )
     _write_property_records(
-        properties_file=f"properties{suffix}.json.gz",
+        properties_file=directory / f"properties{suffix}.json.gz",
         property_records=property_records,
     )
 
 
 def _write_trajectory_arrays(
     *,
+    directory: Path,
     prefix: str,
     displacement: np.ndarray,
     hop_counter: np.ndarray,
@@ -89,17 +98,17 @@ def _write_trajectory_arrays(
 ) -> None:
     """Write final displacement, hop counters, and occupations."""
     np.savetxt(
-        f"displacement_{prefix}.csv.gz",
+        directory / f"displacement_{prefix}.csv.gz",
         displacement,
         delimiter=",",
     )
     np.savetxt(
-        f"hop_counter_{prefix}.csv.gz",
+        directory / f"hop_counter_{prefix}.csv.gz",
         hop_counter,
         delimiter=",",
     )
     np.savetxt(
-        f"current_occ_{prefix}.csv.gz",
+        directory / f"current_occ_{prefix}.csv.gz",
         occupations,
         delimiter=",",
     )

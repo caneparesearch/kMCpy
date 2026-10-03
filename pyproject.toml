@@ -32,8 +32,6 @@ classifiers = [ # Standard PyPI classifiers, helps users find your package
 
 # Core runtime dependencies
 dependencies = [
-    "glob2>=0.7",
-    "joblib>=1.5.3",
     "monty>=2025.3.3",
     "numba>=0.62,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "numba>=0.63.1; sys_platform != 'darwin' or platform_machine != 'x86_64'",
@@ -60,11 +58,8 @@ dev = [
 doc = [
     "sphinx>=7.0",
     "furo",
-    "nbsphinx",
     "sphinx-autodoc-typehints",
     "myst-parser",
-    "tqdm", 
-    "psutil", 
 ]
 gui = [
     "gooey"
@@ -83,11 +78,14 @@ testpaths = [
 ]
 pythonpath = ["."] # Adds project root to PYTHONPATH, so tests can import `kmcpy`
 markers = [
-    "order: marks tests to run in a specific order",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "nasicon: marks tests specific to NASICON materials",
+]
+filterwarnings = [
+    "ignore:Parameter payload is missing orbit_fingerprints;.*:UserWarning",
+    "ignore:Parameter payload is missing local_environment_hash;.*:UserWarning",
 ]
 
 [project.scripts]

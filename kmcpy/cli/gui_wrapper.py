@@ -2,26 +2,47 @@
 import ast
 import os
 import numpy as np
+from pymatgen.core import Structure
 
 try:
     from gooey import Gooey, GooeyParser
     HAS_GOOEY = True
 except ImportError:
+    # main() requires Gooey; this no-op decorator only keeps the module importable.
     HAS_GOOEY = False
-    # Create dummy decorators for when gooey is not available
+
     def Gooey(*args, **kwargs):
         def decorator(func):
             return func
         return decorator
-    
-    import argparse
-    GooeyParser = argparse.ArgumentParser
 
 from kmcpy.simulator.kmc import KMC
 from kmcpy.simulator.config import Configuration
 from kmcpy.event.generators import EventGenerator
+from kmcpy.io.cif import load_labeled_structure_from_cif
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
+from kmcpy.structure.local_lattice_structure import LocalLatticeStructure
 import kmcpy._version
+
+
+def _resolve_center_index(structure: Structure, identifier) -> int:
+    """Resolve a GUI center identifier to a primitive-template site index."""
+    try:
+        return int(identifier)
+    except (TypeError, ValueError):
+        pass
+
+    identifier = str(identifier)
+    for index, site in enumerate(structure):
+        if site.properties.get("label") == identifier:
+            return index
+        if str(site.specie) == identifier or site.species_string == identifier:
+            return index
+
+    raise ValueError(
+        "Could not resolve local-environment center "
+        f"{identifier!r}. Use a site index, CIF label, or species string."
+    )
 
 @Gooey(optional_cols=2, program_name="kMCpy GUI", default_size=(1024, 768))
 def main():
@@ -209,11 +230,26 @@ def main():
             int(args.cutoff_for_quadruplet_cluster),
         ]
         print((vars(args)))
+        template_structure = load_labeled_structure_from_cif(
+            args.prim_cif_name,
+            primitive=args.convert_to_primitive_cell,
+        )
+        center = _resolve_center_index(
+            template_structure,
+            args.mobile_ion_specie_identifier,
+        )
+        local_lattice_structure = LocalLatticeStructure(
+            template_structure=template_structure,
+            center=center,
+            cutoff=float(args.cutoff_region),
+            site_mapping=args.site_mapping,
+            basis_type="chebyshev",
+            is_write_basis=args.is_write_basis,
+        )
         a = LocalClusterExpansion()
-        a.initialization(
+        a.build(
+            local_lattice_structure=local_lattice_structure,
             cutoff_cluster=cutoff_cluster,
-            template_cif_fname=args.prim_cif_name,
-            **vars(args)
         )
         a.to(args.local_cluster_expansion_json)
 
@@ -319,7 +355,6 @@ def main():
         kmc.run()
 
     if args.command == "fitLCEmodel":
-        from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 
         os.chdir(args.work_dir)
         _, y_pred, y_true = LocalClusterExpansion().fit(

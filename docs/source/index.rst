@@ -34,10 +34,11 @@ Where to start:
 
 1. Install kMCpy using :doc:`install`.
 2. Run one small simulation with :doc:`quickstart`.
-3. Read :doc:`mechanism` for the kMC equations and transport definitions.
-4. Learn the full workflow in :doc:`tutorial/index`.
-5. Use :doc:`howto/index` for advanced customization.
-6. Use :doc:`reference/index` when you need exact API documentation.
+3. Use :doc:`cli` for command-line input generation and simulation runs.
+4. Read :doc:`mechanism` for the kMC equations and transport definitions.
+5. Learn the full workflow in :doc:`tutorial/index`.
+6. Use :doc:`howto/index` for advanced customization.
+7. Use :doc:`reference/index` when you need exact API documentation.
 
 The methodology has been used to study Na-ion transport in NASICON solid
 electrolytes. See :doc:`about` for citation information.
@@ -48,6 +49,7 @@ electrolytes. See :doc:`about` for citation information.
 
    install
    quickstart
+   cli
 
 .. toctree::
    :maxdepth: 1

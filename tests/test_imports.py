@@ -5,6 +5,12 @@ import pytest
     "kmcpy.io.cif",
     "kmcpy.structure.sites",
     "kmcpy.structure.neighbors",
+    "kmcpy.structure.species",
+    "kmcpy.event.hop",
+    "kmcpy.models.local_barrier_model",
+    "kmcpy.models.lce_kernels",
+    "kmcpy.models.external_site_mapping",
+    "kmcpy.callables",
     "kmcpy.simulator",  # New simulator module
     "kmcpy.simulator.kmc",
     "kmcpy.event",

@@ -14,11 +14,12 @@ and runtime fields (how you run the simulation).
 """
 
 from typing import Any, Optional
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, fields, replace
 from pathlib import Path
 
 from monty.json import MSONable
-from monty.serialization import dumpfn, loadfn
+from monty.serialization import dumpfn
+from kmcpy.io.files import load_raw_data
 from kmcpy.simulator.property import BUILTIN_PROPERTY_FIELDS, validate_schedule
 from kmcpy.units import UNIT_CONVENTIONS
 
@@ -29,36 +30,6 @@ LOADER_FIELD_NAMES = {
     "initial_state_file",
 }
 
-SYSTEM_FIELD_NAMES = {
-    "structure_file",
-    "supercell_shape",
-    "dimension",
-    "mobile_ion_specie",
-    "mobile_ion_charge",
-    "elementary_hop_distance",
-    "model_type",
-    "model_file",
-    "event_file",
-    "site_mapping",
-    "convert_to_primitive_cell",
-    "initial_state_file",
-    "initial_occupations",
-}
-
-RUNTIME_FIELD_NAMES = {
-    "temperature",
-    "attempt_frequency",
-    "equilibration_passes",
-    "kmc_passes",
-    "random_seed",
-    "name",
-    "property_sampling_interval",
-    "property_sampling_time_interval",
-    "builtin_property_enabled",
-    "property_callbacks",
-}
-
-CONFIG_FIELD_NAMES = SYSTEM_FIELD_NAMES | RUNTIME_FIELD_NAMES
 
 SYSTEM_FIELD_UNITS = {
     "dimension": UNIT_CONVENTIONS["dimension"],
@@ -161,7 +132,7 @@ class SystemConfig:
     model_type: str = "composite_lce"
     model_file: str = ""
     event_file: str = ""
-    # Site-space definition
+    # Allowed species per site (see LatticeStructure)
     site_mapping: Optional[dict] = None
     convert_to_primitive_cell: bool = False
     
@@ -176,14 +147,7 @@ class SystemConfig:
         
         if len(self.supercell_shape) != 3:
             raise ValueError("Supercell shape must have 3 components")
-        
-        # Temporarily disabled for testing
-        # if not Path(self.structure_file).exists():
-        #     raise FileNotFoundError(f"Structure file not found: {self.structure_file}")
-        # 
-        # if not Path(self.event_file).exists():
-        #     raise FileNotFoundError(f"Event file not found: {self.event_file}")
-    
+
     def as_dict(self, include_loader_paths: bool = False) -> dict[str, Any]:
         """Convert to a JSON/YAML-serializable dictionary.
 
@@ -191,8 +155,6 @@ class SystemConfig:
         are omitted by default from recorded payloads and can be included when
         writing a reloadable input file.
         """
-        from dataclasses import asdict
-
         data = asdict(self)
         # Convert tuple back to list for compatibility.
         data["supercell_shape"] = list(self.supercell_shape)
@@ -289,18 +251,14 @@ class RuntimeConfig:
     
     def as_dict(self) -> dict[str, Any]:
         """Convert to a JSON/YAML-serializable dictionary."""
-        return {
-            "temperature": self.temperature,
-            "attempt_frequency": self.attempt_frequency,
-            "equilibration_passes": self.equilibration_passes,
-            "kmc_passes": self.kmc_passes,
-            "random_seed": self.random_seed,
-            "name": self.name,
-            "property_sampling_interval": self.property_sampling_interval,
-            "property_sampling_time_interval": self.property_sampling_time_interval,
-            "builtin_property_enabled": dict(self.builtin_property_enabled),
-            "property_callbacks": [dict(callback) for callback in self.property_callbacks],
-        }
+        return asdict(self)
+
+
+# Field routing for Configuration(**fields): each field name belongs to exactly
+# one of the two dataclasses.
+SYSTEM_FIELD_NAMES = frozenset(item.name for item in fields(SystemConfig))
+RUNTIME_FIELD_NAMES = frozenset(item.name for item in fields(RuntimeConfig))
+CONFIG_FIELD_NAMES = SYSTEM_FIELD_NAMES | RUNTIME_FIELD_NAMES
 
 
 @dataclass(frozen=True)
@@ -349,15 +307,11 @@ class Configuration(MSONable):
         if system_config is None:
             system_config = SystemConfig(**system_fields)
         elif system_fields:
-            # Update existing system config with new fields.
-            from dataclasses import replace
             system_config = replace(system_config, **system_fields)
         
         if runtime_config is None:
             runtime_config = RuntimeConfig(**runtime_fields)
         elif runtime_fields:
-            # Update existing runtime config with new fields.
-            from dataclasses import replace
             runtime_config = replace(runtime_config, **runtime_fields)
         
         # Set the attributes using object.__setattr__ since the class is frozen
@@ -450,10 +404,8 @@ class Configuration(MSONable):
         """
         file_format = _detect_config_file_format(str(filename))
 
-        if file_format == "json":
-            raw_data = loadfn(filename, cls=None)
-        elif file_format == "yaml":
-            raw_data = loadfn(filename)
+        if file_format in {"json", "yaml"}:
+            raw_data = load_raw_data(filename)
         else:
             raise ValueError(
                 f"Unsupported file format for {filename}. Supported: .json, .yaml, .yml"
@@ -496,7 +448,7 @@ class Configuration(MSONable):
             path = Path(filename)
             if path.exists():
                 try:
-                    yaml_data = loadfn(path)
+                    yaml_data = load_raw_data(path)
                 except Exception:
                     yaml_data = {}
             else:
@@ -515,13 +467,11 @@ class Configuration(MSONable):
     
     def with_runtime_changes(self, **changes) -> "Configuration":
         """Create new config with runtime field changes."""
-        from dataclasses import replace
         new_runtime = replace(self.runtime_config, **changes)
         return replace(self, runtime_config=new_runtime)
     
     def with_system_changes(self, **changes) -> "Configuration":
         """Create new config with system field changes."""
-        from dataclasses import replace
         new_system = replace(self.system_config, **changes)
         return replace(self, system_config=new_system)
     
@@ -539,126 +489,23 @@ class Configuration(MSONable):
             f"system={system_name}"
         )
     
-    # ===== CONVENIENT PROPERTY ACCESS =====
-    # Users don't need to remember which config contains what field.
-    
-    # Runtime properties
-    @property
-    def temperature(self) -> float:
-        """Access temperature directly."""
-        return self.runtime_config.temperature
-    
-    @property
-    def name(self) -> str:
-        """Access simulation name directly."""
-        return self.runtime_config.name
-    
-    @property
-    def kmc_passes(self) -> int:
-        """Access KMC passes directly."""
-        return self.runtime_config.kmc_passes
-    
-    @property
-    def equilibration_passes(self) -> int:
-        """Access equilibration passes directly."""
-        return self.runtime_config.equilibration_passes
-    
-    @property
-    def attempt_frequency(self) -> float:
-        """Access attempt frequency directly."""
-        return self.runtime_config.attempt_frequency
-    
-    @property
-    def random_seed(self) -> Optional[int]:
-        """Access random seed directly."""
-        return self.runtime_config.random_seed
+    def __getattr__(self, name: str) -> Any:
+        """Read any system or runtime field directly, e.g. ``config.temperature``.
 
-    @property
-    def property_sampling_interval(self) -> Optional[int]:
-        """Access global property sampling step interval directly."""
-        return self.runtime_config.property_sampling_interval
+        Only called for names that are not regular attributes, so users do not
+        need to remember which sub-config holds a field.
+        """
+        if name in SYSTEM_FIELD_NAMES:
+            return getattr(object.__getattribute__(self, "system_config"), name)
+        if name in RUNTIME_FIELD_NAMES:
+            return getattr(object.__getattribute__(self, "runtime_config"), name)
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
 
-    @property
-    def property_sampling_time_interval(self) -> Optional[float]:
-        """Access global property sampling time interval directly."""
-        return self.runtime_config.property_sampling_time_interval
+    def __dir__(self) -> list[str]:
+        return sorted(set(super().__dir__()) | CONFIG_FIELD_NAMES)
 
-    @property
-    def builtin_property_enabled(self) -> dict[str, bool]:
-        """Access built-in property enable/disable map directly."""
-        return self.runtime_config.builtin_property_enabled
-
-    @property
-    def property_callbacks(self) -> list[dict[str, Any]]:
-        """Access callback attachment specs directly."""
-        return self.runtime_config.property_callbacks
-    
-    # System properties
-    @property
-    def structure_file(self) -> str:
-        """Access structure file directly."""
-        return self.system_config.structure_file
-    
-    @property
-    def mobile_ion_specie(self) -> str:
-        """Access mobile ion species directly."""
-        return self.system_config.mobile_ion_specie
-    
-    @property
-    def supercell_shape(self) -> tuple[int, int, int]:
-        """Access supercell shape directly."""
-        return self.system_config.supercell_shape
-    
-    @property
-    def dimension(self) -> int:
-        """Access dimension directly."""
-        return self.system_config.dimension
-    
-    @property
-    def model_type(self) -> str:
-        """Access model type directly."""
-        return self.system_config.model_type
-    
-    @property
-    def model_file(self) -> str:
-        """Access model file directly."""
-        return self.system_config.model_file
-    
-    @property
-    def event_file(self) -> str:
-        """Access event file directly."""
-        return self.system_config.event_file
-    
-    @property
-    def site_mapping(self) -> Optional[dict]:
-        """Access site mapping directly."""
-        return self.system_config.site_mapping
-    
-    @property
-    def elementary_hop_distance(self) -> float:
-        """Access elementary hop distance directly."""
-        return self.system_config.elementary_hop_distance
-    
-    @property  
-    def mobile_ion_charge(self) -> float:
-        """Access mobile ion charge directly."""
-        return self.system_config.mobile_ion_charge
-    
-    @property
-    def convert_to_primitive_cell(self) -> bool:
-        """Access convert to primitive cell directly."""
-        return self.system_config.convert_to_primitive_cell
-    
-    @property
-    def initial_state_file(self) -> Optional[str]:
-        """Access initial state file directly."""
-        return self.system_config.initial_state_file
-    
-    @property
-    def initial_occupations(self) -> Optional[list]:
-        """Access initial occupations directly."""
-        return self.system_config.initial_occupations
-    
     # ===== HELPER METHODS =====
     
     @classmethod
@@ -695,10 +542,5 @@ class Configuration(MSONable):
             return f"'{field_name}' is not a recognized configuration field"
 
     def validate(self) -> bool:
-        """Validate the configuration."""
-        try:
-            # Basic validation - configs validate themselves in __post_init__
-            # This could be expanded with more complex cross-field validation.
-            return True
-        except Exception as e:
-            raise ValueError(f"Configuration validation failed: {e}")
+        """Return ``True``; fields are validated when the sub-configs are created."""
+        return True

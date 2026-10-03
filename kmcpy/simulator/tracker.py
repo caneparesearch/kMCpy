@@ -474,11 +474,26 @@ class Tracker:
     def _wrapped_hop_displacement(self, event, direction: int) -> np.ndarray:
         """Return the minimum-image Cartesian displacement for one accepted hop."""
         from_site, to_site = event.mobile_ion_indices
+        frac_coords = self._cached_frac_coords()
         displacement_frac = direction * (
-            self.frac_coords[to_site] - self.frac_coords[from_site]
+            frac_coords[to_site] - frac_coords[from_site]
         )
         displacement_frac -= np.round(displacement_frac).astype(int)
         return np.array(self.latt.get_cartesian_coords(displacement_frac))
+
+    def _cached_frac_coords(self) -> np.ndarray:
+        """Return fractional coordinates of the (fixed) simulation structure.
+
+        ``Structure.frac_coords`` rebuilds an array over every site on each
+        access, and the tracker reads it for every accepted hop. The cache is
+        rebuilt when ``structure`` is replaced.
+        """
+        structure = self.structure
+        cache = getattr(self, "_frac_coords_cache", None)
+        if cache is None or cache[0] is not structure:
+            cache = (structure, np.asarray(self.frac_coords))
+            self._frac_coords_cache = cache
+        return cache[1]
 
     def update_current_pass(self, current_pass: int) -> None:
         """Update current pass index used in logging/output."""
@@ -486,6 +501,9 @@ class Tracker:
 
     def show_current_info(self) -> None:
         """Log current simulation information and latest sampled summary."""
+        if not logger.isEnabledFor(logging.INFO):
+            # Formatting the summary table is costly and runs every pass.
+            return
         if not self.results["time"]:
             logger.info("Pass %d has no sampled properties yet.", self.current_pass)
             return
@@ -524,10 +542,14 @@ class Tracker:
             self.results["correlation_factor"][-1],
         )
 
-    def write_results(self, label: str | None = None) -> None:
-        """Write trajectory arrays, built-in summaries, and custom-property records."""
+    def write_results(self, label: str | None = None, output_dir=None) -> None:
+        """Write trajectory arrays, built-in summaries, and custom-property records.
+
+        Files go to ``output_dir`` (created if needed), or the working directory.
+        """
         write_tracker_results(
             label=label,
+            output_dir=output_dir,
             current_pass=self.current_pass,
             displacement=self.displacement,
             hop_counter=self.hop_counter,

@@ -1,7 +1,7 @@
 import pytest
 from pymatgen.core import Lattice, Structure
 
-from kmcpy.structure.cluster import Cluster, ClusterMatcher
+from kmcpy.structure.cluster import Cluster, ClusterMatcher, Orbit
 
 
 def _sites(species, coords):
@@ -124,3 +124,19 @@ def test_cluster_equivalence_uses_cluster_matcher():
     permuted_cluster = Cluster([2, 0, 1], [sites[2], sites[0], sites[1]])
 
     assert cluster == permuted_cluster
+
+
+def test_orbit_str_returns_cluster_summary():
+    assert str(Orbit()) == "No cluster in this orbit!"
+
+    orbit = Orbit()
+    orbit.attach_cluster(
+        Cluster.from_sites(
+            _sites(["Na", "Cl"], [[0, 0, 0], [1, 0, 0]]),
+            site_indices=[3, 7],
+        )
+    )
+    summary = str(orbit)
+    assert summary.startswith("Cluster[0]:")
+    assert "(3, 7)" in summary
+

@@ -7,34 +7,25 @@ for transition-rate calculations.
 Author: Zeyu Deng
 """
 
-import importlib
-import inspect
 import logging
 from typing import Any, Optional, TYPE_CHECKING
 import numpy as np
 
+from kmcpy.callables import accepts_keyword
 from kmcpy.models.base import BaseModel, MODEL_FILETYPE, require_model_type
+from kmcpy.models.registry import model_class_for_payload
+from kmcpy.models.lce_kernels import LCEKernelInputs, composite_lce_rates
 from kmcpy.models.local_cluster_expansion import LocalClusterExpansion
 from kmcpy.event import Event, event_direction
+from kmcpy.event.hop import DEFAULT_HOP_STATE_CODES
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K
 
 if TYPE_CHECKING:
-    from kmcpy.simulator.config import Configuration, RuntimeConfig
+    from kmcpy.simulator.config import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 
-
-def _accepts_keyword(callable_obj, keyword: str) -> bool:
-    """Return whether a callable accepts a specific keyword argument."""
-    try:
-        parameters = inspect.signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    return keyword in parameters or any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD
-        for parameter in parameters.values()
-    )
 
 
 class CompositeLCEModel(BaseModel):
@@ -52,7 +43,7 @@ class CompositeLCEModel(BaseModel):
     
     The composite model provides:
     
-    - compute_probability(): compute transition probability from an event
+    - compute_probability(): compute transition rate from an event
     
     Example::
     
@@ -67,13 +58,15 @@ class CompositeLCEModel(BaseModel):
         composite = CompositeLCEModel(site_model, kra_model)
         
         # Use the composite model with State (preferred)
-        probability = composite.compute_probability(
+        rate = composite.compute_probability(
             event=event,
             runtime_config=runtime_config,
             simulation_state=simulation_state
         )
     """
-    
+
+    MODEL_TYPE = "composite_lce"
+
     def __init__(
         self,
         site_model: Optional[Any] = None,
@@ -163,12 +156,18 @@ class CompositeLCEModel(BaseModel):
                     "structure": structure,
                     "config": config,
                 }
-                if active_site_order is not None and _accepts_keyword(
+                if active_site_order is not None and accepts_keyword(
                     initialize_state,
                     "active_site_order",
                 ):
                     kwargs["active_site_order"] = active_site_order
                 initialize_state(**kwargs)
+
+        self._batch_evaluator = _LCEBatchRateEvaluator.build(
+            self,
+            event_lib=event_lib,
+            simulation_state=simulation_state,
+        )
 
     def apply_event(self, *, event: Event, simulation_state: State) -> None:
         """Commit an accepted event to optional stateful submodels."""
@@ -177,6 +176,42 @@ class CompositeLCEModel(BaseModel):
             if callable(apply_event):
                 apply_event(event=event, simulation_state=simulation_state)
 
+        evaluator = getattr(self, "_batch_evaluator", None)
+        if evaluator is not None:
+            evaluator.apply_event(event, simulation_state)
+
+    def compute_probabilities(
+        self,
+        *,
+        events,
+        event_indices,
+        runtime_config: "RuntimeConfig",
+        simulation_state: State,
+    ) -> np.ndarray:
+        """Compute rates in Hz for ``events[i]`` for each ``i`` in ``event_indices``.
+
+        When both submodels are plain ``LocalClusterExpansion`` objects and
+        ``initialize_state`` received the event library, all rates are
+        evaluated in one compiled call. The result is identical to calling
+        ``compute_probability`` for each event, which is the fallback.
+        """
+        evaluator = getattr(self, "_batch_evaluator", None)
+        if evaluator is not None and evaluator.can_evaluate(
+            self, events, simulation_state
+        ):
+            return evaluator.compute(
+                self,
+                event_indices=event_indices,
+                runtime_config=runtime_config,
+                simulation_state=simulation_state,
+            )
+        return super().compute_probabilities(
+            events=events,
+            event_indices=event_indices,
+            runtime_config=runtime_config,
+            simulation_state=simulation_state,
+        )
+
     def compute_probability(
         self,
         event: Event,
@@ -184,16 +219,16 @@ class CompositeLCEModel(BaseModel):
         simulation_state: State,
     ) -> float:
         """
-        Compute the transition probability/rate in Hz for a given event using the composite LCE model.
+        Compute the transition rate in Hz for a given event using the composite LCE model.
 
-        This method calculates the transition probability for a migration event by:
+        This method calculates the transition rate for a migration event by:
         
         - Computing the site-energy difference (delta_e_site, meV) using the site model.
         - Computing the barrier energy (e_kra, meV) using the barrier LocalClusterExpansion model and its stored parameters.
         - Determining the direction of the event from the occupation vector in the State.
         - Calculating the effective barrier as: e_barrier = e_kra + delta_e_site / 2
-        - Using the Arrhenius equation to compute the probability:
-          probability = hop_available * v * np.exp(-e_barrier / (k * temperature))
+        - Using the Arrhenius equation to compute the rate:
+          rate = hop_available * v * np.exp(-e_barrier / (k * temperature))
 
         Args:
             event (Event): The migration event, containing mobile ion indices and local environment info.
@@ -201,7 +236,7 @@ class CompositeLCEModel(BaseModel):
             simulation_state (State): Contains the current occupation vector.
 
         Returns:
-            float: The computed transition probability/rate in Hz.
+            float: The computed transition rate in Hz.
         """
 
         # Get occupation from simulation_state
@@ -230,10 +265,10 @@ class CompositeLCEModel(BaseModel):
         temperature = runtime_config.temperature
         v = runtime_config.attempt_frequency
         
-        # Compute probability using Arrhenius equation
-        probability = v * np.exp(-e_barrier / (k * temperature))
+        # Compute rate using Arrhenius equation
+        rate = v * np.exp(-e_barrier / (k * temperature))
         
-        return probability
+        return rate
 
     def __str__(self):
         return f"CompositeLCEModel(site_model={self.site_model}, kra_model={self.kra_model})"
@@ -250,7 +285,7 @@ class CompositeLCEModel(BaseModel):
             "@module": self.__class__.__module__,
             "@class": self.__class__.__name__,
             "filetype": MODEL_FILETYPE,
-            "model_type": "composite_lce",
+            "model_type": self.MODEL_TYPE,
             "kra": self._submodel_as_dict(
                 self.kra_model,
                 fit_metadata=self.kra_fit_metadata,
@@ -270,7 +305,7 @@ class CompositeLCEModel(BaseModel):
     @staticmethod
     def _parameter_payload(model: LocalClusterExpansion, label: str) -> dict:
         """Extract fitted parameters from one LCE submodel."""
-        if not hasattr(model, "keci") or not hasattr(model, "empty_cluster"):
+        if getattr(model, "keci", None) is None or getattr(model, "empty_cluster", None) is None:
             raise ValueError(
                 f"Cannot serialize '{label}' model: missing fitted parameters "
                 "(expected attributes 'keci' and 'empty_cluster')."
@@ -366,13 +401,6 @@ class CompositeLCEModel(BaseModel):
         if "site" in payload and payload["site"] is not None:
             cls._validate_site_model_payload(payload["site"])
 
-    def to(self, filename: str, indent: int = 2) -> None:
-        """Write this composite model to a serialized model file."""
-        from monty.serialization import dumpfn
-
-        logger.info("Saving composite model file to: %s", filename)
-        dumpfn(self.as_dict(), filename, indent=indent)
-
     def build(self, *args, **kwargs):
         """Composite models are assembled from separately built LCE models."""
         raise NotImplementedError(
@@ -417,7 +445,7 @@ class CompositeLCEModel(BaseModel):
             raise ValueError(
                 "Site model payload must include '@module' and '@class'"
             )
-        model_cls = getattr(importlib.import_module(module_path), class_name)
+        model_cls = model_class_for_payload(payload)
         if not callable(getattr(model_cls, "from_dict", None)):
             raise ValueError(
                 f"Site model class '{module_path}.{class_name}' "
@@ -431,10 +459,117 @@ class CompositeLCEModel(BaseModel):
             )
         return model
 
-    @classmethod
-    def from_file(cls, model_file: str) -> "CompositeLCEModel":
-        """Create a CompositeLCEModel from a serialized model file."""
-        from monty.serialization import loadfn
+def _uses_default_lce_evaluation(model) -> bool:
+    """Return whether ``model`` evaluates exactly like ``LocalClusterExpansion.compute``."""
+    model_type = type(model)
+    return (
+        isinstance(model, LocalClusterExpansion)
+        and model_type.compute is LocalClusterExpansion.compute
+        and model_type._calculate_correlation is LocalClusterExpansion._calculate_correlation
+        and model.has_parameters()
+        and model.cluster_site_indices is not None
+    )
 
-        logger.info("Loading composite model file from: %s", model_file)
-        return cls.from_dict(loadfn(model_file, cls=None))
+
+class _LCEBatchRateEvaluator:
+    """Batched rate evaluation for a composite of plain LCE submodels.
+
+    It keeps an ``int64`` copy of the active-site occupations, which is updated
+    at the two hop endpoints in ``apply_event`` and fully resynchronized if
+    the ``State`` object or its step counter changes unexpectedly.
+    """
+
+    def __init__(self, kra_model, site_model, events, simulation_state):
+        self.kra_model = kra_model
+        self.site_model = site_model
+        self.events = events
+        self.event_count = len(events)
+
+        from_sites = np.empty(self.event_count, dtype=np.int64)
+        to_sites = np.empty(self.event_count, dtype=np.int64)
+        hop_codes = np.empty((self.event_count, 4), dtype=np.int64)
+        env_offsets = np.zeros(self.event_count + 1, dtype=np.int64)
+        env_sites = []
+        for event_index, event in enumerate(events):
+            from_site, to_site = event.mobile_ion_indices
+            from_sites[event_index] = int(from_site)
+            to_sites[event_index] = int(to_site)
+            hop_codes[event_index] = getattr(
+                event, "hop_state_codes", DEFAULT_HOP_STATE_CODES
+            )
+            env_sites.extend(int(site) for site in event.local_env_indices)
+            env_offsets[event_index + 1] = len(env_sites)
+        self.from_sites = from_sites
+        self.to_sites = to_sites
+        self.hop_codes = hop_codes
+        self.env_offsets = env_offsets
+        self.env_sites = np.asarray(env_sites, dtype=np.int64)
+        self._sync_occupations(simulation_state)
+
+    @classmethod
+    def build(cls, model, *, event_lib, simulation_state):
+        """Return an evaluator, or ``None`` when the model/events are not eligible."""
+        if event_lib is None or simulation_state is None:
+            return None
+        if not _uses_default_lce_evaluation(model.kra_model):
+            return None
+        if model.site_model is not None and not _uses_default_lce_evaluation(
+            model.site_model
+        ):
+            return None
+        events = getattr(event_lib, "events", event_lib)
+        try:
+            if any(len(event.mobile_ion_indices) != 2 for event in events):
+                return None
+            return cls(model.kra_model, model.site_model, events, simulation_state)
+        except (TypeError, ValueError):
+            return None
+
+    def _sync_occupations(self, simulation_state) -> None:
+        self.state = simulation_state
+        self.occupations = np.asarray(simulation_state.occupations, dtype=np.int64).copy()
+        self.state_step = simulation_state.step
+
+    def can_evaluate(self, model, events, simulation_state) -> bool:
+        return (
+            events is self.events
+            and len(events) == self.event_count
+            and model.kra_model is self.kra_model
+            and model.site_model is self.site_model
+            and simulation_state is not None
+        )
+
+    def apply_event(self, event, simulation_state) -> None:
+        if simulation_state is not self.state:
+            self._sync_occupations(simulation_state)
+            return
+        occupations = simulation_state.occupations
+        for site in event.mobile_ion_indices:
+            self.occupations[site] = occupations[site]
+        self.state_step = simulation_state.step
+
+    def compute(self, model, *, event_indices, runtime_config, simulation_state) -> np.ndarray:
+        if simulation_state is not self.state or simulation_state.step != self.state_step:
+            self._sync_occupations(simulation_state)
+        site_inputs = (
+            self.site_model.kernel_inputs()
+            if self.site_model is not None
+            else LCEKernelInputs.empty()
+        )
+        rates = np.empty(len(event_indices), dtype=np.float64)
+        composite_lce_rates(
+            rates,
+            np.asarray(event_indices, dtype=np.int64),
+            self.occupations,
+            self.from_sites,
+            self.to_sites,
+            self.hop_codes,
+            self.env_offsets,
+            self.env_sites,
+            *self.kra_model.kernel_inputs(),
+            self.site_model is not None,
+            *site_inputs,
+            float(runtime_config.attempt_frequency),
+            float(BOLTZMANN_CONSTANT_MEV_PER_K * runtime_config.temperature),
+        )
+        return rates

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import numpy as np
+import glob
+
 import pandas as pd
-import glob2, os, json
 
 """
 KMC data gathering
@@ -26,7 +26,7 @@ def search_string_list(fname, word, location):
 
 
 def gather_data(path):
-    locations = glob2.glob(path)
+    locations = glob.glob(path, recursive=True)
     data = []
     print(locations)
     for location in locations:

@@ -33,8 +33,19 @@ functions, so multicomponent sites add more decorated features.
 
 ## Fit Parameters
 
-After writing fitting inputs with `NEBDataLoader.write_fitting_inputs(...)`, fit
-the coefficients:
+Fit the coefficients directly from the loaded NEB data:
+
+```python
+params, y_pred, y_true = loader.fit(alpha=1e-4)   # sets kra_lce's parameters
+kra_lce.to("kra_lce.json")
+```
+
+`loader.fit(...)` calls `kra_lce.fit_data(correlation_matrix, targets, ...)`,
+which you can also call with your own arrays. Both fit in memory and attach
+the parameters to the model.
+
+To keep the fitting inputs as files, or to fit from files written earlier, use
+the file-based path:
 
 ```python
 fit_files = loader.write_fitting_inputs(output_dir="fit_kra")
@@ -46,7 +57,6 @@ params, y_pred, y_true = kra_lce.fit(
 )
 
 kra_lce.set_parameters(params)
-kra_lce.to("kra_lce.json")
 ```
 
 The important [`LocalClusterExpansion.fit(...)`](../modules/local_cluster_expansion.rst)
@@ -67,7 +77,8 @@ arguments are:
 - `y_pred`: model predictions for the training rows.
 - `y_true`: target values loaded from `ekra_fname`.
 
-Call `set_parameters(params)` before saving or using the LCE in kMC.
+With the file-based `fit(...)`, call `set_parameters(params)` before saving or
+using the LCE in kMC; `fit_data(...)` and `loader.fit(...)` do this for you.
 
 For a composite model, fit the KRA LCE and site-energy-difference model
 separately, then combine them:

@@ -7,6 +7,7 @@ occupation management, basis functions, and local environment comparison.
 
 from .lattice_structure import LatticeStructure
 from .active_site_order import ActiveSiteOrder
+from .species import SiteMapping
 from .local_lattice_structure import LocalLatticeStructure
 from .cluster import (
     Cluster,
@@ -20,9 +21,9 @@ from .local_site_order import (
     ordered_site_hash,
     ordered_site_signature,
 )
-from .comparator import SupercellComparator
 from .local_environment_enumerator import (
     LocalEnvironmentEnumeration,
+    LocalEnvironmentEnumerator,
     NEBEndpointPair,
     enumerate_local_environments,
     enumerate_neb_endpoint_pairs,
@@ -58,6 +59,7 @@ __all__ = [
     "LatticeStructure",
     "ActiveSiteOrder",
     "LocalLatticeStructure",
+    "SiteMapping",
     "Cluster",
     "Orbit",
     "ClusterMatcher",
@@ -66,8 +68,8 @@ __all__ = [
     "LocalSiteOrder",
     "ordered_site_hash",
     "ordered_site_signature",
-    "SupercellComparator",
     "LocalEnvironmentEnumeration",
+    "LocalEnvironmentEnumerator",
     "NEBEndpointPair",
     "enumerate_local_environments",
     "enumerate_neb_endpoint_pairs",

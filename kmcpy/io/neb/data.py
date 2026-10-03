@@ -105,7 +105,6 @@ class NEBEntry:
         self,
         model: 'LocalClusterExpansion',
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
         tol: float = 1e-2,
         angle_tol: float = 5,
     ) -> None:
@@ -117,8 +116,6 @@ class NEBEntry:
             reference_local_lattice_structure: Reference local lattice used to
                 map structures into occupation vectors. If omitted, the model
                 must carry ``local_lattice_structure`` from ``build``.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites. If omitted, the reference local lattice's
-                exclusion list is used when available.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
         """
@@ -130,7 +127,6 @@ class NEBEntry:
             self.occupation, self.correlation = model.get_occ_corr_from_structure(
                 self.structure,
                 reference_local_lattice_structure=reference,
-                exclude_species=exclude_species,
                 tol=tol,
                 angle_tol=angle_tol,
             )
@@ -156,18 +152,11 @@ class NEBDataLoader:
         self,
         model: Optional['LocalClusterExpansion'] = None,
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
     ):
         """Initialize the NEBDataLoader."""
-        if exclude_species is not None:
-            raise ValueError(
-                "exclude_species is no longer supported; encode fixed sites in "
-                "site_mapping with a single allowed species."
-            )
         self.neb_entries: List[NEBEntry] = []
         self.model = model
         self.reference_local_lattice_structure = reference_local_lattice_structure
-        self.exclude_species = None
         if model is not None:
             self.model_name = getattr(model, "name", "unknown")
 
@@ -188,7 +177,6 @@ class NEBDataLoader:
         neb_entry: NEBEntry,
         model: Optional['LocalClusterExpansion'] = None,
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
         tol: float = 1e-2,
         angle_tol: float = 5,
     ) -> None:
@@ -200,15 +188,9 @@ class NEBDataLoader:
             model: Local Cluster Expansion model instance
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
         """
-        if exclude_species is not None:
-            raise ValueError(
-                "exclude_species is no longer supported; encode fixed sites in "
-                "site_mapping with a single allowed species."
-            )
         if not isinstance(neb_entry, NEBEntry):
             raise ValueError("Entry must be a NEBEntry instance")
 
@@ -222,11 +204,6 @@ class NEBDataLoader:
         neb_entry.compute_occ_corr(
             resolved_model,
             reference_local_lattice_structure=reference,
-            exclude_species=(
-                exclude_species
-                if exclude_species is not None
-                else self.exclude_species
-            ),
             tol=tol,
             angle_tol=angle_tol,
         )
@@ -250,7 +227,6 @@ class NEBDataLoader:
         model: Optional['LocalClusterExpansion'] = None,
         metadata: Optional[Dict[str, Any]] = None,
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
         tol: float = 1e-2,
         angle_tol: float = 5,
         **from_file_kwargs,
@@ -266,7 +242,6 @@ class NEBDataLoader:
             metadata: Optional metadata stored with the entry.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
             **from_file_kwargs: Additional keyword arguments passed to pymatgen
@@ -285,7 +260,6 @@ class NEBDataLoader:
             entry,
             model=model,
             reference_local_lattice_structure=reference_local_lattice_structure,
-            exclude_species=exclude_species,
             tol=tol,
             angle_tol=angle_tol,
         )
@@ -298,7 +272,6 @@ class NEBDataLoader:
         model: Optional['LocalClusterExpansion'] = None,
         metadata: Optional[Sequence[Dict[str, Any]]] = None,
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
         tol: float = 1e-2,
         angle_tol: float = 5,
         **from_file_kwargs,
@@ -313,7 +286,6 @@ class NEBDataLoader:
             metadata: Optional metadata entries matching ``structures``.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
             **from_file_kwargs: Additional keyword arguments passed to pymatgen
@@ -334,7 +306,6 @@ class NEBDataLoader:
                 model=model,
                 metadata=entry_metadata,
                 reference_local_lattice_structure=reference_local_lattice_structure,
-                exclude_species=exclude_species,
                 tol=tol,
                 angle_tol=angle_tol,
                 **from_file_kwargs,
@@ -347,7 +318,6 @@ class NEBDataLoader:
         property_values: Sequence[float],
         model: 'LocalClusterExpansion',
         reference_local_lattice_structure: Optional[LocalLatticeStructure] = None,
-        exclude_species: Optional[Sequence[str]] = None,
         metadata: Optional[Sequence[Dict[str, Any]]] = None,
         tol: float = 1e-2,
         angle_tol: float = 5,
@@ -362,7 +332,6 @@ class NEBDataLoader:
             model: Local Cluster Expansion model instance.
             reference_local_lattice_structure: Reference local lattice used to
                 compute occupation and correlation vectors.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
             metadata: Optional metadata entries matching ``structures``.
             tol: Structure matching tolerance.
             angle_tol: Structure matching angle tolerance.
@@ -375,13 +344,11 @@ class NEBDataLoader:
         loader = cls(
             model=model,
             reference_local_lattice_structure=reference_local_lattice_structure,
-            exclude_species=exclude_species,
         )
         loader.add_structures(
             structures=structures,
             property_values=property_values,
             metadata=metadata,
-            exclude_species=exclude_species,
             tol=tol,
             angle_tol=angle_tol,
             **from_file_kwargs,
@@ -448,6 +415,29 @@ class NEBDataLoader:
                 f"weight must be a scalar or an array with shape ({n_entries},)"
             )
         return weight_array
+
+    def fit(
+        self,
+        alpha: float,
+        weights=None,
+        model: Optional['LocalClusterExpansion'] = None,
+        max_iter: int = 1000000,
+        normalize: bool = True,
+    ):
+        """Fit the model's ECIs to the loaded data in memory and attach them.
+
+        Uses the model given here or at construction. Returns
+        ``(parameters, predicted, targets)``; see
+        ``LocalClusterExpansion.fit_data``.
+        """
+        return self._resolve_model(model).fit_data(
+            self.get_correlation_matrix(),
+            self.get_properties(),
+            alpha=alpha,
+            weights=weights,
+            max_iter=max_iter,
+            normalize=normalize,
+        )
 
     def write_fitting_inputs(
         self,

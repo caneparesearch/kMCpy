@@ -1,4 +1,4 @@
-from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule, Species
+from pymatgen.core import Structure, PeriodicSite, DummySpecies, Molecule
 import numpy as np
 import logging
 from typing import List, Dict, Any
@@ -14,6 +14,28 @@ from kmcpy.structure.local_site_order import (
 
 logger = logging.getLogger(__name__) 
 logging.getLogger('pymatgen').setLevel(logging.WARNING)
+
+def resolve_center_site(structure: Structure, center) -> tuple[PeriodicSite, int | None]:
+    """Return ``(center_site, center_index)`` for a local-environment center.
+
+    ``center`` is a site index of ``structure`` or fractional coordinates. For
+    coordinates, the center is a dummy ``X`` site and ``center_index`` is
+    ``None``.
+    """
+    if isinstance(center, int):
+        return structure[center], center
+    if isinstance(center, (list, tuple, np.ndarray)):
+        return (
+            PeriodicSite(
+                species=DummySpecies("X"),
+                coords=center,
+                coords_are_cartesian=False,
+                lattice=structure.lattice.copy(),
+            ),
+            None,
+        )
+    raise ValueError("Center must be an index or a list of fractional coordinates.")
+
 
 class LocalLatticeStructure(LatticeStructure):
     """
@@ -39,15 +61,8 @@ class LocalLatticeStructure(LatticeStructure):
                  site_mapping=None,
                  basis_type = 'chebyshev',
                  is_write_basis=False, 
-                 exclude_species=None,
                  local_site_order=None,
                  exclude_center_site=None):
-        if exclude_species:
-            raise ValueError(
-                "exclude_species is no longer supported; encode fixed sites in "
-                "site_mapping with a single allowed species."
-            )
-
         # Work on a copy so local environment construction never mutates the caller's structure.
         working_structure = template_structure.copy()
         active_site_order = ActiveSiteOrder.from_structure_and_mapping(
@@ -74,31 +89,16 @@ class LocalLatticeStructure(LatticeStructure):
         self.is_write_basis = is_write_basis
         self.local_site_order = order
 
-        if isinstance(center, int):
-            self.center_site = self.template_structure[center]
-            self.center_index = center
-        elif isinstance(center, list) or isinstance(center, tuple) or isinstance(center, np.ndarray):
-            self.center_site = PeriodicSite(species=DummySpecies('X'),
-                              coords=center,
-                              coords_are_cartesian=False,
-                              lattice = self.template_structure.lattice.copy())
-            self.center_index = None
-            logger.debug(f"Dummy site: {self.center_site}")
-        else:
-            raise ValueError("Center must be an index or a list of fractional coordinates.")
-        self.exclude_species = []
-
-        local_env_sites = self.template_structure.get_sites_in_sphere(
-            self.center_site.coords, cutoff, include_index=True
+        self.center_site, self.center_index = resolve_center_site(
+            self.template_structure, center
         )
-        if self.local_site_order.exclude_center_site:
-            local_env_sites = [
-                site_info
-                for site_info in local_env_sites
-                if not self._is_center_site(site_info)
-            ]
-        
-        local_env_sites = self.local_site_order.sort_local_env_sites(local_env_sites)
+        local_env_sites = self.local_site_order.order_local_env_sites(
+            self.template_structure.get_sites_in_sphere(
+                self.center_site.coords, cutoff, include_index=True
+            ),
+            self.center_site,
+            self.center_index,
+        )
 
         self.site_indices = [site[2] for site in local_env_sites]
         
@@ -119,32 +119,6 @@ class LocalLatticeStructure(LatticeStructure):
         self.local_environment_signature = ordered_site_signature(self.structure)
         self.local_environment_hash = ordered_site_hash(self.local_environment_signature)
 
-
-    @staticmethod
-    def _normalize_exclude_species(exclude_species) -> list[str]:
-        """Return exclude tokens that match oxidized and neutral structures."""
-        tokens = []
-        for species in exclude_species or []:
-            token = str(species)
-            tokens.append(token)
-            try:
-                parsed_species = Species(token)
-            except Exception:
-                continue
-            tokens.append(str(parsed_species.symbol))
-            tokens.append(str(parsed_species.element))
-        return list(dict.fromkeys(tokens))
-
-    def _is_center_site(self, site_info) -> bool:
-        """Return whether a sphere result corresponds to the center site."""
-        site = site_info[0]
-        site_index = site_info[2]
-        if self.center_index is not None and int(site_index) == int(self.center_index):
-            return True
-        return (
-            np.linalg.norm(site.coords - self.center_site.coords)
-            <= self.local_site_order.center_match_tolerance
-        )
 
     @staticmethod
     def sort_neighbor_info(neighbor_info: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -265,23 +239,28 @@ class LocalLatticeStructure(LatticeStructure):
     @classmethod
     def from_lattice_structure(cls, lattice_structure: LatticeStructure, center, cutoff,
                                site_mapping=None, basis_type='chebyshev',
-                               is_write_basis=False, exclude_species=None,
+                               is_write_basis=False,
                                local_site_order=None, exclude_center_site=None):
         """
         Create a LocalLatticeStructure from an existing LatticeStructure.
         
         Args:
             lattice_structure (LatticeStructure): The base lattice structure.
-            center: Center site or coordinates for the local environment.
+            center: Center of the local environment: a site index of
+                ``lattice_structure.template_structure``, fractional
+                coordinates, or an event of this lattice (centered on its
+                first mobile-ion site).
             cutoff (float): Cutoff distance for the local environment.
             site_mapping (dict): Mapping of species to sites.
             basis_type (str): Type of basis to use.
             is_write_basis (bool): Whether to write the basis to a file.
-            exclude_species: Removed legacy argument; use site_mapping fixed sites.
         
         Returns:
             LocalLatticeStructure: The created local lattice structure.
         """
+        if hasattr(center, "mobile_ion_indices"):
+            active_site = int(center.mobile_ion_indices[0])
+            center = int(lattice_structure.active_site_order.active_to_primitive[active_site])
         return cls(
             template_structure=lattice_structure.template_structure,
             center=center,
@@ -293,7 +272,6 @@ class LocalLatticeStructure(LatticeStructure):
             ),
             basis_type=basis_type,
             is_write_basis=is_write_basis,
-            exclude_species=exclude_species,
             local_site_order=local_site_order,
             exclude_center_site=exclude_center_site,
         )

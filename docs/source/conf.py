@@ -51,7 +51,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
-    "nbsphinx",
     "sphinx_autodoc_typehints",
     "myst_parser",
 ]
@@ -74,7 +73,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["walkthrough/.ipynb_checkpoints/*"]
+exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -89,15 +88,12 @@ html_theme = "furo"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-nbsphinx_prompt_width = "0"
-
 master_doc = "index"
 
 
 source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
-    ".ipynb": "jupyter_notebook",
 }
 
 pygments_style = "sphinx"

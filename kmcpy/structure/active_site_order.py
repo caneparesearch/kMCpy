@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
@@ -11,11 +12,7 @@ import numpy as np
 from monty.json import MSONable
 from pymatgen.core import Structure
 
-from kmcpy.structure.species import (
-    normalize_species,
-    species_equivalent,
-    species_label,
-)
+from kmcpy.structure.species import SiteMapping, species_label
 
 
 ACTIVE_SITE_ORDER_FORMAT = "kmcpy.active_site_order.v1"
@@ -23,6 +20,7 @@ ORIGINAL_SITE_PROPERTY = "_kmcpy_original_site_index"
 PRIMITIVE_SITE_PROPERTY = "_kmcpy_primitive_site_index"
 PRIMITIVE_ACTIVE_SITE_PROPERTY = "_kmcpy_primitive_active_site_index"
 ACTIVE_SITE_PROPERTY = "_kmcpy_active_site_index"
+GEOMETRY_TOLERANCE = 1e-2  # Angstrom
 
 
 @dataclass(frozen=True)
@@ -40,6 +38,14 @@ class ActiveSiteOrder(MSONable):
     allowed_species_by_primitive_site: tuple[tuple[str, ...], ...]
     fingerprint: str
     template_structure: Structure | None = field(
+        default=None, repr=False, compare=False
+    )
+    # Supercell lattice (rows, Angstrom) and fractional active-site positions.
+    # Site indices only make sense for this geometry; see assert_same_order().
+    supercell_lattice: tuple[tuple[float, float, float], ...] | None = field(
+        default=None, repr=False, compare=False
+    )
+    active_site_frac_coords: tuple[tuple[float, float, float], ...] | None = field(
         default=None, repr=False, compare=False
     )
 
@@ -65,8 +71,8 @@ class ActiveSiteOrder(MSONable):
     ) -> "ActiveSiteOrder":
         """Build an active-site order from a full template and site mapping."""
         shape = _normalize_supercell_shape(supercell_shape)
-        allowed_species = _allowed_species_by_site(
-            template_structure, site_mapping
+        allowed_species = SiteMapping(site_mapping).allowed_species_by_site(
+            template_structure
         )
         primitive_active_indices = tuple(
             index
@@ -133,6 +139,10 @@ class ActiveSiteOrder(MSONable):
             allowed_species_by_primitive_site=allowed_species_by_primitive_site,
             fingerprint=fingerprint,
             template_structure=template_structure.copy(),
+            supercell_lattice=_rounded_rows(full_structure.lattice.matrix),
+            active_site_frac_coords=_rounded_rows(
+                full_structure.frac_coords[active_to_original]
+            ),
         )
 
     @classmethod
@@ -166,11 +176,21 @@ class ActiveSiteOrder(MSONable):
             ),
             fingerprint=str(data["fingerprint"]),
             template_structure=None,
+            supercell_lattice=_optional_rows(data.get("supercell_lattice")),
+            active_site_frac_coords=_optional_rows(data.get("active_site_frac_coords")),
         )
 
     @property
     def active_site_count(self) -> int:
         return len(self.active_to_original)
+
+    @property
+    def allowed_species_by_active_site(self) -> tuple[tuple[str, ...], ...]:
+        """Allowed species labels of each active site; occupation ``i`` is entry ``i``."""
+        return tuple(
+            self.allowed_species_by_primitive_site[primitive_site]
+            for primitive_site in self.active_to_primitive
+        )
 
     @property
     def original_to_active(self) -> dict[int, int]:
@@ -202,10 +222,20 @@ class ActiveSiteOrder(MSONable):
                 list(species) for species in self.allowed_species_by_primitive_site
             ],
             "fingerprint": self.fingerprint,
+            **(
+                {
+                    "supercell_lattice": [list(row) for row in self.supercell_lattice],
+                    "active_site_frac_coords": [
+                        list(row) for row in self.active_site_frac_coords
+                    ],
+                }
+                if self.has_geometry
+                else {}
+            ),
         }
 
     def assert_same_order(self, other: "ActiveSiteOrder | Mapping[str, Any]") -> None:
-        """Raise if another order or metadata payload describes a different site space."""
+        """Raise if another order or metadata payload describes different active sites."""
         other_order = (
             ActiveSiteOrder.from_dict(other)
             if isinstance(other, Mapping)
@@ -216,6 +246,48 @@ class ActiveSiteOrder(MSONable):
                 "Active-site order metadata does not match the current "
                 "site_mapping and structure."
             )
+        if not (self.has_geometry and other_order.has_geometry):
+            warnings.warn(
+                "Active-site order metadata has no site positions, so it cannot "
+                "be checked against the current structure geometry. Regenerate "
+                "the file with the current kMCpy to enable this check.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
+        mismatch = self._geometry_mismatch(other_order)
+        if mismatch:
+            raise ValueError(
+                "Active-site positions in the metadata do not match the current "
+                f"structure ({mismatch}). The file was generated for a different "
+                "cell or lattice basis, so its site indices refer to other sites. "
+                "Regenerate it for this structure."
+            )
+
+    @property
+    def has_geometry(self) -> bool:
+        return (
+            self.supercell_lattice is not None
+            and self.active_site_frac_coords is not None
+        )
+
+    def _geometry_mismatch(
+        self, other: "ActiveSiteOrder", tol: float = GEOMETRY_TOLERANCE
+    ) -> str | None:
+        """Describe the first lattice or site-position difference above ``tol`` (Angstrom)."""
+        lattice = np.array(self.supercell_lattice)
+        lattice_difference = np.max(np.abs(lattice - np.array(other.supercell_lattice)))
+        if lattice_difference > tol:
+            return f"supercell lattice differs by {lattice_difference:.3g} Angstrom"
+        delta = np.array(self.active_site_frac_coords) - np.array(
+            other.active_site_frac_coords
+        )
+        delta -= np.round(delta)
+        distances = np.linalg.norm(delta @ lattice, axis=1)
+        worst = int(np.argmax(distances))
+        if distances[worst] > tol:
+            return f"active site {worst} is {distances[worst]:.3g} Angstrom away"
+        return None
 
     def validate_active_indices(
         self,
@@ -368,36 +440,15 @@ def _make_supercell_with_properties(
     return supercell
 
 
-def _allowed_species_by_site(
-    template_structure: Structure,
-    site_mapping: Mapping[Any, Any],
-) -> list[tuple[Any, ...]]:
-    entries = [
-        (normalize_species(key), _normalize_allowed_species(value))
-        for key, value in site_mapping.items()
-    ]
-    allowed_species = []
-    for index, site in enumerate(template_structure):
-        matches = [
-            allowed
-            for key_species, allowed in entries
-            if species_equivalent(site.specie, key_species)
-        ]
-        if not matches:
-            raise ValueError(
-                "No site_mapping entry found for template site "
-                f"{index} with species {site.species_string}."
-            )
-        allowed_species.append(matches[0])
-    return allowed_species
-
-
-def _normalize_allowed_species(value: Any) -> tuple[Any, ...]:
-    if isinstance(value, (list, tuple)):
-        return tuple(normalize_species(item) for item in value)
-    return (normalize_species(value),)
-
-
 def _fingerprint(payload: Mapping[str, Any]) -> str:
     canonical = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _rounded_rows(values) -> tuple[tuple[float, ...], ...]:
+    return tuple(tuple(round(float(value), 8) for value in row) for row in values)
+
+
+def _optional_rows(values) -> tuple[tuple[float, ...], ...] | None:
+    return _rounded_rows(values) if values is not None else None
+

@@ -11,6 +11,7 @@ from kmcpy.structure import (
     LocalEnvironmentEnumeration,
     NEBEndpointPair,
     enumerate_local_environments,
+    LocalEnvironmentEnumerator,
     enumerate_neb_endpoint_pairs,
     generate_neb_endpoint_pair,
 )
@@ -229,3 +230,19 @@ def test_neb_endpoint_pair_rejects_invalid_hops():
     chemical_occupation = Occupation([0, 0, 0], basis=chemical_model.basis)
     with pytest.raises(ValueError, match="same first allowed mobile species"):
         generate_neb_endpoint_pair(chemical_model, chemical_occupation, (0, 1))
+
+
+def test_enumerator_object_matches_module_functions():
+    model = _chemical_lattice_model()
+    enumerator = LocalEnvironmentEnumerator(model)
+    kwargs = dict(center=0, cutoff=2.5, variable_species=["Si", "P"], variable_site_indices=[1, 2])
+
+    from_object = enumerator.enumerate(**kwargs)
+    from_function = enumerate_local_environments(model, **kwargs)
+
+    assert [result.label for result in from_object] == [result.label for result in from_function]
+    assert [result.full_occupation.data.tolist() for result in from_object] == [
+        result.full_occupation.data.tolist() for result in from_function
+    ]
+    assert enumerator.local_site_indices(0, 2.5) == from_object[0].local_site_indices
+

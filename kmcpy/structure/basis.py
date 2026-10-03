@@ -367,7 +367,7 @@ class Occupation:
             self._basis_obj = basis
             self._basis_name = basis.name
         else:
-            raise ValueError(f"Invalid basis type. Must be string or BasisFunction instance")
+            raise ValueError("Invalid basis type. Must be string or BasisFunction instance")
         
         self._data = np.array(data, dtype=type(self._basis_obj.match_value))
         

@@ -273,11 +273,27 @@ class EventLib(ABC):
             logger.warning("Event dependencies not generated. Call generate_event_dependencies() first.")
             return []
 
-        if event_index >= len(self.event_dependencies):
+        dependency_rows = self._python_dependency_rows()
+        if event_index >= len(dependency_rows):
             logger.error("Event index %d out of range", event_index)
             return []
 
-        return list(self.event_dependencies[event_index])
+        return list(dependency_rows[event_index])
+
+    def _python_dependency_rows(self) -> tuple[tuple[int, ...], ...]:
+        """Return dependency rows as plain Python tuples, cached per matrix.
+
+        Indexing a ``numba.typed.List`` from Python is slow, and KMC reads one
+        dependency row on every step.
+        """
+        cache = getattr(self, "_dependency_rows_cache", None)
+        if cache is not None and cache[0] is self.event_dependencies:
+            return cache[1]
+        rows = tuple(
+            tuple(int(index) for index in row) for row in self.event_dependencies
+        )
+        self._dependency_rows_cache = (self.event_dependencies, rows)
+        return rows
 
     def as_dict(self):
         """Convert EventLib to dictionary for serialization."""

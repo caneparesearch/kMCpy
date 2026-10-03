@@ -226,3 +226,6 @@ example/files/fitting_results_site.json
 example/files/fitting_results.json
 example/files/initial_state.json
 example/files/lce.json
+
+# Results written by the example scripts and notebook
+example/output/

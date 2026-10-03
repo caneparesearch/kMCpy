@@ -46,12 +46,13 @@ file carries this class' Monty metadata.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING
 
 import numpy as np
 
 from kmcpy.event import Event, event_direction
-from kmcpy.models.base import BaseModel, require_model_type
+from kmcpy.models.base import BaseModel
 from kmcpy.simulator.state import State
 from kmcpy.units import BOLTZMANN_CONSTANT_MEV_PER_K as K_B_MEV_PER_K
 
@@ -107,33 +108,6 @@ def _normalize_index_sequence(
     return tuple(normalized)
 
 
-def _canonical_site_indices(
-    mobile_ion_indices: tuple[int, ...], local_env_indices: tuple[int, ...]
-) -> tuple[int, ...]:
-    canonical: list[int] = []
-    seen: set[int] = set()
-    for site_index in mobile_ion_indices + local_env_indices:
-        if site_index in seen:
-            continue
-        seen.add(site_index)
-        canonical.append(site_index)
-    return tuple(canonical)
-
-
-def _event_indices(event: Event) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]:
-    mobile_ion_indices = _normalize_index_sequence(
-        event.mobile_ion_indices,
-        "event.mobile_ion_indices",
-    )
-    local_env_indices = _normalize_index_sequence(
-        event.local_env_indices,
-        "event.local_env_indices",
-        allow_empty=True,
-    )
-    canonical_sites = _canonical_site_indices(mobile_ion_indices, local_env_indices)
-    return mobile_ion_indices, local_env_indices, canonical_sites
-
-
 def _normalize_state_value(value: Any, field_name: str = "state") -> int:
     message = (
         f"'{field_name}' must be a nonnegative integer state index or one of "
@@ -159,29 +133,6 @@ def _normalize_state_value(value: Any, field_name: str = "state") -> int:
     raise ValueError(message)
 
 
-def _normalize_occupations(values: Any, field_name: str = "occupations") -> tuple[int, ...]:
-    if not isinstance(values, (list, tuple)):
-        raise TypeError(f"'{field_name}' must be a list or tuple")
-    if not values:
-        raise ValueError(f"'{field_name}' must be non-empty")
-    return tuple(_normalize_state_value(value, field_name) for value in values)
-
-
-def _normalize_pattern(values: Any) -> tuple[int | str, ...]:
-    if not isinstance(values, (list, tuple)):
-        raise TypeError("'pattern' must be a list or tuple")
-    if not values:
-        raise ValueError("'pattern' must be non-empty")
-
-    pattern: list[int | str] = []
-    for value in values:
-        if isinstance(value, str) and value.strip() == "*":
-            pattern.append("*")
-        else:
-            pattern.append(_normalize_state_value(value, "pattern"))
-    return tuple(pattern)
-
-
 def _normalize_properties(properties: Any) -> dict[str, float]:
     if not isinstance(properties, dict) or not properties:
         raise ValueError("'properties' must be a non-empty object")
@@ -196,68 +147,347 @@ def _normalize_properties(properties: Any) -> dict[str, float]:
     return normalized
 
 
-def _normalize_optional_properties(properties: Any) -> dict[str, float] | None:
-    if properties is None:
-        return None
-    return _normalize_properties(properties)
+def _occupations_at(occupations: Sequence[int], sites: tuple[int, ...]) -> tuple[int, ...]:
+    try:
+        return tuple(int(occupations[site_index]) for site_index in sites)
+    except IndexError as exc:
+        raise IndexError(
+            "Rule site index is out of range for provided simulation occupations"
+        ) from exc
 
 
-def _properties_from_rule(rule: dict[str, Any]) -> dict[str, float]:
-    properties = dict(rule.get("properties", {}))
-    if "barrier" in rule:
-        barrier = rule["barrier"]
-        if isinstance(barrier, bool) or not isinstance(barrier, (int, float)):
-            raise TypeError("'barrier' must be numeric")
-        properties.setdefault("barrier", float(barrier))
-    return _normalize_properties(properties)
+@dataclass(frozen=True)
+class EventSites:
+    """Validated site indices of one event.
 
+    ``canonical`` is ``mobile_ion_indices`` followed by ``local_env_indices``
+    with duplicates removed; exact rules store occupations in this order.
+    """
 
-def _normalize_sites_spec(value: Any, default: str) -> str | tuple[int, ...]:
-    if value is None:
-        return default
-    if isinstance(value, str):
-        token = value.strip()
-        if token not in SITE_SELECTORS:
-            raise ValueError(
-                f"Unsupported sites selector '{value}'. "
-                f"Supported selectors: {sorted(SITE_SELECTORS)}"
-            )
-        return token
-    return _normalize_index_sequence(value, "sites")
+    mobile_ion_indices: tuple[int, ...]
+    local_env_indices: tuple[int, ...]
+    canonical: tuple[int, ...]
 
-
-def _normalize_count_constraints(rule: dict[str, Any]) -> dict[str, int]:
-    constraints: dict[str, int] = {}
-    for key in COUNT_KEYS:
-        if key not in rule:
-            continue
-        value = rule[key]
-        if isinstance(value, bool) or not isinstance(value, int):
-            raise TypeError(f"'{key}' must be an integer")
-        if value < 0:
-            raise ValueError(f"'{key}' must be non-negative")
-        constraints[key] = int(value)
-
-    if not constraints:
-        raise ValueError(
-            "Count rules must provide at least one of "
-            "'count', 'min_count', or 'max_count'"
+    @classmethod
+    def from_indices(
+        cls,
+        mobile_ion_indices: Any,
+        local_env_indices: Any,
+        field_prefix: str = "",
+    ) -> "EventSites":
+        mobile = _normalize_index_sequence(
+            mobile_ion_indices, f"{field_prefix}mobile_ion_indices"
         )
-    if "count" in constraints and (
-        "min_count" in constraints or "max_count" in constraints
-    ):
-        raise ValueError("'count' cannot be combined with min_count or max_count")
-    return constraints
+        local_env = _normalize_index_sequence(
+            local_env_indices, f"{field_prefix}local_env_indices", allow_empty=True
+        )
+        return cls(mobile, local_env, tuple(dict.fromkeys(mobile + local_env)))
+
+    @classmethod
+    def from_event(cls, event: Event) -> "EventSites":
+        return cls.from_indices(
+            event.mobile_ion_indices, event.local_env_indices, field_prefix="event."
+        )
+
+    def select(self, sites: str | tuple[int, ...], site_count: int) -> tuple[int, ...]:
+        """Return the site indices chosen by a rule's ``sites`` selector."""
+        if isinstance(sites, tuple):
+            return sites
+        if sites == "canonical":
+            return self.canonical
+        if sites == "local_env":
+            return self.local_env_indices
+        if sites == "mobile_ion":
+            return self.mobile_ion_indices
+        if sites == "from":
+            return (self.mobile_ion_indices[0],)
+        if sites == "to":
+            return (self.mobile_ion_indices[1],)
+        if sites == "all":
+            return tuple(range(site_count))
+        raise ValueError(f"Unsupported sites selector '{sites}'")
 
 
-def _count_matches(count: int, constraints: dict[str, int]) -> bool:
-    if "count" in constraints and count != constraints["count"]:
-        return False
-    if "min_count" in constraints and count < constraints["min_count"]:
-        return False
-    if "max_count" in constraints and count > constraints["max_count"]:
-        return False
-    return True
+@dataclass(frozen=True)
+class BarrierRule:
+    """One validated ``LocalBarrierModel`` rule.
+
+    Build rules from plain dictionaries with :meth:`from_dict`, which accepts
+    the same keys as model files and ``LocalBarrierModel(rules=[...])``;
+    :meth:`as_dict` writes them back. Fields that do not apply to a rule's
+    ``type`` are ``None``.
+    """
+
+    name: str
+    type: str
+    properties: dict[str, float]
+    mobile_ion_indices: tuple[int, ...] | None = None
+    local_env_indices: tuple[int, ...] | None = None
+    occupations: tuple[int, ...] | None = None
+    pattern: tuple[int | str, ...] | None = None
+    sites: str | tuple[int, ...] | None = None
+    state: int | None = None
+    species: tuple[str, ...] | None = None
+    count: int | None = None
+    min_count: int | None = None
+    max_count: int | None = None
+
+    @classmethod
+    def from_dict(cls, rule: dict[str, Any], default_name: str = "rule") -> "BarrierRule":
+        """Validate and normalize a rule dictionary."""
+        if not isinstance(rule, dict):
+            raise TypeError("Each local barrier rule must be a dictionary")
+
+        rule_type = cls._parse_type(rule)
+        fields: dict[str, Any] = {
+            "name": str(rule.get("name") or default_name),
+            "type": rule_type,
+            "properties": cls._parse_properties(rule),
+        }
+        if "mobile_ion_indices" in rule:
+            fields["mobile_ion_indices"] = _normalize_index_sequence(
+                rule["mobile_ion_indices"], "mobile_ion_indices"
+            )
+        if "local_env_indices" in rule:
+            fields["local_env_indices"] = _normalize_index_sequence(
+                rule["local_env_indices"], "local_env_indices", allow_empty=True
+            )
+
+        if rule_type == "exact":
+            event_sites = EventSites.from_indices(
+                rule.get("mobile_ion_indices"), rule.get("local_env_indices")
+            )
+            occupations = cls._parse_occupations(rule.get("occupations"))
+            if len(occupations) != len(event_sites.canonical):
+                raise ValueError(
+                    "Exact rule occupation length must match canonical site count "
+                    f"({len(event_sites.canonical)}), got {len(occupations)}"
+                )
+            fields["mobile_ion_indices"] = event_sites.mobile_ion_indices
+            fields["local_env_indices"] = event_sites.local_env_indices
+            fields["occupations"] = occupations
+
+        elif rule_type == "pattern":
+            fields["sites"] = cls._parse_sites(rule.get("sites"), "canonical")
+            fields["pattern"] = cls._parse_pattern(rule.get("pattern"))
+
+        elif rule_type == "state_count":
+            fields["sites"] = cls._parse_sites(rule.get("sites"), "local_env")
+            if "occupation" in rule:
+                fields["state"] = _normalize_state_value(rule["occupation"], "occupation")
+            else:
+                fields["state"] = _normalize_state_value(rule.get("state"), "state")
+            fields.update(cls._parse_count_constraints(rule))
+
+        elif rule_type == "species_count":
+            fields["sites"] = cls._parse_sites(rule.get("sites"), "local_env")
+            fields["species"] = cls._parse_species(rule.get("species"))
+            fields.update(cls._parse_count_constraints(rule))
+
+        return cls(**fields)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Serialize to the model-file rule payload."""
+        payload: dict[str, Any] = {
+            "name": self.name,
+            "type": self.type,
+            "properties": dict(self.properties),
+        }
+        for key in ("mobile_ion_indices", "local_env_indices", "occupations", "pattern"):
+            value = getattr(self, key)
+            if value is not None:
+                payload[key] = list(value)
+        if self.sites is not None:
+            payload["sites"] = list(self.sites) if isinstance(self.sites, tuple) else self.sites
+        if self.state is not None:
+            payload["state"] = self.state
+        if self.species is not None:
+            payload["species"] = self.species[0] if len(self.species) == 1 else list(self.species)
+        for key in COUNT_KEYS:
+            value = getattr(self, key)
+            if value is not None:
+                payload[key] = value
+        return payload
+
+    @property
+    def canonical_site_indices(self) -> tuple[int, ...] | None:
+        """Canonical event sites of an exact rule, otherwise ``None``."""
+        if self.type != "exact":
+            return None
+        return tuple(dict.fromkeys(self.mobile_ion_indices + self.local_env_indices))
+
+    @property
+    def exact_key(self) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]:
+        """Identity of an exact rule, used to reject duplicates."""
+        return (self.mobile_ion_indices, self.canonical_site_indices, self.occupations)
+
+    def matches(
+        self,
+        event_sites: EventSites,
+        occupations: Sequence[int],
+        species_for_site: Callable[[int, int], str],
+    ) -> bool:
+        """Return whether this rule applies to an event in the current state."""
+        if (
+            self.mobile_ion_indices is not None
+            and self.mobile_ion_indices != event_sites.mobile_ion_indices
+        ):
+            return False
+        if (
+            self.local_env_indices is not None
+            and self.local_env_indices != event_sites.local_env_indices
+        ):
+            return False
+
+        if self.type == "constant":
+            return True
+
+        if self.type == "exact":
+            if event_sites.canonical != self.canonical_site_indices:
+                return False
+            return _occupations_at(occupations, event_sites.canonical) == self.occupations
+
+        sites = event_sites.select(self.sites, len(occupations))
+        current = _occupations_at(occupations, sites)
+
+        if self.type == "pattern":
+            if len(current) != len(self.pattern):
+                raise ValueError(
+                    f"Pattern rule '{self.name}' has length {len(self.pattern)} "
+                    f"but selected {len(current)} sites"
+                )
+            return all(
+                expected == "*" or expected == actual
+                for expected, actual in zip(self.pattern, current)
+            )
+
+        if self.type == "state_count":
+            return self._count_matches(sum(1 for value in current if value == self.state))
+
+        if self.type == "species_count":
+            species = set(self.species)
+            return self._count_matches(
+                sum(
+                    1
+                    for site_index, occupation in zip(sites, current)
+                    if species_for_site(site_index, occupation) in species
+                )
+            )
+
+        raise ValueError(f"Unsupported rule type '{self.type}'")
+
+    def _count_matches(self, count: int) -> bool:
+        if self.count is not None and count != self.count:
+            return False
+        if self.min_count is not None and count < self.min_count:
+            return False
+        if self.max_count is not None and count > self.max_count:
+            return False
+        return True
+
+    @staticmethod
+    def _parse_type(rule: dict[str, Any]) -> str:
+        rule_type = rule.get("type")
+        if rule_type is None:
+            if "occupations" in rule and "mobile_ion_indices" in rule:
+                return "exact"
+            if "pattern" in rule:
+                return "pattern"
+            if "species" in rule:
+                return "species_count"
+            if "state" in rule or "occupation" in rule:
+                return "state_count"
+            return "constant"
+
+        if not isinstance(rule_type, str) or not rule_type.strip():
+            raise ValueError("Rule 'type' must be a non-empty string")
+        rule_type = rule_type.strip()
+        if rule_type not in RULE_TYPES:
+            raise ValueError(
+                f"Unsupported local barrier rule type '{rule_type}'. "
+                f"Supported types: {sorted(RULE_TYPES)}"
+            )
+        return rule_type
+
+    @staticmethod
+    def _parse_properties(rule: dict[str, Any]) -> dict[str, float]:
+        properties = dict(rule.get("properties", {}))
+        if "barrier" in rule:
+            barrier = rule["barrier"]
+            if isinstance(barrier, bool) or not isinstance(barrier, (int, float)):
+                raise TypeError("'barrier' must be numeric")
+            properties.setdefault("barrier", float(barrier))
+        return _normalize_properties(properties)
+
+    @staticmethod
+    def _parse_occupations(values: Any) -> tuple[int, ...]:
+        if not isinstance(values, (list, tuple)):
+            raise TypeError("'occupations' must be a list or tuple")
+        if not values:
+            raise ValueError("'occupations' must be non-empty")
+        return tuple(_normalize_state_value(value, "occupations") for value in values)
+
+    @staticmethod
+    def _parse_pattern(values: Any) -> tuple[int | str, ...]:
+        if not isinstance(values, (list, tuple)):
+            raise TypeError("'pattern' must be a list or tuple")
+        if not values:
+            raise ValueError("'pattern' must be non-empty")
+        return tuple(
+            "*"
+            if isinstance(value, str) and value.strip() == "*"
+            else _normalize_state_value(value, "pattern")
+            for value in values
+        )
+
+    @staticmethod
+    def _parse_sites(value: Any, default: str) -> str | tuple[int, ...]:
+        if value is None:
+            return default
+        if isinstance(value, str):
+            token = value.strip()
+            if token not in SITE_SELECTORS:
+                raise ValueError(
+                    f"Unsupported sites selector '{value}'. "
+                    f"Supported selectors: {sorted(SITE_SELECTORS)}"
+                )
+            return token
+        return _normalize_index_sequence(value, "sites")
+
+    @staticmethod
+    def _parse_species(species: Any) -> tuple[str, ...]:
+        if isinstance(species, str):
+            return (species,)
+        if isinstance(species, (list, tuple)) and species:
+            for item in species:
+                if not isinstance(item, str) or not item.strip():
+                    raise ValueError("'species' entries must be non-empty strings")
+            return tuple(species)
+        raise ValueError("'species' must be a string or non-empty list")
+
+    @staticmethod
+    def _parse_count_constraints(rule: dict[str, Any]) -> dict[str, int]:
+        constraints: dict[str, int] = {}
+        for key in COUNT_KEYS:
+            if key not in rule:
+                continue
+            value = rule[key]
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"'{key}' must be an integer")
+            if value < 0:
+                raise ValueError(f"'{key}' must be non-negative")
+            constraints[key] = int(value)
+
+        if not constraints:
+            raise ValueError(
+                "Count rules must provide at least one of "
+                "'count', 'min_count', or 'max_count'"
+            )
+        if "count" in constraints and (
+            "min_count" in constraints or "max_count" in constraints
+        ):
+            raise ValueError("'count' cannot be combined with min_count or max_count")
+        return constraints
 
 
 def _normalize_site_species(site_species: Any) -> dict[int, dict[int, str]]:
@@ -297,143 +527,26 @@ def _site_species_as_dict(site_species: dict[int, dict[int, str]]) -> dict[str, 
     }
 
 
-def _coerce_rule_type(rule: dict[str, Any]) -> str:
-    rule_type = rule.get("type")
-    if rule_type is None:
-        if "occupations" in rule and "mobile_ion_indices" in rule:
-            return "exact"
-        if "pattern" in rule:
-            return "pattern"
-        if "species" in rule:
-            return "species_count"
-        if "state" in rule or "occupation" in rule:
-            return "state_count"
-        return "constant"
-
-    if not isinstance(rule_type, str) or not rule_type.strip():
-        raise ValueError("Rule 'type' must be a non-empty string")
-    rule_type = rule_type.strip()
-    if rule_type not in RULE_TYPES:
-        raise ValueError(
-            f"Unsupported local barrier rule type '{rule_type}'. "
-            f"Supported types: {sorted(RULE_TYPES)}"
-        )
-    return rule_type
-
-
-def _normalize_rule(rule: dict[str, Any], default_name: str) -> dict[str, Any]:
-    if not isinstance(rule, dict):
-        raise TypeError("Each local barrier rule must be a dictionary")
-
-    rule_type = _coerce_rule_type(rule)
-    normalized: dict[str, Any] = {
-        "name": str(rule.get("name") or default_name),
-        "type": rule_type,
-        "properties": _properties_from_rule(rule),
-    }
-
-    if "mobile_ion_indices" in rule:
-        normalized["mobile_ion_indices"] = _normalize_index_sequence(
-            rule["mobile_ion_indices"], "mobile_ion_indices"
-        )
-    if "local_env_indices" in rule:
-        normalized["local_env_indices"] = _normalize_index_sequence(
-            rule["local_env_indices"], "local_env_indices", allow_empty=True
-        )
-
-    if rule_type == "exact":
-        mobile_ion_indices = _normalize_index_sequence(
-            rule.get("mobile_ion_indices"), "mobile_ion_indices"
-        )
-        local_env_indices = _normalize_index_sequence(
-            rule.get("local_env_indices"),
-            "local_env_indices",
-            allow_empty=True,
-        )
-        canonical_sites = _canonical_site_indices(mobile_ion_indices, local_env_indices)
-        occupations = _normalize_occupations(rule.get("occupations"))
-        if len(occupations) != len(canonical_sites):
-            raise ValueError(
-                "Exact rule occupation length must match canonical site count "
-                f"({len(canonical_sites)}), got {len(occupations)}"
-            )
-        normalized["mobile_ion_indices"] = mobile_ion_indices
-        normalized["local_env_indices"] = local_env_indices
-        normalized["occupations"] = occupations
-        normalized["canonical_site_indices"] = canonical_sites
-
-    elif rule_type == "pattern":
-        normalized["sites"] = _normalize_sites_spec(rule.get("sites"), "canonical")
-        normalized["pattern"] = _normalize_pattern(rule.get("pattern"))
-
-    elif rule_type == "state_count":
-        normalized["sites"] = _normalize_sites_spec(rule.get("sites"), "local_env")
-        if "occupation" in rule:
-            normalized["state"] = _normalize_state_value(rule["occupation"], "occupation")
-        else:
-            normalized["state"] = _normalize_state_value(rule.get("state"), "state")
-        normalized.update(_normalize_count_constraints(rule))
-
-    elif rule_type == "species_count":
-        normalized["sites"] = _normalize_sites_spec(rule.get("sites"), "local_env")
-        species = rule.get("species")
-        if isinstance(species, str):
-            normalized["species"] = (species,)
-        elif isinstance(species, (list, tuple)) and species:
-            normalized_species = []
-            for item in species:
-                if not isinstance(item, str) or not item.strip():
-                    raise ValueError("'species' entries must be non-empty strings")
-                normalized_species.append(item)
-            normalized["species"] = tuple(normalized_species)
-        else:
-            raise ValueError("'species' must be a string or non-empty list")
-        normalized.update(_normalize_count_constraints(rule))
-
-    return normalized
-
-
-def _rule_as_dict(rule: dict[str, Any]) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "name": rule["name"],
-        "type": rule["type"],
-        "properties": dict(rule["properties"]),
-    }
-    for key in ("mobile_ion_indices", "local_env_indices", "occupations", "pattern"):
-        if key in rule:
-            payload[key] = list(rule[key])
-    if "sites" in rule:
-        sites = rule["sites"]
-        payload["sites"] = list(sites) if isinstance(sites, tuple) else sites
-    if "state" in rule:
-        payload["state"] = int(rule["state"])
-    if "species" in rule:
-        species = rule["species"]
-        payload["species"] = species[0] if len(species) == 1 else list(species)
-    for key in COUNT_KEYS:
-        if key in rule:
-            payload[key] = int(rule[key])
-    return payload
-
-
 class LocalBarrierModel(BaseModel):
     """
     Choose migration barriers from ordered local-environment rules.
 
-    ``LocalBarrierModel`` stores a list of simple rule dictionaries and evaluates
-    them against a ``State`` and ``Event``. Each rule returns a dictionary of
+    ``LocalBarrierModel`` stores an ordered list of :class:`BarrierRule` objects,
+    built from plain rule dictionaries, and evaluates them against a ``State``
+    and ``Event``. Each rule returns a dictionary of
     numeric properties; by default ``compute`` returns the ``barrier`` property.
     ``compute_probability`` then evaluates the Arrhenius rate when the current
     endpoint states match a mobile-vacancy hop.
 
     Parameters:
-        rules: Ordered rule dictionaries. The first matching rule is used.
+        rules: Ordered rule dictionaries or ``BarrierRule`` objects. The first
+            matching rule is used.
         name: Human-readable model name.
         default_properties: Property dictionary used when no rule matches.
         default_barrier: Shortcut for ``default_properties={"barrier": value}``.
         default_property: Property returned by ``compute`` when
             ``property_name`` is not supplied.
-        probability_mode: Probability calculation mode. Currently only
+        probability_mode: Rate calculation mode. Currently only
             ``"barrier_arrhenius"`` is supported.
         probability_property: Property used as the barrier in
             ``compute_probability``.
@@ -535,7 +648,11 @@ class LocalBarrierModel(BaseModel):
         self.probability_mode = probability_mode
         self.probability_property = probability_property
         self.site_species = _normalize_site_species(site_species)
-        self.default_properties = _normalize_optional_properties(default_properties)
+        self.default_properties = (
+            _normalize_properties(default_properties)
+            if default_properties is not None
+            else None
+        )
         if default_barrier is not None:
             if isinstance(default_barrier, bool) or not isinstance(
                 default_barrier, (int, float)
@@ -544,7 +661,7 @@ class LocalBarrierModel(BaseModel):
             if self.default_properties is None:
                 self.default_properties = {}
             self.default_properties.setdefault("barrier", float(default_barrier))
-        self.rules: list[dict[str, Any]] = []
+        self.rules: list[BarrierRule] = []
         self._exact_rule_keys: set[
             tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]
         ] = set()
@@ -589,10 +706,10 @@ class LocalBarrierModel(BaseModel):
         snapshot into an exact rule without manually constructing the
         occupation list.
         """
-        mobile_ion_indices, local_env_indices, canonical_sites = _event_indices(event)
+        event_sites = EventSites.from_event(event)
         try:
             occupations = [
-                int(state.occupations[site_index]) for site_index in canonical_sites
+                int(state.occupations[site_index]) for site_index in event_sites.canonical
             ]
         except IndexError as exc:
             raise IndexError(
@@ -600,8 +717,8 @@ class LocalBarrierModel(BaseModel):
             ) from exc
         entry = {
             "type": "exact",
-            "mobile_ion_indices": list(mobile_ion_indices),
-            "local_env_indices": list(local_env_indices),
+            "mobile_ion_indices": list(event_sites.mobile_ion_indices),
+            "local_env_indices": list(event_sites.local_env_indices),
             "occupations": occupations,
             "properties": dict(properties),
         }
@@ -651,29 +768,41 @@ class LocalBarrierModel(BaseModel):
                 f"Unsupported probability mode '{self.probability_mode}' for LocalBarrierModel"
             )
 
-    def _exact_key_for_rule(
-        self, rule: dict[str, Any]
-    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]:
-        return (
-            rule["mobile_ion_indices"],
-            rule["canonical_site_indices"],
-            rule["occupations"],
-        )
-
-    def add_rule(self, rule: dict[str, Any]) -> None:
-        """Add one normalized local barrier rule to the ordered rule list."""
-        normalized = _normalize_rule(rule, default_name=f"rule_{len(self.rules)}")
-        if normalized["type"] == "exact":
-            exact_key = self._exact_key_for_rule(normalized)
-            if exact_key in self._exact_rule_keys:
+    def add_rule(self, rule: dict[str, Any] | BarrierRule) -> None:
+        """Add one local barrier rule to the end of the ordered rule list."""
+        if not isinstance(rule, BarrierRule):
+            rule = BarrierRule.from_dict(rule, default_name=f"rule_{len(self.rules)}")
+        if rule.type == "exact":
+            if rule.exact_key in self._exact_rule_keys:
                 raise ValueError(
                     "Duplicate exact local-barrier rule detected: "
-                    f"mobile_ion_indices={normalized['mobile_ion_indices']}, "
-                    f"canonical_sites={normalized['canonical_site_indices']}, "
-                    f"occupations={normalized['occupations']}"
+                    f"mobile_ion_indices={rule.mobile_ion_indices}, "
+                    f"canonical_sites={rule.canonical_site_indices}, "
+                    f"occupations={rule.occupations}"
                 )
-            self._exact_rule_keys.add(exact_key)
-        self.rules.append(normalized)
+            self._exact_rule_keys.add(rule.exact_key)
+        self.rules.append(rule)
+
+    def _add_typed_rule(
+        self,
+        rule_type: str,
+        barrier: Optional[float],
+        properties: Optional[dict[str, float]],
+        name: Optional[str],
+        **fields: Any,
+    ) -> str:
+        """Add a rule built by one of the ``add_*_rule`` helpers; return its name."""
+        rule = {
+            "type": rule_type,
+            "properties": dict(properties or {}),
+            **{key: value for key, value in fields.items() if value is not None},
+        }
+        if barrier is not None:
+            rule["barrier"] = barrier
+        if name is not None:
+            rule["name"] = name
+        self.add_rule(rule)
+        return self.rules[-1].name
 
     def add_exact_rule(
         self,
@@ -690,19 +819,15 @@ class LocalBarrierModel(BaseModel):
         ``mobile_ion_indices`` and ``local_env_indices``. Use this rule type
         when the barrier is known only for one exact event/environment pattern.
         """
-        rule = {
-            "type": "exact",
-            "mobile_ion_indices": list(mobile_ion_indices),
-            "local_env_indices": list(local_env_indices),
-            "occupations": list(occupations),
-            "properties": dict(properties or {}),
-        }
-        if barrier is not None:
-            rule["barrier"] = barrier
-        if name is not None:
-            rule["name"] = name
-        self.add_rule(rule)
-        return self.rules[-1]["name"]
+        return self._add_typed_rule(
+            "exact",
+            barrier,
+            properties,
+            name,
+            mobile_ion_indices=list(mobile_ion_indices),
+            local_env_indices=list(local_env_indices),
+            occupations=list(occupations),
+        )
 
     def add_state_count_rule(
         self,
@@ -721,24 +846,17 @@ class LocalBarrierModel(BaseModel):
         aliases ``"occupied"``/``0`` and ``"vacant"``/``1`` are also accepted.
         Supply exactly one of ``count`` or a ``min_count``/``max_count`` range.
         """
-        rule = {
-            "type": "state_count",
-            "sites": sites,
-            "state": state,
-            "properties": dict(properties or {}),
-        }
-        if barrier is not None:
-            rule["barrier"] = barrier
-        if name is not None:
-            rule["name"] = name
-        if count is not None:
-            rule["count"] = count
-        if min_count is not None:
-            rule["min_count"] = min_count
-        if max_count is not None:
-            rule["max_count"] = max_count
-        self.add_rule(rule)
-        return self.rules[-1]["name"]
+        return self._add_typed_rule(
+            "state_count",
+            barrier,
+            properties,
+            name,
+            sites=sites,
+            state=state,
+            count=count,
+            min_count=min_count,
+            max_count=max_count,
+        )
 
     def add_species_count_rule(
         self,
@@ -757,24 +875,17 @@ class LocalBarrierModel(BaseModel):
         site index and current occupation value. This is appropriate for rules
         such as "use a higher barrier when at least four selected sites are Si".
         """
-        rule = {
-            "type": "species_count",
-            "sites": sites,
-            "species": species,
-            "properties": dict(properties or {}),
-        }
-        if barrier is not None:
-            rule["barrier"] = barrier
-        if name is not None:
-            rule["name"] = name
-        if count is not None:
-            rule["count"] = count
-        if min_count is not None:
-            rule["min_count"] = min_count
-        if max_count is not None:
-            rule["max_count"] = max_count
-        self.add_rule(rule)
-        return self.rules[-1]["name"]
+        return self._add_typed_rule(
+            "species_count",
+            barrier,
+            properties,
+            name,
+            sites=sites,
+            species=species,
+            count=count,
+            min_count=min_count,
+            max_count=max_count,
+        )
 
     def add_pattern_rule(
         self,
@@ -790,18 +901,9 @@ class LocalBarrierModel(BaseModel):
         aliases, or ``"*"`` wildcards. The pattern length must match the number
         of selected sites.
         """
-        rule = {
-            "type": "pattern",
-            "sites": sites,
-            "pattern": list(pattern),
-            "properties": dict(properties or {}),
-        }
-        if barrier is not None:
-            rule["barrier"] = barrier
-        if name is not None:
-            rule["name"] = name
-        self.add_rule(rule)
-        return self.rules[-1]["name"]
+        return self._add_typed_rule(
+            "pattern", barrier, properties, name, sites=sites, pattern=list(pattern)
+        )
 
     def build(
         self,
@@ -840,53 +942,6 @@ class LocalBarrierModel(BaseModel):
         for rule in rules:
             self.add_rule(rule)
 
-    def _selected_sites(
-        self,
-        sites: str | tuple[int, ...],
-        event: Event,
-        occupations: list[int],
-    ) -> tuple[int, ...]:
-        mobile_ion_indices, local_env_indices, canonical_sites = _event_indices(event)
-        if isinstance(sites, tuple):
-            return sites
-        if sites == "canonical":
-            return canonical_sites
-        if sites == "local_env":
-            return local_env_indices
-        if sites == "mobile_ion":
-            return mobile_ion_indices
-        if sites == "from":
-            return (mobile_ion_indices[0],)
-        if sites == "to":
-            return (mobile_ion_indices[1],)
-        if sites == "all":
-            return tuple(range(len(occupations)))
-        raise ValueError(f"Unsupported sites selector '{sites}'")
-
-    def _occupation_pattern(
-        self, sites: tuple[int, ...], occupations: list[int]
-    ) -> tuple[int, ...]:
-        try:
-            return tuple(int(occupations[site_index]) for site_index in sites)
-        except IndexError as exc:
-            raise IndexError(
-                "Rule site index is out of range for provided simulation occupations"
-            ) from exc
-
-    def _event_constraints_match(self, rule: dict[str, Any], event: Event) -> bool:
-        mobile_ion_indices, local_env_indices, _ = _event_indices(event)
-        if (
-            "mobile_ion_indices" in rule
-            and rule["mobile_ion_indices"] != mobile_ion_indices
-        ):
-            return False
-        if (
-            "local_env_indices" in rule
-            and rule["local_env_indices"] != local_env_indices
-        ):
-            return False
-        return True
-
     def _species_for_site(self, site_index: int, occupation: int) -> str:
         if site_index not in self.site_species:
             raise ValueError(
@@ -901,81 +956,27 @@ class LocalBarrierModel(BaseModel):
             )
         return state_mapping[occupation]
 
-    def _rule_matches(self, rule: dict[str, Any], simulation_state: State, event: Event) -> bool:
-        if not self._event_constraints_match(rule, event):
-            return False
-
-        occupations = simulation_state.occupations
-        rule_type = rule["type"]
-
-        if rule_type == "constant":
-            return True
-
-        if rule_type == "exact":
-            _, _, canonical_sites = _event_indices(event)
-            if canonical_sites != rule["canonical_site_indices"]:
-                return False
-            return (
-                self._occupation_pattern(canonical_sites, occupations)
-                == rule["occupations"]
-            )
-
-        if rule_type == "pattern":
-            sites = self._selected_sites(rule["sites"], event, occupations)
-            current_pattern = self._occupation_pattern(sites, occupations)
-            expected_pattern = rule["pattern"]
-            if len(current_pattern) != len(expected_pattern):
-                raise ValueError(
-                    f"Pattern rule '{rule['name']}' has length {len(expected_pattern)} "
-                    f"but selected {len(current_pattern)} sites"
-                )
-            return all(
-                expected == "*" or expected == actual
-                for expected, actual in zip(expected_pattern, current_pattern)
-            )
-
-        if rule_type == "state_count":
-            sites = self._selected_sites(rule["sites"], event, occupations)
-            current_pattern = self._occupation_pattern(sites, occupations)
-            count = sum(1 for value in current_pattern if value == rule["state"])
-            return _count_matches(count, rule)
-
-        if rule_type == "species_count":
-            species_to_count = set(rule["species"])
-            sites = self._selected_sites(rule["sites"], event, occupations)
-            current_pattern = self._occupation_pattern(sites, occupations)
-            count = sum(
-                1
-                for site_index, occupation in zip(sites, current_pattern)
-                if self._species_for_site(site_index, occupation) in species_to_count
-            )
-            return _count_matches(count, rule)
-
-        raise ValueError(f"Unsupported rule type '{rule_type}'")
-
     def _matched_properties(self, simulation_state: State, event: Event) -> dict[str, float]:
         if simulation_state is None:
             raise ValueError("simulation_state is required")
         if event is None:
             raise ValueError("event is required")
 
+        event_sites = EventSites.from_event(event)
+        occupations = simulation_state.occupations
         for rule in self.rules:
-            if self._rule_matches(rule, simulation_state, event):
-                return rule["properties"]
+            if rule.matches(event_sites, occupations, self._species_for_site):
+                return rule.properties
 
         if self.default_properties is not None:
             return self.default_properties
 
-        _, _, canonical_sites = _event_indices(event)
-        occupation_pattern = self._occupation_pattern(
-            canonical_sites, simulation_state.occupations
-        )
         raise KeyError(
             "No local barrier rule matched and no default_properties were provided: "
             f"mobile_ion_indices={tuple(event.mobile_ion_indices)}, "
             f"local_env_indices={tuple(event.local_env_indices)}, "
-            f"canonical_sites={canonical_sites}, "
-            f"occupations={occupation_pattern}"
+            f"canonical_sites={event_sites.canonical}, "
+            f"occupations={_occupations_at(occupations, event_sites.canonical)}"
         )
 
     def compute(
@@ -1013,10 +1014,10 @@ class LocalBarrierModel(BaseModel):
         temperature = runtime_config.temperature
         attempt_frequency = runtime_config.attempt_frequency
 
-        probability = hop_factor * attempt_frequency * np.exp(
+        rate = hop_factor * attempt_frequency * np.exp(
             -barrier / (self.BOLTZMANN_CONSTANT_MEV_PER_K * temperature)
         )
-        return float(probability)
+        return float(rate)
 
     def __str__(self) -> str:
         return (
@@ -1049,22 +1050,15 @@ class LocalBarrierModel(BaseModel):
                 else None
             ),
             "site_species": _site_species_as_dict(self.site_species),
-            "rules": [_rule_as_dict(rule) for rule in self.rules],
+            "rules": [rule.as_dict() for rule in self.rules],
         }
-
-    def to(self, filename: str, indent: int = 2) -> None:
-        """Write this local barrier model."""
-        from monty.serialization import dumpfn
-
-        dumpfn(self.as_dict(), filename, indent=indent)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "LocalBarrierModel":
         """Deserialize from in-memory payload."""
         if not isinstance(data, dict):
             raise ValueError("LocalBarrierModel payload must be a JSON object")
-        if data.get("model_type") == cls.MODEL_TYPE and cls.PAYLOAD_KEY in data:
-            data = data[cls.PAYLOAD_KEY]
+        data = cls._unwrap_model_file(data)
 
         return cls(
             rules=data.get("rules", []),
@@ -1078,18 +1072,3 @@ class LocalBarrierModel(BaseModel):
             probability_property=data.get("probability_property", "barrier"),
             site_species=data.get("site_species"),
         )
-
-    @classmethod
-    def from_file(cls, filename: str) -> "LocalBarrierModel":
-        """Load from a model file or direct model payload."""
-        from monty.serialization import loadfn
-
-        payload = loadfn(filename, cls=None)
-        if isinstance(payload, dict) and "filetype" in payload:
-            payload = require_model_type(payload, cls.MODEL_TYPE).get(cls.PAYLOAD_KEY)
-            if not isinstance(payload, dict):
-                raise ValueError(
-                    "Local barrier model file is missing object key "
-                    f"'{cls.PAYLOAD_KEY}'"
-                )
-        return cls.from_dict(payload)

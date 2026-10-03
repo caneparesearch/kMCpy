@@ -318,3 +318,31 @@ def test_exported_concrete_models_expose_pymatgen_style_constructors():
         assert callable(getattr(model_cls, "from_dict"))
         assert callable(getattr(model_cls, "from_file"))
         assert callable(getattr(model_cls, "to"))
+
+
+def test_local_cluster_expansion_declares_unset_fields():
+    model = LocalClusterExpansion()
+
+    assert model.orbits is None
+    assert model.cluster_site_indices is None
+    assert not model.has_parameters()
+    assert model.get_orbit_fingerprints() == []
+    assert repr(model) == "LocalClusterExpansion(orbits=0, sites=0)"
+    assert "Number of orbits: 0" in str(model)
+
+
+def test_local_cluster_expansion_payload_migration():
+    root = Path(__file__).parent / "files" / "input"
+    payload = json.loads((root / "lce.json").read_text())
+    reference = LocalClusterExpansion.from_dict(payload).as_dict()
+
+    legacy = dict(payload)
+    legacy["MigrationUnit_structure"] = legacy.pop("migration_unit_structure", None) or legacy.pop(
+        "MigrationUnit_structure"
+    )
+    legacy["clusters"] = [{"unused": True}]
+    assert LocalClusterExpansion.from_dict(legacy).as_dict() == reference
+
+    with pytest.warns(UserWarning, match=r"unknown LocalClusterExpansion payload keys: \['surprise'\]"):
+        model = LocalClusterExpansion.from_dict({**payload, "surprise": 1})
+    assert not hasattr(model, "surprise")

@@ -13,6 +13,7 @@ import hashlib
 import json
 from typing import Any, Iterable, Sequence
 
+import numpy as np
 from monty.json import MSONable
 
 
@@ -131,6 +132,31 @@ class LocalSiteOrder(MSONable):
     def sort_local_env_sites(self, local_env_sites: list[Any]) -> list[Any]:
         """Sort ``get_sites_in_sphere`` results according to this order."""
         return sorted(local_env_sites, key=lambda item: self._sort_key(item[0]))
+
+    def order_local_env_sites(
+        self,
+        local_env_sites: list[Any],
+        center_site: Any,
+        center_index: int | None,
+    ) -> list[Any]:
+        """Apply the center-site policy, then sort ``get_sites_in_sphere`` results.
+
+        ``center_index`` is the center's site index, or ``None`` for an
+        abstract fractional-coordinate center.
+        """
+        if self.exclude_center_site:
+            local_env_sites = [
+                site_info
+                for site_info in local_env_sites
+                if not self._is_center_site(site_info, center_site, center_index)
+            ]
+        return self.sort_local_env_sites(local_env_sites)
+
+    def _is_center_site(self, site_info, center_site, center_index) -> bool:
+        site, site_index = site_info[0], site_info[2]
+        if center_index is not None and int(site_index) == int(center_index):
+            return True
+        return np.linalg.norm(site.coords - center_site.coords) <= self.center_match_tolerance
 
     def _sort_key(self, site: Any) -> tuple[Any, ...]:
         values: list[Any] = []

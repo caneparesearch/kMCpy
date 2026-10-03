@@ -7,6 +7,8 @@ from typing import Any
 
 import numpy as np
 
+from kmcpy.structure.species import is_vacancy_species
+
 
 DEFAULT_HOP_STATE_CODES = (0, 1, 1, 0)
 INVALID_STATE = -1
@@ -44,9 +46,9 @@ class HopStateLookup:
                 int(primitive_index)
             ]
             for state_index, specie_label in enumerate(allowed):
-                if _is_mobile_label(specie_label, mobile_ion_specie):
+                if str(specie_label) == str(mobile_ion_specie):
                     mobile[active_index] = int(state_index)
-                if _is_vacancy_label(specie_label):
+                if is_vacancy_species(specie_label):
                     vacancy[active_index] = int(state_index)
 
         return cls(mobile_state_by_site=mobile, vacancy_state_by_site=vacancy)
@@ -87,11 +89,3 @@ def endpoint_direction_from_codes(
     if from_occ == codes[2] and to_occ == codes[3]:
         return -1
     return 0
-
-
-def _is_mobile_label(specie_label: str, mobile_ion_specie: str) -> bool:
-    return str(specie_label) == str(mobile_ion_specie)
-
-
-def _is_vacancy_label(specie_label: str) -> bool:
-    return str(specie_label) in {"X", "Vacancy", "vacancy", "Va", "VA"}
